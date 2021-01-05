@@ -1,1 +1,8 @@
-
+-e .
+qtpy
+pyqt5<5.15
+pymmcore
+napari[all]
+numpy
+scikit-image
+matplotlib
