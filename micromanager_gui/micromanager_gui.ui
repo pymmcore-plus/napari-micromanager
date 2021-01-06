@@ -128,7 +128,11 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QComboBox" name="objective_comboBox"/>
+       <widget class="QComboBox" name="objective_comboBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
       <item row="0" column="1">
        <widget class="Line" name="line_13">
@@ -218,6 +222,13 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_6">
+      <item row="0" column="9">
+       <widget class="Line" name="line_11">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="5">
        <widget class="QLineEdit" name="y_lineEdit">
         <property name="readOnly">
@@ -293,9 +304,9 @@
        </widget>
       </item>
       <item row="0" column="8">
-       <widget class="Line" name="line_11">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
+       <widget class="QPushButton" name="pos_update_Button">
+        <property name="text">
+         <string>Update</string>
         </property>
        </widget>
       </item>
@@ -311,7 +322,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="snap_tab">
        <attribute name="title">
