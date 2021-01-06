@@ -2,7 +2,7 @@ import sys
 from qtpy.QtWidgets import QApplication
 import napari
 
-from micromanager_gui.main_window import MainWindow
+from main_window import MainWindow
 
 
 with napari.gui_qt():
