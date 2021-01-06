@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="micromanager",
+    name="micromanager-gui",
     version="0.0.1",
-    description="A micromanager gui in python.",
+    description="A python gui for micro-manager",
     author="Federico Gasparoli",
     author_email="federico.gasparoli@gmail.com",
     url="https://github.com/fdrgsp/micromanager.git",
