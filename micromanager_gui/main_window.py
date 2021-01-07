@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 #from qtpy import QtWidgets as QtW
 from PyQt5 import QtWidgets as QtW
@@ -63,6 +64,7 @@ class MainWindow(QtW.QMainWindow):
         super().__init__()
 
         self.viewer = viewer
+        self.worker = None
 
         uic.loadUi(UI_FILE, self)#load QtDesigner .ui file
 
@@ -74,6 +76,12 @@ class MainWindow(QtW.QMainWindow):
         self.load_cgf_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
         self.pos_update_Button.clicked.connect(self.update_stage_position)
+
+        self.snap_Button.clicked.connect(self.snap)
+        self.live_Button.clicked.connect(self.toggle_live)
+
+        #connect comboBox
+        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
 
 
         
@@ -106,18 +114,16 @@ class MainWindow(QtW.QMainWindow):
             self.bin_comboBox.addItems(bin_opts)
             self.bin_comboBox.setCurrentText(mmcore.getProperty(cam_device, "Binning"))
         if "BitDepth" in cam_props:
-            bit_opts = mmcore.getAllowedPropertyValues(cam_device, "BitDepth")
-            self.bit_comboBox.addItems(sorted(bit_opts))
+            bit_opts = mmcore.getAllowedPropertyValues(cam_device, "BitDepth")         
+            self.bit_comboBox.addItems(sorted(bit_opts, key=lambda x: int(x)))
             self.bit_comboBox.setCurrentText(mmcore.getProperty(cam_device, "BitDepth"))
 
         # Get Objective Options
         if "Objective" in mmcore.getLoadedDevices():
+            mmcore.setPosition("Z_Stage", 50)#just to test, should be removed
             obj_opts = mmcore.getStateLabels("Objective")
             self.objective_comboBox.addItems(obj_opts)
             self.objective_comboBox.setCurrentText(obj_opts[0])
-
-            mmcore.setPosition("Z_Stage", 50)#just to test, should be zero
-            #func to change obj
             
         # Get Channel List
         if "Channel" in mmcore.getAvailableConfigGroups():
@@ -128,7 +134,6 @@ class MainWindow(QtW.QMainWindow):
 
         self.update_stage_position()
 
-
     def update_stage_position(self):
         x = mmcore.getXPosition()
         y = mmcore.getYPosition()
@@ -137,8 +142,66 @@ class MainWindow(QtW.QMainWindow):
         self.y_lineEdit.setText(str(y))
         self.z_lineEdit.setText(str(z))
 
+    def change_objective(self):
+        print('changeing objective...')
+        currentZ = mmcore.getPosition("Z_Stage")
+        print(f"currentZ: {currentZ}")
+        mmcore.setPosition("Z_Stage", 0)  # set low z position
+        mmcore.waitForDevice("Z_Stage")
+        self.update_stage_position()
+        print(self.objective_comboBox.currentText())
+        mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
+        mmcore.waitForDevice("Objective")
+        print(f"downpos: {mmcore.getPosition('Z_Stage')}")
+        mmcore.setPosition("Z_Stage", currentZ)
+        mmcore.waitForDevice("Z_Stage")
+        print(f"upagain: {mmcore.getPosition('Z_Stage')}")
+        print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
+        self.update_stage_position()
 
+    def update_viewer(self, data):
+        try:
+            self.viewer.layers["preview"].data = data
+        except KeyError:
+            self.viewer.add_image(data, name="preview")
 
+    def snap(self):
+        self.stop_live()
+        mmcore.setExposure(int(self.exp_spinBox.value()))
+        mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
+        mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+        mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
+        # mmcore.waitForDevice('')
+        mmcore.snapImage()
+        self.update_viewer(mmcore.getImage())
+
+    def start_live(self):
+        from napari.qt import thread_worker
+
+        @thread_worker(connect={"yielded": self.update_viewer})
+        def live_mode():
+            import time
+
+            while True:
+                mmcore.setExposure(int(self.exp_spinBox.value()))
+                mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
+                mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+                mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
+                mmcore.snapImage()
+                yield mmcore.getImage()
+                time.sleep(0.03)
+
+        self.live_Button.setText("Stop")
+        self.worker = live_mode()
+
+    def stop_live(self):
+        if self.worker:
+            self.worker.quit()
+            self.worker = None
+            self.live_Button.setText("Live")
+
+    def toggle_live(self, event=None):
+        self.stop_live() if self.worker is not None else self.start_live()
        
         
 

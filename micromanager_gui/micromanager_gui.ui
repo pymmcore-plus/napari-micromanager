@@ -453,7 +453,11 @@
            </widget>
           </item>
           <item row="0" column="3">
-           <widget class="QSpinBox" name="exp_spinBox"/>
+           <widget class="QSpinBox" name="exp_spinBox">
+            <property name="maximum">
+             <number>100000</number>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
