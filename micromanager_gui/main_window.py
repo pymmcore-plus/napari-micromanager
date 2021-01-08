@@ -14,6 +14,8 @@ from qtpy.QtWidgets import QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 
+import numpy as np
+
 
 #dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent/'icons'
@@ -64,6 +66,9 @@ class MainWindow(QtW.QMainWindow):
     exp_spinBox: QtW.QSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
+
+    max_val_lineEdit: QtW.QLineEdit
+    min_val_lineEdit: QtW.QLineEdit
 
     def enable(self):#Eeable the gui
         self.objective_comboBox.setEnabled(True)
@@ -145,6 +150,8 @@ class MainWindow(QtW.QMainWindow):
         cfg_name=os.path.basename(str(self.new_cfg_file))
         self.cfg_LineEdit.setText(str(cfg_name))
         self.disable()
+        self.max_val_lineEdit.setText("None")
+        self.min_val_lineEdit.setText("None")
 
     def load_cfg(self):
         self.enable()
@@ -175,6 +182,8 @@ class MainWindow(QtW.QMainWindow):
             bit_opts = mmcore.getAllowedPropertyValues(cam_device, "BitDepth")         
             self.bit_comboBox.addItems(sorted(bit_opts, key=lambda x: int(x)))
             self.bit_comboBox.setCurrentText(mmcore.getProperty(cam_device, "BitDepth"))
+            if '16' in bit_opts:
+                self.bit_comboBox.setCurrentText('16')
 
         # Get Objective Options
         if "Objective" in mmcore.getLoadedDevices():
@@ -191,6 +200,9 @@ class MainWindow(QtW.QMainWindow):
             print("Could not find 'Channel' in the ConfigGroups")
 
         self.update_stage_position()
+
+        self.max_val_lineEdit.setText("None")
+        self.min_val_lineEdit.setText("None")
 
     def update_stage_position(self):
         x = int(mmcore.getXPosition())
@@ -285,6 +297,17 @@ class MainWindow(QtW.QMainWindow):
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
 
+        try:
+            min_v = np.min(self.viewer.layers["preview"].data)
+            self.min_val_lineEdit.setText(str(min_v))
+            max_v = np.max(self.viewer.layers["preview"].data)
+            self.max_val_lineEdit.setText(str(max_v))
+        except KeyError:
+            pass
+        
+
+
+
     def start_live(self):
         from napari.qt import thread_worker
 
@@ -299,6 +322,15 @@ class MainWindow(QtW.QMainWindow):
                 mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
                 mmcore.snapImage()
                 yield mmcore.getImage()
+
+                try:
+                    min_v = np.min(self.viewer.layers["preview"].data)
+                    self.min_val_lineEdit.setText(str(min_v))
+                    max_v = np.max(self.viewer.layers["preview"].data)
+                    self.max_val_lineEdit.setText(str(max_v))
+                except KeyError:
+                    pass
+
                 time.sleep(0.03)
 
         self.live_Button.setText("Stop")
