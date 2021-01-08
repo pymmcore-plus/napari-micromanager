@@ -107,8 +107,8 @@ class MainWindow(QtW.QMainWindow):
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
         self.pos_update_Button.clicked.connect(self.update_stage_position)
 
-        self.left_Button.clicked.connect(self.stage_left)
-        self.right_Button.clicked.connect(self.stage_right)
+        self.left_Button.clicked.connect(self.stage_x_left)
+        self.right_Button.clicked.connect(self.stage_x_right)
         self.y_up_Button.clicked.connect(self.stage_y_up)
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
@@ -200,7 +200,7 @@ class MainWindow(QtW.QMainWindow):
         self.y_lineEdit.setText(str('%.0f'%y))
         self.z_lineEdit.setText(str('%.1f'%z))
 
-    def stage_left(self):
+    def stage_x_left(self):
         xpos = mmcore.getXPosition()
         ypos = mmcore.getYPosition()
         val = int(self.xy_step_size_SpinBox.value())
@@ -209,7 +209,7 @@ class MainWindow(QtW.QMainWindow):
         self.x_lineEdit.setText((str('%.0f'%x_new)))
         mmcore.waitForDevice("XY_Stage")
     
-    def stage_right(self):
+    def stage_x_right(self):
         xpos = mmcore.getXPosition()
         ypos = mmcore.getYPosition()
         val = int(self.xy_step_size_SpinBox.value())
