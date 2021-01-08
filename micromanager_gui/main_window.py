@@ -43,16 +43,21 @@ class MainWindow(QtW.QMainWindow):
     browse_cfg_Button: QtW.QPushButton
     load_cgf_Button: QtW.QPushButton
 
+    objective_groupBox: QtW.QGroupBox
     objective_comboBox: QtW.QComboBox
     
+    camera_groupBox: QtW.QGroupBox
     bin_comboBox: QtW.QComboBox
     bit_comboBox: QtW.QComboBox
 
+    camera_groupBox: QtW.QGroupBox
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     z_lineEdit: QtW.QLineEdit
     pos_update_Button: QtW.QPushButton
 
+    XY_groupBox: QtW.QGroupBox
+    Z_groupBox: QtW.QGroupBox
     left_Button: QtW.QPushButton
     right_Button: QtW.QPushButton
     y_up_Button: QtW.QPushButton
@@ -75,26 +80,26 @@ class MainWindow(QtW.QMainWindow):
         self.bin_comboBox.setEnabled(True)
         self.bit_comboBox.setEnabled(True)
         self.pos_update_Button.setEnabled(True)
-        self.tabWidget.setEnabled(True)
         self.left_Button.setEnabled(True)
         self.right_Button.setEnabled(True)
         self.y_up_Button.setEnabled(True)
         self.y_down_Button.setEnabled(True)
         self.up_Button.setEnabled(True)
         self.down_Button.setEnabled(True)
+        self.tabWidget.setEnabled(True)
     
     def disable(self):#Disable the gui (if .cfg is not loaded)
         self.objective_comboBox.setEnabled(False)
         self.bin_comboBox.setEnabled(False)
         self.bit_comboBox.setEnabled(False)
         self.pos_update_Button.setEnabled(False)
-        self.tabWidget.setEnabled(False)
         self.left_Button.setEnabled(False)
         self.right_Button.setEnabled(False)
         self.y_up_Button.setEnabled(False)
         self.y_down_Button.setEnabled(False)
         self.up_Button.setEnabled(False)
         self.down_Button.setEnabled(False)
+        self.tabWidget.setEnabled(False)
 
 
     def __init__(self, viewer):
