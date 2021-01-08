@@ -11,6 +11,12 @@ from pathlib import Path
 import pymmcore
 from qtpy.QtWidgets import QFileDialog
 
+from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
+
+
+#dir_path = Path(__file__).parent
+icon_path = Path(__file__).parent/'icons'
 
 
 UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
@@ -51,7 +57,6 @@ class MainWindow(QtW.QMainWindow):
     live_Button: QtW.QPushButton
 
 
-
     def enable(self):#Eeable the gui
         self.objective_comboBox.setEnabled(True)
         self.bin_comboBox.setEnabled(True)
@@ -79,6 +84,13 @@ class MainWindow(QtW.QMainWindow):
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
+
+        #button's icon
+        self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
+        self.snap_Button.setIconSize(QtCore.QSize(30,30))
+        self.live_Button.setIcon(QIcon(str(icon_path/'play.png')))
+        #self.live_Button.setIcon(QIcon(str(icon_path/'play_circled.png')))
+        self.live_Button.setIconSize(QtCore.QSize(30,30)) 
 
         #connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -199,9 +211,21 @@ class MainWindow(QtW.QMainWindow):
             self.worker.quit()
             self.worker = None
             self.live_Button.setText("Live")
+            
 
     def toggle_live(self, event=None):
-        self.stop_live() if self.worker is not None else self.start_live()
+        if self.worker == None:
+            self.start_live()
+            self.live_Button.setIcon(QIcon(str(icon_path/'stop.png')))
+            self.live_Button.setIconSize(QtCore.QSize(30,30)) 
+        else:
+            self.stop_live()
+            self.live_Button.setIcon(QIcon(str(icon_path/'play.png')))
+            self.live_Button.setIconSize(QtCore.QSize(30,30)) 
+        #same as writing:
+        #self.stop_live() if self.worker is not None else self.start_live()
+
+
        
         
 
