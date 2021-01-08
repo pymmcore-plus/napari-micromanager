@@ -70,7 +70,7 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
-    def enable(self):#Eeable the gui
+    def enable(self):#Enable the gui (when .cfg is loaded)
         self.objective_comboBox.setEnabled(True)
         self.bin_comboBox.setEnabled(True)
         self.bit_comboBox.setEnabled(True)
@@ -83,7 +83,7 @@ class MainWindow(QtW.QMainWindow):
         self.up_Button.setEnabled(True)
         self.down_Button.setEnabled(True)
     
-    def disable(self):#Eeable the gui
+    def disable(self):#Disable the gui (if .cfg is not loaded)
         self.objective_comboBox.setEnabled(False)
         self.bin_comboBox.setEnabled(False)
         self.bit_comboBox.setEnabled(False)
@@ -105,13 +105,13 @@ class MainWindow(QtW.QMainWindow):
 
         uic.loadUi(UI_FILE, self)#load QtDesigner .ui file
 
-        self.cfg_LineEdit.setText(DEFAULT_CFG_NAME)#fill cfg line with
+        self.cfg_LineEdit.setText(DEFAULT_CFG_NAME)#fill cfg line with DEFAULT_CFG_NAME ('demo.cfg')
 
         #connect buttons
         self.load_cgf_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
-        self.pos_update_Button.clicked.connect(self.update_stage_position)
 
+        self.pos_update_Button.clicked.connect(self.update_stage_position)
         self.left_Button.clicked.connect(self.stage_x_left)
         self.right_Button.clicked.connect(self.stage_x_right)
         self.y_up_Button.clicked.connect(self.stage_y_up)
@@ -123,6 +123,7 @@ class MainWindow(QtW.QMainWindow):
         self.live_Button.clicked.connect(self.toggle_live)
 
         #button's icon
+        #arrows icons
         self.left_Button.setIcon(QIcon(str(icon_path/'left.png')))
         self.left_Button.setIconSize(QtCore.QSize(30,30)) 
         self.right_Button.setIcon(QIcon(str(icon_path/'right.png')))
@@ -135,7 +136,7 @@ class MainWindow(QtW.QMainWindow):
         self.up_Button.setIconSize(QtCore.QSize(30,30)) 
         self.down_Button.setIcon(QIcon(str(icon_path/'z_down.png')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
-
+        #snap/live icons
         self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
         self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
