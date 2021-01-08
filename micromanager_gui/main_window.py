@@ -19,8 +19,7 @@ from PyQt5 import QtCore
 icon_path = Path(__file__).parent/'icons'
 
 
-#UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
-UI_FILE = str(Path(__file__).parent / "micromanager_gui_test.ui")
+UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
 DEFAULT_CFG_FILE = str((Path(__file__).parent / "demo_config.cfg").absolute())#look for the 'demo_config.cfg' in the parent folder 
 DEFAULT_CFG_NAME = 'demo.cfg'
 
@@ -54,9 +53,12 @@ class MainWindow(QtW.QMainWindow):
 
     left_Button: QtW.QPushButton
     right_Button: QtW.QPushButton
+    y_up_Button: QtW.QPushButton
+    y_down_Button: QtW.QPushButton
     up_Button: QtW.QPushButton
     down_Button: QtW.QPushButton
-    course_fine_comboBox: QtW.QComboBox
+    xy_step_size_SpinBox: QtW.QSpinBox
+    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     snap_channel_comboBox: QtW.QComboBox
     exp_spinBox: QtW.QSpinBox
@@ -71,9 +73,10 @@ class MainWindow(QtW.QMainWindow):
         self.tabWidget.setEnabled(True)
         self.left_Button.setEnabled(True)
         self.right_Button.setEnabled(True)
+        self.y_up_Button.setEnabled(True)
+        self.y_down_Button.setEnabled(True)
         self.up_Button.setEnabled(True)
         self.down_Button.setEnabled(True)
-        self.course_fine_comboBox.setEnabled(True)
     
     def disable(self):#Eeable the gui
         self.objective_comboBox.setEnabled(False)
@@ -83,9 +86,10 @@ class MainWindow(QtW.QMainWindow):
         self.tabWidget.setEnabled(False)
         self.left_Button.setEnabled(False)
         self.right_Button.setEnabled(False)
+        self.y_up_Button.setEnabled(False)
+        self.y_down_Button.setEnabled(False)
         self.up_Button.setEnabled(False)
         self.down_Button.setEnabled(False)
-        self.course_fine_comboBox.setEnabled(False)
 
 
     def __init__(self, viewer):
@@ -96,8 +100,6 @@ class MainWindow(QtW.QMainWindow):
 
         uic.loadUi(UI_FILE, self)#load QtDesigner .ui file
 
-        
-
         self.cfg_LineEdit.setText(DEFAULT_CFG_NAME)#fill cfg line with
 
         #connect buttons
@@ -107,8 +109,10 @@ class MainWindow(QtW.QMainWindow):
 
         self.left_Button.clicked.connect(self.stage_left)
         self.right_Button.clicked.connect(self.stage_right)
-        self.up_Button.clicked.connect(self.stage_up)
-        self.down_Button.clicked.connect(self.stage_down)
+        self.y_up_Button.clicked.connect(self.stage_y_up)
+        self.y_down_Button.clicked.connect(self.stage_y_down)
+        self.up_Button.clicked.connect(self.stage_z_up)
+        self.down_Button.clicked.connect(self.stage_z_down)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
@@ -118,18 +122,19 @@ class MainWindow(QtW.QMainWindow):
         self.left_Button.setIconSize(QtCore.QSize(30,30)) 
         self.right_Button.setIcon(QIcon(str(icon_path/'right.png')))
         self.right_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.up_Button.setIcon(QIcon(str(icon_path/'up.png')))
+        self.y_up_Button.setIcon(QIcon(str(icon_path/'up.png')))
+        self.y_up_Button.setIconSize(QtCore.QSize(30,30)) 
+        self.y_down_Button.setIcon(QIcon(str(icon_path/'down.png')))
+        self.y_down_Button.setIconSize(QtCore.QSize(30,30))
+        self.up_Button.setIcon(QIcon(str(icon_path/'z_up.png')))
         self.up_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.down_Button.setIcon(QIcon(str(icon_path/'down.png')))
+        self.down_Button.setIcon(QIcon(str(icon_path/'z_down.png')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
 
         self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
         self.live_Button.setIcon(QIcon(str(icon_path/'play.png')))
         self.live_Button.setIconSize(QtCore.QSize(30,30)) 
-
-
-        self.course_fine_comboBox.addItems(['course','fine','extra fine'])
 
         #connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -193,87 +198,59 @@ class MainWindow(QtW.QMainWindow):
         z = int(mmcore.getPosition("Z_Stage"))
         self.x_lineEdit.setText(str('%.0f'%x))
         self.y_lineEdit.setText(str('%.0f'%y))
-        self.z_lineEdit.setText(str('%.0f'%z))
+        self.z_lineEdit.setText(str('%.1f'%z))
 
     def stage_left(self):
-        if self.course_fine_comboBox.currentText()=='course':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + (- 100)),0) 
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
-        if self.course_fine_comboBox.currentText()=='fine':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + (- 10)),0) 
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
-        if self.course_fine_comboBox.currentText()=='extra fine':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + (- 1)),0) 
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
+        xpos = mmcore.getXPosition()
+        ypos = mmcore.getYPosition()
+        val = int(self.xy_step_size_SpinBox.value())
+        mmcore.setXYPosition((xpos + (- val)),ypos) 
+        x_new = int(mmcore.getXPosition())
+        self.x_lineEdit.setText((str('%.0f'%x_new)))
+        mmcore.waitForDevice("XY_Stage")
     
     def stage_right(self):
-        if self.course_fine_comboBox.currentText()=='course':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + 100),0)
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
-        if self.course_fine_comboBox.currentText()=='fine':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + 10),0)
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
-        if self.course_fine_comboBox.currentText()=='extra fine':
-            pos = mmcore.getXPosition()
-            mmcore.setXYPosition((pos + 1),0)
-            x_new = int(mmcore.getXPosition())
-            self.x_lineEdit.setText((str('%.0f'%x_new)))
-            mmcore.waitForDevice("XY_Stage")
+        xpos = mmcore.getXPosition()
+        ypos = mmcore.getYPosition()
+        val = int(self.xy_step_size_SpinBox.value())
+        mmcore.setXYPosition((xpos + val),ypos) 
+        x_new = int(mmcore.getXPosition())
+        self.x_lineEdit.setText((str('%.0f'%x_new)))
+        mmcore.waitForDevice("XY_Stage")
 
-    def stage_up(self):
-        if self.course_fine_comboBox.currentText()=='course':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + 100) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
-        if self.course_fine_comboBox.currentText()=='fine':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + 10) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
-        if self.course_fine_comboBox.currentText()=='extra fine':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + 1) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
+    def stage_y_up(self):
+        xpos = mmcore.getXPosition()
+        ypos = mmcore.getYPosition()
+        val = int(self.xy_step_size_SpinBox.value())
+        mmcore.setXYPosition(xpos,(ypos + val)) 
+        y_new = int(mmcore.getYPosition())
+        self.y_lineEdit.setText((str('%.0f'%y_new)))
+        mmcore.waitForDevice("XY_Stage")
 
-    def stage_down(self):
-        if self.course_fine_comboBox.currentText()=='course':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + (-100)) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
-        if self.course_fine_comboBox.currentText()=='fine':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + (-10)) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
-        if self.course_fine_comboBox.currentText()=='extra fine':
-            zpos = mmcore.getPosition("Z_Stage")
-            mmcore.setPosition("Z_Stage", zpos + (-1)) 
-            z_new = int(mmcore.getPosition("Z_Stage"))
-            self.z_lineEdit.setText((str('%.0f'%z_new)))
-            mmcore.waitForDevice("Z_Stage")
+    def stage_y_down(self):
+        xpos = mmcore.getXPosition()
+        ypos = mmcore.getYPosition()
+        val = int(self.xy_step_size_SpinBox.value())
+        mmcore.setXYPosition(xpos,(ypos + (- val))) 
+        y_new = int(mmcore.getYPosition())
+        self.y_lineEdit.setText((str('%.0f'%y_new)))
+        mmcore.waitForDevice("XY_Stage")
+        
+    def stage_z_up(self):
+        zpos = mmcore.getPosition("Z_Stage")
+        z_val = float(self.z_step_size_doubleSpinBox.value())
+        mmcore.setPosition("Z_Stage", zpos + z_val) 
+        z_new = float(mmcore.getPosition("Z_Stage"))
+        self.z_lineEdit.setText((str('%.1f'%z_new)))
+        mmcore.waitForDevice("Z_Stage")
+    
+    def stage_z_down(self):
+        zpos = mmcore.getPosition("Z_Stage")
+        z_val = float(self.z_step_size_doubleSpinBox.value())
+        mmcore.setPosition("Z_Stage", zpos + (-z_val)) 
+        z_new = float(mmcore.getPosition("Z_Stage"))
+        self.z_lineEdit.setText((str('%.1f'%z_new)))
+        mmcore.waitForDevice("Z_Stage")
 
     def change_objective(self):
         print('changeing objective...')
