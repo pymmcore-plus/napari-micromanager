@@ -138,7 +138,7 @@ class MainWindow(QtW.QMainWindow):
 
         self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
-        self.live_Button.setIcon(QIcon(str(icon_path/'play.png')))
+        self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
         self.live_Button.setIconSize(QtCore.QSize(30,30)) 
 
         #connect comboBox
@@ -305,9 +305,6 @@ class MainWindow(QtW.QMainWindow):
         except KeyError:
             pass
         
-
-
-
     def start_live(self):
         from napari.qt import thread_worker
 
@@ -346,11 +343,11 @@ class MainWindow(QtW.QMainWindow):
         #same as writing: self.stop_live() if self.worker is not None else self.start_live()
         if self.worker == None:
             self.start_live()
-            self.live_Button.setIcon(QIcon(str(icon_path/'stop.png')))
+            self.live_Button.setIcon(QIcon(str(icon_path/'vcamera_stop.png')))
             self.live_Button.setIconSize(QtCore.QSize(30,30)) 
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(icon_path/'play.png')))
+            self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
             self.live_Button.setIconSize(QtCore.QSize(30,30)) 
         
 
