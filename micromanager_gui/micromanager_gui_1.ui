@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>536</width>
+    <width>525</width>
     <height>755</height>
    </rect>
   </property>
@@ -375,7 +375,16 @@
                </property>
                <layout class="QGridLayout" name="gridLayout_7">
                 <item row="0" column="0">
-                 <layout class="QGridLayout" name="gridLayout_4">
+                 <layout class="QGridLayout" name="gridLayout_4" rowstretch="0,0,0">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="horizontalSpacing">
+                   <number>7</number>
+                  </property>
+                  <property name="verticalSpacing">
+                   <number>0</number>
+                  </property>
                   <item row="0" column="1" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                    <widget class="QPushButton" name="y_up_Button">
                     <property name="enabled">
@@ -383,8 +392,8 @@
                     </property>
                     <property name="maximumSize">
                      <size>
-                      <width>50</width>
-                      <height>30</height>
+                      <width>30</width>
+                      <height>20</height>
                      </size>
                     </property>
                     <property name="text">
@@ -399,7 +408,7 @@
                     </property>
                     <property name="maximumSize">
                      <size>
-                      <width>50</width>
+                      <width>20</width>
                       <height>30</height>
                      </size>
                     </property>
@@ -412,6 +421,12 @@
                    <widget class="QSpinBox" name="xy_step_size_SpinBox">
                     <property name="enabled">
                      <bool>false</bool>
+                    </property>
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
                     </property>
                     <property name="maximumSize">
                      <size>
@@ -443,7 +458,7 @@
                     </property>
                     <property name="maximumSize">
                      <size>
-                      <width>50</width>
+                      <width>20</width>
                       <height>30</height>
                      </size>
                     </property>
@@ -459,8 +474,8 @@
                     </property>
                     <property name="maximumSize">
                      <size>
-                      <width>50</width>
-                      <height>30</height>
+                      <width>30</width>
+                      <height>20</height>
                      </size>
                     </property>
                     <property name="text">
@@ -527,8 +542,8 @@
                       </property>
                       <property name="maximumSize">
                        <size>
-                        <width>50</width>
-                        <height>30</height>
+                        <width>30</width>
+                        <height>20</height>
                        </size>
                       </property>
                       <property name="text">
@@ -543,8 +558,8 @@
                       </property>
                       <property name="maximumSize">
                        <size>
-                        <width>50</width>
-                        <height>30</height>
+                        <width>30</width>
+                        <height>20</height>
                        </size>
                       </property>
                       <property name="text">
@@ -740,7 +755,7 @@
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>40</height>
+                <height>1000</height>
                </size>
               </property>
              </spacer>

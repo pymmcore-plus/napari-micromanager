@@ -186,23 +186,23 @@ class MainWindow(QtW.QMainWindow):
 
         #button's icon
         #arrows icons
-        self.left_Button.setIcon(QIcon(str(icon_path/'left.png')))
+        self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1.svg')))
         self.left_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.right_Button.setIcon(QIcon(str(icon_path/'right.png')))
+        self.right_Button.setIcon(QIcon(str(icon_path/'right_arrow_1.svg')))
         self.right_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.y_up_Button.setIcon(QIcon(str(icon_path/'up.png')))
+        self.y_up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1.svg')))
         self.y_up_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.y_down_Button.setIcon(QIcon(str(icon_path/'down.png')))
+        self.y_down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1.svg')))
         self.y_down_Button.setIconSize(QtCore.QSize(30,30))
-        self.up_Button.setIcon(QIcon(str(icon_path/'z_up.png')))
+        self.up_Button.setIcon(QIcon(str(icon_path/'up_arrow.svg')))
         self.up_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.down_Button.setIcon(QIcon(str(icon_path/'z_down.png')))
+        self.down_Button.setIcon(QIcon(str(icon_path/'down_arrow.svg')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
         #snap/live icons
-        self.snap_Button.setIcon(QIcon(str(icon_path/'camera.svg')))
+        self.snap_Button.setIcon(QIcon(str(icon_path/'cam.svg')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
-        self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
-        self.live_Button.setIconSize(QtCore.QSize(30,30)) 
+        self.live_Button.setIcon(QIcon(str(icon_path/'vcam.svg')))
+        self.live_Button.setIconSize(QtCore.QSize(40,40)) 
 
         #connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -401,18 +401,19 @@ class MainWindow(QtW.QMainWindow):
             self.worker.quit()
             self.worker = None
             self.live_Button.setText("Live")
-            self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
+            self.live_Button.setIcon(QIcon(str(icon_path/'vcam.svg')))
+            self.live_Button.setIconSize(QtCore.QSize(40,40)) 
             
     def toggle_live(self, event=None):
         #same as writing: self.stop_live() if self.worker is not None else self.start_live()
         if self.worker == None:
             self.start_live()
-            self.live_Button.setIcon(QIcon(str(icon_path/'vcamera_stop.png')))
-            self.live_Button.setIconSize(QtCore.QSize(30,30)) 
+            self.live_Button.setIcon(QIcon(str(icon_path/'cam_stop.svg')))
+            self.live_Button.setIconSize(QtCore.QSize(40,40)) 
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
-            self.live_Button.setIconSize(QtCore.QSize(30,30)) 
+            self.live_Button.setIcon(QIcon(str(icon_path/'vcam.svg')))
+        self.live_Button.setIconSize(QtCore.QSize(40,40)) 
         
 
 
