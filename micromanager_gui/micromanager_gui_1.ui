@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>464</width>
+    <width>536</width>
     <height>755</height>
    </rect>
   </property>
@@ -134,6 +134,9 @@
                    <verstretch>0</verstretch>
                   </sizepolicy>
                  </property>
+                 <property name="toolTipDuration">
+                  <number>0</number>
+                 </property>
                 </widget>
                </item>
               </layout>
@@ -222,15 +225,9 @@
           <property name="title">
            <string>Stage</string>
           </property>
-          <layout class="QGridLayout" name="gridLayout_41">
+          <layout class="QGridLayout" name="gridLayout_12">
            <item row="0" column="0">
-            <layout class="QGridLayout" name="gridLayout_21">
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
+            <layout class="QGridLayout" name="gridLayout_11">
              <item row="0" column="0">
               <widget class="QGroupBox" name="position_groupBox">
                <property name="enabled">
@@ -275,6 +272,9 @@
                   </item>
                   <item row="0" column="1">
                    <widget class="QLineEdit" name="x_lineEdit">
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
                     <property name="readOnly">
                      <bool>true</bool>
                     </property>
@@ -282,6 +282,9 @@
                   </item>
                   <item row="1" column="1">
                    <widget class="QLineEdit" name="y_lineEdit">
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
                     <property name="readOnly">
                      <bool>true</bool>
                     </property>
@@ -315,6 +318,9 @@
                   </item>
                   <item row="2" column="1">
                    <widget class="QLineEdit" name="z_lineEdit">
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
                     <property name="readOnly">
                      <bool>true</bool>
                     </property>
@@ -360,7 +366,7 @@
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>120</width>
+                 <width>16777215</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -369,87 +375,98 @@
                </property>
                <layout class="QGridLayout" name="gridLayout_7">
                 <item row="0" column="0">
-                 <layout class="QVBoxLayout" name="verticalLayout">
-                  <item>
+                 <layout class="QGridLayout" name="gridLayout_4">
+                  <item row="0" column="1" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+                   <widget class="QPushButton" name="y_up_Button">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QPushButton" name="left_Button">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
                    <widget class="QSpinBox" name="xy_step_size_SpinBox">
                     <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>46</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                    <property name="buttonSymbols">
+                     <enum>QAbstractSpinBox::NoButtons</enum>
+                    </property>
+                    <property name="showGroupSeparator" stdset="0">
                      <bool>false</bool>
                     </property>
                     <property name="maximum">
                      <number>10000</number>
                     </property>
                     <property name="value">
-                     <number>1</number>
+                     <number>100</number>
                     </property>
                    </widget>
                   </item>
-                  <item>
-                   <layout class="QGridLayout" name="gridLayout_4">
-                    <item row="1" column="0">
-                     <widget class="QPushButton" name="y_up_Button">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>30</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QPushButton" name="right_Button">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>30</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="0">
-                     <widget class="QPushButton" name="left_Button">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>30</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="1" column="1">
-                     <widget class="QPushButton" name="y_down_Button">
-                      <property name="enabled">
-                       <bool>false</bool>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>50</width>
-                        <height>30</height>
-                       </size>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
+                  <item row="1" column="2" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+                   <widget class="QPushButton" name="right_Button">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+                   <widget class="QPushButton" name="y_down_Button">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>50</width>
+                      <height>30</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
                   </item>
                  </layout>
                 </item>
@@ -484,6 +501,12 @@
                     <property name="enabled">
                      <bool>false</bool>
                     </property>
+                    <property name="alignment">
+                     <set>Qt::AlignCenter</set>
+                    </property>
+                    <property name="buttonSymbols">
+                     <enum>QAbstractSpinBox::NoButtons</enum>
+                    </property>
                     <property name="maximum">
                      <double>10000.000000000000000</double>
                     </property>
@@ -497,7 +520,7 @@
                   </item>
                   <item>
                    <layout class="QGridLayout" name="gridLayout_5">
-                    <item row="0" column="0">
+                    <item row="0" column="0" alignment="Qt::AlignHCenter">
                      <widget class="QPushButton" name="up_Button">
                       <property name="enabled">
                        <bool>false</bool>
@@ -513,7 +536,7 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="1" column="0">
+                    <item row="1" column="0" alignment="Qt::AlignHCenter">
                      <widget class="QPushButton" name="down_Button">
                       <property name="enabled">
                        <bool>false</bool>
@@ -740,7 +763,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>454</width>
+                 <width>460</width>
                  <height>594</height>
                 </rect>
                </property>
@@ -859,7 +882,7 @@
                           <number>2</number>
                          </property>
                          <attribute name="horizontalHeaderDefaultSectionSize">
-                          <number>127</number>
+                          <number>150</number>
                          </attribute>
                          <attribute name="verticalHeaderVisible">
                           <bool>false</bool>
@@ -938,6 +961,9 @@
                                <height>16777215</height>
                               </size>
                              </property>
+                             <property name="alignment">
+                              <set>Qt::AlignCenter</set>
+                             </property>
                              <property name="maximum">
                               <number>10000</number>
                              </property>
@@ -968,8 +994,14 @@
                                <height>0</height>
                               </size>
                              </property>
+                             <property name="alignment">
+                              <set>Qt::AlignCenter</set>
+                             </property>
                              <property name="maximum">
                               <double>10000.000000000000000</double>
+                             </property>
+                             <property name="singleStep">
+                              <double>0.010000000000000</double>
                              </property>
                             </widget>
                            </item>
@@ -1011,6 +1043,9 @@
                            </item>
                            <item row="0" column="1">
                             <widget class="QSpinBox" name="frames_spinBox">
+                             <property name="alignment">
+                              <set>Qt::AlignCenter</set>
+                             </property>
                              <property name="maximum">
                               <number>10000</number>
                              </property>
@@ -1046,6 +1081,9 @@
                                <width>50</width>
                                <height>16777215</height>
                               </size>
+                             </property>
+                             <property name="alignment">
+                              <set>Qt::AlignCenter</set>
                              </property>
                              <property name="maximum">
                               <number>10000</number>
@@ -1089,7 +1127,7 @@
                         <number>3</number>
                        </property>
                        <attribute name="horizontalHeaderDefaultSectionSize">
-                        <number>102</number>
+                        <number>120</number>
                        </attribute>
                        <attribute name="verticalHeaderVisible">
                         <bool>false</bool>

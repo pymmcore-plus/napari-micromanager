@@ -21,7 +21,7 @@ import numpy as np
 icon_path = Path(__file__).parent/'icons'
 
 
-UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
+UI_FILE = str(Path(__file__).parent / "micromanager_gui_1.ui")
 DEFAULT_CFG_FILE = str((Path(__file__).parent / "demo_config.cfg").absolute())#look for the 'demo_config.cfg' in the parent folder 
 DEFAULT_CFG_NAME = 'demo.cfg'
 
@@ -199,10 +199,9 @@ class MainWindow(QtW.QMainWindow):
         self.down_Button.setIcon(QIcon(str(icon_path/'z_down.png')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
         #snap/live icons
-        #self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
-        self.snap_Button.setIcon(QIcon(str(icon_path/'camera_1.svg')))
+        self.snap_Button.setIcon(QIcon(str(icon_path/'camera.svg')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
-        self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
+        self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
         self.live_Button.setIconSize(QtCore.QSize(30,30)) 
 
         #connect comboBox
@@ -402,6 +401,7 @@ class MainWindow(QtW.QMainWindow):
             self.worker.quit()
             self.worker = None
             self.live_Button.setText("Live")
+            self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
             
     def toggle_live(self, event=None):
         #same as writing: self.stop_live() if self.worker is not None else self.start_live()
@@ -411,7 +411,7 @@ class MainWindow(QtW.QMainWindow):
             self.live_Button.setIconSize(QtCore.QSize(30,30)) 
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
+            self.live_Button.setIcon(QIcon(str(icon_path/'videocamera.svg')))
             self.live_Button.setIconSize(QtCore.QSize(30,30)) 
         
 
