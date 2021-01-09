@@ -75,31 +75,88 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
+    save_groupBox: QtW.QGroupBox
+    fname_lineEdit: QtW.QLineEdit
+    dir_lineEdit: QtW.QLineEdit
+    browse_save_Button: QtW.QPushButton
+
+    channel_groupBox: QtW.QGroupBox
+    channel_tableWidget: QtW.QTableWidget
+    add_ch_Button: QtW.QPushButton
+    clear_ch_Button: QtW.QPushButton
+    remove_ch_Button: QtW.QPushButton
+
+    time_groupBox: QtW.QGroupBox
+    frames_spinBox: QtW.QSpinBox
+    interval_spinBox: QtW.QSpinBox
+    time_comboBox: QtW.QComboBox
+
+    stack_groupBox: QtW.QGroupBox
+    step_spinBox: QtW.QSpinBox
+    step_size_doubleSpinBox: QtW.QDoubleSpinBox
+    
+    stage_pos_groupBox: QtW.QGroupBox
+    stage_tableWidget: QtW.QTableWidget
+    add_pos_Button: QtW.QPushButton
+    clear_pos_Button: QtW.QPushButton
+    remove_pos_Button: QtW.QPushButton
+
+    acquisition_order_comboBox: QtW.QComboBox
+    run_Button: QtW.QPushButton
+
+
+
     def enable(self):#Enable the gui (when .cfg is loaded)
         self.objective_comboBox.setEnabled(True)
         self.bin_comboBox.setEnabled(True)
         self.bit_comboBox.setEnabled(True)
         self.pos_update_Button.setEnabled(True)
+        self.xy_step_size_SpinBox.setEnabled(True)
+        self.z_step_size_doubleSpinBox.setEnabled(True)
         self.left_Button.setEnabled(True)
         self.right_Button.setEnabled(True)
         self.y_up_Button.setEnabled(True)
         self.y_down_Button.setEnabled(True)
         self.up_Button.setEnabled(True)
         self.down_Button.setEnabled(True)
-        self.tabWidget.setEnabled(True)
-    
+        self.snap_channel_comboBox.setEnabled(True)
+        self.exp_spinBox.setEnabled(True)
+        self.snap_Button.setEnabled(True)
+        self.live_Button.setEnabled(True)
+        self.save_groupBox.setEnabled(True)
+        self.channel_groupBox.setEnabled(True)
+        self.stage_pos_groupBox.setEnabled(True)
+        self.time_groupBox.setEnabled(True)
+        self.stack_groupBox.setEnabled(True)
+        self.acquisition_order_comboBox.setEnabled(True)
+        self.run_Button.setEnabled(True)
+        
     def disable(self):#Disable the gui (if .cfg is not loaded)
         self.objective_comboBox.setEnabled(False)
         self.bin_comboBox.setEnabled(False)
         self.bit_comboBox.setEnabled(False)
         self.pos_update_Button.setEnabled(False)
+        self.xy_step_size_SpinBox.setEnabled(False)
+        self.z_step_size_doubleSpinBox.setEnabled(False)
         self.left_Button.setEnabled(False)
         self.right_Button.setEnabled(False)
         self.y_up_Button.setEnabled(False)
         self.y_down_Button.setEnabled(False)
         self.up_Button.setEnabled(False)
         self.down_Button.setEnabled(False)
-        self.tabWidget.setEnabled(False)
+        self.snap_channel_comboBox.setEnabled(False)
+        self.exp_spinBox.setEnabled(False)
+        self.snap_Button.setEnabled(False)
+        self.live_Button.setEnabled(False)
+        self.save_groupBox.setEnabled(False)
+        self.channel_groupBox.setEnabled(False)
+        self.stage_pos_groupBox.setEnabled(False)
+        self.time_groupBox.setEnabled(False)
+        self.stack_groupBox.setEnabled(False)
+        self.acquisition_order_comboBox.setEnabled(False)
+        self.run_Button.setEnabled(False)
+
+        
 
 
     def __init__(self, viewer):
