@@ -199,7 +199,8 @@ class MainWindow(QtW.QMainWindow):
         self.down_Button.setIcon(QIcon(str(icon_path/'z_down.png')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
         #snap/live icons
-        self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
+        #self.snap_Button.setIcon(QIcon(str(icon_path/'camera.png')))
+        self.snap_Button.setIcon(QIcon(str(icon_path/'camera_1.svg')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
         self.live_Button.setIcon(QIcon(str(icon_path/'vcamera.png')))
         self.live_Button.setIconSize(QtCore.QSize(30,30)) 
