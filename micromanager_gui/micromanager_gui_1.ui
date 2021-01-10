@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>525</width>
+    <width>593</width>
     <height>755</height>
    </rect>
   </property>
@@ -20,7 +20,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout_14">
+   <layout class="QGridLayout" name="gridLayout_35">
     <item row="0" column="0">
      <layout class="QGridLayout" name="gridLayout_27">
       <item row="0" column="0">
@@ -396,6 +396,43 @@
                       <height>20</height>
                      </size>
                     </property>
+                    <property name="palette">
+                     <palette>
+                      <active>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>179</red>
+                          <green>179</green>
+                          <blue>179</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </active>
+                      <inactive>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>179</red>
+                          <green>179</green>
+                          <blue>179</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </inactive>
+                      <disabled>
+                       <colorrole role="Button">
+                        <brush brushstyle="SolidPattern">
+                         <color alpha="255">
+                          <red>179</red>
+                          <green>179</green>
+                          <blue>179</blue>
+                         </color>
+                        </brush>
+                       </colorrole>
+                      </disabled>
+                     </palette>
+                    </property>
                     <property name="text">
                      <string/>
                     </property>
@@ -512,29 +549,10 @@
                 <item row="0" column="0">
                  <layout class="QVBoxLayout" name="verticalLayout_2">
                   <item>
-                   <widget class="QDoubleSpinBox" name="z_step_size_doubleSpinBox">
-                    <property name="enabled">
-                     <bool>false</bool>
-                    </property>
-                    <property name="alignment">
-                     <set>Qt::AlignCenter</set>
-                    </property>
-                    <property name="buttonSymbols">
-                     <enum>QAbstractSpinBox::NoButtons</enum>
-                    </property>
-                    <property name="maximum">
-                     <double>10000.000000000000000</double>
-                    </property>
-                    <property name="singleStep">
-                     <double>1.000000000000000</double>
-                    </property>
-                    <property name="value">
-                     <double>1.000000000000000</double>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
                    <layout class="QGridLayout" name="gridLayout_5">
+                    <property name="verticalSpacing">
+                     <number>10</number>
+                    </property>
                     <item row="0" column="0" alignment="Qt::AlignHCenter">
                      <widget class="QPushButton" name="up_Button">
                       <property name="enabled">
@@ -551,7 +569,7 @@
                       </property>
                      </widget>
                     </item>
-                    <item row="1" column="0" alignment="Qt::AlignHCenter">
+                    <item row="2" column="0" alignment="Qt::AlignHCenter">
                      <widget class="QPushButton" name="down_Button">
                       <property name="enabled">
                        <bool>false</bool>
@@ -564,6 +582,28 @@
                       </property>
                       <property name="text">
                        <string/>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QDoubleSpinBox" name="z_step_size_doubleSpinBox">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                      <property name="buttonSymbols">
+                       <enum>QAbstractSpinBox::NoButtons</enum>
+                      </property>
+                      <property name="maximum">
+                       <double>10000.000000000000000</double>
+                      </property>
+                      <property name="singleStep">
+                       <double>1.000000000000000</double>
+                      </property>
+                      <property name="value">
+                       <double>1.000000000000000</double>
                       </property>
                      </widget>
                     </item>
@@ -593,7 +633,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>0</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="snap_live_tab">
          <attribute name="title">
@@ -632,7 +672,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Snap</string>
+                 <string> Snap</string>
                 </property>
                </widget>
               </item>
@@ -673,7 +713,29 @@
                    <property name="enabled">
                     <bool>false</bool>
                    </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
                   </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <spacer name="horizontalSpacer_2">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>50</width>
+                     <height>1</height>
+                    </size>
+                   </property>
+                  </spacer>
                  </item>
                 </layout>
                </widget>
@@ -687,7 +749,7 @@
                  <item row="0" column="1">
                   <widget class="QLabel" name="label_12">
                    <property name="text">
-                    <string>milliseconds</string>
+                    <string> ms</string>
                    </property>
                   </widget>
                  </item>
@@ -771,6 +833,9 @@
          <layout class="QGridLayout" name="gridLayout_57">
           <item row="0" column="0">
            <layout class="QGridLayout" name="gridLayout_37">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
             <item row="0" column="0">
              <widget class="QScrollArea" name="scrollArea">
               <property name="widgetResizable">
@@ -784,7 +849,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>464</width>
+                 <width>517</width>
                  <height>594</height>
                 </rect>
                </property>
@@ -1300,6 +1365,611 @@
          <attribute name="title">
           <string>OptoCaMP</string>
          </attribute>
+         <layout class="QGridLayout" name="gridLayout_61">
+          <item row="0" column="0">
+           <layout class="QGridLayout" name="gridLayout_13">
+            <item row="0" column="0">
+             <widget class="QScrollArea" name="scrollArea_2">
+              <property name="widgetResizable">
+               <bool>true</bool>
+              </property>
+              <widget class="QWidget" name="scrollAreaWidgetContents_2">
+               <property name="geometry">
+                <rect>
+                 <x>0</x>
+                 <y>0</y>
+                 <width>517</width>
+                 <height>795</height>
+                </rect>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_62">
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_21">
+                  <item row="0" column="0">
+                   <widget class="QGroupBox" name="arduino_groupBox">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>85</height>
+                     </size>
+                    </property>
+                    <property name="title">
+                     <string>Arduino</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_17">
+                     <item row="0" column="0">
+                      <layout class="QGridLayout" name="gridLayout_14">
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <item row="0" column="1">
+                        <widget class="QComboBox" name="arduino_board_comboBox"/>
+                       </item>
+                       <item row="0" column="2">
+                        <widget class="QPushButton" name="detect_board_Button">
+                         <property name="maximumSize">
+                          <size>
+                           <width>130</width>
+                           <height>16777215</height>
+                          </size>
+                         </property>
+                         <property name="text">
+                          <string>Detect Board</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item row="0" column="0">
+                        <widget class="QLabel" name="label_2">
+                         <property name="maximumSize">
+                          <size>
+                           <width>95</width>
+                           <height>16777215</height>
+                          </size>
+                         </property>
+                         <property name="text">
+                          <string>Arduino Board:</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <layout class="QGridLayout" name="gridLayout_15">
+                    <item row="0" column="2">
+                     <widget class="QGroupBox" name="oc_channel_groupBox">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>300</width>
+                        <height>16777215</height>
+                       </size>
+                      </property>
+                      <property name="title">
+                       <string>Channel</string>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_28">
+                       <item row="0" column="0">
+                        <widget class="QComboBox" name="oc_channel_comboBox">
+                         <property name="minimumSize">
+                          <size>
+                           <width>0</width>
+                           <height>0</height>
+                          </size>
+                         </property>
+                         <property name="maximumSize">
+                          <size>
+                           <width>140</width>
+                           <height>16777215</height>
+                          </size>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QGroupBox" name="exp_groupBox_1">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>85</height>
+                       </size>
+                      </property>
+                      <property name="title">
+                       <string>Exposure Time</string>
+                      </property>
+                      <layout class="QGridLayout" name="gridLayout_16">
+                       <item row="0" column="0">
+                        <layout class="QGridLayout" name="gridLayout_22">
+                         <item row="0" column="0">
+                          <widget class="QSpinBox" name="exp_spinBox_1">
+                           <property name="enabled">
+                            <bool>false</bool>
+                           </property>
+                           <property name="maximumSize">
+                            <size>
+                             <width>100</width>
+                             <height>16777215</height>
+                            </size>
+                           </property>
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="minimum">
+                            <number>1</number>
+                           </property>
+                           <property name="maximum">
+                            <number>100000</number>
+                           </property>
+                           <property name="value">
+                            <number>100</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QLabel" name="label_21">
+                           <property name="text">
+                            <string> ms</string>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <spacer name="horizontalSpacer_4">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeType">
+                       <enum>QSizePolicy::Fixed</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>70</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                   </layout>
+                  </item>
+                  <item row="2" column="0">
+                   <widget class="Line" name="line">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0">
+                   <widget class="QGroupBox" name="frames_groupBox">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="title">
+                     <string>Frames</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_29">
+                     <item row="0" column="0">
+                      <layout class="QGridLayout" name="gridLayout_30">
+                       <item row="0" column="0">
+                        <layout class="QGridLayout" name="gridLayout_31">
+                         <item row="1" column="1">
+                          <widget class="QSpinBox" name="interval_spinBox_1">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>1000</number>
+                           </property>
+                           <property name="value">
+                            <number>55</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="0">
+                          <widget class="QLabel" name="label_4">
+                           <property name="text">
+                            <string>Pulses:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QSpinBox" name="delay_spinBox">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>1000</number>
+                           </property>
+                           <property name="value">
+                            <number>20</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="0">
+                          <widget class="QLabel" name="label_3">
+                           <property name="text">
+                            <string>Interval (frames):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="1">
+                          <widget class="QSpinBox" name="Pulses_spinBox">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>100</number>
+                           </property>
+                           <property name="value">
+                            <number>5</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="label_5">
+                           <property name="text">
+                            <string>Initial Delay (frames):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="2">
+                          <spacer name="horizontalSpacer_3">
+                           <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                           </property>
+                           <property name="sizeType">
+                            <enum>QSizePolicy::Fixed</enum>
+                           </property>
+                           <property name="sizeHint" stdset="0">
+                            <size>
+                             <width>150</width>
+                             <height>20</height>
+                            </size>
+                           </property>
+                          </spacer>
+                         </item>
+                        </layout>
+                       </item>
+                       <item row="1" column="0">
+                        <layout class="QGridLayout" name="gridLayout_32">
+                         <item row="2" column="0" colspan="2">
+                          <widget class="QLabel" name="label_10">
+                           <property name="text">
+                            <string>Recording Time (s):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="0" colspan="2">
+                          <widget class="QLabel" name="label_11">
+                           <property name="minimumSize">
+                            <size>
+                             <width>129</width>
+                             <height>0</height>
+                            </size>
+                           </property>
+                           <property name="text">
+                            <string>Total Frames:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="2">
+                          <widget class="QLineEdit" name="tot_frames_lineEdit">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="2" column="2">
+                          <widget class="QLineEdit" name="rec_time_lineEdit">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="3">
+                          <spacer name="horizontalSpacer_5">
+                           <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                           </property>
+                           <property name="sizeType">
+                            <enum>QSizePolicy::Fixed</enum>
+                           </property>
+                           <property name="sizeHint" stdset="0">
+                            <size>
+                             <width>150</width>
+                             <height>20</height>
+                            </size>
+                           </property>
+                          </spacer>
+                         </item>
+                         <item row="1" column="0" colspan="2">
+                          <widget class="QLabel" name="label_23">
+                           <property name="text">
+                            <string>Frames with Pulse:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="2">
+                          <widget class="QLineEdit" name="frame_w_pulses_lineEdit"/>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item row="4" column="0">
+                   <widget class="Line" name="line_2">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="0">
+                   <widget class="QGroupBox" name="led_groupBox">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="title">
+                     <string>LED</string>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_33">
+                     <item row="0" column="0">
+                      <layout class="QGridLayout" name="gridLayout_34">
+                       <item row="0" column="0">
+                        <layout class="QGridLayout" name="gridLayout_36">
+                         <item row="1" column="0">
+                          <widget class="QLabel" name="label_24">
+                           <property name="text">
+                            <string>LED Power Increment:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QSpinBox" name="led_start_pwr_spinBox">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>100</number>
+                           </property>
+                           <property name="value">
+                            <number>1</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="1">
+                          <widget class="QSpinBox" name="led_pwr_inc_spinBox">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>100</number>
+                           </property>
+                           <property name="value">
+                            <number>1</number>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="label_25">
+                           <property name="text">
+                            <string>LED Start Power (%):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="2">
+                          <spacer name="horizontalSpacer_6">
+                           <property name="orientation">
+                            <enum>Qt::Horizontal</enum>
+                           </property>
+                           <property name="sizeType">
+                            <enum>QSizePolicy::Fixed</enum>
+                           </property>
+                           <property name="sizeHint" stdset="0">
+                            <size>
+                             <width>150</width>
+                             <height>20</height>
+                            </size>
+                           </property>
+                          </spacer>
+                         </item>
+                        </layout>
+                       </item>
+                       <item row="1" column="0">
+                        <layout class="QGridLayout" name="gridLayout_41">
+                         <item row="0" column="0" colspan="2">
+                          <widget class="QLabel" name="label_26">
+                           <property name="text">
+                            <string>LED Power(s) (%):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="2">
+                          <widget class="QLineEdit" name="led_pwrs_lineEdit">
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="0" colspan="2">
+                          <widget class="QLabel" name="label_27">
+                           <property name="text">
+                            <string>LED Max Power (%):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="2">
+                          <widget class="QLineEdit" name="led_max_pwr_lineEdit">
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item row="6" column="0">
+                   <widget class="Line" name="line_3">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="7" column="0">
+                   <widget class="QGroupBox" name="save_groupBox_rec">
+                    <property name="enabled">
+                     <bool>false</bool>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>123</height>
+                     </size>
+                    </property>
+                    <property name="title">
+                     <string>Save Recording</string>
+                    </property>
+                    <property name="checkable">
+                     <bool>false</bool>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_58">
+                     <item row="0" column="0">
+                      <layout class="QGridLayout" name="gridLayout_59">
+                       <item row="0" column="0">
+                        <layout class="QHBoxLayout" name="horizontalLayout_7">
+                         <property name="bottomMargin">
+                          <number>0</number>
+                         </property>
+                         <item>
+                          <widget class="QLabel" name="label_28">
+                           <property name="text">
+                            <string>Directory:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QLineEdit" name="dir_rec_lineEdit">
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="browse_rec_save_Button">
+                           <property name="text">
+                            <string>...</string>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </item>
+                       <item row="1" column="0">
+                        <layout class="QHBoxLayout" name="horizontalLayout_9">
+                         <property name="topMargin">
+                          <number>0</number>
+                         </property>
+                         <item>
+                          <widget class="QLabel" name="label_29">
+                           <property name="text">
+                            <string>File Name:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QLineEdit" name="fname_rec_lineEdit"/>
+                         </item>
+                        </layout>
+                       </item>
+                      </layout>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <layout class="QGridLayout" name="gridLayout_60">
+              <item row="0" column="0">
+               <spacer name="horizontalSpacer_7">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>300</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="2">
+               <spacer name="horizontalSpacer_8">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>15</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item row="0" column="1">
+               <widget class="QPushButton" name="rec_Button">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>70</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Start Recording</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
         </widget>
        </widget>
       </item>

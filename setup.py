@@ -16,5 +16,6 @@ setup(
         'qtpy'
         'pyqt5<5.15'
         'pymmcore'
+        'pyfirmata2'
         ]
 )

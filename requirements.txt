@@ -6,3 +6,4 @@ napari[all]
 numpy
 scikit-image
 matplotlib
+pyfirmata2
