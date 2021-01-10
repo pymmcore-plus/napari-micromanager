@@ -18,6 +18,9 @@ import numpy as np
 
 from pyfirmata2 import Arduino, util
 
+import concurrent.futures
+import threading
+
 
 #dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent/'icons'
@@ -231,6 +234,8 @@ class MainWindow(QtW.QMainWindow):
         self.live_Button.clicked.connect(self.toggle_live)
 
         self.detect_board_Button.clicked.connect(self.detect_arduino)
+
+        self.rec_Button.clicked.connect(self.start_recordings)
 
         #button's icon
         #arrows icons
@@ -477,6 +482,7 @@ class MainWindow(QtW.QMainWindow):
 
     def detect_arduino(self):
         try:
+            self.arduino_board_comboBox.clear()
             self.board = Arduino(Arduino.AUTODETECT)
             board_port = [str(self.board)]
             self.arduino_board_comboBox.addItems(board_port)
@@ -527,8 +533,6 @@ class MainWindow(QtW.QMainWindow):
 
         led_power_used.clear()
 
-    
-
     def save_recordongs(self):
         save_groupBox_rec: QtW.QGroupBox
         dir_rec_lineEdit: QtW.QLineEdit
@@ -536,62 +540,105 @@ class MainWindow(QtW.QMainWindow):
         fname_rec_lineEdit: QtW.QLineEdit
 
 
+
+
+
+    def snap_optocamp(self, exp_t):
+        mmcore.setExposure(exp_t)
+        mmcore.snapImage()
+        print('   snap')#which is 'snap an image' in micromanager
+        
+        #t_viewer = threading.Thread(target = self.update_viewer, args = [mmcore.getImage()])
+        #t_viewer.start()
+       
+        #self.update_viewer(mmcore.getImage())
+        
+        
+    def led_on(self, power, on_for):
+        self.led.write(power)
+        time.sleep(on_for)
+        self.led.write(0.0)
+        print(f'   led_power = {power}')
+        
     def start_recordings(self):
-
-
-        oc_channel_groupBox: QtW.QGroupBox
-        oc_channel_comboBox: QtW.QComboBox
-
-
+        self.stop_live()
         time_stamp = []
+        
         #self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox_1.value()*self.Pulses_spinBox.value()))-1
+
+        stim_frame = self.delay_spinBox.value()
+        start_led_power = self.led_start_pwr_spinBox.value()
 
         for i in range (1,(self.n_frames+1)):
             
-            if i == self.delay_spinBox.value():
+            print(f'frame: {i}')
 
+            #mmcore.setExposure(int(self.exp_spinBox_1.value()))
+            mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
+            mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+            mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
+            
+            if i == stim_frame:
 
-                stim_frame = self.delay_spinBox.value()
                 tm = time.time()
                 time_stamp.append(tm)
-                print(f'   frame: {i}')#which is 'snap an image' in micromanager
-                #while:
-                #    led.write(start_led_power/100)
-                    #time.sleep(0.1)
-                #    led.write(0.0)
-                print(f'      led_power = {start_led_power/100}')
-                print(f'      stim_frame = {stim_frame}')
-                stim_frame = stim_frame + stim_intervall
+
+                start = time.perf_counter()
+
+                ########
+                self.snap_optocamp(int(self.exp_spinBox_1.value()))
+                self.led_on((start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+                ########
+
+                ########
+                # t_snap = threading.Thread(target=self.snap_optocamp, args = [int(self.exp_spinBox_1.value())])
+                # t_led = threading.Thread(target=self.led_on, args = [(start_led_power/100),(int(self.exp_spinBox_1.value())/1000)])
+                
+                # t_snap.start()
+                # t_led.start()
+
+                # t_snap.join()
+                # t_led.join()
+                ########
+
+                ########
+                # with concurrent.futures.ThreadPoolExecutor() as executor:
+                #     f1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
+                #     f2 = executor.submit(self.led_on, (start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+                ########
+
+                finish = time.perf_counter()
+                print(f'Finished in {round(finish-start, 2)} second(s)')
+
+                stim_frame = stim_frame + self.interval_spinBox_1.value()
                 start_led_power = start_led_power + self.interval_spinBox_1.value()
+            
             else:
+                self.snap_optocamp(int(self.exp_spinBox_1.value()))
                 tm = time.time()
                 time_stamp.append(tm)
-                time.sleep(0.1)
-                print(f'frame: {i}')#which is 'snap an image' in micromanager
+                
+               
     
+        #self.board.exit()
 
-        board.exit()
+        #print('SUMMARY \n**********')
+        #print(f'Recordings lenght: {n_frames} frames')
+        #print(f'Number of Stimulations: {n_stimulations}')
+        #print(f'Frames when Stimulation occurred: {frames_stim}')
+        #print(f'Led Power: {led_power_used} percent')
+        #print('**********')
 
-
-        print('SUMMARY \n**********')
-        print(f'Recordings lenght: {n_frames} frames')
-        print(f'Number of Stimulations: {n_stimulations}')
-        print(f'Frames when Stimulation occurred: {frames_stim}')
-        print(f'Led Power: {led_power_used} percent')
-        print('**********')
-
-
-
-        gap_list = []
-        for i in range (len(time_stamp)):
-            val1 = time_stamp[i]
-            if i<len(time_stamp)-1:
-                val2 = time_stamp[i+1]
-            else:
-                break
-            gap = (val2-val1)*1000
-            gap_list.append(gap)
-        print(f'Timestamp: {gap_list[0]}, {gap_list[1]}, {gap_list[len(gap_list)-1]}')
+        #gap_list = []
+        #for i in range (len(time_stamp)):
+        #    val1 = time_stamp[i]
+        #    if i<len(time_stamp)-1:
+        #        val2 = time_stamp[i+1]
+        #    else:
+        #        break
+        #    gap = (val2-val1)*1000
+        #    gap_list.append(gap)
+        #print(f'Timestamp: {gap_list[0]}, {gap_list[1]}, {gap_list[len(gap_list)-1]}')
 
 
 

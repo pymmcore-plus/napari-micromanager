@@ -633,7 +633,7 @@
          </size>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="snap_live_tab">
          <attribute name="title">
@@ -856,6 +856,9 @@
                <layout class="QGridLayout" name="gridLayout_42">
                 <item row="0" column="0">
                  <layout class="QGridLayout" name="gridLayout_43">
+                  <property name="rightMargin">
+                   <number>10</number>
+                  </property>
                   <item row="0" column="0">
                    <widget class="QGroupBox" name="save_groupBox">
                     <property name="enabled">
@@ -1268,19 +1271,6 @@
                   </item>
                  </layout>
                 </item>
-                <item row="0" column="1">
-                 <spacer name="horizontalSpacer">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>40</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
                </layout>
               </widget>
              </widget>
@@ -1385,6 +1375,9 @@
                <layout class="QGridLayout" name="gridLayout_62">
                 <item row="0" column="0">
                  <layout class="QGridLayout" name="gridLayout_21">
+                  <property name="rightMargin">
+                   <number>10</number>
+                  </property>
                   <item row="0" column="0">
                    <widget class="QGroupBox" name="arduino_groupBox">
                     <property name="enabled">
@@ -1567,6 +1560,33 @@
                       <layout class="QGridLayout" name="gridLayout_30">
                        <item row="0" column="0">
                         <layout class="QGridLayout" name="gridLayout_31">
+                         <item row="0" column="0">
+                          <widget class="QLabel" name="label_5">
+                           <property name="text">
+                            <string>Initial Delay (frames):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="0">
+                          <widget class="QLabel" name="label_3">
+                           <property name="text">
+                            <string>Interval (frames):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="1">
+                          <widget class="QSpinBox" name="delay_spinBox">
+                           <property name="alignment">
+                            <set>Qt::AlignCenter</set>
+                           </property>
+                           <property name="maximum">
+                            <number>1000</number>
+                           </property>
+                           <property name="value">
+                            <number>20</number>
+                           </property>
+                          </widget>
+                         </item>
                          <item row="1" column="1">
                           <widget class="QSpinBox" name="interval_spinBox_1">
                            <property name="alignment">
@@ -1587,26 +1607,6 @@
                            </property>
                           </widget>
                          </item>
-                         <item row="0" column="1">
-                          <widget class="QSpinBox" name="delay_spinBox">
-                           <property name="alignment">
-                            <set>Qt::AlignCenter</set>
-                           </property>
-                           <property name="maximum">
-                            <number>1000</number>
-                           </property>
-                           <property name="value">
-                            <number>20</number>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="1" column="0">
-                          <widget class="QLabel" name="label_3">
-                           <property name="text">
-                            <string>Interval (frames):</string>
-                           </property>
-                          </widget>
-                         </item>
                          <item row="2" column="1">
                           <widget class="QSpinBox" name="Pulses_spinBox">
                            <property name="alignment">
@@ -1617,13 +1617,6 @@
                            </property>
                            <property name="value">
                             <number>5</number>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="0" column="0">
-                          <widget class="QLabel" name="label_5">
-                           <property name="text">
-                            <string>Initial Delay (frames):</string>
                            </property>
                           </widget>
                          </item>
@@ -1647,10 +1640,40 @@
                        </item>
                        <item row="1" column="0">
                         <layout class="QGridLayout" name="gridLayout_32">
+                         <item row="2" column="2">
+                          <widget class="QLineEdit" name="rec_time_lineEdit">
+                           <property name="alignment">
+                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                           </property>
+                           <property name="readOnly">
+                            <bool>true</bool>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="0" colspan="2">
+                          <widget class="QLabel" name="label_23">
+                           <property name="text">
+                            <string>Frames with Pulse:</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="1" column="2">
+                          <widget class="QLineEdit" name="frame_w_pulses_lineEdit"/>
+                         </item>
                          <item row="2" column="0" colspan="2">
                           <widget class="QLabel" name="label_10">
                            <property name="text">
                             <string>Recording Time (s):</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item row="0" column="2">
+                          <widget class="QLineEdit" name="tot_frames_lineEdit">
+                           <property name="alignment">
+                            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                           </property>
+                           <property name="readOnly">
+                            <bool>true</bool>
                            </property>
                           </widget>
                          </item>
@@ -1666,52 +1689,6 @@
                             <string>Total Frames:</string>
                            </property>
                           </widget>
-                         </item>
-                         <item row="0" column="2">
-                          <widget class="QLineEdit" name="tot_frames_lineEdit">
-                           <property name="alignment">
-                            <set>Qt::AlignCenter</set>
-                           </property>
-                           <property name="readOnly">
-                            <bool>true</bool>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="2" column="2">
-                          <widget class="QLineEdit" name="rec_time_lineEdit">
-                           <property name="alignment">
-                            <set>Qt::AlignCenter</set>
-                           </property>
-                           <property name="readOnly">
-                            <bool>true</bool>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="0" column="3">
-                          <spacer name="horizontalSpacer_5">
-                           <property name="orientation">
-                            <enum>Qt::Horizontal</enum>
-                           </property>
-                           <property name="sizeType">
-                            <enum>QSizePolicy::Fixed</enum>
-                           </property>
-                           <property name="sizeHint" stdset="0">
-                            <size>
-                             <width>150</width>
-                             <height>20</height>
-                            </size>
-                           </property>
-                          </spacer>
-                         </item>
-                         <item row="1" column="0" colspan="2">
-                          <widget class="QLabel" name="label_23">
-                           <property name="text">
-                            <string>Frames with Pulse:</string>
-                           </property>
-                          </widget>
-                         </item>
-                         <item row="1" column="2">
-                          <widget class="QLineEdit" name="frame_w_pulses_lineEdit"/>
                          </item>
                         </layout>
                        </item>
