@@ -16,10 +16,13 @@ from PyQt5 import QtCore
 
 import numpy as np
 
+from napari.qt import thread_worker
+
 from pyfirmata2 import Arduino, util
 
 import concurrent.futures
 import threading
+import multiprocessing
 
 
 #dir_path = Path(__file__).parent
@@ -434,8 +437,7 @@ class MainWindow(QtW.QMainWindow):
             pass
         
     def start_live(self):
-        from napari.qt import thread_worker
-
+        
         @thread_worker(connect={"yielded": self.update_viewer})
         def live_mode():
             import time
@@ -460,6 +462,7 @@ class MainWindow(QtW.QMainWindow):
 
         self.live_Button.setText("Stop")
         self.worker = live_mode()
+
 
     def stop_live(self):
         if self.worker:
@@ -539,26 +542,25 @@ class MainWindow(QtW.QMainWindow):
         browse_rec_save_Button: QtW.QPushButton
         fname_rec_lineEdit: QtW.QLineEdit
 
-
-
-
-
+    
     def snap_optocamp(self, exp_t):
+        time.sleep(0.001)
         mmcore.setExposure(exp_t)
+        #print('  snap')
+        s_cam = time.perf_counter()
         mmcore.snapImage()
-        print('   snap')#which is 'snap an image' in micromanager
-        
-        #t_viewer = threading.Thread(target = self.update_viewer, args = [mmcore.getImage()])
-        #t_viewer.start()
-       
-        #self.update_viewer(mmcore.getImage())
-        
-        
+        e_cam = time.perf_counter()
+        print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')################################################
+        #self.update_viewer(mmcore.getImage())#?????
+
     def led_on(self, power, on_for):
         self.led.write(power)
+        s = time.perf_counter()
         time.sleep(on_for)
         self.led.write(0.0)
-        print(f'   led_power = {power}')
+        e = time.perf_counter()
+        print(f'    led on for {round(e-s, 4)} second(s)')################################################
+        #print(f'  led_power = {power}')
         
     def start_recordings(self):
         self.stop_live()
@@ -568,12 +570,13 @@ class MainWindow(QtW.QMainWindow):
 
         stim_frame = self.delay_spinBox.value()
         start_led_power = self.led_start_pwr_spinBox.value()
+        #print(f'start led power (%): {start_led_power}')
+        #print(f'start led power (float): {float(start_led_power/100)}')
 
         for i in range (1,(self.n_frames+1)):
             
-            print(f'frame: {i}')
+            #print(f'frame: {i}')
 
-            #mmcore.setExposure(int(self.exp_spinBox_1.value()))
             mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
             mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
             mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
@@ -586,11 +589,11 @@ class MainWindow(QtW.QMainWindow):
                 start = time.perf_counter()
 
                 ########
-                self.snap_optocamp(int(self.exp_spinBox_1.value()))
-                self.led_on((start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
-                ########
+                # self.snap_optocamp(int(self.exp_spinBox_1.value()))
+                # self.led_on((start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+                # ########
 
-                ########
+                # ########
                 # t_snap = threading.Thread(target=self.snap_optocamp, args = [int(self.exp_spinBox_1.value())])
                 # t_led = threading.Thread(target=self.led_on, args = [(start_led_power/100),(int(self.exp_spinBox_1.value())/1000)])
                 
@@ -601,24 +604,26 @@ class MainWindow(QtW.QMainWindow):
                 # t_led.join()
                 ########
 
-                ########
-                # with concurrent.futures.ThreadPoolExecutor() as executor:
-                #     f1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
-                #     f2 = executor.submit(self.led_on, (start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
-                ########
+                #######
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    t1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
+                    t2 = executor.submit(self.led_on, float(start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+                #######
 
                 finish = time.perf_counter()
-                print(f'Finished in {round(finish-start, 2)} second(s)')
+                print(f'Finished in {round(finish-start, 4)} second(s)')
 
                 stim_frame = stim_frame + self.interval_spinBox_1.value()
-                start_led_power = start_led_power + self.interval_spinBox_1.value()
+                start_led_power = start_led_power + self.led_pwr_inc_spinBox.value()
+                #print(f'start_led_power: {start_led_power}, interval: {self.led_pwr_inc_spinBox.value()}')
+                #print(f'new_power: {start_led_power}')
             
             else:
                 self.snap_optocamp(int(self.exp_spinBox_1.value()))
                 tm = time.time()
                 time_stamp.append(tm)
                 
-               
+        print('***END***')       
     
         #self.board.exit()
 
