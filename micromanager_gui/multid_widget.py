@@ -83,6 +83,14 @@ class MultiDWidget(QtW.QWidget):
             self.run_Button.setEnabled(False)
 
 
+    def save_multi_d_acq(self):
+        #set the directory
+        self.dir = QFileDialog(self)
+        self.dir.setFileMode(QFileDialog.DirectoryOnly)
+        self.save_dir = QFileDialog.getExistingDirectory(self.dir)
+        self.dir_rec_lineEdit.setText(self.save_dir)
+        self.parent_path = Path(self.save_dir)
+
 
 
 

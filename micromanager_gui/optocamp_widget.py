@@ -71,6 +71,7 @@ class OptocampWidget(QtW.QWidget):
         #connect buttons
         self.detect_board_Button.clicked.connect(self.is_loaded)
         self.rec_Button.clicked.connect(self.start_recordings)
+        self.browse_rec_save_Button.clicked.connect(self.save_recordongs) 
 
         #connect spinBox
         self.delay_spinBox.valueChanged.connect(self.frame_values_changed)
@@ -82,6 +83,11 @@ class OptocampWidget(QtW.QWidget):
         self.led_pwr_inc_spinBox.valueChanged.connect(self.led_values_changed)
         self.Pulses_spinBox.valueChanged.connect(self.led_values_changed)
 
+        #connect toggle group box
+        self.save_groupBox_rec.toggled.connect(self.toggle_rec_button)
+        self.dir_rec_lineEdit.textChanged.connect(self.toggle_rec_button)
+        self.fname_rec_lineEdit.textChanged.connect(self.toggle_rec_button)
+        
     # def update_viewer(self, data):
     #     try:
     #         self.viewer.layers["preview"].data = data
@@ -185,10 +191,12 @@ class OptocampWidget(QtW.QWidget):
         led_power_used.clear()
 
     def save_recordongs(self):
-        save_groupBox_rec: QtW.QGroupBox
-        dir_rec_lineEdit: QtW.QLineEdit
-        browse_rec_save_Button: QtW.QPushButton
-        fname_rec_lineEdit: QtW.QLineEdit
+        #set the directory
+        self.dir = QFileDialog(self)
+        self.dir.setFileMode(QFileDialog.DirectoryOnly)
+        self.save_dir = QFileDialog.getExistingDirectory(self.dir)
+        self.dir_rec_lineEdit.setText(self.save_dir)
+        self.parent_path = Path(self.save_dir)
 
     def snap_optocamp(self, exp_t, i):
         time.sleep(0.001)
@@ -210,7 +218,21 @@ class OptocampWidget(QtW.QWidget):
         e = time.perf_counter()
         print(f'    led on for {round(e-s, 4)} second(s)')
         #print(f'  led_power = {power}')
-        
+    
+    def toggle_rec_button(self):
+        if self.save_groupBox_rec.isChecked():
+            print(self.save_groupBox_rec.isChecked())
+            if self.dir_rec_lineEdit.text() == '' or self.fname_rec_lineEdit.text()=='':
+                print(self.dir_rec_lineEdit.text())
+                print(self.fname_rec_lineEdit.text())
+                self.rec_Button.setEnabled(False)
+                print('set button off')
+            else:
+                self.rec_Button.setEnabled(True)
+                print(self.dir_rec_lineEdit.text())
+                print(self.fname_rec_lineEdit.text())
+                print('set button on')
+
     def start_recordings(self):
         self.print_properties()
 
@@ -226,11 +248,11 @@ class OptocampWidget(QtW.QWidget):
         #print(f'start led power (%): {start_led_power}')
         #print(f'start led power (float): {float(start_led_power/100)}')
 
+        mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
+
         for i in range (1,(self.n_frames+1)):
             
             #print(f'frame: {i}')
-
-            mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
      
             if i == stim_frame:
 
@@ -274,11 +296,30 @@ class OptocampWidget(QtW.QWidget):
                 tm = time.time()
                 time_stamp.append(tm)
         
-        
-        io.imsave('/Users/Gaspian/Desktop/' + 'stack.tif', self.stack, imagej=True, check_contrast=False)
+        if self.save_groupBox_rec.isChecked():
+            ln = len(os.listdir(self.parent_path))
+            if ln == 0:
+                pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_0000.tif'
+                io.imsave(str(pth), self.stack, imagej=True, check_contrast=False) 
+            elif ln > 0:
+                name_list = []
+                for name in os.listdir(self.parent_path):
+                    name_list.append((name))
+                    if self.fname_rec_lineEdit.text() in name_list:
+                        pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_000{ln}.tif'
+                        io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+                    else:
+                        pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_0000.tif'
+                        io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
 
-        print('***END***')       
+
+
+                     
+        print('***END***')
     
+        
+        
+
         #self.board.exit()
 
         #print('SUMMARY \n**********')
