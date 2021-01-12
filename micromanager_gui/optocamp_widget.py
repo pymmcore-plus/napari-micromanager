@@ -6,6 +6,8 @@ from PyQt5 import QtWidgets as QtW
 from qtpy import uic
 import time
 from qtpy.QtWidgets import QFileDialog
+from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
 
 from pyfirmata2 import Arduino, util
 import concurrent.futures
@@ -15,6 +17,7 @@ from mmcore_pymmcore import MMCore
 
 import napari
 
+icon_path = Path(__file__).parent/'icons'
 
 UI_FILE = str(Path(__file__).parent / "optocamp_gui.ui")
 
@@ -53,9 +56,15 @@ class OptocampWidget(QtW.QWidget):
 
     rec_Button: QtW.QPushButton
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args):
+        super().__init__(*args)
         uic.loadUi(UI_FILE, self)
+
+        self._viewer = None
+
+        #button's icon
+        self.rec_Button.setIcon(QIcon(str(icon_path/'play-button_1.svg')))
+        self.rec_Button.setIconSize(QtCore.QSize(20,20)) 
 
         #connect buttons
         self.detect_board_Button.clicked.connect(self.is_loaded)
@@ -70,22 +79,6 @@ class OptocampWidget(QtW.QWidget):
         self.led_start_pwr_spinBox.valueChanged.connect(self.led_values_changed)
         self.led_pwr_inc_spinBox.valueChanged.connect(self.led_values_changed)
         self.Pulses_spinBox.valueChanged.connect(self.led_values_changed)
-
-    @property
-    def viewer(self):
-        # lazy creation
-        par = self.parent()
-        print(par)
-        print(par.__class__.__module__)
-        if "napari" in par.__class__.__module__:
-            return par.qt_viewer.viewer
-        if not self._viewer:
-             self._viewer = napari.Viewer()
-        try:
-            self._viewer.show()
-        except RuntimeError:
-            self._viewer = napari.Viewer()
-        return self._viewer
 
     # def update_viewer(self, data):
     #     try:
@@ -103,6 +96,8 @@ class OptocampWidget(QtW.QWidget):
             print("Could not find 'Channel' in the ConfigGroups")
         
     def print_properties(self):
+        #camera
+        print(f'Camera: {mmcore.getCameraDevice()}')
         #binning
         binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
         print(f'Binning: {binning}')
@@ -155,7 +150,10 @@ class OptocampWidget(QtW.QWidget):
     def frame_values_changed(self):
         self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox.value()*self.Pulses_spinBox.value()))-1
         self.tot_frames_label.setText(str(self.n_frames))
-        self.rec_time_label.setText(str((self.n_frames*self.exp_spinBox_1.value()/1000)))
+        total_rec_time = str(self.n_frames*self.exp_spinBox_1.value()/1000)
+        fps = str('%.3f'%(1000/self.exp_spinBox_1.value()))
+        self.rec_time_label.setText((f'{total_rec_time} seconds @ {fps} frames per second.'))
+        #self.rec_time_label.setText(str((self.n_frames*self.exp_spinBox_1.value()/1000)))
         frames_stim = []
         fr = self.delay_spinBox.value()
         for i in range (self.Pulses_spinBox.value()):
@@ -197,7 +195,7 @@ class OptocampWidget(QtW.QWidget):
         s_cam = time.perf_counter()
         mmcore.snapImage()
         e_cam = time.perf_counter()
-        print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')################################################
+        print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')
         #self.update_viewer(mmcore.getImage())#?????
 
     def led_on(self, power, on_for):
@@ -206,7 +204,7 @@ class OptocampWidget(QtW.QWidget):
         time.sleep(on_for)
         self.led.write(0.0)
         e = time.perf_counter()
-        print(f'    led on for {round(e-s, 4)} second(s)')################################################
+        print(f'    led on for {round(e-s, 4)} second(s)')
         #print(f'  led_power = {power}')
         
     def start_recordings(self):

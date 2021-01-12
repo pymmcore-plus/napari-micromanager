@@ -142,18 +142,26 @@ class MainWindow(QtW.QMainWindow):
 
         #button's icon
         #arrows icons
-        self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1.svg')))
+        #self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1.svg')))
+        self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1_green.svg')))
         self.left_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.right_Button.setIcon(QIcon(str(icon_path/'right_arrow_1.svg')))
+        #self.right_Button.setIcon(QIcon(str(icon_path/'right_arrow_1.svg')))
+        self.right_Button.setIcon(QIcon(str(icon_path/'right_arrow_1_green.svg')))
         self.right_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.y_up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1.svg')))
+        #self.y_up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1.svg')))
+        self.y_up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1_green.svg')))
         self.y_up_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.y_down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1.svg')))
+        #self.y_down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1.svg')))
+        self.y_down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1_green.svg')))
         self.y_down_Button.setIconSize(QtCore.QSize(30,30))
-        self.up_Button.setIcon(QIcon(str(icon_path/'up_arrow.svg')))
+        
+        #self.up_Button.setIcon(QIcon(str(icon_path/'up_arrow.svg')))
+        self.up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1_green.svg')))
         self.up_Button.setIconSize(QtCore.QSize(30,30)) 
-        self.down_Button.setIcon(QIcon(str(icon_path/'down_arrow.svg')))
+        #self.down_Button.setIcon(QIcon(str(icon_path/'down_arrow.svg')))
+        self.down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1_green.svg')))
         self.down_Button.setIconSize(QtCore.QSize(30,30)) 
+
         #snap/live icons
         self.snap_Button.setIcon(QIcon(str(icon_path/'cam.svg')))
         self.snap_Button.setIconSize(QtCore.QSize(30,30))
@@ -164,16 +172,6 @@ class MainWindow(QtW.QMainWindow):
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
-
-        #connect spinBox
-        # self.delay_spinBox.valueChanged.connect(self.frame_values_changed)
-        # self.interval_spinBox_1.valueChanged.connect(self.frame_values_changed)
-        # self.Pulses_spinBox.valueChanged.connect(self.frame_values_changed)
-        # self.exp_spinBox_1.valueChanged.connect(self.frame_values_changed)
-
-        # self.led_start_pwr_spinBox.valueChanged.connect(self.led_values_changed)
-        # self.led_pwr_inc_spinBox.valueChanged.connect(self.led_values_changed)
-        # self.Pulses_spinBox.valueChanged.connect(self.led_values_changed)
 
     def browse_cfg(self):
         file_dir = QFileDialog.getOpenFileName(self, '', '⁩', 'cfg(*.cfg)')
@@ -206,7 +204,7 @@ class MainWindow(QtW.QMainWindow):
         # Get Camera Options
         self.cam_device = mmcore.getCameraDevice()
         cam_props = mmcore.getDevicePropertyNames(self.cam_device)
-        print(cam_props)
+#        print(cam_props)
         if "Binning" in cam_props:
             bin_opts = mmcore.getAllowedPropertyValues(self.cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
@@ -239,19 +237,15 @@ class MainWindow(QtW.QMainWindow):
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
 
-#–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 #set (and print) properties when value/string change
 # def cam_changed(self):
     def bit_changed(self):
         mmcore.setProperty(self.cam_device, "PixelType", self.bit_comboBox.currentText())
-        print(mmcore.getProperty(mmcore.getCameraDevice(), "PixelType"))
+#        print(mmcore.getProperty(mmcore.getCameraDevice(), "PixelType"))
     
     def bin_changed(self):
         mmcore.setProperty(self.cam_device, "Binning", self.bin_comboBox.currentText())
-        print(mmcore.getProperty(mmcore.getCameraDevice(), "Binning"))
-
-    # def cam_changed(self):
-#–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+#        print(mmcore.getProperty(mmcore.getCameraDevice(), "Binning"))
 
     def update_stage_position(self):
         x = int(mmcore.getXPosition())
@@ -339,12 +333,17 @@ class MainWindow(QtW.QMainWindow):
     def snap(self):
         self.stop_live()
         mmcore.setExposure(int(self.exp_spinBox.value()))
-        mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-        mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
+        # mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
+        # mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
         mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
         #mmcore.waitForDevice('')
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
+
+#        binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
+#        print(f'Binning: {binning}')
+#        bit = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
+#        print(f'Bit Depth: {bit}')
         
         try:#display max and min gray values
             min_v = np.min(self.viewer.layers["preview"].data)

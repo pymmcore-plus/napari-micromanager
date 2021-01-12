@@ -4,7 +4,6 @@ import napari
 
 from main_window import MainWindow
 
-
 with napari.gui_qt():
     viewer = napari.Viewer()
     win = MainWindow(viewer)

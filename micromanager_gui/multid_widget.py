@@ -6,9 +6,12 @@ from PyQt5 import QtWidgets as QtW
 from qtpy import uic
 import time
 from qtpy.QtWidgets import QFileDialog
+from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
 
 from mmcore_pymmcore import MMCore
 
+icon_path = Path(__file__).parent/'icons'
 
 UI_FILE = str(Path(__file__).parent / "multid_gui.ui")
 
@@ -53,10 +56,9 @@ class MultiDWidget(QtW.QWidget):
         self.stage_pos_groupBox.setChecked(False)
 
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args):
+        super().__init__(*args)
         uic.loadUi(UI_FILE, self)
-        
         
         #connect groupbox state change
         self.save_groupBox.toggled.connect(self.enable_run_Button)
@@ -68,10 +70,15 @@ class MultiDWidget(QtW.QWidget):
         #connect buttons
         #self.run_Button.clicked.connect(self.load_cfg)
 
+        self.run_Button.setIcon(QIcon(str(icon_path/'play-button_1.svg')))
+        self.run_Button.setIconSize(QtCore.QSize(20,20)) 
+
     def enable_run_Button(self):
         dev_loaded = list(mmcore.getLoadedDevices())
         if len(dev_loaded) > 1:
+            self.acquisition_order_comboBox.setEnabled(True)
             self.run_Button.setEnabled(True)
+
         else:
             self.uncheck_all()
 

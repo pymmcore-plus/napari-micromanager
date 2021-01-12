@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>552</width>
+    <width>515</width>
     <height>1025</height>
    </rect>
   </property>
@@ -19,16 +19,25 @@
      <property name="widgetResizable">
       <bool>true</bool>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
      <widget class="QWidget" name="scrollAreaWidgetContents">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>526</width>
+        <width>489</width>
         <height>957</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout_8">
+       <property name="leftMargin">
+        <number>5</number>
+       </property>
+       <property name="rightMargin">
+        <number>20</number>
+       </property>
        <item row="0" column="0" colspan="2">
         <widget class="QGroupBox" name="arduino_groupBox">
          <property name="minimumSize">
@@ -224,14 +233,14 @@
              <number>1000</number>
             </property>
             <property name="value">
-             <number>20</number>
+             <number>5</number>
             </property>
            </widget>
           </item>
           <item row="6" column="0">
            <widget class="QLabel" name="label_6">
             <property name="text">
-             <string>Recording Time (s):</string>
+             <string>Recording Time:</string>
             </property>
            </widget>
           </item>
@@ -288,7 +297,7 @@
              <number>1000</number>
             </property>
             <property name="value">
-             <number>55</number>
+             <number>5</number>
             </property>
            </widget>
           </item>
@@ -522,6 +531,9 @@
      </item>
      <item row="0" column="1">
       <widget class="QPushButton" name="rec_Button">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
