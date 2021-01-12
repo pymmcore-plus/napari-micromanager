@@ -182,6 +182,29 @@ class MainWindow(QtW.QMainWindow):
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
 
+    def get_devices_and_props(self):
+        ##List devices and properties that you can set
+        devices = mmcore.getLoadedDevices()
+        print("\nDevice status:__________________________")
+        for i in range(len(devices)):
+            device = devices[i]
+            properties = mmcore.getDevicePropertyNames(device)
+            for p in range(len(properties)):
+                    prop = properties[p]
+                    values = mmcore.getAllowedPropertyValues(device, prop)
+                    print(f'Device: {str(device)}  Property: {str(prop)}  Value: {str(values)}')
+        print("________________________________________")
+
+    def get_groups_list(self):
+        group = []
+        for groupName in mmcore.getAvailableConfigGroups():
+            print(f'*********\nGroup_Name: {str(groupName)}')
+            for configName in mmcore.getAvailableConfigs(groupName):
+                group.append(configName)
+                print(f'Config_Name: {str(configName)}')
+                print(f'Properties: {str(mmcore.getConfigData(groupName, configName).getVerbose())}')
+            print('*********')
+
     def load_cfg(self):
         self.enable()
 
@@ -200,7 +223,10 @@ class MainWindow(QtW.QMainWindow):
             mmcore.loadSystemConfiguration(self.new_cfg_file) #load the configuration file
         except KeyError:
             print('Select a valid .cfg file.')
-    
+
+        self.get_devices_and_props()
+        self.get_groups_list()
+
         # Get Camera Options
         self.cam_device = mmcore.getCameraDevice()
         cam_props = mmcore.getDevicePropertyNames(self.cam_device)
@@ -236,6 +262,8 @@ class MainWindow(QtW.QMainWindow):
 
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
+
+
 
 #set (and print) properties when value/string change
 # def cam_changed(self):
