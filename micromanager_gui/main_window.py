@@ -1,51 +1,33 @@
 import sys
 import os
 import time
-
-#from qtpy import QtWidgets as QtW
 from PyQt5 import QtWidgets as QtW
-
 from qtpy import uic
-
 from pathlib import Path
 import pymmcore
 from qtpy.QtWidgets import QFileDialog
-
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
-
 import numpy as np
-
 from napari.qt import thread_worker
-
 from pyfirmata2 import Arduino, util
-
 import concurrent.futures
-import threading
-import multiprocessing
+import threading#
 
+from mmcore_pymmcore import MMCore
+from multid_widget import MultiDWidget
+from optocamp_widget import OptocampWidget 
 
 #dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent/'icons'
 
-
-UI_FILE = str(Path(__file__).parent / "micromanager_gui_1.ui")
+UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
 DEFAULT_CFG_FILE = str((Path(__file__).parent / "demo_config.cfg").absolute())#look for the 'demo_config.cfg' in the parent folder 
 DEFAULT_CFG_NAME = 'demo.cfg'
 
-mmcore = pymmcore.CMMCore()#assign mmcore
-
-#find micromanager path
-def find_micromanager():
-    if sys.platform == "darwin":
-        return str(next(Path("/Applications/").glob("Micro-Manager*")))
-    raise RuntimeError(f"Not configured for OS: {sys.platform}")
-
-mmcore.setDeviceAdapterSearchPaths([find_micromanager()])#set the micromanager path
-
+mmcore = MMCore()
 
 class MainWindow(QtW.QMainWindow):
-    
     # The UI_FILE above contains these objects:
     cfg_LineEdit: QtW.QLineEdit
     browse_cfg_Button: QtW.QPushButton
@@ -58,12 +40,13 @@ class MainWindow(QtW.QMainWindow):
     bin_comboBox: QtW.QComboBox
     bit_comboBox: QtW.QComboBox
 
-    camera_groupBox: QtW.QGroupBox
+    position_groupBox: QtW.QGroupBox
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     z_lineEdit: QtW.QLineEdit
     pos_update_Button: QtW.QPushButton
 
+    stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
     Z_groupBox: QtW.QGroupBox
     left_Button: QtW.QPushButton
@@ -75,6 +58,12 @@ class MainWindow(QtW.QMainWindow):
     xy_step_size_SpinBox: QtW.QSpinBox
     z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
 
+    tabWidget: QtW.QTabWidget
+    snap_live_tab: QtW.QWidget
+    multid_tab: QtW.QWidget
+    optocamp_tab: QtW.QWidget
+
+    snap_channel_groupBox: QtW.QGroupBox
     snap_channel_comboBox: QtW.QComboBox
     exp_spinBox: QtW.QSpinBox
     snap_Button: QtW.QPushButton
@@ -83,73 +72,13 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
-    save_groupBox: QtW.QGroupBox
-    fname_lineEdit: QtW.QLineEdit
-    dir_lineEdit: QtW.QLineEdit
-    browse_save_Button: QtW.QPushButton
-
-    channel_groupBox: QtW.QGroupBox
-    channel_tableWidget: QtW.QTableWidget
-    add_ch_Button: QtW.QPushButton
-    clear_ch_Button: QtW.QPushButton
-    remove_ch_Button: QtW.QPushButton
-
-    time_groupBox: QtW.QGroupBox
-    frames_spinBox: QtW.QSpinBox
-    interval_spinBox: QtW.QSpinBox
-    time_comboBox: QtW.QComboBox
-
-    stack_groupBox: QtW.QGroupBox
-    step_spinBox: QtW.QSpinBox
-    step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    
-    stage_pos_groupBox: QtW.QGroupBox
-    stage_tableWidget: QtW.QTableWidget
-    add_pos_Button: QtW.QPushButton
-    clear_pos_Button: QtW.QPushButton
-    remove_pos_Button: QtW.QPushButton
-
-    acquisition_order_comboBox: QtW.QComboBox
-    run_Button: QtW.QPushButton
-
-    arduino_groupBox: QtW.QGroupBox
-    arduino_board_comboBox: QtW.QComboBox
-    detect_board_Button: QtW.QPushButton
-
-    exp_groupBox_1: QtW.QGroupBox
-    exp_spinBox_1: QtW.QSpinBox
-
-    oc_channel_groupBox: QtW.QGroupBox
-    oc_channel_comboBox: QtW.QComboBox
-
-
-    frames_groupBox: QtW.QGroupBox
-    delay_spinBox: QtW.QSpinBox
-    interval_spinBox_1: QtW.QSpinBox
-    Pulses_spinBox: QtW.QSpinBox
-    tot_frames_lineEdit: QtW.QLineEdit
-    frame_w_pulses_lineEdit: QtW.QLineEdit
-    rec_time_lineEdit: QtW.QLineEdit
-
-    led_groupBox: QtW.QGroupBox
-    led_start_pwr_spinBox: QtW.QSpinBox
-    led_pwr_inc_spinBox: QtW.QSpinBox
-    led_pwrs_lineEdit: QtW.QLineEdit
-    led_max_pwr_lineEdit: QtW.QLineEdit
-
-    save_groupBox_rec: QtW.QGroupBox
-    dir_rec_lineEdit: QtW.QLineEdit
-    browse_rec_save_Button:QtW.QPushButton
-    fname_rec_lineEdit: QtW.QLineEdit
-
-    rec_Button: QtW.QPushButton
-
-
-
     def enable(self):#Enable the gui (when .cfg is loaded)
-        self.objective_comboBox.setEnabled(True)
-        self.bin_comboBox.setEnabled(True)
-        self.bit_comboBox.setEnabled(True)
+        self.objective_groupBox.setEnabled(True)
+        self.camera_groupBox.setEnabled(True)
+        self.stage_groupBox.setEnabled(True)
+        self.position_groupBox.setEnabled(True)
+        self.XY_groupBox.setEnabled(True)
+        self.Z_groupBox.setEnabled(True)
         self.pos_update_Button.setEnabled(True)
         self.xy_step_size_SpinBox.setEnabled(True)
         self.z_step_size_doubleSpinBox.setEnabled(True)
@@ -163,21 +92,14 @@ class MainWindow(QtW.QMainWindow):
         self.exp_spinBox.setEnabled(True)
         self.snap_Button.setEnabled(True)
         self.live_Button.setEnabled(True)
-        self.save_groupBox.setEnabled(True)
-        self.channel_groupBox.setEnabled(True)
-        self.stage_pos_groupBox.setEnabled(True)
-        self.time_groupBox.setEnabled(True)
-        self.stack_groupBox.setEnabled(True)
-        self.acquisition_order_comboBox.setEnabled(True)
-        self.run_Button.setEnabled(True)
-        self.arduino_groupBox.setEnabled(True)
-        self.oc_channel_groupBox.setEnabled(True)
-        self.oc_channel_comboBox.setEnabled(True)
 
     def disable(self):#Disable the gui (if .cfg is not loaded)
-        self.objective_comboBox.setEnabled(False)
-        self.bin_comboBox.setEnabled(False)
-        self.bit_comboBox.setEnabled(False)
+        self.objective_groupBox.setEnabled(False)
+        self.camera_groupBox.setEnabled(False)
+        self.stage_groupBox.setEnabled(False)
+        self.position_groupBox.setEnabled(False)
+        self.XY_groupBox.setEnabled(False)
+        self.Z_groupBox.setEnabled(False)
         self.pos_update_Button.setEnabled(False)
         self.xy_step_size_SpinBox.setEnabled(False)
         self.z_step_size_doubleSpinBox.setEnabled(False)
@@ -191,26 +113,8 @@ class MainWindow(QtW.QMainWindow):
         self.exp_spinBox.setEnabled(False)
         self.snap_Button.setEnabled(False)
         self.live_Button.setEnabled(False)
-        self.save_groupBox.setEnabled(False)
-        self.channel_groupBox.setEnabled(False)
-        self.stage_pos_groupBox.setEnabled(False)
-        self.time_groupBox.setEnabled(False)
-        self.stack_groupBox.setEnabled(False)
-        self.acquisition_order_comboBox.setEnabled(False)
-        self.run_Button.setEnabled(False)
-        self.arduino_groupBox.setEnabled(False)
-        self.exp_groupBox_1.setEnabled(False)
-        self.oc_channel_groupBox.setEnabled(True)
-        self.oc_channel_comboBox.setEnabled(True)
-        self.frames_groupBox.setEnabled(False)
-        self.led_groupBox.setEnabled(False)
-        self.save_groupBox_rec.setEnabled(False)
-        self.rec_Button.setEnabled(False)
         
-
         
-
-
     def __init__(self, viewer):
         super().__init__()
 
@@ -236,10 +140,6 @@ class MainWindow(QtW.QMainWindow):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
-        self.detect_board_Button.clicked.connect(self.detect_arduino)
-
-        self.rec_Button.clicked.connect(self.start_recordings)
-
         #button's icon
         #arrows icons
         self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1.svg')))
@@ -262,16 +162,18 @@ class MainWindow(QtW.QMainWindow):
 
         #connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
+        self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
         #connect spinBox
-        self.delay_spinBox.valueChanged.connect(self.frame_values_changed)
-        self.interval_spinBox_1.valueChanged.connect(self.frame_values_changed)
-        self.Pulses_spinBox.valueChanged.connect(self.frame_values_changed)
-        self.exp_spinBox_1.valueChanged.connect(self.frame_values_changed)
+        # self.delay_spinBox.valueChanged.connect(self.frame_values_changed)
+        # self.interval_spinBox_1.valueChanged.connect(self.frame_values_changed)
+        # self.Pulses_spinBox.valueChanged.connect(self.frame_values_changed)
+        # self.exp_spinBox_1.valueChanged.connect(self.frame_values_changed)
 
-        self.led_start_pwr_spinBox.valueChanged.connect(self.led_values_changed)
-        self.led_pwr_inc_spinBox.valueChanged.connect(self.led_values_changed)
-        self.Pulses_spinBox.valueChanged.connect(self.led_values_changed)
+        # self.led_start_pwr_spinBox.valueChanged.connect(self.led_values_changed)
+        # self.led_pwr_inc_spinBox.valueChanged.connect(self.led_values_changed)
+        # self.Pulses_spinBox.valueChanged.connect(self.led_values_changed)
 
     def browse_cfg(self):
         file_dir = QFileDialog.getOpenFileName(self, '', '⁩', 'cfg(*.cfg)')
@@ -290,7 +192,7 @@ class MainWindow(QtW.QMainWindow):
         self.bin_comboBox.clear()
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
-        self.oc_channel_comboBox.clear()
+        #self.oc_channel_comboBox.clear()
 
         cfg_file = self.cfg_LineEdit.text()
         if cfg_file == DEFAULT_CFG_NAME:
@@ -302,19 +204,22 @@ class MainWindow(QtW.QMainWindow):
             print('Select a valid .cfg file.')
     
         # Get Camera Options
-        cam_device = mmcore.getCameraDevice()
-        cam_props = mmcore.getDevicePropertyNames(cam_device)
+        self.cam_device = mmcore.getCameraDevice()
+        cam_props = mmcore.getDevicePropertyNames(self.cam_device)
+        print(cam_props)
         if "Binning" in cam_props:
-            bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning")
+            bin_opts = mmcore.getAllowedPropertyValues(self.cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(mmcore.getProperty(cam_device, "Binning"))
-        if "BitDepth" in cam_props:
-            bit_opts = mmcore.getAllowedPropertyValues(cam_device, "BitDepth")         
-            self.bit_comboBox.addItems(sorted(bit_opts, key=lambda x: int(x)))
-            self.bit_comboBox.setCurrentText(mmcore.getProperty(cam_device, "BitDepth"))
-            if '16' in bit_opts:
-                self.bit_comboBox.setCurrentText('16')
+            self.bin_comboBox.setCurrentText(mmcore.getProperty(self.cam_device, "Binning"))
+            mmcore.setProperty(self.cam_device, "Binning", "1")
 
+        if "PixelType" in cam_props:
+            px_t = mmcore.getAllowedPropertyValues(self.cam_device, "PixelType")
+            self.bit_comboBox.addItems(px_t)
+            if '16' in px_t:
+                self.bit_comboBox.setCurrentText("16bit")
+                mmcore.setProperty(self.cam_device, "PixelType", "16bit")
+        
         # Get Objective Options
         if "Objective" in mmcore.getLoadedDevices():
             mmcore.setPosition("Z_Stage", 50)#just to test, should be removed
@@ -326,7 +231,6 @@ class MainWindow(QtW.QMainWindow):
         if "Channel" in mmcore.getAvailableConfigGroups():
             channel_list = list(mmcore.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
-            self.oc_channel_comboBox.addItems(channel_list)
         else:
             print("Could not find 'Channel' in the ConfigGroups")
 
@@ -334,6 +238,20 @@ class MainWindow(QtW.QMainWindow):
 
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
+
+#–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+#set (and print) properties when value/string change
+# def cam_changed(self):
+    def bit_changed(self):
+        mmcore.setProperty(self.cam_device, "PixelType", self.bit_comboBox.currentText())
+        print(mmcore.getProperty(mmcore.getCameraDevice(), "PixelType"))
+    
+    def bin_changed(self):
+        mmcore.setProperty(self.cam_device, "Binning", self.bin_comboBox.currentText())
+        print(mmcore.getProperty(mmcore.getCameraDevice(), "Binning"))
+
+    # def cam_changed(self):
+#–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
     def update_stage_position(self):
         x = int(mmcore.getXPosition())
@@ -422,7 +340,7 @@ class MainWindow(QtW.QMainWindow):
         self.stop_live()
         mmcore.setExposure(int(self.exp_spinBox.value()))
         mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-        mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+        mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
         mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
         #mmcore.waitForDevice('')
         mmcore.snapImage()
@@ -445,7 +363,7 @@ class MainWindow(QtW.QMainWindow):
             while True:
                 mmcore.setExposure(int(self.exp_spinBox.value()))
                 mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-                mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+                mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
                 mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
                 mmcore.snapImage()
                 yield mmcore.getImage()
@@ -462,7 +380,6 @@ class MainWindow(QtW.QMainWindow):
 
         self.live_Button.setText("Stop")
         self.worker = live_mode()
-
 
     def stop_live(self):
         if self.worker:
@@ -483,169 +400,164 @@ class MainWindow(QtW.QMainWindow):
             self.live_Button.setIcon(QIcon(str(icon_path/'vcam.svg')))
         self.live_Button.setIconSize(QtCore.QSize(40,40)) 
 
-    def detect_arduino(self):
-        try:
-            self.arduino_board_comboBox.clear()
-            self.board = Arduino(Arduino.AUTODETECT)
-            board_port = [str(self.board)]
-            self.arduino_board_comboBox.addItems(board_port)
-            it = util.Iterator(self.board)
-            it.start()
-            self.led = self.board.get_pin('d:3:p')#set led pin of arduino
-            self.exp_groupBox_1.setEnabled(True)
-            self.exp_spinBox_1.setEnabled(True)
-            self.frames_groupBox.setEnabled(True)
-            self.led_groupBox.setEnabled(True)
-            self.save_groupBox_rec.setEnabled(True)
-            self.rec_Button.setEnabled(True)
-        except KeyError:
-            print('No Arduino Found')
+#     def detect_arduino(self):
+#         try:
+#             self.arduino_board_comboBox.clear()
+#             self.board = Arduino(Arduino.AUTODETECT)
+#             board_port = [str(self.board)]
+#             self.arduino_board_comboBox.addItems(board_port)
+#             it = util.Iterator(self.board)
+#             it.start()
+#             self.led = self.board.get_pin('d:3:p')#set led pin of arduino
+#             self.exp_groupBox_1.setEnabled(True)
+#             self.exp_spinBox_1.setEnabled(True)
+#             self.frames_groupBox.setEnabled(True)
+#             self.led_groupBox.setEnabled(True)
+#             self.save_groupBox_rec.setEnabled(True)
+#             self.rec_Button.setEnabled(True)
+#         except KeyError:
+#             print('No Arduino Found')
 
-    def frame_values_changed(self):
-        self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox_1.value()*self.Pulses_spinBox.value()))-1
-        self.tot_frames_lineEdit.setText(str(self.n_frames))
-        self.rec_time_lineEdit.setText(str((self.n_frames*self.exp_spinBox_1.value()/1000)))
-
-        self.rec_time_lineEdit.setText(str((self.n_frames*self.exp_spinBox_1.value()/1000)))
-
-        frames_stim = []
-        fr = self.delay_spinBox.value()
-        for i in range (self.Pulses_spinBox.value()):
-            frames_stim.append(fr)
-            fr = fr + self.interval_spinBox_1.value()
-        self.frame_w_pulses_lineEdit.setText(str(frames_stim))
+#     def frame_values_changed(self):
+#         self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox_1.value()*self.Pulses_spinBox.value()))-1
+#         self.tot_frames_lineEdit.setText(str(self.n_frames))
+#         self.rec_time_lineEdit.setText(str((self.n_frames*self.exp_spinBox_1.value()/1000)))
+#         frames_stim = []
+#         fr = self.delay_spinBox.value()
+#         for i in range (self.Pulses_spinBox.value()):
+#             frames_stim.append(fr)
+#             fr = fr + self.interval_spinBox_1.value()
+#         self.frame_w_pulses_lineEdit.setText(str(frames_stim))
 
 
-    def led_values_changed(self):
-        led_power_used = []
-        pwr = self.led_start_pwr_spinBox.value()
-        for i in range (self.Pulses_spinBox.value()):
-            led_power_used.append(pwr)
-            pwr = pwr + self.led_pwr_inc_spinBox.value()
+#     def led_values_changed(self):
+#         led_power_used = []
+#         pwr = self.led_start_pwr_spinBox.value()
+#         for i in range (self.Pulses_spinBox.value()):
+#             led_power_used.append(pwr)
+#             pwr = pwr + self.led_pwr_inc_spinBox.value()
         
-        self.led_pwrs_lineEdit.setText(str(led_power_used))
+#         self.led_pwrs_lineEdit.setText(str(led_power_used))
 
-        power_max = (self.led_start_pwr_spinBox.value()+(self.led_pwr_inc_spinBox.value()*(self.Pulses_spinBox.value()-1)))
-        self.led_max_pwr_lineEdit.setText(str(power_max))
+#         power_max = (self.led_start_pwr_spinBox.value()+(self.led_pwr_inc_spinBox.value()*(self.Pulses_spinBox.value()-1)))
+#         self.led_max_pwr_lineEdit.setText(str(power_max))
         
-        if power_max > 100:
-            self.rec_Button.setEnabled(False)
-            print('LED max power exceded!!!')
-        else:
-            self.rec_Button.setEnabled(True)
+#         if power_max > 100:
+#             self.rec_Button.setEnabled(False)
+#             print('LED max power exceded!!!')
+#         else:
+#             self.rec_Button.setEnabled(True)
 
-        led_power_used.clear()
+#         led_power_used.clear()
 
-    def save_recordongs(self):
-        save_groupBox_rec: QtW.QGroupBox
-        dir_rec_lineEdit: QtW.QLineEdit
-        browse_rec_save_Button: QtW.QPushButton
-        fname_rec_lineEdit: QtW.QLineEdit
+#     def save_recordongs(self):
+#         save_groupBox_rec: QtW.QGroupBox
+#         dir_rec_lineEdit: QtW.QLineEdit
+#         browse_rec_save_Button: QtW.QPushButton
+#         fname_rec_lineEdit: QtW.QLineEdit
 
     
-    def snap_optocamp(self, exp_t):
-        time.sleep(0.001)
-        mmcore.setExposure(exp_t)
-        #print('  snap')
-        s_cam = time.perf_counter()
-        mmcore.snapImage()
-        e_cam = time.perf_counter()
-        print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')################################################
-        #self.update_viewer(mmcore.getImage())#?????
+#     def snap_optocamp(self, exp_t):
+#         time.sleep(0.001)
+#         mmcore.setExposure(exp_t)
+#         #print('  snap')
+#         s_cam = time.perf_counter()
+#         mmcore.snapImage()
+#         e_cam = time.perf_counter()
+#         print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')################################################
+#         #self.update_viewer(mmcore.getImage())#?????
 
-    def led_on(self, power, on_for):
-        self.led.write(power)
-        s = time.perf_counter()
-        time.sleep(on_for)
-        self.led.write(0.0)
-        e = time.perf_counter()
-        print(f'    led on for {round(e-s, 4)} second(s)')################################################
-        #print(f'  led_power = {power}')
+#     def led_on(self, power, on_for):
+#         self.led.write(power)
+#         s = time.perf_counter()
+#         time.sleep(on_for)
+#         self.led.write(0.0)
+#         e = time.perf_counter()
+#         print(f'    led on for {round(e-s, 4)} second(s)')################################################
+#         #print(f'  led_power = {power}')
         
-    def start_recordings(self):
-        self.stop_live()
-        time_stamp = []
+#     def start_recordings(self):
+#         self.stop_live()
+#         time_stamp = []
         
-        #self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox_1.value()*self.Pulses_spinBox.value()))-1
+#         #self.n_frames = (self.delay_spinBox.value() + (self.interval_spinBox_1.value()*self.Pulses_spinBox.value()))-1
 
-        stim_frame = self.delay_spinBox.value()
-        start_led_power = self.led_start_pwr_spinBox.value()
-        #print(f'start led power (%): {start_led_power}')
-        #print(f'start led power (float): {float(start_led_power/100)}')
+#         stim_frame = self.delay_spinBox.value()
+#         start_led_power = self.led_start_pwr_spinBox.value()
+#         #print(f'start led power (%): {start_led_power}')
+#         #print(f'start led power (float): {float(start_led_power/100)}')
 
-        for i in range (1,(self.n_frames+1)):
+#         for i in range (1,(self.n_frames+1)):
             
-            #print(f'frame: {i}')
+#             #print(f'frame: {i}')
 
-            mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-            mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
-            mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
+#             mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
+#             mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText() + "bit")
+#             mmcore.setConfig("Channel", self.oc_channel_comboBox.currentText())
             
-            if i == stim_frame:
+#             if i == stim_frame:
 
-                tm = time.time()
-                time_stamp.append(tm)
+#                 tm = time.time()
+#                 time_stamp.append(tm)
 
-                start = time.perf_counter()
+#                 start = time.perf_counter()
 
-                ########
-                # self.snap_optocamp(int(self.exp_spinBox_1.value()))
-                # self.led_on((start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
-                # ########
+#                 ########
+#                 # self.snap_optocamp(int(self.exp_spinBox_1.value()))
+#                 # self.led_on((start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+#                 # ########
 
-                # ########
-                # t_snap = threading.Thread(target=self.snap_optocamp, args = [int(self.exp_spinBox_1.value())])
-                # t_led = threading.Thread(target=self.led_on, args = [(start_led_power/100),(int(self.exp_spinBox_1.value())/1000)])
+#                 # ########
+#                 # t_snap = threading.Thread(target=self.snap_optocamp, args = [int(self.exp_spinBox_1.value())])
+#                 # t_led = threading.Thread(target=self.led_on, args = [(start_led_power/100),(int(self.exp_spinBox_1.value())/1000)])
                 
-                # t_snap.start()
-                # t_led.start()
+#                 # t_snap.start()
+#                 # t_led.start()
 
-                # t_snap.join()
-                # t_led.join()
-                ########
+#                 # t_snap.join()
+#                 # t_led.join()
+#                 ########
 
-                #######
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    t1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
-                    t2 = executor.submit(self.led_on, float(start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
-                #######
+#                 #######
+#                 with concurrent.futures.ThreadPoolExecutor() as executor:
+#                     t1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
+#                     t2 = executor.submit(self.led_on, float(start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
+#                 #######
 
-                finish = time.perf_counter()
-                print(f'Finished in {round(finish-start, 4)} second(s)')
+#                 finish = time.perf_counter()
+#                 print(f'Finished in {round(finish-start, 4)} second(s)')
 
-                stim_frame = stim_frame + self.interval_spinBox_1.value()
-                start_led_power = start_led_power + self.led_pwr_inc_spinBox.value()
-                #print(f'start_led_power: {start_led_power}, interval: {self.led_pwr_inc_spinBox.value()}')
-                #print(f'new_power: {start_led_power}')
+#                 stim_frame = stim_frame + self.interval_spinBox_1.value()
+#                 start_led_power = start_led_power + self.led_pwr_inc_spinBox.value()
+#                 #print(f'start_led_power: {start_led_power}, interval: {self.led_pwr_inc_spinBox.value()}')
+#                 #print(f'new_power: {start_led_power}')
             
-            else:
-                self.snap_optocamp(int(self.exp_spinBox_1.value()))
-                tm = time.time()
-                time_stamp.append(tm)
+#             else:
+#                 self.snap_optocamp(int(self.exp_spinBox_1.value()))
+#                 tm = time.time()
+#                 time_stamp.append(tm)
                 
-        print('***END***')       
+#         print('***END***')       
     
-        #self.board.exit()
+#         #self.board.exit()
 
-        #print('SUMMARY \n**********')
-        #print(f'Recordings lenght: {n_frames} frames')
-        #print(f'Number of Stimulations: {n_stimulations}')
-        #print(f'Frames when Stimulation occurred: {frames_stim}')
-        #print(f'Led Power: {led_power_used} percent')
-        #print('**********')
+#         #print('SUMMARY \n**********')
+#         #print(f'Recordings lenght: {n_frames} frames')
+#         #print(f'Number of Stimulations: {n_stimulations}')
+#         #print(f'Frames when Stimulation occurred: {frames_stim}')
+#         #print(f'Led Power: {led_power_used} percent')
+#         #print('**********')
 
-        #gap_list = []
-        #for i in range (len(time_stamp)):
-        #    val1 = time_stamp[i]
-        #    if i<len(time_stamp)-1:
-        #        val2 = time_stamp[i+1]
-        #    else:
-        #        break
-        #    gap = (val2-val1)*1000
-        #    gap_list.append(gap)
-        #print(f'Timestamp: {gap_list[0]}, {gap_list[1]}, {gap_list[len(gap_list)-1]}')
-
-
+#         #gap_list = []
+#         #for i in range (len(time_stamp)):
+#         #    val1 = time_stamp[i]
+#         #    if i<len(time_stamp)-1:
+#         #        val2 = time_stamp[i+1]
+#         #    else:
+#         #        break
+#         #    gap = (val2-val1)*1000
+#         #    gap_list.append(gap)
+#         #print(f'Timestamp: {gap_list[0]}, {gap_list[1]}, {gap_list[len(gap_list)-1]}')
 
 
 
@@ -654,7 +566,9 @@ class MainWindow(QtW.QMainWindow):
 
 
 
-#self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+
+
+# #self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
 
 
         
