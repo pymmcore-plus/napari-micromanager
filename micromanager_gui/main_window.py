@@ -263,8 +263,6 @@ class MainWindow(QtW.QMainWindow):
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
 
-
-
 #set (and print) properties when value/string change
 # def cam_changed(self):
     def bit_changed(self):

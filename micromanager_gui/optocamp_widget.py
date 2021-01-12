@@ -8,6 +8,7 @@ import time
 from qtpy.QtWidgets import QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
+from skimage import io
 
 from pyfirmata2 import Arduino, util
 import concurrent.futures
@@ -16,6 +17,7 @@ import threading#
 from mmcore_pymmcore import MMCore
 
 import napari
+
 
 icon_path = Path(__file__).parent/'icons'
 
@@ -188,7 +190,7 @@ class OptocampWidget(QtW.QWidget):
         browse_rec_save_Button: QtW.QPushButton
         fname_rec_lineEdit: QtW.QLineEdit
 
-    def snap_optocamp(self, exp_t):
+    def snap_optocamp(self, exp_t, i):
         time.sleep(0.001)
         mmcore.setExposure(exp_t)
         #print('  snap')
@@ -196,7 +198,9 @@ class OptocampWidget(QtW.QWidget):
         mmcore.snapImage()
         e_cam = time.perf_counter()
         print(f'   cam on for {round(e_cam - s_cam, 4)} second(s)')
-        #self.update_viewer(mmcore.getImage())#?????
+        self.stack[i-1,:,:] = mmcore.getImage()
+
+        #self.update_viewer(self.stack)#?????
 
     def led_on(self, power, on_for):
         self.led.write(power)
@@ -209,6 +213,12 @@ class OptocampWidget(QtW.QWidget):
         
     def start_recordings(self):
         self.print_properties()
+
+        print(f'get camera ROI: {mmcore.getROI(mmcore.getCameraDevice())}')
+        width = mmcore.getROI(mmcore.getCameraDevice())[2]
+        height = mmcore.getROI(mmcore.getCameraDevice())[3]
+        self.stack = np.empty((self.n_frames, height, width), dtype=np.uint16)
+        print(self.stack.shape)
 
         time_stamp = []
         stim_frame = self.delay_spinBox.value()
@@ -247,7 +257,7 @@ class OptocampWidget(QtW.QWidget):
 
                 #######
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    t1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()))
+                    t1 = executor.submit(self.snap_optocamp, int(self.exp_spinBox_1.value()),i)
                     t2 = executor.submit(self.led_on, float(start_led_power/100), (int(self.exp_spinBox_1.value())/1000))
                 #######
 
@@ -260,10 +270,13 @@ class OptocampWidget(QtW.QWidget):
                 #print(f'new_power: {start_led_power}')
             
             else:
-                self.snap_optocamp(int(self.exp_spinBox_1.value()))
+                self.snap_optocamp(int(self.exp_spinBox_1.value()),i)
                 tm = time.time()
                 time_stamp.append(tm)
-                
+        
+        
+        io.imsave('/Users/Gaspian/Desktop/' + 'stack.tif', self.stack, imagej=True, check_contrast=False)
+
         print('***END***')       
     
         #self.board.exit()
