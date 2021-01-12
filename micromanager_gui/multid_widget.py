@@ -78,9 +78,27 @@ class MultiDWidget(QtW.QWidget):
         if len(dev_loaded) > 1:
             self.acquisition_order_comboBox.setEnabled(True)
             self.run_Button.setEnabled(True)
-
         else:
             self.uncheck_all()
+            self.run_Button.setEnabled(False)
+
+
+
+
+
+
+
+
+
+
+
+
+    #in run button add 
+    # dev_loaded = list(mmcore.getLoadedDevices())
+    #   if len(dev_loaded) > 1:
+            #then run
+       # else:
+        #    dont run
 
 
     
