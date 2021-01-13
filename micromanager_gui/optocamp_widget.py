@@ -299,18 +299,21 @@ class OptocampWidget(QtW.QWidget):
         if self.save_groupBox_rec.isChecked():
             ln = len(os.listdir(self.parent_path))
             if ln == 0:
-                pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_0000.tif'
+                pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
                 io.imsave(str(pth), self.stack, imagej=True, check_contrast=False) 
             elif ln > 0:
                 name_list = []
                 for name in os.listdir(self.parent_path):
                     name_list.append((name))
-                    if self.fname_rec_lineEdit.text() in name_list:
-                        pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_000{ln}.tif'
-                        io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
-                    else:
-                        pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_0000.tif'
-                        io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+                    print(name_list)
+                if f'{self.fname_rec_lineEdit.text()}_{ln}' in name_list:
+                    print('yes')
+                    pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
+                    io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+                else:
+                    pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
+                    io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+                    print('no')
 
 
 
