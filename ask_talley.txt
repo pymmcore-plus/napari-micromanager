@@ -1,0 +1,9 @@
+
+
+- pip install -r requirements.txt/pip install micromanager_gui
+
+- napari viewer in multid_widget/optocamp_widget
+
+- threads to sync cam/led/napari viewer
+
+-
