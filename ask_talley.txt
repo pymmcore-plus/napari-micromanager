@@ -6,4 +6,6 @@
 
 - threads to sync cam/led/napari viewer
 
--
+- can i get a function from a different .py file (e.g. update_stage_position)?
+
+-signal/events functions
