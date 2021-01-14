@@ -207,14 +207,39 @@ class MultiDWidget(QtW.QWidget):
         self.dir = QFileDialog(self)
         self.dir.setFileMode(QFileDialog.DirectoryOnly)
         self.save_dir = QFileDialog.getExistingDirectory(self.dir)
-        self.dir_rec_lineEdit.setText(self.save_dir)
+        self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
 
 
+
+
     def run_mda(self):
-        dev_loaded = list(mmcore.getLoadedDevices())
-        if len(dev_loaded) > 1:
+            dev_loaded = list(mmcore.getLoadedDevices())
+            if len(dev_loaded) > 1:
+                if self.save_groupBox.isChecked():
+                    name_list = []
+                    print('___')
+                    for name in os.listdir(self.parent_path):
+                        name_length = len(name)
+                        if name[-4:]=='.tif':
+                            name_1 = name[0:name_length-9]#name without .tif
+                            name_2 = name[-8:-4]#only numbers in the name
+                            if name_1==self.fname_rec_lineEdit.text():
+                                name_list.append(name_2)   
+                    name_list.sort()
+        
+                    i = format(0, '04d')
+                    for r in range(len(name_list)):
+                        if str(i) in name_list[r]:
+                            i = format(int(i)+1, '04d')
+        
+                    pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{i}.tif'
+                    io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+                    print(pth)
+                    name_list.clear()
+
+    
             
             pass
        
