@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>560</width>
-    <height>1035</height>
+    <height>755</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -353,7 +353,7 @@
            <number>5</number>
           </property>
           <property name="topMargin">
-           <number>5</number>
+           <number>10</number>
           </property>
           <property name="rightMargin">
            <number>5</number>
@@ -538,6 +538,9 @@
           <string>Z Control</string>
          </property>
          <layout class="QGridLayout" name="gridLayout_7">
+          <property name="topMargin">
+           <number>15</number>
+          </property>
           <item row="0" column="0" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="up_Button">
             <property name="enabled">
