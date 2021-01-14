@@ -10,8 +10,8 @@ from qtpy.QtWidgets import QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 
-
 from mmcore_pymmcore import MMCore
+
 
 icon_path = Path(__file__).parent/'icons'
 
@@ -64,6 +64,8 @@ class MultiDWidget(QtW.QWidget):
 
         # self.pos_list = []
         
+        mmcore.registerCallback(onPropertiesChanged())	
+
         #connect buttons      
         self.add_pos_Button.clicked.connect(self.add_position)        
         self.remove_pos_Button.clicked.connect(self.remove_position)
@@ -98,6 +100,41 @@ class MultiDWidget(QtW.QWidget):
     #         self.uncheck_all()
     #         self.run_Button.setEnabled(False)
 
+
+    #add, remove, clear channel table
+    def add_channel(self):
+        idx = self.channel_tableWidget.rowCount()
+        self.channel_tableWidget.insertRow(idx)
+
+        #create a combo_box for channels in the table
+        self.channel_comboBox = QtW.QComboBox(self)
+
+        if "Channel" in mmcore.getAvailableConfigGroups():
+            channel_list = list(mmcore.getAvailableConfigs("Channel"))
+        else:
+            print("Could not find 'Channel' in the ConfigGroups")
+        self.channel_comboBox.addItems(channel_list)
+
+        self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox )
+        
+        default_exp = QtW.QTableWidgetItem('100')
+        default_exp.setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
+        self.channel_tableWidget.setItem(idx,1,QtW.QTableWidgetItem(default_exp))
+        
+    
+    def remove_channel(self):
+        # remove selected position
+        rows = set(r.row() for r in self.channel_tableWidget.selectedIndexes())
+        for idx in sorted(rows, reverse=True):
+            self.channel_tableWidget.removeRow(idx)
+
+    def clear_channel(self):
+        # clear all positions
+        self.channel_tableWidget.clearContents()
+        self.channel_tableWidget.setRowCount(0)
+
+
+    #add, remove, clear, move_to positions table
     def add_position(self):
         # get stage x, y ans z coordinate
         # add current xyz pos
@@ -147,36 +184,7 @@ class MultiDWidget(QtW.QWidget):
         mmcore.setPosition("Z_Stage", float(z_val)) 
     
 
-    def add_channel(self):
-        idx = self.channel_tableWidget.rowCount()
-        self.channel_tableWidget.insertRow(idx)
-
-        #create a combo_box for channels in the table
-        self.channel_comboBox = QtW.QComboBox(self)
-
-        if "Channel" in mmcore.getAvailableConfigGroups():
-            channel_list = list(mmcore.getAvailableConfigs("Channel"))
-        else:
-            print("Could not find 'Channel' in the ConfigGroups")
-        self.channel_comboBox.addItems(channel_list)
-
-        self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox )
-        
-        default_exp = QtW.QTableWidgetItem('100')
-        default_exp.setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
-        self.channel_tableWidget.setItem(idx,1,QtW.QTableWidgetItem(default_exp))
-        
     
-    def remove_channel(self):
-        # remove selected position
-        rows = set(r.row() for r in self.channel_tableWidget.selectedIndexes())
-        for idx in sorted(rows, reverse=True):
-            self.channel_tableWidget.removeRow(idx)
-
-    def clear_channel(self):
-        # clear all positions
-        self.channel_tableWidget.clearContents()
-        self.channel_tableWidget.setRowCount(0)
 
 
 
