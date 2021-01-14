@@ -68,8 +68,15 @@ class MultiDWidget(QtW.QWidget):
         self.add_pos_Button.clicked.connect(self.add_position)        
         self.remove_pos_Button.clicked.connect(self.remove_position)
         self.clear_pos_Button.clicked.connect(self.clear_positions)
-        self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
+        self.add_ch_Button.clicked.connect(self.add_channel)
+        self.remove_ch_Button.clicked.connect(self.remove_channel)
+        self.clear_ch_Button.clicked.connect(self.clear_channel)
         #self.run_Button.clicked.connect(self.load_cfg)
+
+        #connect position table double click
+        self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
+        
+        
 
         #button icon
         self.run_Button.setIcon(QIcon(str(icon_path/'play-button_1.svg')))
@@ -116,8 +123,9 @@ class MultiDWidget(QtW.QWidget):
 
     def remove_position(self):
         # remove selected position
-        row = self.stage_tableWidget.currentRow()
-        self.stage_tableWidget.removeRow(row)
+        rows = set(r.row() for r in self.stage_tableWidget.selectedIndexes())
+        for idx in sorted(rows, reverse=True):
+            self.stage_tableWidget.removeRow(idx)
 
     def clear_positions(self):
         # clear all positions
@@ -137,6 +145,54 @@ class MultiDWidget(QtW.QWidget):
         # print(f'z: {z_val}')
         mmcore.setXYPosition(float(x_val),float(y_val))
         mmcore.setPosition("Z_Stage", float(z_val)) 
+    
+
+    def add_channel(self):
+        idx = self.channel_tableWidget.rowCount()
+        self.channel_tableWidget.insertRow(idx)
+
+        #create a combo_box for channels in the table
+        self.channel_comboBox = QtW.QComboBox(self)
+
+        if "Channel" in mmcore.getAvailableConfigGroups():
+            channel_list = list(mmcore.getAvailableConfigs("Channel"))
+        else:
+            print("Could not find 'Channel' in the ConfigGroups")
+        self.channel_comboBox.addItems(channel_list)
+
+        self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox )
+        
+        default_exp = QtW.QTableWidgetItem('100')
+        default_exp.setTextAlignment(Qt.AlignHCenter|Qt.AlignVCenter)
+        self.channel_tableWidget.setItem(idx,1,QtW.QTableWidgetItem(default_exp))
+        
+    
+    def remove_channel(self):
+        # remove selected position
+        rows = set(r.row() for r in self.channel_tableWidget.selectedIndexes())
+        for idx in sorted(rows, reverse=True):
+            self.channel_tableWidget.removeRow(idx)
+
+    def clear_channel(self):
+        # clear all positions
+        self.channel_tableWidget.clearContents()
+        self.channel_tableWidget.setRowCount(0)
+
+
+
+
+
+
+    # #get all positions
+    # for row in self.stage_tableWidget.rowCount():
+    #     x_pos = self.stage_tableWidget.item(row, 0).text()
+    #     y_pos = self.stage_tableWidget.item(row, 1).text()
+    #     z_pos = self.stage_tableWidget.item(row, 2).text()
+    #     mmcore.setXYPosition(float(x_val),float(y_val))
+    #     mmcore.setPosition("Z_Stage", float(z_val))
+
+
+
 
     
            

@@ -162,6 +162,12 @@
           </item>
           <item row="0" column="0" rowspan="3">
            <widget class="QTableWidget" name="channel_tableWidget">
+            <property name="editTriggers">
+             <set>QAbstractItemView::CurrentChanged</set>
+            </property>
+            <property name="tabKeyNavigation">
+             <bool>true</bool>
+            </property>
             <property name="showDropIndicator" stdset="0">
              <bool>false</bool>
             </property>
@@ -199,7 +205,7 @@
             </column>
             <column>
              <property name="text">
-              <string>Exp. Time</string>
+              <string>Exp. Time (ms)</string>
              </property>
             </column>
            </widget>

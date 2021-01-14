@@ -2,10 +2,13 @@
 
 - pip install -r requirements.txt/pip install micromanager_gui
 
+- function remove_channel/remove_position
+
 - napari viewer in multid_widget/optocamp_widget
 
 - threads to sync cam/led/napari viewer
 
 - can i get a function from a different .py file (e.g. update_stage_position)?
 
--signal/events functions
+- signal/events functions
+
