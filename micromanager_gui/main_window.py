@@ -377,10 +377,10 @@ class MainWindow(QtW.QMainWindow):
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
 
-#        binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
-#        print(f'Binning: {binning}')
-#        bit = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
-#        print(f'Bit Depth: {bit}')
+        # binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
+        # print(f'Binning: {binning}')
+        # bit = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
+        # print(f'Bit Depth: {bit}')
         
         try:#display max and min gray values
             min_v = np.min(self.viewer.layers["preview"].data)

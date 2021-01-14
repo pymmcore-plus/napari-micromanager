@@ -236,11 +236,11 @@ class OptocampWidget(QtW.QWidget):
     def start_recordings(self):
         self.print_properties()
 
-        print(f'get camera ROI: {mmcore.getROI(mmcore.getCameraDevice())}')
+        #print(f'get camera ROI: {mmcore.getROI(mmcore.getCameraDevice())}')
         width = mmcore.getROI(mmcore.getCameraDevice())[2]
         height = mmcore.getROI(mmcore.getCameraDevice())[3]
         self.stack = np.empty((self.n_frames, height, width), dtype=np.uint16)
-        print(self.stack.shape)
+        #print(self.stack.shape)
 
         time_stamp = []
         stim_frame = self.delay_spinBox.value()
@@ -295,30 +295,34 @@ class OptocampWidget(QtW.QWidget):
                 self.snap_optocamp(int(self.exp_spinBox_1.value()),i)
                 tm = time.time()
                 time_stamp.append(tm)
-        
+
         if self.save_groupBox_rec.isChecked():
-            ln = len(os.listdir(self.parent_path))
-            if ln == 0:
-                pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
-                io.imsave(str(pth), self.stack, imagej=True, check_contrast=False) 
-            elif ln > 0:
-                name_list = []
-                for name in os.listdir(self.parent_path):
-                    name_list.append((name))
-                    print(name_list)
-                if f'{self.fname_rec_lineEdit.text()}_{ln}' in name_list:
-                    print('yes')
-                    pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
-                    io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
-                else:
-                    pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{ln}.tif'
-                    io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
-                    print('no')
+            name_list = []
+            print('___')
+            for name in os.listdir(self.parent_path):
+                name_length = len(name)
+                if name[-4:]=='.tif':
+                    name_1 = name[0:name_length-9]#name without .tif
+                    name_2 = name[-8:-4]#only numbers in the name
+                    if name_1==self.fname_rec_lineEdit.text():
+                        name_list.append(name_2)   
+            name_list.sort()
+ 
+            i = format(0, '04d')
+            for r in range(len(name_list)):
+                if str(i) in name_list[r]:
+                    i = format(int(i)+1, '04d')
+  
+            pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{i}.tif'
+            io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
+            print(pth)
+            name_list.clear()
 
-
-
-                     
+                    
+                    
         print('***END***')
+
+
     
         
         
