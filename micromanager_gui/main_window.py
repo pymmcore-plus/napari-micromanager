@@ -300,7 +300,7 @@ class MainWindow(QtW.QMainWindow):
         x_new = int(mmcore.getXPosition())
         self.x_lineEdit.setText((str('%.0f'%x_new)))
         mmcore.waitForDevice("XY_Stage")
-    
+        
     def stage_x_right(self):
         xpos = mmcore.getXPosition()
         ypos = mmcore.getYPosition()

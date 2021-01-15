@@ -221,17 +221,10 @@ class OptocampWidget(QtW.QWidget):
     
     def toggle_rec_button(self):
         if self.save_groupBox_rec.isChecked():
-            print(self.save_groupBox_rec.isChecked())
             if self.dir_rec_lineEdit.text() == '' or self.fname_rec_lineEdit.text()=='':
-                print(self.dir_rec_lineEdit.text())
-                print(self.fname_rec_lineEdit.text())
                 self.rec_Button.setEnabled(False)
-                print('set button off')
             else:
                 self.rec_Button.setEnabled(True)
-                print(self.dir_rec_lineEdit.text())
-                print(self.fname_rec_lineEdit.text())
-                print('set button on')
 
     def start_recordings(self):
         self.print_properties()
@@ -315,7 +308,6 @@ class OptocampWidget(QtW.QWidget):
   
             pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{i}.tif'
             io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
-            print(pth)
             name_list.clear()
 
                     
