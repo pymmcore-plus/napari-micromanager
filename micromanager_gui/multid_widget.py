@@ -66,6 +66,7 @@ class MultiDWidget(QtW.QWidget):
 
         self.pos_list = []
         self.pos_stack_array = []
+        self.list_ch = []
 
         #connect buttons      
         self.add_pos_Button.clicked.connect(self.add_position)        
@@ -125,24 +126,6 @@ class MultiDWidget(QtW.QWidget):
                 self.run_Button.setEnabled(False)
         else:
             self.run_Button.setEnabled(False)
-
-
-
-        
-    # def toggle_run_button_save(self):
-    #     if self.save_groupBox.isChecked():
-    #         if self.dir_lineEdit.text() == '' or self.fname_lineEdit.text()=='':
-    #             self.run_Button.setEnabled(False)
-    #         else:
-    #             self.run_Button.setEnabled(True)
-
-    # def toggle_run_button_ch(self):
-    #     print('toggled')
-    #     if self.channel_groupBox.isChecked() and self.channel_tableWidget.rowCount()>0:
-    #         self.run_Button.setEnabled(True)
-    #     else:
-    #         self.run_Button.setEnabled(False)
-
 
     #add, remove, clear channel table
     def add_channel(self):
@@ -268,9 +251,12 @@ class MultiDWidget(QtW.QWidget):
         dev_loaded = list(mmcore.getLoadedDevices())
         if len(dev_loaded) > 1:
             
-            if self.channel_groupBox.isChecked() and self.channel_tableWidget.rowCount()>0:
-        
-                nC = self.channel_tableWidget.rowCount()
+            if self.channel_groupBox.isChecked() and self.channel_tableWidget.rowCount()>0:#can be removed
+                
+                self.list_ch.clear()
+                for c in range(self.channel_tableWidget.rowCount()):
+                    cnl = self.channel_tableWidget.cellWidget(c, 0).currentText()
+                    self.list_ch.append(cnl)
 
                 #timelapse settings
                 if self.time_groupBox.isChecked():
@@ -314,26 +300,30 @@ class MultiDWidget(QtW.QWidget):
 
                 #create stack array
                 self.pos_stack_array.clear()
+                nC = self.channel_tableWidget.rowCount()
                 for _ in range(len(self.pos_list)):
                     pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
                     self.pos_stack_array.append(pos_stack)
 
-                #create save folder in directory
+                #create main save folder in directory
                 if self.save_groupBox.isChecked():
                     pl = format(len(self.pos_list), '04d')
                     tl = format(timepoints, '04d')
                     ns = format(n_steps, '04d')
-                    nc = format(nC, '04d')
 
-                    save_folder_name = f'{self.fname_lineEdit.text()}_Pos{pl}_t{tl}_z{ns}_c{nc}'
+                    save_folder_name = f'{self.fname_lineEdit.text()}_p{pl}_t{tl}_z{ns}_{self.list_ch}'
                     save_folder = self.parent_path / save_folder_name
                     if save_folder.exists():
                         i = len(os.listdir(self.parent_path))
                         save_folder = Path(f'{save_folder_name}_{i-1}')
-                        save_folder_1 = self.parent_path / save_folder
-                        os.makedirs(save_folder_1)
-                    else:
-                        os.makedirs(save_folder)
+                        save_folder = self.parent_path / save_folder
+                    os.makedirs(save_folder)
+                    
+                    for posxy in range(len(self.pos_list)):
+                        i = format(posxy, '04d')
+                        os.makedirs(save_folder/f'Pos_{i}')
+
+                        
 
                 #start acquisition
 
@@ -370,18 +360,20 @@ class MultiDWidget(QtW.QWidget):
 
                             Bottom_z = Bottom_z + stepsize
                     
-                    #save stack per position
-                    #make a folder with the position name
-                    if self.save_groupBox.isChecked():
+                        #save stack per position
+                        #make a folder with the position name
+                        if self.save_groupBox.isChecked():
 
-                        position_format = format(len(self.pos_list), '04d')
-                        t_format = format(t, '04d')
-                        n_steps_format = format(n_steps, '04d')
-                        nC_format = format(nC, '04d')
+                            print('\n_______SAVING_______')
 
-                        save_folder_name = f'{self.fname_lineEdit.text()}_Pos{position_format}_t{t_format}_z{n_steps_format}_c{nC_format}'
-                        pth = self.parent_path / f'{save_folder_name}.tif'
-                        io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+                            position_lenght_format = format(len(self.pos_list), '04d')
+                            position_format = format(position, '04d')
+                            t_format = format(t, '04d')
+                            z_position_format = format(z_position, '04d')
+                        
+                            save_folder_name = f'{self.fname_lineEdit.text()}_p{position_lenght_format}_t{t_format}_z{z_position_format}_{self.list_ch}'
+                            pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
+                            io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
 
                     if timeinterval_unit > 0 and t < timepoints - 1:

@@ -16,11 +16,14 @@ save_folder = parent_path / save_folder_name
 if save_folder.exists():
     i = len(os.listdir(parent_path))
     save_folder = Path(f'{save_folder_name}_{i-1}')
-    save_folder_1 = parent_path / save_folder
+    save_folder = parent_path / save_folder
     print(save_folder)
-    os.makedirs(save_folder_1)#, exist_ok=True)
-else:
-    os.makedirs(save_folder)
+os.makedirs(save_folder)#, exist_ok=True)
+
+
+for posxy in range(3):
+    os.makedirs(save_folder/f'Pos_{posxy}')
+
 
 
 
