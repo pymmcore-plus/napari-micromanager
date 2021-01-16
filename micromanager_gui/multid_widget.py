@@ -346,14 +346,14 @@ class MultiDWidget(QtW.QWidget):
 
                         #save stack per position (n of file = n of timepoints)
                         #maybe use it to save temp files and remove them in the end
-                        # if self.save_groupBox.isChecked():
-                        #     print('\n_______SAVING_______')
-                        #     position_format = format(position, '04d')
-                        #     t_format = format(t, '04d')
-                        #     z_position_format = format(z_position, '04d')
-                        #     save_folder_name = f'{self.fname_lineEdit.text()}_p{position_format}_t{t_format}_zs{z_position_format}_{self.list_ch}'
-                        #     pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
-                        #     io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+                        if self.save_groupBox.isChecked():
+                            print('\n_______SAVING_______')
+                            position_format = format(position, '04d')
+                            t_format = format(t, '04d')
+                            z_position_format = format(z_position, '04d')
+                            save_folder_name = f'{self.fname_lineEdit.text()}_p{position_format}_t{t_format}_zs{z_position_format}_{self.list_ch}_TEMP'
+                            pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
+                            io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
                     if timeinterval_unit > 0 and t < timepoints - 1:
                         print(f"\nIt was t_point: {t}")
@@ -367,16 +367,19 @@ class MultiDWidget(QtW.QWidget):
                         mmcore.sleep(0.01)
 
 
+
+                for i in 
+
                 #make hyperstack
+                t_stack = []
                 iterator = 0
                 for pos in range(len(self.pos_list)):
-                    t_stack = []
                     for _ in range(timepoints):
                         ts = self.acq_stack_list[iterator]
                         t_stack.append(ts)
                         iterator = iterator + len(self.pos_list)
 
-                    stack = np.concatenate(t_stack, axis=0)
+                    stack_t = np.concatenate(t_stack, axis=0)
 
                     if self.save_groupBox.isChecked():
                         pos_format = format(pos, '04d')
@@ -384,8 +387,9 @@ class MultiDWidget(QtW.QWidget):
                         z_position_format = format(n_steps, '04d')
                         save_name = f'{self.fname_lineEdit.text()}_p{pos_format}_ts{t_format}_zs{z_position_format}_{self.list_ch}'
                         pth = save_folder / f'Pos_{pos_format}' / f'{save_name}.tif'
-                        io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+                        io.imsave(str(pth), stack_t, imagej=True, check_contrast=False)
 
+                    t_stack.clear()
                     iterator = pos + 1
                 
 
