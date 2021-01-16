@@ -35,7 +35,7 @@ class MultiDWidget(QtW.QWidget):
     remove_ch_Button: QtW.QPushButton
 
     time_groupBox: QtW.QGroupBox
-    frames_spinBox: QtW.QSpinBox
+    timepoints_spinBox: QtW.QSpinBox
     interval_spinBox: QtW.QSpinBox
     time_comboBox: QtW.QComboBox
 
@@ -57,7 +57,7 @@ class MultiDWidget(QtW.QWidget):
         uic.loadUi(UI_FILE, self)
 
         self.pos_list = []
-        self.pos_stack_array = []
+        self.pos_stack_array_list = []
         self.list_ch = []
 
         #connect buttons      
@@ -222,6 +222,7 @@ class MultiDWidget(QtW.QWidget):
         dt = f'uint{bitd}'
         mda_stack= np.empty((tp, Zp, nC, height, width), dtype=dt)
         return mda_stack
+ 
 
     def run_multi_d_acq(self):
         dev_loaded = list(mmcore.getLoadedDevices())
@@ -236,7 +237,7 @@ class MultiDWidget(QtW.QWidget):
 
                 #timelapse settings
                 if self.time_groupBox.isChecked():
-                    timepoints = self.frames_spinBox.value()
+                    timepoints = self.timepoints_spinBox.value()
                     timeinterval = self.interval_spinBox.value()
                     unit = self.time_comboBox.currentText() #min, sec, ms
                     if unit == 'min':
@@ -274,13 +275,14 @@ class MultiDWidget(QtW.QWidget):
                     n_steps = 1
                     stepsize = 0
 
-                #create stack array
-                self.pos_stack_array.clear()
+                #create timepont stack array
+                self.pos_stack_array_list.clear()
+                self.stk_array_list.clear()
                 nC = self.channel_tableWidget.rowCount()
-                for _ in range(len(self.pos_list)):
-                    #pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
+                for _ in range(len(self.pos_list)): 
+                    # pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
                     pos_stack = self.create_stack_array(1, n_steps, nC) 
-                    self.pos_stack_array.append(pos_stack)
+                    self.pos_stack_array_list.append(pos_stack)
 
                 #create main save folder in directory
                 if self.save_groupBox.isChecked():
@@ -307,17 +309,17 @@ class MultiDWidget(QtW.QWidget):
                 
                 start_acq_timr = time.perf_counter()
                 for t in range(timepoints):
-                    print(f"\nt_point: {t}")
+                    print(f"\nt_point: {t}\n")
 
                     for position, (x, y, z) in enumerate(self.pos_list):
-                        print(f"    \nXY_Pos_n: {position} XY_pos: {x, y} z_start: ({z})")
+                        print(f"    XY_Pos_n: {position} XY_pos: {x, y} z_start: ({z})\n")
                         mmcore.setXYPosition(float(x), float(y))
                         mmcore.setPosition("Z_Stage",float(z))
             
                         Bottom_z = mmcore.getPosition("Z_Stage") - ((n_steps / 2) * stepsize)
 
                         for z_position in range(n_steps):
-                            print(f"        \nZ_Pos_n: {z_position} Z: {Bottom_z}")
+                            print(f"        Z_Pos_n: {z_position} Z: {Bottom_z}\n")
                             mmcore.setPosition("Z_Stage", Bottom_z)
                             
                             for c in range(self.channel_tableWidget.rowCount()):
@@ -325,29 +327,35 @@ class MultiDWidget(QtW.QWidget):
                                 exp = self.channel_tableWidget.cellWidget(c, 1).value()
 
                                 print(f'            Channel: {ch}, exp time: {exp}')
+
+                                start_snap = time.perf_counter()
                                 mmcore.setExposure(exp)
                                 mmcore.setConfig("Channel", ch)
                                 # mmcore.waitForDevice('')
                                 mmcore.snapImage()
                                 #put image in a stack
-                                stack = self.pos_stack_array[position]
+                                stack = self.pos_stack_array_list[position]
                                 stack[:,z_position,c,:,:] = mmcore.getImage()
+                                
+                                end_snap = time.perf_counter()
+                                print(f'            channel snap took: {round(end_snap-start_snap, 4)} seconds')
 
-                            Bottom_z = Bottom_z + stepsize
-                    
+                            Bottom_z = Bottom_z + stepsize 
+
+
                         #save stack per position (n of file = n of timepoints)
                         #make a folder with the position name
                         if self.save_groupBox.isChecked():
 
                             print('\n_______SAVING_______')
-                            #position_lenght_format = format(len(self.pos_list), '04d')
                             position_format = format(position, '04d')
                             t_format = format(t, '04d')
                             z_position_format = format(z_position, '04d')
-                        
                             save_folder_name = f'{self.fname_lineEdit.text()}_p{position_format}_t{t_format}_zs{z_position_format}_{self.list_ch}'
                             pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
                             io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+
+                            # np.concatenate((im1, im2), axis=0)
 
                     if timeinterval_unit > 0 and t < timepoints - 1:
                         print(f"\nWaiting...Time interval = {timeinterval_unit/1000} seconds\n ")
@@ -358,10 +366,8 @@ class MultiDWidget(QtW.QWidget):
                         mmcore.sleep(timeinterval_unit)
                     else:
                         mmcore.sleep(0.01)
-                    
-                 
-                end_acq_timr = time.perf_counter()
 
+                end_acq_timr = time.perf_counter()
         
                 summary = """
                 _________________________________________
@@ -379,34 +385,6 @@ class MultiDWidget(QtW.QWidget):
 
 
 
-    # save_groupBox: QtW.QGroupBox
-    # fname_lineEdit: QtW.QLineEdit
-    # dir_lineEdit: QtW.QLineEdit
-    # browse_save_Button: QtW.QPushButton
-
-    # channel_groupBox: QtW.QGroupBox
-    # channel_tableWidget: QtW.QTableWidget
-    # add_ch_Button: QtW.QPushButton
-    # clear_ch_Button: QtW.QPushButton
-    # remove_ch_Button: QtW.QPushButton
-
-    # time_groupBox: QtW.QGroupBox
-    # frames_spinBox: QtW.QSpinBox
-    # interval_spinBox: QtW.QSpinBox
-    # time_comboBox: QtW.QComboBox
-
-    # stack_groupBox: QtW.QGroupBox
-    # step_spinBox: QtW.QSpinBox
-    # step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    
-    # stage_pos_groupBox: QtW.QGroupBox
-    # stage_tableWidget: QtW.QTableWidget
-    # add_pos_Button: QtW.QPushButton
-    # clear_pos_Button: QtW.QPushButton
-    # remove_pos_Button: QtW.QPushButton
-
-    # acquisition_order_comboBox: QtW.QComboBox
-    # run_Button: QtW.QPushButton
 
 
 
@@ -414,44 +392,6 @@ class MultiDWidget(QtW.QWidget):
 
 
 
-
-
-
-
-            # if self.save_groupBox.isChecked():
-            #     name_list = []
-            #     print('___')
-            #     for name in os.listdir(self.parent_path):
-            #         name_length = len(name)
-            #         if name[-4:]=='.tif':
-            #             name_1 = name[0:name_length-9]#name without .tif
-            #             name_2 = name[-8:-4]#only numbers in the name
-            #             if name_1==self.fname_rec_lineEdit.text():
-            #                 name_list.append(name_2)   
-            #     name_list.sort()
-    
-            #     i = format(0, '04d')
-            #     for r in range(len(name_list)):
-            #         if str(i) in name_list[r]:
-            #             i = format(int(i)+1, '04d')
-    
-            #     pth = self.parent_path / f'{self.fname_rec_lineEdit.text()}_{i}.tif'
-            #     io.imsave(str(pth), self.stack, imagej=True, check_contrast=False)
-            #     print(pth)
-            #     name_list.clear()
-    
-        # else:
-        #    print('Load a configuration first!')
-        #    #add dialog pop up window                                                            
-
-
-
-
-
-
-
-
-    #in run button add 
     
 
 
