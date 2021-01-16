@@ -76,12 +76,16 @@ class MultiDWidget(QtW.QWidget):
         self.clear_ch_Button.clicked.connect(self.clear_channel)
         
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
-        self.run_Button.clicked.connect(self.run_multi_d_acq)
+        self.run_Button.clicked.connect(self.acquisition_order)
 
         #connect toggle group box
         self.save_groupBox.toggled.connect(self.toggle_run_button)
         self.dir_lineEdit.textChanged.connect(self.toggle_run_button)
         self.fname_lineEdit.textChanged.connect(self.toggle_run_button)
+        self.channel_groupBox.toggled.connect(self.toggle_run_button)
+
+
+        
 
         #connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)    
@@ -106,17 +110,45 @@ class MultiDWidget(QtW.QWidget):
     #         self.uncheck_all()
     #         self.run_Button.setEnabled(False)
 
+
     def toggle_run_button(self):
-        if self.save_groupBox.isChecked():
-            if self.dir_lineEdit.text() == '' or self.fname_lineEdit.text()=='':
-                self.run_Button.setEnabled(False)
+        if self.channel_groupBox.isChecked():
+            if self.channel_tableWidget.rowCount()>0:
+                if self.save_groupBox.isChecked():
+                    if self.dir_lineEdit.text() == '' or self.fname_lineEdit.text()=='':
+                        self.run_Button.setEnabled(False)
+                    else:
+                        self.run_Button.setEnabled(True)
+                else:
+                    self.run_Button.setEnabled(True)
             else:
-                self.run_Button.setEnabled(True)
+                self.run_Button.setEnabled(False)
+        else:
+            self.run_Button.setEnabled(False)
+
+
+
+        
+    # def toggle_run_button_save(self):
+    #     if self.save_groupBox.isChecked():
+    #         if self.dir_lineEdit.text() == '' or self.fname_lineEdit.text()=='':
+    #             self.run_Button.setEnabled(False)
+    #         else:
+    #             self.run_Button.setEnabled(True)
+
+    # def toggle_run_button_ch(self):
+    #     print('toggled')
+    #     if self.channel_groupBox.isChecked() and self.channel_tableWidget.rowCount()>0:
+    #         self.run_Button.setEnabled(True)
+    #     else:
+    #         self.run_Button.setEnabled(False)
+
 
     #add, remove, clear channel table
     def add_channel(self):
         dev_loaded = list(mmcore.getLoadedDevices())
         if len(dev_loaded) > 1:
+
             idx = self.channel_tableWidget.rowCount()
             self.channel_tableWidget.insertRow(idx)
 
@@ -136,16 +168,20 @@ class MultiDWidget(QtW.QWidget):
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
 
+            self.toggle_run_button()
+
     def remove_channel(self):
         # remove selected position
         rows = set(r.row() for r in self.channel_tableWidget.selectedIndexes())
         for idx in sorted(rows, reverse=True):
             self.channel_tableWidget.removeRow(idx)
+        self.toggle_run_button()
 
     def clear_channel(self):
         # clear all positions
         self.channel_tableWidget.clearContents()
         self.channel_tableWidget.setRowCount(0)
+        self.toggle_run_button()
 
 
     #add, remove, clear, move_to positions table
@@ -205,8 +241,9 @@ class MultiDWidget(QtW.QWidget):
         self.parent_path = Path(self.save_dir)
 
     def acquisition_order(self):
-        if self.acquisition_order_comboBox..currentText()=='tp':
+        if self.acquisition_order_comboBox.currentText()=='tpzcyx':
             self.run_multi_d_acq()
+        #elif:
 
 
     def snap_mda(self):
@@ -281,7 +318,6 @@ class MultiDWidget(QtW.QWidget):
                     pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
                     self.pos_stack_array.append(pos_stack)
 
-
                 #create save folder in directory
                 if self.save_groupBox.isChecked():
                     pl = format(len(self.pos_list), '04d')
@@ -289,7 +325,7 @@ class MultiDWidget(QtW.QWidget):
                     ns = format(n_steps, '04d')
                     nc = format(nC, '04d')
 
-                    save_folder_name = f'{self.fname_lineEdit.text()}_Pos{pl}_t{tl}_z{ns}_c{nc}
+                    save_folder_name = f'{self.fname_lineEdit.text()}_Pos{pl}_t{tl}_z{ns}_c{nc}'
                     save_folder = self.parent_path / save_folder_name
                     if save_folder.exists():
                         i = len(os.listdir(self.parent_path))
@@ -319,9 +355,9 @@ class MultiDWidget(QtW.QWidget):
                             print(f"        \nZ_Pos_n: {z_position} Z: {Bottom_z}")
                             mmcore.setPosition("Z_Stage", Bottom_z)
                             
-                            for row in range(self.channel_tableWidget.rowCount()):
-                                ch = self.channel_tableWidget.cellWidget(row, 0).currentText()
-                                exp = self.channel_tableWidget.cellWidget(row, 1).value()
+                            for c in range(self.channel_tableWidget.rowCount()):
+                                ch = self.channel_tableWidget.cellWidget(c, 0).currentText()
+                                exp = self.channel_tableWidget.cellWidget(c, 1).value()
 
                                 print(f'            Channel: {ch}, exp time: {exp}')
                                 mmcore.setExposure(exp)
@@ -330,7 +366,7 @@ class MultiDWidget(QtW.QWidget):
                                 mmcore.snapImage()
                                 #put image in a stack
                                 stack = self.pos_stack_array[position]
-                                stack[t,z_position,row,:,:] = mmcore.getImage()
+                                stack[t,z_position,c,:,:] = mmcore.getImage()
 
                             Bottom_z = Bottom_z + stepsize
                     
@@ -343,7 +379,7 @@ class MultiDWidget(QtW.QWidget):
                         n_steps_format = format(n_steps, '04d')
                         nC_format = format(nC, '04d')
 
-                        save_folder_name = f'{self.fname_lineEdit.text()}_Pos{position_format}_t{t_format}_z{n_steps_format}_c{nC_format}
+                        save_folder_name = f'{self.fname_lineEdit.text()}_Pos{position_format}_t{t_format}_z{n_steps_format}_c{nC_format}'
                         pth = self.parent_path / f'{save_folder_name}.tif'
                         io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
@@ -354,10 +390,12 @@ class MultiDWidget(QtW.QWidget):
                         # maybe use
                         # while True:
                         #   display the time changing
+                        mmcore.sleep(timeinterval_unit)
+                    else:
+                        mmcore.sleep(0.01)
+                    
 
-                    #save stack in a temp folder
-
-                    mmcore.sleep(timeinterval_unit)
+                    #mmcore.sleep(timeinterval_unit)
 
 
                 

@@ -624,6 +624,11 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <item>
+        <property name="text">
+         <string>tpzcyx</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>
@@ -645,7 +650,7 @@
      <item>
       <widget class="QPushButton" name="run_Button">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="minimumSize">
         <size>
