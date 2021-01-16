@@ -341,7 +341,7 @@ class MultiDWidget(QtW.QWidget):
 
                             Bottom_z = Bottom_z + stepsize 
 
-                        self.acq_stack_list.append(stack)
+                        self.acq_stack_list.append(stack)# each is shape (1,nPositions,nChannels,x,y)
 
 
                         #save stack per position (n of file = n of timepoints)
@@ -365,10 +365,6 @@ class MultiDWidget(QtW.QWidget):
                         mmcore.sleep(timeinterval_unit)
                     else:
                         mmcore.sleep(0.01)
-
-
-
-                for i in 
 
                 #make hyperstack
                 t_stack = []
