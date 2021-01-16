@@ -3,26 +3,30 @@ from pathlib import Path
 import sys
 import os
 
-position = 0
-timepoints = 1
-n_steps = 2
-nC = 3
 
-parent_path = Path('/Users/Gaspian/Desktop/save_test')
-
-save_folder_name = f'test_Pos{position}_t{timepoints}_z{n_steps}_c{nC}'
-save_folder = parent_path / save_folder_name
-
-if save_folder.exists():
-    i = len(os.listdir(parent_path))
-    save_folder = Path(f'{save_folder_name}_{i-1}')
-    save_folder = parent_path / save_folder
-    print(save_folder)
-os.makedirs(save_folder)#, exist_ok=True)
+save_folder = Path("/Users/Gaspian/Desktop/save_test/testMDA_ps0002_ts0005_zs0005_['DAPI', 'FITC', 'Cy3']")
 
 
-for posxy in range(3):
-    os.makedirs(save_folder/f'Pos_{posxy}')
+def create_stack_array(tp, Zp, nC):
+        width = 512
+        height = 512
+        bitd=16
+        dt = f'uint{bitd}'
+        mda_stack= np.empty((tp, Zp, nC, height, width), dtype=dt)
+        return mda_stack
+
+
+for folders in os.scandir(save_folder):
+    if folders.is_dir():
+        name_pos_folder = Path(folders)
+        path_to_pos_folder = save_folder / name_pos_folder
+        print(path_to_pos_folder)
+        t_stack = create_stack_array(5,5,3)
+        for timep in range (len(os.listdir(path_to_pos_folder))):
+            t_stack = t_stack + os.listdir(path_to_pos_folder)[timep]
+            # t_stack[timep]= os.listdir(path_to_pos_folder)[timep]
+
+
 
 
 
