@@ -51,58 +51,45 @@ print(f'ts*ps = {length_l}, len(l) = {len(l)}')
 
 
 
+
+
 i = 0
 for p in range(ps):
-    t_st = create_stack_array(0, zp, ch)
+    st_time = []
     for _ in range(tp):
-        #print(f'i = {i}')
         st = l[i]
-        #print(f'st = {st}')
-        #st_time.append(st)
-        t_st = np.concatenate((t_st, st), axis=0)
+        st_time.append(st)
         i = i + ps
-        #print(f'i_new = {i}\n')
+
+    stack = np.concatenate(st_time, axis=0)
+    print(stack.shape)
+
     pth = save_folder / f'Pos_{p}.tif'
-    io.imsave(str(pth), t_st, imagej=True, check_contrast=False)
+    io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+
     i = p + 1
 
 
 
 
+#make hyperstack
+# iterator = 0
+# for pos in range(len(self.pos_list)):
+#     t_stack = self.create_stack_array(0, n_steps, nC)
+#     for tp in range(timepoints):
+#         ts = self.acq_stack_list[iterator]
+#         t_stack = np.concatenate((t_stack, ts), axis=0)
+#         iterator = iterator + len(self.pos_list)
+#     #save hyperstack
+#     if self.save_groupBox.isChecked():
+#         pos_format = format(pos, '04d')
+#         t_format = format(timepoints, '04d')
+#         z_position_format = format(n_steps, '04d')
+#         save_name = f'{self.fname_lineEdit.text()}_p{pos_format}_ts{t_format}_zs{z_position_format}_{self.list_ch}'
+#         pth = save_folder / f'Pos_{pos_format}' / f'{save_name}.tif'
+#         io.imsave(str(pth), t_stack, imagej=True, check_contrast=False)
+
+#     iterator = pos + 1
 
 
 
-
-#print(st_time)
-
-
-# t_st = create_stack_array(0, zp, ch)
-# print(f't_st.shape start = {t_st.shape}')
-
-# for i in range(len(l)):
-#     st = st_time[i]
-#     t_st = np.concatenate((t_st, st), axis=0)
-
-#     print(f'    t_st.shape iteration = {t_st.shape}')
-
-# print(f'        t_st.shape final = {t_st.shape}')
-
-
-
-
-
-
-
-
-
-# i = 0
-# stk_time = []
-# for _ in range(tp):
-#     print(f'i = {i}')
-#     stk = l[i]
-#     print(f'stk = {stk}')
-#     stk_time.append(stk)
-#     i = i + ps
-#     print(f'i_new = {i}\n')
-    
-# print(stk_time)

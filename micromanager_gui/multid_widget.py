@@ -11,6 +11,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from textwrap import dedent
 from skimage import io
+import concurrent.futures
 
 from mmcore_pymmcore import MMCore
 
@@ -201,13 +202,10 @@ class MultiDWidget(QtW.QWidget):
         self.parent_path = Path(self.save_dir)
 
     def acquisition_order(self):
-        if self.acquisition_order_comboBox.currentText()=='tpzcyx':
-            self.run_multi_d_acq()
+        if self.acquisition_order_comboBox.currentText()=='tpzcxy':
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                executor.submit(self.run_multi_d_acq_tpzcxy())
         #elif:
-
-
-    def snap_mda(self):#to use with update_viewer in two different threads 
-        pass
 
     def update_viewer(self):
         pass
@@ -223,9 +221,9 @@ class MultiDWidget(QtW.QWidget):
         dt = f'uint{bitd}'
         mda_stack= np.empty((tp, Zp, nC, height, width), dtype=dt)
         return mda_stack
- 
+    
 
-    def run_multi_d_acq(self):
+    def run_multi_d_acq_tpzcxy(self):
         dev_loaded = list(mmcore.getLoadedDevices())
         if len(dev_loaded) > 1:
             
@@ -344,9 +342,10 @@ class MultiDWidget(QtW.QWidget):
                             Bottom_z = Bottom_z + stepsize 
 
                         self.acq_stack_list.append(stack)
-                        print(len(self.acq_stack_list))
+
 
                         #save stack per position (n of file = n of timepoints)
+                        #maybe use it to save temp files and remove them in the end
                         # if self.save_groupBox.isChecked():
                         #     print('\n_______SAVING_______')
                         #     position_format = format(position, '04d')
@@ -357,7 +356,8 @@ class MultiDWidget(QtW.QWidget):
                         #     io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
                     if timeinterval_unit > 0 and t < timepoints - 1:
-                        print(f"\nWaiting...Time interval = {timeinterval_unit/1000} seconds\n ")
+                        print(f"\nIt was t_point: {t}")
+                        print(f"Waiting...Time interval = {timeinterval_unit/1000} seconds\n")
                         #create a time indicator on the gui
                         # maybe use
                         # while True:
@@ -365,25 +365,29 @@ class MultiDWidget(QtW.QWidget):
                         mmcore.sleep(timeinterval_unit)
                     else:
                         mmcore.sleep(0.01)
-                
+
+
                 #make hyperstack
                 iterator = 0
                 for pos in range(len(self.pos_list)):
-                    t_stack = self.create_stack_array(0, n_steps, nC)
-                    for tp in range(timepoints):
+                    t_stack = []
+                    for _ in range(timepoints):
                         ts = self.acq_stack_list[iterator]
-                        t_stack = np.concatenate((t_stack, ts), axis=0)
+                        t_stack.append(ts)
                         iterator = iterator + len(self.pos_list)
-                    #save hyperstack
+
+                    stack = np.concatenate(t_stack, axis=0)
+
                     if self.save_groupBox.isChecked():
                         pos_format = format(pos, '04d')
                         t_format = format(timepoints, '04d')
                         z_position_format = format(n_steps, '04d')
                         save_name = f'{self.fname_lineEdit.text()}_p{pos_format}_ts{t_format}_zs{z_position_format}_{self.list_ch}'
                         pth = save_folder / f'Pos_{pos_format}' / f'{save_name}.tif'
-                        io.imsave(str(pth), t_stack, imagej=True, check_contrast=False)
-                
+                        io.imsave(str(pth), stack, imagej=True, check_contrast=False)
+
                     iterator = pos + 1
+                
 
                 end_acq_timr = time.perf_counter()
         
