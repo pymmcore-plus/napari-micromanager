@@ -12,18 +12,21 @@ pth = Path("/Users/Gaspian/Desktop/save_test/last_ps0002_ts0003_zs0003_['Cy3', '
 
 with napari.gui_qt():
     viewer = napari.Viewer()
+    img = "/Users/Gaspian/Desktop/save_test/last_p0001_t0002_zs0002_['Cy3', 'DAPI', 'FITC'].tif"
+    im = io.imread(img)
+    viewer.add_image(im)
 
-    count = 0
-    for i in os.scandir(pth):
-        if i.is_dir():
-            print(i)
-            for f in os.scandir(i):
-                if f.is_file():
-                    img = io.imread(f.path)
-                    print(img.shape)
-                    viewer.add_image(img, name=f'img_{count}')
-                    print(f)
-                    count =+ 1
+
+
+    # count = 0
+    # for i in os.scandir(pth):
+    #     if i.is_dir():
+    #         print(i)
+    #         for f in os.scandir(i):
+    #             if f.is_file():
+    #                 img = io.imread(f.path)
+    #                 viewer.add_image(img)
+
 
                 
                 

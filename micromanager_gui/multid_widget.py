@@ -355,7 +355,10 @@ class MultiDWidget(QtW.QWidget):
                             pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
                             io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
-                            # np.concatenate((im1, im2), axis=0)
+                            # if os.listdir(pth)>0:
+
+                            # for name in os.listdir(pth):
+                            # # np.concatenate((im1, im2), axis=0)
 
                     if timeinterval_unit > 0 and t < timepoints - 1:
                         print(f"\nWaiting...Time interval = {timeinterval_unit/1000} seconds\n ")
