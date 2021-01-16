@@ -57,8 +57,9 @@ class MultiDWidget(QtW.QWidget):
         uic.loadUi(UI_FILE, self)
 
         self.pos_list = []
-        self.pos_stack_array_list = []
+        self.pos_stack_list = []
         self.list_ch = []
+        self.acq_stack_list = []
 
         #connect buttons      
         self.add_pos_Button.clicked.connect(self.add_position)        
@@ -276,13 +277,13 @@ class MultiDWidget(QtW.QWidget):
                     stepsize = 0
 
                 #create timepont stack array
-                self.pos_stack_array_list.clear()
-                self.stk_array_list.clear()
+                self.pos_stack_list.clear()
+                self.acq_stack_list.clear()
                 nC = self.channel_tableWidget.rowCount()
                 for _ in range(len(self.pos_list)): 
                     # pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
                     pos_stack = self.create_stack_array(1, n_steps, nC) 
-                    self.pos_stack_array_list.append(pos_stack)
+                    self.pos_stack_list.append(pos_stack)
 
                 #create main save folder in directory
                 if self.save_groupBox.isChecked():
@@ -334,7 +335,7 @@ class MultiDWidget(QtW.QWidget):
                                 # mmcore.waitForDevice('')
                                 mmcore.snapImage()
                                 #put image in a stack
-                                stack = self.pos_stack_array_list[position]
+                                stack = self.pos_stack_list[position]
                                 stack[:,z_position,c,:,:] = mmcore.getImage()
                                 
                                 end_snap = time.perf_counter()
@@ -342,23 +343,18 @@ class MultiDWidget(QtW.QWidget):
 
                             Bottom_z = Bottom_z + stepsize 
 
+                        self.acq_stack_list.append(stack)
+                        print(len(self.acq_stack_list))
 
                         #save stack per position (n of file = n of timepoints)
-                        #make a folder with the position name
-                        if self.save_groupBox.isChecked():
-
-                            print('\n_______SAVING_______')
-                            position_format = format(position, '04d')
-                            t_format = format(t, '04d')
-                            z_position_format = format(z_position, '04d')
-                            save_folder_name = f'{self.fname_lineEdit.text()}_p{position_format}_t{t_format}_zs{z_position_format}_{self.list_ch}'
-                            pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
-                            io.imsave(str(pth), stack, imagej=True, check_contrast=False)
-
-                            # if os.listdir(pth)>0:
-
-                            # for name in os.listdir(pth):
-                            # # np.concatenate((im1, im2), axis=0)
+                        # if self.save_groupBox.isChecked():
+                        #     print('\n_______SAVING_______')
+                        #     position_format = format(position, '04d')
+                        #     t_format = format(t, '04d')
+                        #     z_position_format = format(z_position, '04d')
+                        #     save_folder_name = f'{self.fname_lineEdit.text()}_p{position_format}_t{t_format}_zs{z_position_format}_{self.list_ch}'
+                        #     pth = save_folder / f'Pos_{position_format}'/f'{save_folder_name}.tif'
+                        #     io.imsave(str(pth), stack, imagej=True, check_contrast=False)
 
                     if timeinterval_unit > 0 and t < timepoints - 1:
                         print(f"\nWaiting...Time interval = {timeinterval_unit/1000} seconds\n ")
@@ -369,6 +365,25 @@ class MultiDWidget(QtW.QWidget):
                         mmcore.sleep(timeinterval_unit)
                     else:
                         mmcore.sleep(0.01)
+                
+                #make hyperstack
+                iterator = 0
+                for pos in range(len(self.pos_list)):
+                    t_stack = self.create_stack_array(0, n_steps, nC)
+                    for tp in range(timepoints):
+                        ts = self.acq_stack_list[iterator]
+                        t_stack = np.concatenate((t_stack, ts), axis=0)
+                        iterator = iterator + len(self.pos_list)
+                    #save hyperstack
+                    if self.save_groupBox.isChecked():
+                        pos_format = format(pos, '04d')
+                        t_format = format(timepoints, '04d')
+                        z_position_format = format(n_steps, '04d')
+                        save_name = f'{self.fname_lineEdit.text()}_p{pos_format}_ts{t_format}_zs{z_position_format}_{self.list_ch}'
+                        pth = save_folder / f'Pos_{pos_format}' / f'{save_name}.tif'
+                        io.imsave(str(pth), t_stack, imagej=True, check_contrast=False)
+                
+                    iterator = pos + 1
 
                 end_acq_timr = time.perf_counter()
         
@@ -379,7 +394,6 @@ class MultiDWidget(QtW.QWidget):
                 """.format(round(end_acq_timr-start_acq_timr, 4))
                 summary = dedent(summary)
                 print(summary)
-
 
             else:
                 print('Select at lest one channel.')

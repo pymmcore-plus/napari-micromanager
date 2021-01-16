@@ -7,90 +7,102 @@ import matplotlib.pyplot as plt
 
 import napari
 
-pth = Path("/Users/Gaspian/Desktop/save_test/last_ps0002_ts0003_zs0003_['Cy3', 'DAPI', 'FITC']")
-
-
-with napari.gui_qt():
-    viewer = napari.Viewer()
-    img = "/Users/Gaspian/Desktop/save_test/last_p0001_t0002_zs0002_['Cy3', 'DAPI', 'FITC'].tif"
-    im = io.imread(img)
-    viewer.add_image(im)
+save_folder = Path("/Users/Gaspian/Desktop/save_test")
 
 
 
-    # count = 0
-    # for i in os.scandir(pth):
-    #     if i.is_dir():
-    #         print(i)
-    #         for f in os.scandir(i):
-    #             if f.is_file():
-    #                 img = io.imread(f.path)
-    #                 viewer.add_image(img)
+def create_stack_array(tp, Zp, nC):
+    x = 512
+    y = 512
+    bitd=16
+    dt = f'uint{bitd}'
+    mda_stack = np.empty((tp, Zp, nC, x, y), dtype=dt)
+    return mda_stack
+
+zp = 3
+ch = 3
+tp = 4
+ps = 3
+
+t0p0 = create_stack_array(1, zp, ch)
+t0p1 = create_stack_array(1, zp, ch)
+t0p2 = create_stack_array(1, zp, ch)
+
+t1p0 = create_stack_array(1, zp, ch)
+t1p1 = create_stack_array(1, zp, ch)
+t1p2 = create_stack_array(1, zp, ch)
+
+t2p0 = create_stack_array(1, zp, ch)
+t2p1 = create_stack_array(1, zp, ch)
+t2p2 = create_stack_array(1, zp, ch)
+
+t3p0 = create_stack_array(1, zp, ch)
+t3p1 = create_stack_array(1, zp, ch)
+t3p2 = create_stack_array(1, zp, ch)
 
 
-                
-                
-                
+length_l = tp*ps
 
-        
-        
-            
 
+l = [t0p0, t0p1, t0p2, t1p0, t1p1, t1p2, t2p0, t2p1, t2p2, t3p0, t3p1, t3p2]
+#l = ['t0p0', 't0p1', 't0p2', 't1p0', 't1p1', 't1p2', 't2p0', 't2p1', 't2p2', 't3p0', 't3p1', 't3p2']
+
+print(f'ts*ps = {length_l}, len(l) = {len(l)}')
+
+
+
+i = 0
+for p in range(ps):
+    t_st = create_stack_array(0, zp, ch)
+    for _ in range(tp):
+        #print(f'i = {i}')
+        st = l[i]
+        #print(f'st = {st}')
+        #st_time.append(st)
+        t_st = np.concatenate((t_st, st), axis=0)
+        i = i + ps
+        #print(f'i_new = {i}\n')
+    pth = save_folder / f'Pos_{p}.tif'
+    io.imsave(str(pth), t_st, imagej=True, check_contrast=False)
+    i = p + 1
+
+
+
+
+
+
+
+
+#print(st_time)
+
+
+# t_st = create_stack_array(0, zp, ch)
+# print(f't_st.shape start = {t_st.shape}')
+
+# for i in range(len(l)):
+#     st = st_time[i]
+#     t_st = np.concatenate((t_st, st), axis=0)
+
+#     print(f'    t_st.shape iteration = {t_st.shape}')
+
+# print(f'        t_st.shape final = {t_st.shape}')
+
+
+
+
+
+
+
+
+
+# i = 0
+# stk_time = []
+# for _ in range(tp):
+#     print(f'i = {i}')
+#     stk = l[i]
+#     print(f'stk = {stk}')
+#     stk_time.append(stk)
+#     i = i + ps
+#     print(f'i_new = {i}\n')
     
-
-
-# def name(name):
-#     return name
-
-# a = name('name')
-# print(a)
-
-
-# for i in range(3):
-#    stk = create_stack_array(tp, Zp, nC)
-    
-
-
-
-
-
-# def create_stack_array(tp, Zp, nC):
-#     bitd=16
-#     dt = f'uint{bitd}'
-#     mda_stack = np.empty((tp, Zp, nC), dtype=dt)
-#     return mda_stack
-
-# stack = create_stack_array(0, 5, 3)
-# p_array = create_stack_array(1, 5, 3)
-# print(stack.shape)
-# print(p_array.shape)
-
-# stk = np.concatenate((stack, p_array), axis=0) # axes are 0-indexed, i.e. 0, 1, 2
-# print(stk.shape)
-
-
-# stack = create_stack_array(0, 0, 5, 3)
-# p_array = create_stack_array(0, 1, 5, 3)
-# print(stack.shape)
-# for i in range(3):
-#     p_array = np.append(stack, p_array, axis=1)
-#     print(p_array.shape)
-# for i in range(3):
-#     stack = create_stack_array(0, 1, 5, 3)
-#     p_array = np.append(p_array, stack, axis=1)
-
-# print(p_array.shape)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# print(stk_time)
