@@ -3,31 +3,59 @@ from pathlib import Path
 import sys
 import os
 from skimage import io
+import matplotlib.pyplot as plt
+
+import napari
+
+pth = Path("/Users/Gaspian/Desktop/save_test/last_ps0002_ts0003_zs0003_['Cy3', 'DAPI', 'FITC']")
 
 
-save_folder = Path("/Users/Gaspian/Desktop/save_test")
+with napari.gui_qt():
+    viewer = napari.Viewer()
+
+    count = 0
+    for i in os.scandir(pth):
+        if i.is_dir():
+            print(i)
+            for f in os.scandir(i):
+                if f.is_file():
+                    img = io.imread(f.path)
+                    print(img.shape)
+                    viewer.add_image(img, name=f'img_{count}')
+                    print(f)
+                    count =+ 1
+
+                
+                
+                
+
+        
+        
+            
+
+    
 
 
-def name(name):
-    return name
+# def name(name):
+#     return name
 
-a = name('name')
-print(a)
+# a = name('name')
+# print(a)
 
 
-for i in range(3):
-   stk = create_stack_array(tp, Zp, nC)
+# for i in range(3):
+#    stk = create_stack_array(tp, Zp, nC)
     
 
 
 
 
 
-def create_stack_array(tp, Zp, nC):
-    bitd=16
-    dt = f'uint{bitd}'
-    mda_stack = np.empty((tp, Zp, nC), dtype=dt)
-    return mda_stack
+# def create_stack_array(tp, Zp, nC):
+#     bitd=16
+#     dt = f'uint{bitd}'
+#     mda_stack = np.empty((tp, Zp, nC), dtype=dt)
+#     return mda_stack
 
 # stack = create_stack_array(0, 5, 3)
 # p_array = create_stack_array(1, 5, 3)
