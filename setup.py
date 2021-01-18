@@ -12,10 +12,10 @@ setup(
         'napari[all]',
         'numpy',
         'scikit-image',
-        'matplotlib'      
-        'qtpy'
-        'pyqt5<5.15'
-        'pymmcore'
+        'matplotlib',      
+        'qtpy',
+        'pyqt5<5.15',
+        'pymmcore',
         'pyfirmata2'
         ]
 )
