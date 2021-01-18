@@ -214,13 +214,21 @@ class MultiDWidget(QtW.QWidget):
         pass
 
     #create stack array
-    def create_stack_array(self, tp, Zp, nC):
+    def create_stack_array(self, tp, Zp, nC):#np.concatenate
         width = mmcore.getROI(mmcore.getCameraDevice())[2]
         height = mmcore.getROI(mmcore.getCameraDevice())[3]
         bitd=mmcore.getProperty(mmcore.getCameraDevice(), "BitDepth")
         dt = f'uint{bitd}'
         mda_stack= np.empty((tp, Zp, nC, height, width), dtype=dt)
         return mda_stack
+
+    # def create_stack_array(self, Zp, nC):#np.stack
+    #     width = mmcore.getROI(mmcore.getCameraDevice())[2]
+    #     height = mmcore.getROI(mmcore.getCameraDevice())[3]
+    #     bitd=mmcore.getProperty(mmcore.getCameraDevice(), "BitDepth")
+    #     dt = f'uint{bitd}'
+    #     mda_stack= np.empty((Zp, nC, height, width), dtype=dt)
+    #     return mda_stack
     
 
     def run_multi_d_acq_tpzcxy(self):
@@ -279,8 +287,8 @@ class MultiDWidget(QtW.QWidget):
                 self.acq_stack_list.clear()
                 nC = self.channel_tableWidget.rowCount()
                 for _ in range(len(self.pos_list)): 
-                    # pos_stack = self.create_stack_array(timepoints, n_steps, nC) 
-                    pos_stack = self.create_stack_array(1, n_steps, nC) 
+                    pos_stack = self.create_stack_array(1, n_steps, nC) #np.concatenate
+                    #pos_stack = self.create_stack_array(n_steps, nC) #np.stack
                     self.pos_stack_list.append(pos_stack)
 
                 #create main save folder in directory
@@ -334,10 +342,12 @@ class MultiDWidget(QtW.QWidget):
                                 mmcore.snapImage()
                                 #put image in a stack
                                 stack = self.pos_stack_list[position]
-                                stack[:,z_position,c,:,:] = mmcore.getImage()
+                                stack[:,z_position,c,:,:] = mmcore.getImage()#np.concatenate
+                                #stack[z_position,c,:,:] = mmcore.getImage()#np.stack
                                 
                                 end_snap = time.perf_counter()
                                 print(f'            channel snap took: {round(end_snap-start_snap, 4)} seconds')
+                                print(stack.shape)
 
                             Bottom_z = Bottom_z + stepsize 
 
@@ -375,7 +385,9 @@ class MultiDWidget(QtW.QWidget):
                         t_stack.append(ts)
                         iterator = iterator + len(self.pos_list)
 
-                    stack_t = np.concatenate(t_stack, axis=0)
+                    stack_t = np.concatenate(t_stack, axis=0)#np.concatenate
+                    #stack_t = np.stack(t_stack, axis=0)#np.stack
+                    print(stack_t.shape)
 
                     if self.save_groupBox.isChecked():
                         pos_format = format(pos, '04d')
@@ -384,7 +396,7 @@ class MultiDWidget(QtW.QWidget):
                         save_name = f'{self.fname_lineEdit.text()}_p{pos_format}_ts{t_format}_zs{z_position_format}_{self.list_ch}'
                         pth = save_folder / f'Pos_{pos_format}' / f'{save_name}.tif'
                         io.imsave(str(pth), stack_t, imagej=True, check_contrast=False)
-
+                       
                     t_stack.clear()
                     iterator = pos + 1
                 

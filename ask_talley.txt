@@ -1,9 +1,5 @@
 
 
-- pip install -r requirements.txt/pip install micromanager_gui
-
-- function remove_channel/remove_position
-
 - napari viewer in multid_widget/optocamp_widget
 
 - threads to sync cam/led/napari viewer
@@ -13,6 +9,8 @@
 - callbacks
 
 - np.concatenate
+
+- function remove_channel/remove_position
 
 
 
