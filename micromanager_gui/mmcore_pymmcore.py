@@ -1,24 +1,27 @@
 import sys
 from pathlib import Path
-from tkinter import Tk
-from tkinter.filedialog import askdirectory
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 
 
 def find_micromanager():
-    if sys.platform == "darwin":
-        mm_path = str(next(Path("/Applications/").glob("Micro-Manager*")))
-        print(f'Micromanager path: {mm_path}')
-        return mm_path
+    try:
+        if sys.platform == "darwin":
+            mm_path = str(next(Path("/Applications/").glob("Micro-Manager*")))
+            print(f'Micromanager path: {mm_path}')
+            return mm_path
 
-    if sys.platform == "windows":
-        Tk().withdraw()
-        mm_path = askdirectory(title='Select Micro-Manager directory folder.') # shows dialog box
-        print(f'Micromanager path: {mm_path}')
-        return mm_path
-        
-    raise RuntimeError(f"Not configured for OS: {sys.platform}")
+        if sys.platform == "win32":
+            mm_path = str(next(Path("C:/Program Files/").glob("Micro-Manager-2*")))
+            print(f'Micromanager path: {mm_path}')
+            return mm_path
+
+        raise NotImplementedError(
+            f"MM autodiscovery not implemented for platform: {sys.platform}"
+        )
+    except StopIteration:
+        print("could not find micromanager directory")
+
 
 
 class MMCore:
