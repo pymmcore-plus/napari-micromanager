@@ -68,48 +68,6 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
-    def enable(self):  # Enable the gui (when .cfg is loaded)
-        self.objective_groupBox.setEnabled(True)
-        self.camera_groupBox.setEnabled(True)
-        self.stage_groupBox.setEnabled(True)
-        self.position_groupBox.setEnabled(True)
-        self.XY_groupBox.setEnabled(True)
-        self.Z_groupBox.setEnabled(True)
-        self.pos_update_Button.setEnabled(True)
-        self.xy_step_size_SpinBox.setEnabled(True)
-        self.z_step_size_doubleSpinBox.setEnabled(True)
-        self.left_Button.setEnabled(True)
-        self.right_Button.setEnabled(True)
-        self.y_up_Button.setEnabled(True)
-        self.y_down_Button.setEnabled(True)
-        self.up_Button.setEnabled(True)
-        self.down_Button.setEnabled(True)
-        self.snap_channel_comboBox.setEnabled(True)
-        self.exp_spinBox.setEnabled(True)
-        self.snap_Button.setEnabled(True)
-        self.live_Button.setEnabled(True)
-
-    def disable(self):  # Disable the gui (if .cfg is not loaded)
-        self.objective_groupBox.setEnabled(False)
-        self.camera_groupBox.setEnabled(False)
-        self.stage_groupBox.setEnabled(False)
-        self.position_groupBox.setEnabled(False)
-        self.XY_groupBox.setEnabled(False)
-        self.Z_groupBox.setEnabled(False)
-        self.pos_update_Button.setEnabled(False)
-        self.xy_step_size_SpinBox.setEnabled(False)
-        self.z_step_size_doubleSpinBox.setEnabled(False)
-        self.left_Button.setEnabled(False)
-        self.right_Button.setEnabled(False)
-        self.y_up_Button.setEnabled(False)
-        self.y_down_Button.setEnabled(False)
-        self.up_Button.setEnabled(False)
-        self.down_Button.setEnabled(False)
-        self.snap_channel_comboBox.setEnabled(False)
-        self.exp_spinBox.setEnabled(False)
-        self.snap_Button.setEnabled(False)
-        self.live_Button.setEnabled(False)
-
     def __init__(self, viewer):
         super().__init__()
 
@@ -211,13 +169,13 @@ class MainWindow(QtW.QMainWindow):
         self.new_cfg_file = file_dir[0]
         cfg_name = os.path.basename(str(self.new_cfg_file))
         self.cfg_LineEdit.setText(str(cfg_name))
-        self.disable()
+        self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
         self.load_cgf_Button.setEnabled(True)
 
     def load_cfg(self):
-        self.enable()
+        self.setEnabled(True)
 
         self.load_cgf_Button.setEnabled(False)
 
