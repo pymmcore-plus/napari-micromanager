@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import numpy as np
 from PyQt5 import QtWidgets as QtW
@@ -12,11 +11,8 @@ from skimage import io
 
 from pyfirmata2 import Arduino, util
 import concurrent.futures
-import threading#
 
-from mmcore_pymmcore import MMCore
-
-import napari
+from .mmcore_pymmcore import MMCore
 
 
 icon_path = Path(__file__).parent/'icons'
