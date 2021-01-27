@@ -322,7 +322,7 @@ class MultiDWidget(QtW.QWidget):
             return
 
         t0 = time.perf_counter()  # reference time, in seconds
-        progress = tqdm(experiment)
+        progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
             elapsed = time.perf_counter() - t0
             target = frame.t / 1000
