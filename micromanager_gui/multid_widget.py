@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 import numpy as np
 from PyQt5 import QtWidgets as QtW
@@ -13,7 +12,7 @@ from textwrap import dedent
 from skimage import io
 import concurrent.futures
 
-from mmcore_pymmcore import MMCore
+from .mmcore_pymmcore import MMCore
 
 
 icon_path = Path(__file__).parent/'icons'
