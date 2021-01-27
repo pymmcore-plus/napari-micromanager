@@ -645,7 +645,22 @@
        </property>
        <item>
         <property name="text">
-         <string>tpzcxy</string>
+         <string>tpzc</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>tpcz</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ptzc</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>ptcz</string>
         </property>
        </item>
       </widget>

@@ -1,3 +1,5 @@
+from typing import Tuple
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import numpy as np
@@ -20,6 +22,53 @@ icon_path = Path(__file__).parent/'icons'
 UI_FILE = str(Path(__file__).parent / "multid_gui.ui")
 
 mmcore = MMCore()
+
+
+@dataclass(frozen=True)
+class MultiDExperiment:
+    acquisition_order: str = "tpcz"
+    channels: Tuple[Tuple[str, int]] = field(default_factory=tuple)
+    stage_positions: Tuple[Tuple[float, float, float]] = field(default_factory=tuple)
+    time_deltas: Tuple[int] = field(default_factory=tuple)
+    z_positions: Tuple[float] = field(default_factory=tuple)
+
+    def __len__(self):
+        nc = len(self.channels)
+        nz = len(self.z_positions)
+        np = len(self.stage_positions)
+        nt = len(self.time_deltas)
+        return nc * nz * np * nt
+
+    @property
+    def shape(self) -> Tuple[int]:
+        return tuple(len(self._axes_dict[k]) for k in self.acquisition_order)
+
+    @property
+    def _axes_dict(self):
+        return {
+            "c": self.channels,
+            "z": self.z_positions,
+            "p": self.stage_positions,
+            "t": self.time_deltas,
+        }
+
+    def __iter__(self):
+        yield from self.iter_axes(self.acquisition_order)
+
+    def iter_axes(self, order: str = None):
+        from itertools import product
+
+        order = order if order else self.acquisition_order
+        order = order.lower()
+        extra = {x for x in order if x not in 'tpcz'}
+        if extra:
+            raise ValueError(f"Can only iterate over axes: t, p, z, c.  Got extra: {extra}")
+        if len(set(order)) < len(order):
+            raise ValueError(f"Duplicate entries found in acquisition order: {order}")
+
+        for item in product(*(self._axes_dict[ax] for ax in order)):
+            yield dict(zip(order, item))
+
 
 class MultiDWidget(QtW.QWidget):
     # The UI_FILE above contains these objects:
@@ -228,7 +277,60 @@ class MultiDWidget(QtW.QWidget):
     #     dt = f'uint{bitd}'
     #     mda_stack= np.empty((Zp, nC, height, width), dtype=dt)
     #     return mda_stack
-    
+
+    def _get_state_dict(self) -> dict:
+        state = {
+            "acquisition_order": self.acquisition_order_comboBox.currentText(),
+            "channels": [],
+            "stage_positions": [],
+        }
+        for c in range(self.channel_tableWidget.rowCount()):
+            ch = self.channel_tableWidget.cellWidget(c, 0).currentText()
+            exp = self.channel_tableWidget.cellWidget(c, 1).value()
+            state["channels"].append((ch, exp))
+
+        if self.stack_groupBox.isChecked():
+            n_steps = self.step_spinBox.value()
+            stepsize = self.step_size_doubleSpinBox.value()
+        else:
+            n_steps = 1
+            stepsize = 0
+
+        # timelapse settings
+        # TODO: restrict nTime to >= 1
+        # TODO: restrict interval to >= 1 ms
+        nt = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
+        nt = max(1, nt)
+        interval = self.interval_spinBox.value()
+        # convert interval  ms
+        interval *= {"min": 60000, "sec": 1000, "ms": 1}[
+            self.time_comboBox.currentText()
+        ]
+        state["time_deltas"] = list(np.arange(nt) * interval)
+
+        # Z settings
+        # TODO: restrict the spinbox to >= 1
+        half = stepsize * ((max(1, n_steps) - 1) / 2)
+        bottom = mmcore.getPosition("Z_Stage") - half
+        top = bottom + 2 * half
+        state["z_positions"] = list(np.linspace(bottom, top, n_steps))
+
+        # position settings
+        if (
+            self.stage_pos_groupBox.isChecked()
+            and self.stage_tableWidget.rowCount() > 0
+        ):
+            for row in range(self.stage_tableWidget.rowCount()):
+                xp = float(self.stage_tableWidget.item(row, 0).text())
+                yp = float(self.stage_tableWidget.item(row, 1).text())
+                zp = float(self.stage_tableWidget.item(row, 2).text())
+                state["stage_positions"].append((zp, yp, zp))
+        else:
+            xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
+            zp = float(mmcore.getPosition("Z_Stage"))
+            state["stage_positions"].append((xp, yp, zp))
+
+        return state
 
     def run_multi_d_acq_tpzcxy(self):
         dev_loaded = list(mmcore.getLoadedDevices())
@@ -415,20 +517,10 @@ class MultiDWidget(QtW.QWidget):
         else:
             print('Load a cfg file first.')
 
+if __name__ == "__main__":
+    from qtpy.QtWidgets import QApplication
 
-
-
-
-
-
-
-
-
-    
-
-
-    
-
-
-
-    
+    app = QApplication([])
+    window = MultiDWidget()
+    window.show()
+    app.exec_()
