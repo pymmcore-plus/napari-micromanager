@@ -296,7 +296,9 @@ class MainWindow(QtW.QMainWindow):
         self.load_cgf_Button.setEnabled(True)
 
     def load_cfg(self):
-        
+
+        self.obj_mag.clear()
+
         self.setEnabled(True)
 
         self.load_cgf_Button.setEnabled(False)
@@ -313,8 +315,8 @@ class MainWindow(QtW.QMainWindow):
         except KeyError:
             print("Select a valid .cfg file.")
 
-        # self.get_devices_and_props()
-        # self.get_groups_list()
+        self.get_devices_and_props()
+        self.get_groups_list()
 
         # Get Camera Options
         self.cam_device = mmcore.getCameraDevice()
@@ -338,12 +340,13 @@ class MainWindow(QtW.QMainWindow):
         # Get Objective Options
         if "Objective" in mmcore.getLoadedDevices():
             mmcore.setPosition("Z_Stage", 0)
-            obj_opts = mmcore.getStateLabels("Objective")
+            obj_opts = mmcore.getStateLabels("Objective")    
+
             self.objective_comboBox.addItems(obj_opts)
             self.objective_comboBox.setCurrentText(obj_opts[0])
 
-            # obj_curr_pos = mmcore.getState("Objective")
-            # print(f'Objective Nosepiece Position: {obj_curr_pos}')
+            #obj_curr_pos = mmcore.getState("Objective")
+            #print(f'Objective Nosepiece Position: {obj_curr_pos}')
 
         # Get Channel List
         if "Channel" in mmcore.getAvailableConfigGroups():
@@ -437,22 +440,45 @@ class MainWindow(QtW.QMainWindow):
 
     def change_objective(self):
         if self.objective_comboBox.count() > 0:
-            print("changeing objective...")
+            print('\nchanging objective...')
             currentZ = mmcore.getPosition("Z_Stage")
             print(f"currentZ: {currentZ}")
-            mmcore.setPosition("Z_Stage", 0)  # set low z position
+            mmcore.setPosition("Z_Stage", 0)#set low z position
             mmcore.waitForDevice("Z_Stage")
             print(self.objective_comboBox.currentText())
-            mmcore.setProperty(
-                "Objective", "Label", self.objective_comboBox.currentText()
-            )
+            mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
             mmcore.waitForDevice("Objective")
             print(f"downpos: {mmcore.getPosition('Z_Stage')}")
             mmcore.setPosition("Z_Stage", currentZ)
             mmcore.waitForDevice("Z_Stage")
             print(f"upagain: {mmcore.getPosition('Z_Stage')}")
             print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
-            self.update_stage_position()
+
+            #define and set pixel size Config 
+            mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
+            curr_obj_name = mmcore.getProperty('Objective', 'Label')
+            mmcore.definePixelSizeConfig(curr_obj_name)
+            mmcore.setPixelSizeConfig(curr_obj_name)
+            print(f'Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}')
+
+            #get magnification info from the objective
+            for l in range(len(curr_obj_name)):
+                character = curr_obj_name[l]
+                if character == 'X' or character == 'x':
+                    if l <= 3:
+                        magnification_string = curr_obj_name[:l]
+                        self.magnification = int(magnification_string)
+                        print(f'Current Magnification: {self.magnification}X')
+                    else:
+                        self.magnification = None
+                        print(f'MAGNIFICATION NOT SET, STORE OBJECTIVES NAME STARTING WITH e.g. 100X or 100x.')
+            
+            #get and set image pixel sixe (x,y) for the current pixel size Config
+            if not self.magnification == None:
+                self.image_pixel_size = self.px_size_doubleSpinBox.value()/self.magnification
+                # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')  
+                mmcore.setPixelSizeUm(mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size)
+                print(f'Current Pixel Size in µm: {mmcore.getPixelSizeUm()}')
 
     def update_viewer(self, data):
         try:
