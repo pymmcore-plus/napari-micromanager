@@ -5,15 +5,12 @@ import numpy as np
 from PyQt5 import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import Qt, Signal
-import time
+import 
 from qtpy.QtWidgets import QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
-from textwrap import dedent
 from skimage import io
-from PyQt5.QtGui import QPixmap, QImage
 from skimage.transform import resize
-from napari.qt import thread_worker
 
 
 from .mmcore_pymmcore import MMCore
