@@ -8,12 +8,10 @@ def find_micromanager():
     try:
         if sys.platform == "darwin":
             mm_path = str(next(Path("/Applications/").glob("Micro-Manager*")))
-            print(f'Micromanager path: {mm_path}')
             return mm_path
 
         if sys.platform == "win32":
             mm_path = str(next(Path("C:/Program Files/").glob("Micro-Manager-2*")))
-            print(f'Micromanager path: {mm_path}')
             return mm_path
 
         raise NotImplementedError(
@@ -53,6 +51,7 @@ class MMCore(QObject):
             adapter_paths = [find_micromanager()]
             print(f'Micromanager path: {adapter_paths}')
         self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
+        print(f'Micromanager path: {adapter_paths}')
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
