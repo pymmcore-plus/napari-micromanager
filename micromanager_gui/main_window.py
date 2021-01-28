@@ -169,7 +169,7 @@ class MainWindow(QtW.QMainWindow):
         mmcore.stage_position_changed.connect(self.update_stage_position_z)
 
         #connect the Signal________________________________________________________________________
-        self.mda.new_frame.connect(self.add_frame_multid)
+        # self.mda.new_frame.connect(self.add_frame_multid)
 
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_snaps)

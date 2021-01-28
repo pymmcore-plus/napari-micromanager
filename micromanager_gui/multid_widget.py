@@ -120,7 +120,7 @@ class MultiDWidget(QtW.QWidget):
 
     #________________________________________________________________________
 
-    new_frame = Signal(str, np.ndarray, int, int, int, int)  #pos_name, image, position, t, z, c
+    # new_frame = Signal(str, np.ndarray, int, int, int, int)  #pos_name, image, position, t, z, c
                      
     #________________________________________________________________________
 
@@ -146,7 +146,7 @@ class MultiDWidget(QtW.QWidget):
 
         #________________________________________________________________________
         # self.run_Button.clicked.connect(self.acquisition_order)_get_state_dict
-        self.run_Button.clicked.connect(self._get_state_dict)
+        self.run_Button.clicked.connect(self.run)
         #________________________________________________________________________
 
         # connect position table double click
@@ -316,52 +316,65 @@ class MultiDWidget(QtW.QWidget):
             zp = float(mmcore.getPosition("Z_Stage"))
             state["stage_positions"].append((xp, yp, zp))
         
-        print(state)
-
         return state
 
+
+    #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
+    def run(self):
+        run_parameters = self._get_state_dict()
+        mmcore.run_mda_test(run_parameters)
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
     # this should really be put on the mmcore class as run_multid(experiment)
-    def run_mda(self):
-        if len(mmcore.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
-            return
+    # def run_mda(self):
+    #     if len(mmcore.getLoadedDevices()) < 2:
+    #         print("Load a cfg file first.")
+    #         return
 
-        experiment = MultiDExperiment(**self._get_state_dict())
-        print(f"running {repr(experiment)}")
+    #     experiment = MultiDExperiment(**self._get_state_dict())
+    #     print(f"running {repr(experiment)}")
 
-        if not experiment.channels:
-            print("Select at least one channel.")
-            return
+    #     if not experiment.channels:
+    #         print("Select at least one channel.")
+    #         return
 
-        t0 = time.perf_counter()  # reference time, in seconds
-        progress = tqdm(experiment)  # this gives us a progress bar in the console
-        for frame in progress:
-            elapsed = time.perf_counter() - t0
-            target = frame.t / 1000
-            wait_time = target - elapsed
-            if wait_time > 0:
-                progress.set_description(f"waiting for {wait_time}")
-                time.sleep(wait_time)
-            progress.set_description(f"{frame}")
-            xpos, ypos, z_midpoint = frame.p
-            channel_name, exposure_ms = frame.c
-            mmcore.setXYPosition(xpos, ypos)
-            mmcore.setPosition("Z_Stage", z_midpoint + frame.z)
-            mmcore.setExposure(exposure_ms)
-            mmcore.setConfig("Channel", channel_name)
-            mmcore.snapImage()
-            img = mmcore.getImage()
-            # yield img
+    #     t0 = time.perf_counter()  # reference time, in seconds
+    #     progress = tqdm(experiment)  # this gives us a progress bar in the console
+    #     for frame in progress:
+    #         elapsed = time.perf_counter() - t0
+    #         target = frame.t / 1000
+    #         wait_time = target - elapsed
+    #         if wait_time > 0:
+    #             progress.set_description(f"waiting for {wait_time}")
+    #             time.sleep(wait_time)
+    #         progress.set_description(f"{frame}")
+    #         xpos, ypos, z_midpoint = frame.p
+    #         channel_name, exposure_ms = frame.c
+    #         mmcore.setXYPosition(xpos, ypos)
+    #         mmcore.setPosition("Z_Stage", z_midpoint + frame.z)
+    #         mmcore.setExposure(exposure_ms)
+    #         mmcore.setConfig("Channel", channel_name)
+    #         mmcore.snapImage()
+    #         img = mmcore.getImage()
+    #         # yield img
 
-        summary = """
-        ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-        {}
-        Finished in: {} Seconds
-         ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
-        """.format(
-            str(experiment), round(time.perf_counter() - t0, 4)
-        )
-        print(dedent(summary))
+    #     summary = """
+    #     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+    #     {}
+    #     Finished in: {} Seconds
+    #      ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
+    #     """.format(
+    #         str(experiment), round(time.perf_counter() - t0, 4)
+    #     )
+    #     print(dedent(summary))
 
 
 # import os

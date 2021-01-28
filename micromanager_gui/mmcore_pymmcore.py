@@ -4,6 +4,7 @@ import pymmcore
 from qtpy.QtCore import QObject, Signal
 
 
+
 def find_micromanager():
     try:
         if sys.platform == "darwin":
@@ -65,6 +66,11 @@ class MMCore(QObject):
     def setProperty(self):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
+
+
+    def run_mda_test(self,run_parameters):
+        print(f'mmcore run mda: {run_parameters}')
+        
 
 
 class CallbackRelay(pymmcore.MMEventCallback):
