@@ -5,6 +5,7 @@ from qtpy.QtCore import QObject, Signal
 
 import time
 from tqdm import tqdm
+from textwrap import dedent
 
 
 
@@ -39,6 +40,8 @@ class MMCore(QObject):
 
     __instance = None
 
+
+
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
     def __new__(cls) -> pymmcore.CMMCore:
         if cls.__instance is None:
@@ -71,8 +74,51 @@ class MMCore(QObject):
         return self._mmc.setProperty
 
 
-    def run_mda_test(self,run_parameters):
+    def run_mda_test(self,run_parameters, experiment):
         print(f'mmcore run mda: {run_parameters}')
+
+
+        if len(self._mmc.getLoadedDevices()) < 2:
+            print("Load a cfg file first.")
+            return
+
+        # experiment = MultiDExperiment(**self._get_state_dict())
+        print(f"running {repr(experiment)}")
+
+        if not experiment.channels:
+            print("Select at least one channel.")
+            return
+
+        t0 = time.perf_counter()  # reference time, in seconds
+        progress = tqdm(experiment)  # this gives us a progress bar in the console
+        for frame in progress:
+            elapsed = time.perf_counter() - t0
+            target = frame.t / 1000
+            wait_time = target - elapsed
+            if wait_time > 0:
+                progress.set_description(f"waiting for {wait_time}")
+                time.sleep(wait_time)
+            progress.set_description(f"{frame}")
+            xpos, ypos, z_midpoint = frame.p
+            channel_name, exposure_ms = frame.c
+            self._mmc.setXYPosition(xpos, ypos)
+            self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
+            self._mmc.setExposure(exposure_ms)
+            self._mmc.setConfig("Channel", channel_name)
+            self._mmc.snapImage()
+            img = self._mmc.getImage()
+
+            # yield img
+
+        summary = """
+        ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+        {}
+        Finished in: {} Seconds
+         ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
+        """.format(
+            str(experiment), round(time.perf_counter() - t0, 4)
+        )
+        print(dedent(summary))
 
 
 
