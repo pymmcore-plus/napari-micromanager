@@ -2,13 +2,17 @@ import os
 from PyQt5 import QtWidgets as QtW
 from qtpy import uic
 from pathlib import Path
-from qtpy.QtWidgets import QFileDialog
+from qtpy.QtWidgets import QFileDialog, QGridLayout
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 import numpy as np
 from napari.qt import thread_worker
 
 from .mmcore_pymmcore import MMCore
+
+from multid_widget import MultiDWidget
+from explore_sample import ExploreSample
+from optocamp_widget import OptocampWidget
 
 
 # dir_path = Path(__file__).parent
@@ -79,6 +83,40 @@ class MainWindow(QtW.QMainWindow):
         self.cfg_LineEdit.setText(
             DEFAULT_CFG_NAME
         )  # fill cfg line with DEFAULT_CFG_NAME ('demo.cfg')
+
+        self.obj_mag = []
+        self.is_true = False# self.get_explorer_info()
+        self.magnification = None
+
+        #________________________________________________________________________
+        #create MultiDWidget() and OptocampWidget() widgets
+        self.mda = MultiDWidget()
+        self.explorer = ExploreSample()###
+        self.optocamp = OptocampWidget()
+        
+        #create QWidget() to be added to the main tabWidget
+        self.multid_tab =  QtW.QWidget()
+        self.explorer_tab =  QtW.QWidget()#####
+        self.optocamp_tab =  QtW.QWidget()
+
+        #add tabs
+        self.tabWidget.addTab(self.multid_tab,"Multi-D Acquisition")
+        self.tabWidget.addTab(self.explorer_tab,"Sample Explorer")#####
+        self.tabWidget.addTab(self.optocamp_tab,"OptoCaMP")
+
+        #create tabs layout and add the widgets
+        self.multid_tab.layout = QGridLayout()
+        self.multid_tab.layout.addWidget(self.mda)
+        self.multid_tab.setLayout(self.multid_tab.layout)
+
+        self.explorer_tab.layout = QGridLayout()#####
+        self.explorer_tab.layout.addWidget(self.explorer)#####
+        self.explorer_tab.setLayout(self.explorer_tab.layout)#####
+
+        self.optocamp_tab.layout = QGridLayout()
+        self.optocamp_tab.layout.addWidget(self.optocamp)
+        self.optocamp_tab.setLayout(self.optocamp_tab.layout)
+        #________________________________________________________________________
 
         # connect buttons
         self.load_cgf_Button.clicked.connect(self.load_cfg)
