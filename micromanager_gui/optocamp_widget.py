@@ -12,9 +12,7 @@ from skimage import io
 from pyfirmata2 import Arduino, util
 import concurrent.futures
 
-# from .mmcore_pymmcore import MMCore
-from mmcore_pymmcore import MMCore
-
+from .mmcore_pymmcore import MMCore
 
 icon_path = Path(__file__).parent/'icons'
 

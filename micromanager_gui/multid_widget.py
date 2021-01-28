@@ -13,8 +13,7 @@ from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QFileDialog
 from tqdm import tqdm
 
-# from .mmcore_pymmcore import MMCore
-from mmcore_pymmcore import MMCore
+from .mmcore_pymmcore import MMCore
 
 icon_path = Path(__file__).parent / "icons"
 

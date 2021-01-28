@@ -16,8 +16,8 @@ from skimage.transform import resize
 from napari.qt import thread_worker
 
 
-# from .mmcore_pymmcore import MMCore
-from mmcore_pymmcore import MMCore
+from .mmcore_pymmcore import MMCore
+
 
 
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
