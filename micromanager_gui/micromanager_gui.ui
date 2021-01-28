@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -73,7 +76,7 @@
            <item row="0" column="1">
             <widget class="QPushButton" name="live_Button">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="minimumSize">
               <size>
@@ -95,7 +98,7 @@
            <item row="0" column="0">
             <widget class="QPushButton" name="snap_Button">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -147,7 +150,7 @@
            <item>
             <widget class="QSpinBox" name="exp_spinBox">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
@@ -271,7 +274,7 @@
            <item>
             <widget class="QComboBox" name="snap_channel_comboBox">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="maximumSize">
               <size>
@@ -503,7 +506,7 @@
     <item row="3" column="0" colspan="3">
      <widget class="QGroupBox" name="stage_groupBox">
       <property name="enabled">
-       <bool>false</bool>
+       <bool>true</bool>
       </property>
       <property name="minimumSize">
        <size>
@@ -521,7 +524,7 @@
        <item row="0" column="1">
         <widget class="QGroupBox" name="XY_groupBox">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -566,7 +569,7 @@
           <item row="0" column="1" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="y_up_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -619,7 +622,7 @@
           <item row="1" column="0" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="left_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -635,7 +638,7 @@
           <item row="1" column="1" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
            <widget class="QSpinBox" name="xy_step_size_SpinBox">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -681,7 +684,7 @@
           <item row="1" column="2" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="right_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -697,7 +700,7 @@
           <item row="2" column="1" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="y_down_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -716,7 +719,7 @@
        <item row="0" column="0">
         <widget class="QGroupBox" name="position_groupBox">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -790,6 +793,9 @@
             </item>
             <item row="0" column="1">
              <widget class="QLineEdit" name="x_lineEdit">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
@@ -819,7 +825,7 @@
        <item row="0" column="2">
         <widget class="QGroupBox" name="Z_groupBox">
          <property name="enabled">
-          <bool>false</bool>
+          <bool>true</bool>
          </property>
          <property name="minimumSize">
           <size>
@@ -843,7 +849,7 @@
           <item row="0" column="0" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="up_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>
@@ -865,7 +871,7 @@
           <item row="1" column="0" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
            <widget class="QDoubleSpinBox" name="z_step_size_doubleSpinBox">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -908,7 +914,7 @@
           <item row="2" column="0" alignment="Qt::AlignHCenter">
            <widget class="QPushButton" name="down_Button">
             <property name="enabled">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
             <property name="maximumSize">
              <size>

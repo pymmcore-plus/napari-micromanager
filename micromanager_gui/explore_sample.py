@@ -17,7 +17,8 @@ from napari.qt import thread_worker
 import cv2
 
 
-from .mmcore_pymmcore import MMCore
+# from .mmcore_pymmcore import MMCore
+from mmcore_pymmcore import MMCore
 
 
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")

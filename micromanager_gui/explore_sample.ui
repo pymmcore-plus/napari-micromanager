@@ -44,7 +44,7 @@
         <item row="0" column="1">
          <widget class="QSpinBox" name="scan_size_spinBox">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="minimumSize">
            <size>
@@ -120,7 +120,7 @@
         <item row="0" column="1">
          <widget class="QComboBox" name="scan_channel_comboBox">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="minimumSize">
            <size>
@@ -139,7 +139,7 @@
         <item row="0" column="3">
          <widget class="QSpinBox" name="scan_exp_spinBox">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -219,7 +219,7 @@
         <item row="0" column="1">
          <widget class="QPushButton" name="stop_scan_Button">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -247,7 +247,7 @@
         <item row="0" column="0">
          <widget class="QPushButton" name="start_scan_Button">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -312,7 +312,7 @@
         <item row="0" column="0">
          <widget class="QPushButton" name="move_to_Button">
           <property name="enabled">
-           <bool>false</bool>
+           <bool>true</bool>
           </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">

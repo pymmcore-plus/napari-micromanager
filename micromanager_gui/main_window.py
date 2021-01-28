@@ -8,7 +8,8 @@ from PyQt5 import QtCore
 import numpy as np
 from napari.qt import thread_worker
 
-from .mmcore_pymmcore import MMCore
+# from .mmcore_pymmcore import MMCore
+from mmcore_pymmcore import MMCore
 
 from multid_widget import MultiDWidget
 from explore_sample import ExploreSample
@@ -44,7 +45,6 @@ class MainWindow(QtW.QMainWindow):
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     z_lineEdit: QtW.QLineEdit
-    pos_update_Button: QtW.QPushButton
 
     stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
@@ -122,7 +122,6 @@ class MainWindow(QtW.QMainWindow):
         self.load_cgf_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
 
-        self.pos_update_Button.clicked.connect(self.update_stage_position)
         self.left_Button.clicked.connect(self.stage_x_left)
         self.right_Button.clicked.connect(self.stage_x_right)
         self.y_up_Button.clicked.connect(self.stage_y_up)
@@ -352,10 +351,12 @@ class MainWindow(QtW.QMainWindow):
         if "Channel" in mmcore.getAvailableConfigGroups():
             channel_list = list(mmcore.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
+            self.explorer.scan_channel_comboBox.addItems(channel_list)
         else:
             print("Could not find 'Channel' in the ConfigGroups")
 
-        self.update_stage_position()
+        self.update_stage_position_xy()
+        self.update_stage_position_z()
 
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
@@ -378,13 +379,23 @@ class MainWindow(QtW.QMainWindow):
             )
             print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
 
-    def update_stage_position(self):
+    def update_stage_position_xy(self):
         x = int(mmcore.getXPosition())
         y = int(mmcore.getYPosition())
         z = int(mmcore.getPosition("Z_Stage"))
-        self.x_lineEdit.setText(str("%.0f" % x))
-        self.y_lineEdit.setText(str("%.0f" % y))
-        self.z_lineEdit.setText(str("%.1f" % z))
+        self.x_lineEdit.setText(str('%.0f'%x))
+        self.y_lineEdit.setText(str('%.0f'%y))
+        self.z_lineEdit.setText(str('%.1f'%z))
+        #print(f'XY Stage moved to x:{x} y:{y} (z:{z})')
+
+    def update_stage_position_z(self):
+        x = int(mmcore.getXPosition())
+        y = int(mmcore.getYPosition())
+        z = int(mmcore.getPosition("Z_Stage"))
+        self.x_lineEdit.setText(str('%.0f'%x))
+        self.y_lineEdit.setText(str('%.0f'%y))
+        self.z_lineEdit.setText(str('%.1f'%z))
+        #print(f'Z Stage moved to z:{z} (x:{x} y:{y})')
 
     def stage_x_left(self):
         xpos = mmcore.getXPosition()
