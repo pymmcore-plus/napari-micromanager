@@ -16,8 +16,8 @@ from skimage.transform import resize
 from napari.qt import thread_worker
 import cv2
 
-# from .mmcore_pymmcore import MMCore
-from mmcore_pymmcore import MMCore
+
+from .mmcore_pymmcore import MMCore
 
 
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
@@ -33,7 +33,6 @@ class ExploreSample(QtW.QWidget):
     scan_exp_spinBox: QtW.QSpinBox
     start_scan_Button: QtW.QPushButton
     stop_scan_Button: QtW.QPushButton
-    delete_snap_Button: QtW.QPushButton
     progressBar: QtW.QProgressBar
     move_to_Button: QtW.QPushButton
     x_lineEdit: QtW.QLineEdit
@@ -42,8 +41,8 @@ class ExploreSample(QtW.QWidget):
     #________________________________________________________________________
 
     new_frame = Signal(str, np.ndarray)
-    delete_snaps = Signal(str)
     send_explorer_info = Signal(int, int)
+    delete_snaps = Signal(str)
     delete_previous_scan = Signal(str)
 
     #________________________________________________________________________
@@ -64,7 +63,6 @@ class ExploreSample(QtW.QWidget):
         self.scan_size_spinBox.valueChanged.connect(self.change_label)
         self.start_scan_Button.clicked.connect(self.start_scan)
         self.stop_scan_Button.clicked.connect(self.stop_scan)
-        self.delete_snap_Button.clicked.connect(self.delete_snaps_connect)
         self.move_to_Button.clicked.connect(self.move_to)
 
     def change_label(self, value):
@@ -180,8 +178,6 @@ class ExploreSample(QtW.QWidget):
 
                     #scale down image
                     snap_scaled = resize(snap, (round(self.height/self.scaling_factor), round(self.width/self.scaling_factor)))
-                    h1 = snap_scaled.shape[0]
-                    w1 = snap_scaled.shape[1]
                     self.new_frame.emit(f'temp_snap', snap_scaled)
 
                     #concatenate image in a row (to the right)
@@ -221,8 +217,6 @@ class ExploreSample(QtW.QWidget):
 
                     #scale down image
                     snap_scaled = resize(snap, (round(self.height/self.scaling_factor), round(self.width/self.scaling_factor)))
-                    h1 = snap_scaled.shape[0]
-                    w1 = snap_scaled.shape[1]
                     self.new_frame.emit(f'temp_snap', snap_scaled)
 
                     #concatenate image in a row (to the left)
@@ -254,10 +248,8 @@ class ExploreSample(QtW.QWidget):
         shape_stitched_x = stitched_image_final.shape[1]
         shape_stitched_y = stitched_image_final.shape[0]
 
-        self.send_explorer_info.emit(shape_stitched_x, shape_stitched_y)#emot signal to MainWindow
-
-    def delete_snaps_connect(self):
-        self.delete_snaps.emit('temp_snap')
+        self.send_explorer_info.emit(shape_stitched_x, shape_stitched_y)#emit signal to MainWindow
+        self.delete_snaps.emit('temp_snap')#emit signal to MainWindow
 
     def move_to(self):
         
@@ -279,7 +271,7 @@ class ExploreSample(QtW.QWidget):
 
             done = False
             col = 0
-            for i in range(self.total_size):
+            for _ in range(self.total_size):
 
                 if done:
                     break
