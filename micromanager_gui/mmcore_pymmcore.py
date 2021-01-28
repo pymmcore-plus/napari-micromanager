@@ -51,7 +51,6 @@ class MMCore(QObject):
             adapter_paths = [find_micromanager()]
             print(f'Micromanager path: {adapter_paths}')
         self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
-        print(f'Micromanager path: {adapter_paths}')
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
