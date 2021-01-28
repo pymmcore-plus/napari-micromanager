@@ -14,7 +14,6 @@ from skimage import io
 from PyQt5.QtGui import QPixmap, QImage
 from skimage.transform import resize
 from napari.qt import thread_worker
-import cv2
 
 
 # from .mmcore_pymmcore import MMCore
@@ -58,8 +57,6 @@ class ExploreSample(QtW.QWidget):
         self.x_lineEdit.setText('None')
         self.y_lineEdit.setText('None')
         self.scan_size = 'None'
-
-        self.layer_shape = []
 
         self.scan_size_spinBox.valueChanged.connect(self.change_label)
         self.start_scan_Button.clicked.connect(self.start_scan)
@@ -246,10 +243,10 @@ class ExploreSample(QtW.QWidget):
         # print(f'stitched_image_final.shape = {stitched_image_final.shape}')
         self.new_frame.emit(f'stitched_{self.scan_size}x{self.scan_size}', stitched_image_final)
         self.progressBar.setValue(100)
-        shape_stitched_x = stitched_image_final.shape[1]
-        shape_stitched_y = stitched_image_final.shape[0]
+        self.shape_stitched_x = stitched_image_final.shape[1]
+        self.shape_stitched_y = stitched_image_final.shape[0]
 
-        self.send_explorer_info.emit(shape_stitched_x, shape_stitched_y)#emit signal to MainWindow
+        self.send_explorer_info.emit(self.shape_stitched_x, self.shape_stitched_y)#emit signal to MainWindow
         self.delete_snaps.emit('temp_snap')#emit signal to MainWindow
 
     def move_to(self):
@@ -263,8 +260,8 @@ class ExploreSample(QtW.QWidget):
             coord_y = float(string_coord_y)
             # print(f'COORDS: {coord_x},{coord_y}')
 
-            x_snap = (self.layer_shape[0][1])/self.scan_size
-            y_snap = (self.layer_shape[0][0])/self.scan_size
+            x_snap = self.shape_stitched_x/self.scan_size
+            y_snap = self.shape_stitched_y/self.scan_size
             # print(x_snap, y_snap)
 
             x_snap_increment = x_snap

@@ -199,9 +199,6 @@ class MainWindow(QtW.QMainWindow):
                             if coord_x > 0 and coord_y > 0:
                                 self.explorer.x_lineEdit.setText(str(round(coord_x)))
                                 self.explorer.y_lineEdit.setText(str(round(coord_y)))
-                                self.explorer.layer_shape.clear()
-                                self.explorer.layer_shape.append(layer.shape)
-                                print(self.explorer.layer_shape)
                                 break
 
                             else:
