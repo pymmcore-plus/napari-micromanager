@@ -139,3 +139,5 @@ cython_debug/
 
 .vscode
 .DS_Store
+
+micromanager_gui/_version.py
