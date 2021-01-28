@@ -9,7 +9,6 @@ import numpy as np
 from napari.qt import thread_worker
 
 from .mmcore_pymmcore import MMCore
-
 from .multid_widget import MultiDWidget
 from .explore_sample import ExploreSample
 from .optocamp_widget import OptocampWidget

@@ -3,6 +3,9 @@ from pathlib import Path
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 
+import time
+from tqdm import tqdm
+
 
 
 def find_micromanager():
@@ -70,7 +73,7 @@ class MMCore(QObject):
 
     def run_mda_test(self,run_parameters):
         print(f'mmcore run mda: {run_parameters}')
-        
+
 
 
 class CallbackRelay(pymmcore.MMEventCallback):
