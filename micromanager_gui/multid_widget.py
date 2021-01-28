@@ -118,12 +118,6 @@ class MultiDWidget(QtW.QWidget):
     acquisition_order_comboBox: QtW.QComboBox
     run_Button: QtW.QPushButton
 
-    #________________________________________________________________________
-
-    # new_frame = Signal(str, np.ndarray, int, int, int, int)  #pos_name, image, position, t, z, c
-                     
-    #________________________________________________________________________
-
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -144,10 +138,7 @@ class MultiDWidget(QtW.QWidget):
 
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
 
-        #________________________________________________________________________
-        # self.run_Button.clicked.connect(self.acquisition_order)_get_state_dict
         self.run_Button.clicked.connect(self.run)
-        #________________________________________________________________________
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
@@ -321,12 +312,9 @@ class MultiDWidget(QtW.QWidget):
 
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
-        run_parameters = self._get_state_dict()
         experiment = MultiDExperiment(**self._get_state_dict())
-        mmcore.run_mda_test(run_parameters, experiment)
+        mmcore.run_mda_test(experiment)
         
-   
-   
    
    
    
