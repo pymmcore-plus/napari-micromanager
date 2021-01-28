@@ -10,16 +10,13 @@ from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from skimage import io
 from skimage.transform import resize
-
+import time
 
 from .mmcore_pymmcore import MMCore
-
-
 
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 mmcore = MMCore()
-
 
 class ExploreSample(QtW.QWidget):
     # The UI_FILE above contains these objects:
@@ -35,12 +32,10 @@ class ExploreSample(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
 
     #________________________________________________________________________
-
     new_frame = Signal(str, np.ndarray)
     send_explorer_info = Signal(int, int)
     delete_snaps = Signal(str)
     delete_previous_scan = Signal(str)
-
     #________________________________________________________________________
 
 
@@ -145,11 +140,7 @@ class ExploreSample(QtW.QWidget):
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x  
         
-        print(self.matrix_x)
-        print('')
-        print(self.matrix_y)
-        print('')
-        print(self.matrix_z)
+        print(f'\n{self.matrix_x}\n\n{self.matrix_y}\n\n{self.matrix_z}\n')
 
         #move to the correct position and acquire an image
         progress = 0
@@ -161,6 +152,7 @@ class ExploreSample(QtW.QWidget):
                     vx = self.matrix_x[row][s]
                     vy = self.matrix_y[row][s]
                     vz = self.matrix_z[row][s]
+                    print(f'even row: {vx},{vy},{vz}')
                     mmcore.setXYPosition(vx,vy)
                     mmcore.setPosition("Z_Stage", vz)
                     # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
@@ -200,6 +192,7 @@ class ExploreSample(QtW.QWidget):
                     vx = self.matrix_x[row][col]
                     vy = self.matrix_y[row][col]
                     vz = self.matrix_z[row][col]
+                    print(f'odd row: {vx},{vy},{vz}')
                     mmcore.setXYPosition(vx,vy)
                     mmcore.setPosition("Z_Stage", vz)
                     # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
