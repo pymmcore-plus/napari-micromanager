@@ -190,7 +190,7 @@ class MainWindow(QtW.QMainWindow):
                         layer = self.viewer.layers[str(i)]
                         coord = layer.coordinates
                         # self.is_true = True
-                        print(f'coordinates: x={coord[1]}, y={coord[0]}')
+                        # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
                         coord_x = coord[1]
                         coord_y = coord[0]
                         if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
@@ -218,16 +218,6 @@ class MainWindow(QtW.QMainWindow):
                 layer_list.clear()
                 break
     
-    def add_frame_multid(self, name, image, position, t, z_position, c):
-
-        stack = self.mda.pos_stack_list[position]
-        stack[t,z_position,c,:,:] = image
-        try:
-            layer = self.viewer.layers[name]
-            layer.data = stack
-        except KeyError:
-            self.viewer.add_image(stack, name=name)
-
     def add_frame_explorer(self, name, array):
         layer_name = name
         try:
@@ -241,6 +231,16 @@ class MainWindow(QtW.QMainWindow):
         for n in self.viewer.layers:
              if layer_name in str(n):
                 self.viewer.layers.remove(n)
+
+       # def add_frame_multid(self, name, image, position, t, z_position, c):
+
+    #     stack = self.mda.pos_stack_list[position]
+    #     stack[t,z_position,c,:,:] = image
+    #     try:
+    #         layer = self.viewer.layers[name]
+    #         layer.data = stack
+    #     except KeyError:
+    #         self.viewer.add_image(stack, name=name)
     #________________________________________________________________________
 
     def get_devices_and_props(self):
@@ -337,7 +337,7 @@ class MainWindow(QtW.QMainWindow):
             obj_opts = mmcore.getStateLabels("Objective")    
 
             self.objective_comboBox.addItems(obj_opts)
-            self.objective_comboBox.setCurrentText(obj_opts[0])
+            self.objective_comboBox.setCurrentText(obj_opts[5])
 
             #obj_curr_pos = mmcore.getState("Objective")
             #print(f'Objective Nosepiece Position: {obj_curr_pos}')

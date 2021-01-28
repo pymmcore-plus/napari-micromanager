@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 import pymmcore
-from qtpy.QtCore import QObject, Signal
+from qtpy.QtCore import QObject
 
 import time
 from tqdm import tqdm
@@ -74,9 +74,7 @@ class MMCore(QObject):
         return self._mmc.setProperty
 
 
-    def run_mda_test(self,run_parameters, experiment):
-        print(f'mmcore run mda: {run_parameters}')
-
+    def run_mda_test(self, experiment):
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")

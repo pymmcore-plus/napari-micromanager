@@ -92,11 +92,6 @@ class ExploreSample(QtW.QWidget):
         mmcore.setExposure(int(self.scan_exp_spinBox.value()))
         mmcore.setConfig("Channel", self.scan_channel_comboBox.currentText())
         
-        #create position list
-        self.matrix_x = np.empty((self.scan_size,self.scan_size))
-        self.matrix_y = np.empty((self.scan_size,self.scan_size))
-        self.matrix_z = np.empty((self.scan_size,self.scan_size))
-        
         #get current position
         x_curr_pos_explorer = int(mmcore.getXPosition())
         y_curr_pos_explorer = int(mmcore.getYPosition())
@@ -112,10 +107,10 @@ class ExploreSample(QtW.QWidget):
         y_pos_explorer = y_curr_pos_explorer + move_y
         # print(f'start pos: {x_pos_explorer},{y_pos_explorer}')
 
-        #calculate position increments
+        #calculate position increments depending on pixle size
         increment_x = self.width * mmcore.getPixelSizeUm()
         increment_y = self.height * mmcore.getPixelSizeUm()
-        # print(f'increments: {increment_x},{increment_y}')
+        print(f'increments: {increment_x},{increment_y}')
 
         #create the xyz position matrix 
         for r in range(self.scan_size):
@@ -123,9 +118,9 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size):#for even rows
                     if r>0 and c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
-                    self.matrix_x[r][c] = x_pos_explorer
-                    self.matrix_y[r][c] = y_pos_explorer
-                    self.matrix_z[r][c] = z_curr_pos_explorer
+                    self.array_pos_x[r][c] = x_pos_explorer
+                    self.array_pos_y[r][c] = y_pos_explorer
+                    self.array_pos_z[r][c] = z_curr_pos_explorer
                     if c < self.scan_size-1:
                         x_pos_explorer = x_pos_explorer + increment_x   
             else:#for odd rows
@@ -133,14 +128,14 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size):
                     if c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
-                    self.matrix_x[r][col] = x_pos_explorer
-                    self.matrix_y[r][col] = y_pos_explorer
-                    self.matrix_z[r][col] = z_curr_pos_explorer
+                    self.array_pos_x[r][col] = x_pos_explorer
+                    self.array_pos_y[r][col] = y_pos_explorer
+                    self.array_pos_z[r][col] = z_curr_pos_explorer
                     if col>0:
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x  
         
-        print(f'\n{self.matrix_x}\n\n{self.matrix_y}\n\n{self.matrix_z}\n')
+        # print(f'\n{self.array_pos_x}\n\n{self.array_pos_y}\n\n{self.array_pos_z}\n')
 
         #move to the correct position and acquire an image
         progress = 0
@@ -149,10 +144,10 @@ class ExploreSample(QtW.QWidget):
                 # print(f'row {row} is even')
                 for s in range(self.scan_size):       
                     # move to position
-                    vx = self.matrix_x[row][s]
-                    vy = self.matrix_y[row][s]
-                    vz = self.matrix_z[row][s]
-                    print(f'even row: {vx},{vy},{vz}')
+                    vx = self.array_pos_x[row][s]
+                    vy = self.array_pos_y[row][s]
+                    vz = self.array_pos_z[row][s]
+                    # print(f'even row: {vx},{vy},{vz}')
                     mmcore.setXYPosition(vx,vy)
                     mmcore.setPosition("Z_Stage", vz)
                     # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
@@ -189,10 +184,10 @@ class ExploreSample(QtW.QWidget):
                     # print(f'col = {col}')
 
                     # move to position
-                    vx = self.matrix_x[row][col]
-                    vy = self.matrix_y[row][col]
-                    vz = self.matrix_z[row][col]
-                    print(f'odd row: {vx},{vy},{vz}')
+                    vx = self.array_pos_x[row][col]
+                    vy = self.array_pos_y[row][col]
+                    vz = self.array_pos_z[row][col]
+                    # print(f'odd row: {vx},{vy},{vz}')
                     mmcore.setXYPosition(vx,vy)
                     mmcore.setPosition("Z_Stage", vz)
                     # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
@@ -268,9 +263,9 @@ class ExploreSample(QtW.QWidget):
                         if coord_y <= y_snap:
                             # print(f'coord_x = {coord_x}, coord_y = {coord_y}')
                             # print(f'row = {row}, col = {col}')
-                            x_scan_pos = self.matrix_x[row][col]
-                            y_scan_pos = self.matrix_y[row][col]
-                            z_scan_pos = self.matrix_z[row][col]
+                            x_scan_pos = self.array_pos_x[row][col]
+                            y_scan_pos = self.array_pos_y[row][col]
+                            z_scan_pos = self.array_pos_z[row][col]
                             # print(f'moving to x: {x_scan_pos}')
                             # print(f'moving to y: {y_scan_pos}')
                             # print(f'moving to z: {z_scan_pos}')
