@@ -1,0 +1,331 @@
+import os
+import sys
+from pathlib import Path
+import numpy as np
+from PyQt5 import QtWidgets as QtW
+from qtpy import uic
+from qtpy.QtCore import Qt, Signal
+import time
+from qtpy.QtWidgets import QFileDialog
+from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
+from textwrap import dedent
+from skimage import io
+from PyQt5.QtGui import QPixmap, QImage
+from skimage.transform import resize
+from napari.qt import thread_worker
+import cv2
+
+# from .mmcore_pymmcore import MMCore
+from mmcore_pymmcore import MMCore
+
+
+UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
+
+mmcore = MMCore()
+
+
+class ExploreSample(QtW.QWidget):
+    # The UI_FILE above contains these objects:
+    scan_size_label: QtW.QLabel
+    scan_size_spinBox: QtW.QSpinBox
+    scan_channel_comboBox: QtW.QComboBox
+    scan_exp_spinBox: QtW.QSpinBox
+    start_scan_Button: QtW.QPushButton
+    stop_scan_Button: QtW.QPushButton
+    delete_snap_Button: QtW.QPushButton
+    progressBar: QtW.QProgressBar
+    move_to_Button: QtW.QPushButton
+    x_lineEdit: QtW.QLineEdit
+    y_lineEdit: QtW.QLineEdit
+
+    #________________________________________________________________________
+
+    new_frame = Signal(str, np.ndarray)
+    delete_snaps = Signal(str)
+    send_explorer_info = Signal(int, int)
+    delete_previous_scan = Signal(str)
+
+    #________________________________________________________________________
+
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        uic.loadUi(UI_FILE, self)
+
+        self.scan_position_list = []
+        self.stitched_image_array_list = []
+        self.x_lineEdit.setText('None')
+        self.y_lineEdit.setText('None')
+        self.scan_size = 'None'
+
+        self.layer_shape = []
+
+        self.scan_size_spinBox.valueChanged.connect(self.change_label)
+        self.start_scan_Button.clicked.connect(self.start_scan)
+        self.stop_scan_Button.clicked.connect(self.stop_scan)
+        self.delete_snap_Button.clicked.connect(self.delete_snaps_connect)
+        self.move_to_Button.clicked.connect(self.move_to)
+
+    def change_label(self, value):
+        text = f' x {value}'
+        self.scan_size_label.setText(text)
+
+    def stop_scan(self):
+        pass
+
+    def start_scan(self):
+        
+        name = f'stitched_{self.scan_size}x{self.scan_size}'
+        self.delete_previous_scan.emit(name)#emot signal to MainWindow
+
+        self.x_lineEdit.setText('None')
+        self.y_lineEdit.setText('None')
+
+        self.scan_position_list.clear()
+        self.stitched_image_array_list.clear()
+        self.scan_size = self.scan_size_spinBox.value()
+        self.change_label(self.scan_size)
+        
+        self.scaling_factor = 3
+
+        self.total_size = self.scan_size*self.scan_size
+
+        #create positions storage arrays
+        self.array_pos_x = np.empty((self.scan_size,self.scan_size))
+        self.array_pos_y  = np.empty((self.scan_size,self.scan_size))
+        self.array_pos_z  = np.empty((self.scan_size,self.scan_size))
+
+        #for progress bar
+        prigress_values = np.linspace(1, 90, self.total_size)
+        prigress_values = np.round(prigress_values,0)
+        prigress_values = prigress_values.astype(int)
+
+        #set acquisition parameters
+        mmcore.setExposure(int(self.scan_exp_spinBox.value()))
+        mmcore.setConfig("Channel", self.scan_channel_comboBox.currentText())
+        
+        #create position list
+        self.matrix_x = np.empty((self.scan_size,self.scan_size))
+        self.matrix_y = np.empty((self.scan_size,self.scan_size))
+        self.matrix_z = np.empty((self.scan_size,self.scan_size))
+        
+        #get current position
+        x_curr_pos_explorer = int(mmcore.getXPosition())
+        y_curr_pos_explorer = int(mmcore.getYPosition())
+        z_curr_pos_explorer = int(mmcore.getPosition("Z_Stage"))
+        # print(f'curr_pos:{x_curr_pos_explorer},{y_curr_pos_explorer},{z_curr_pos_explorer}')
+
+        #calculate initial scan position
+        self.width = mmcore.getROI(mmcore.getCameraDevice())[2]#maybe they are inverted
+        self.height = mmcore.getROI(mmcore.getCameraDevice())[3]#maybe they are inverted
+        move_x = (self.width/2)*(self.scan_size-1)*mmcore.getPixelSizeUm()
+        move_y = (self.height/2)*(self.scan_size-1)*mmcore.getPixelSizeUm()
+        x_pos_explorer = x_curr_pos_explorer - move_x
+        y_pos_explorer = y_curr_pos_explorer + move_y
+        # print(f'start pos: {x_pos_explorer},{y_pos_explorer}')
+
+        #calculate position increments
+        increment_x = self.width * mmcore.getPixelSizeUm()
+        increment_y = self.height * mmcore.getPixelSizeUm()
+        # print(f'increments: {increment_x},{increment_y}')
+
+        #create the xyz position matrix 
+        for r in range(self.scan_size):
+            if r == 0 or (r % 2) == 0:
+                for c in range(self.scan_size):#for even rows
+                    if r>0 and c == 0:
+                        y_pos_explorer = y_pos_explorer - increment_y
+                    self.matrix_x[r][c] = x_pos_explorer
+                    self.matrix_y[r][c] = y_pos_explorer
+                    self.matrix_z[r][c] = z_curr_pos_explorer
+                    if c < self.scan_size-1:
+                        x_pos_explorer = x_pos_explorer + increment_x   
+            else:#for odd rows
+                col = self.scan_size-1
+                for c in range(self.scan_size):
+                    if c == 0:
+                        y_pos_explorer = y_pos_explorer - increment_y
+                    self.matrix_x[r][col] = x_pos_explorer
+                    self.matrix_y[r][col] = y_pos_explorer
+                    self.matrix_z[r][col] = z_curr_pos_explorer
+                    if col>0:
+                        col = col - 1
+                        x_pos_explorer = x_pos_explorer - increment_x  
+        
+        print(self.matrix_x)
+        print('')
+        print(self.matrix_y)
+        print('')
+        print(self.matrix_z)
+
+        #move to the correct position and acquire an image
+        progress = 0
+        for row in range(self.scan_size):
+            if row == 0 or (row % 2) == 0:#for even rows
+                # print(f'row {row} is even')
+                for s in range(self.scan_size):       
+                    # move to position
+                    vx = self.matrix_x[row][s]
+                    vy = self.matrix_y[row][s]
+                    vz = self.matrix_z[row][s]
+                    mmcore.setXYPosition(vx,vy)
+                    mmcore.setPosition("Z_Stage", vz)
+                    # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
+
+                    #snap image
+                    mmcore.snapImage() 
+                    snap = mmcore.getImage()
+                    # print(f'    temp_snap_{row}_{s}')
+
+                    #scale down image
+                    snap_scaled = resize(snap, (round(self.height/self.scaling_factor), round(self.width/self.scaling_factor)))
+                    h1 = snap_scaled.shape[0]
+                    w1 = snap_scaled.shape[1]
+                    self.new_frame.emit(f'temp_snap', snap_scaled)
+
+                    #concatenate image in a row (to the right)
+                    if s == 0:
+                        stitched_image_array = snap_scaled
+                    else:
+                        stitched_image_array = np.concatenate((stitched_image_array, snap_scaled), axis = 1)
+    
+                    # print(f'        progress = {progress}, progressBar = {prigress_values[progress]}')
+                    self.progressBar.setValue(prigress_values[progress])
+                    progress += 1
+
+                    time.sleep(0.1)
+                    
+                #append array in a list
+                self.stitched_image_array_list.append(stitched_image_array)
+                # print(f'            stitched_image_array.shape = {stitched_image_array.shape}')
+
+            else:#for odd rows
+                # print(f'row {row} is odd')
+                col = self.scan_size-1
+                for s in range(self.scan_size):
+                    # print(f'col = {col}')
+
+                    # move to position
+                    vx = self.matrix_x[row][col]
+                    vy = self.matrix_y[row][col]
+                    vz = self.matrix_z[row][col]
+                    mmcore.setXYPosition(vx,vy)
+                    mmcore.setPosition("Z_Stage", vz)
+                    # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
+
+                    #snap image
+                    mmcore.snapImage() 
+                    snap = mmcore.getImage()
+                    # print(f'    temp_snap_{row}_{s}')
+
+                    #scale down image
+                    snap_scaled = resize(snap, (round(self.height/self.scaling_factor), round(self.width/self.scaling_factor)))
+                    h1 = snap_scaled.shape[0]
+                    w1 = snap_scaled.shape[1]
+                    self.new_frame.emit(f'temp_snap', snap_scaled)
+
+                    #concatenate image in a row (to the left)
+                    if s == 0:
+                        stitched_image_array = snap_scaled
+                    else:
+                        stitched_image_array = np.concatenate((snap_scaled, stitched_image_array), axis = 1)
+                    
+                    # print(f'        progress = {progress}, progressBar = {prigress_values[progress]}')
+                    self.progressBar.setValue(prigress_values[progress])
+                    progress += 1
+                    if col>0:
+                        col = col - 1
+
+                    time.sleep(0.1)
+
+                #append array in a list
+                self.stitched_image_array_list.append(stitched_image_array)
+                # print(f'            stitched_image_array.shape = {stitched_image_array.shape}')
+
+        #stitch all rows
+        stitched_image_final = self.stitched_image_array_list[0] 
+        for row in range(1,len(self.stitched_image_array_list)):
+            st = self.stitched_image_array_list[row]
+            stitched_image_final = np.concatenate((stitched_image_final, st), axis = 0)
+        # print(f'stitched_image_final.shape = {stitched_image_final.shape}')
+        self.new_frame.emit(f'stitched_{self.scan_size}x{self.scan_size}', stitched_image_final)
+        self.progressBar.setValue(100)
+        shape_stitched_x = stitched_image_final.shape[1]
+        shape_stitched_y = stitched_image_final.shape[0]
+
+        self.send_explorer_info.emit(shape_stitched_x, shape_stitched_y)#emot signal to MainWindow
+
+    def delete_snaps_connect(self):
+        self.delete_snaps.emit('temp_snap')
+
+    def move_to(self):
+        
+        string_coord_x = self.x_lineEdit.text()
+        string_coord_y = self.y_lineEdit.text()
+
+        if not string_coord_x == 'None' and not string_coord_y == 'None':
+
+            coord_x = float(string_coord_x)
+            coord_y = float(string_coord_y)
+            # print(f'COORDS: {coord_x},{coord_y}')
+
+            x_snap = (self.layer_shape[0][1])/self.scan_size
+            y_snap = (self.layer_shape[0][0])/self.scan_size
+            # print(x_snap, y_snap)
+
+            x_snap_increment = x_snap
+            y_snap_increment = y_snap
+
+            done = False
+            col = 0
+            for i in range(self.total_size):
+
+                if done:
+                    break
+
+                if coord_x <= x_snap:
+                    for row in range(self.scan_size):
+                        if coord_y <= y_snap:
+                            # print(f'coord_x = {coord_x}, coord_y = {coord_y}')
+                            # print(f'row = {row}, col = {col}')
+                            x_scan_pos = self.matrix_x[row][col]
+                            y_scan_pos = self.matrix_y[row][col]
+                            z_scan_pos = self.matrix_z[row][col]
+                            # print(f'moving to x: {x_scan_pos}')
+                            # print(f'moving to y: {y_scan_pos}')
+                            # print(f'moving to z: {z_scan_pos}')
+                            #set position
+                            mmcore.setXYPosition(x_scan_pos,y_scan_pos)
+                            mmcore.setPosition("Z_Stage", z_scan_pos)
+
+                            #snap image at position
+                            mmcore.setExposure(int(self.scan_exp_spinBox.value()))
+                            mmcore.setConfig("Channel", self.scan_channel_comboBox.currentText())
+                            mmcore.snapImage()
+                            image = mmcore.getImage()
+                            self.new_frame.emit('preview', image)
+                            done = True
+                            break
+
+                        else:
+                            y_snap = y_snap + y_snap_increment
+                else:
+                    x_snap = x_snap + x_snap_increment
+                    col += 1
+
+
+
+
+
+
+     
+
+
+
+
+
+
+
+
+

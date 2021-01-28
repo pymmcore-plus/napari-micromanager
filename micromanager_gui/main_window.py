@@ -166,6 +166,89 @@ class MainWindow(QtW.QMainWindow):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
+        #connect callback
+        mmcore.xy_stage_position_changed.connect(self.update_stage_position_xy)
+        mmcore.stage_position_changed.connect(self.update_stage_position_z)
+
+        #connect the Signal________________________________________________________________________
+        self.mda.new_frame.connect(self.add_frame_multid)
+
+        self.explorer.new_frame.connect(self.add_frame_explorer)
+        self.explorer.delete_snaps.connect(self.delete_snaps)
+        self.explorer.send_explorer_info.connect(self.get_explorer_info)
+        self.explorer.delete_previous_scan.connect(self.delete_explorer_previous_scan)
+        #________________________________________________________________________
+
+
+    #SIGNAL________________________________________________________________________
+    def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
+    
+        ##Get coordinates mouse_drag_callbacks
+        @self.viewer.mouse_drag_callbacks.append    #is it possible to double click?
+        def get_event_add(viewer, event):
+            try:
+                for i in self.viewer.layers:
+                    selected_layer = self.viewer.layers.selected
+                    if 'stitched_' in str(i) and 'stitched_' in str(selected_layer):
+                        layer = self.viewer.layers[str(i)]
+                        coord = layer.coordinates
+                        # self.is_true = True
+                        print(f'coordinates: x={coord[1]}, y={coord[0]}')
+                        coord_x = coord[1]
+                        coord_y = coord[0]
+                        if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
+                            if coord_x > 0 and coord_y > 0:
+                                self.explorer.x_lineEdit.setText(str(round(coord_x)))
+                                self.explorer.y_lineEdit.setText(str(round(coord_y)))
+                                self.explorer.layer_shape.clear()
+                                self.explorer.layer_shape.append(layer.shape)
+                                print(self.explorer.layer_shape)
+                                break
+
+                            else:
+                                self.explorer.x_lineEdit.setText('None')
+                                self.explorer.y_lineEdit.setText('None')
+                        else:
+                            self.explorer.x_lineEdit.setText('None')
+                            self.explorer.y_lineEdit.setText('None')
+            except KeyError:
+                pass
+
+    def delete_explorer_previous_scan(self, name):
+        layer_list = []
+        for l in self.viewer.layers:
+            layer_list.append(l)
+        while len(self.viewer.layers)>0:
+            if name in self.viewer.layers:
+                self.viewer.layers.remove(name)
+                layer_list.clear()
+                break
+    
+    def add_frame_multid(self, name, image, position, t, z_position, c):
+
+        stack = self.mda.pos_stack_list[position]
+        stack[t,z_position,c,:,:] = image
+        try:
+            layer = self.viewer.layers[name]
+            layer.data = stack
+        except KeyError:
+            self.viewer.add_image(stack, name=name)
+
+    def add_frame_explorer(self, name, array):
+        layer_name = name
+        try:
+            layer = self.viewer.layers[layer_name]
+            layer.data = array
+        except KeyError:
+            self.viewer.add_image(array, name=layer_name)
+
+    def delete_snaps(self, name):
+        layer_name = name
+        for n in self.viewer.layers:
+             if layer_name in str(n):
+                self.viewer.layers.remove(n)
+    #________________________________________________________________________
+
     def get_devices_and_props(self):
         ##List devices and properties that you can set
         devices = mmcore.getLoadedDevices()
@@ -213,6 +296,7 @@ class MainWindow(QtW.QMainWindow):
         self.load_cgf_Button.setEnabled(True)
 
     def load_cfg(self):
+        
         self.setEnabled(True)
 
         self.load_cgf_Button.setEnabled(False)
