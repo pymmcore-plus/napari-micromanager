@@ -5,7 +5,6 @@ import numpy as np
 from PyQt5 import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import Qt, Signal
-import 
 from qtpy.QtWidgets import QFileDialog
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore

@@ -145,7 +145,8 @@ class MultiDWidget(QtW.QWidget):
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
 
         #________________________________________________________________________
-        # self.run_Button.clicked.connect(self.acquisition_order)
+        # self.run_Button.clicked.connect(self.acquisition_order)_get_state_dict
+        self.run_Button.clicked.connect(self._get_state_dict)
         #________________________________________________________________________
 
         # connect position table double click
@@ -314,6 +315,8 @@ class MultiDWidget(QtW.QWidget):
             xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
             zp = float(mmcore.getPosition("Z_Stage"))
             state["stage_positions"].append((xp, yp, zp))
+        
+        print(state)
 
         return state
 
