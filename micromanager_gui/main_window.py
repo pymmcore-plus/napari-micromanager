@@ -174,6 +174,8 @@ class MainWindow(QtW.QMainWindow):
         self.explorer.delete_snaps.connect(self.delete_snaps)
         self.explorer.send_explorer_info.connect(self.get_explorer_info)
         self.explorer.delete_previous_scan.connect(self.delete_explorer_previous_scan)
+
+        mmcore.to_viewer.connect(self.add_frame_mda)
         #________________________________________________________________________
 
 
@@ -231,6 +233,15 @@ class MainWindow(QtW.QMainWindow):
         for n in self.viewer.layers:
              if layer_name in str(n):
                 self.viewer.layers.remove(n)
+
+    
+    def add_frame_mda(self, image):
+        try:
+            layer = self.viewer.layers['test']
+            layer.data = image
+        except KeyError:
+            self.viewer.add_image(image, name='test')
+
 
        # def add_frame_multid(self, name, image, position, t, z_position, c):
 

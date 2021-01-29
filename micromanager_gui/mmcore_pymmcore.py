@@ -40,7 +40,7 @@ class MMCore(QObject):
 
     __instance = None
 
-
+    to_viewer = Signal(np.ndarray)
 
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
     def __new__(cls) -> pymmcore.CMMCore:
@@ -105,6 +105,8 @@ class MMCore(QObject):
             self._mmc.setConfig("Channel", channel_name)
             self._mmc.snapImage()
             img = self._mmc.getImage()
+
+            self.to_viewer.emit(img)
 
             # yield img
 
