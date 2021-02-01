@@ -1,7 +1,10 @@
 import sys
 from pathlib import Path
 import pymmcore
-from qtpy.QtCore import QObject
+from qtpy.QtCore import QObject, Signal
+import numpy as np
+from napari.qt import thread_worker
+
 
 import time
 from tqdm import tqdm
@@ -24,7 +27,7 @@ def find_micromanager():
         )
     except StopIteration:
         print("could not find micromanager directory")
-
+ 
 class MMCore(QObject):
     properties_changed = Signal()
     property_changed = Signal(str, str, object)
@@ -106,9 +109,20 @@ class MMCore(QObject):
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
+            # @thread_worker(connect={"yielded": self.to_viewer.emit})
+            # def image():
+            #     yield img
+            # image()
+
             self.to_viewer.emit(img)
 
-            # yield img
+
+            print('_____')
+            print(frame.t)
+            print(frame.c)
+            print(frame.p)
+            print(frame.z)
+            print('_____')
 
         summary = """
         ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
