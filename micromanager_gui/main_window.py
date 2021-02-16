@@ -249,7 +249,7 @@ class MainWindow(QtW.QMainWindow):
             layer = self.viewer.layers[name]
             layer.data = stack
         except KeyError:
-            self.viewer.add_image(image, name=name)
+            self.viewer.add_image(stack, name=name)
 
 
        # def add_frame_multid(self, name, image, position, t, z_position, c):

@@ -84,6 +84,7 @@ class MultiDExperiment:
             raise ValueError(f"Duplicate entries found in acquisition order: {order}")
 
         for item in product(*(self._axes_dict[ax] for ax in order)):
+            # print(f'frame: {Frame(**dict(zip(order, item)))}')
             yield Frame(**dict(zip(order, item)))
 
 
@@ -312,8 +313,16 @@ class MultiDWidget(QtW.QWidget):
 
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
+
+        nC = self.channel_tableWidget.rowCount()
+        Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
+        Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
+        stack = self.create_stack_array(Tp, Zp, nC)
+
         experiment = MultiDExperiment(**self._get_state_dict())
-        mmcore.run_mda_test(experiment)
+
+        mmcore.run_mda_test(experiment, stack)
+        # mmcore.run_mda_test(experiment)
         
    
    

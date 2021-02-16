@@ -93,7 +93,6 @@ class MMCore(QObject):
             print("Select at least one channel.")
             return
 
-    
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
@@ -112,10 +111,10 @@ class MMCore(QObject):
             z_index = experiment.z_positions.index(frame.z)
             c_index = experiment.channels.index(frame.c)
 
-            print(f'\nframe.t:{frame.t}, t_index:{t_index}')
-            print(f'frame.p:{frame.p}, p_index:{p_index}')
-            print(f'frame.z:{frame.z}, z_index:{z_index}')
-            print(f'frame.c:{frame.c}, c_index:{c_index}\n')
+            # print(f'\nframe.t:{frame.t}, t_index:{t_index}')
+            # print(f'frame.p:{frame.p}, p_index:{p_index}')
+            # print(f'frame.z:{frame.z}, z_index:{z_index}')
+            # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
 
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
@@ -133,6 +132,7 @@ class MMCore(QObject):
             # image()
 
             # self.to_viewer.emit(img)
+            print('P_INDEX:', p_index)
             self.stack_to_viewer.emit(stack, p_index)
 
         summary = """
