@@ -43,7 +43,6 @@ class MMCore(QObject):
 
     __instance = None
 
-    # to_viewer = Signal(np.ndarray)
     stack_to_viewer = Signal(np.ndarray, int)
 
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
@@ -78,10 +77,12 @@ class MMCore(QObject):
         return self._mmc.setProperty
 
 
+    def to_viewer(self, results):
+        stack, p_index = results
+        self.stack_to_viewer.emit(stack, p_index)
+
     # def run_mda_test(self, experiment):
     def run_mda_test(self, experiment, stack):
-
-        print(f'stack.shape: {stack.shape}')
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
@@ -127,13 +128,12 @@ class MMCore(QObject):
             stack[t_index,z_index,c_index,:,:] = img
             
 
-            # @thread_worker(connect={"yielded": self.to_viewer.emit})
-            # def image():
-            #     yield img
-            # image()
+            @thread_worker(connect={"yielded": self.to_viewer})
+            def acq_stack():
+                yield stack, p_index
+            acq_stack()
 
-            # self.to_viewer.emit(img)
-            self.stack_to_viewer.emit(stack, p_index)
+            # self.stack_to_viewer.emit(stack, p_index)
 
         summary = """
         ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
