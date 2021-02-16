@@ -129,6 +129,8 @@ class MultiDWidget(QtW.QWidget):
         self.list_ch = []
         self.acq_stack_list = []
 
+        self.cnt = 0
+
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
         self.remove_pos_Button.clicked.connect(self.remove_position)
@@ -302,17 +304,21 @@ class MultiDWidget(QtW.QWidget):
                 xp = float(self.stage_tableWidget.item(row, 0).text())
                 yp = float(self.stage_tableWidget.item(row, 1).text())
                 zp = float(self.stage_tableWidget.item(row, 2).text())
-                state["stage_positions"].append((zp, yp, zp))
+                state["stage_positions"].append((xp, yp, zp))
+                print(xp,yp,zp)
         else:
             xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
             zp = float(mmcore.getPosition("Z_Stage"))
             state["stage_positions"].append((xp, yp, zp))
-        
+            print(xp,yp,zp)
+
         return state
 
 
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
+
+        self.cnt = self.cnt+1
 
         nC = self.channel_tableWidget.rowCount()
         Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
@@ -321,8 +327,7 @@ class MultiDWidget(QtW.QWidget):
 
         experiment = MultiDExperiment(**self._get_state_dict())
 
-        mmcore.run_mda_test(experiment, stack)
-        # mmcore.run_mda_test(experiment)
+        mmcore.run_mda(experiment, stack, self.cnt)
         
    
    

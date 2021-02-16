@@ -234,17 +234,9 @@ class MainWindow(QtW.QMainWindow):
         for n in self.viewer.layers:
              if layer_name in str(n):
                 self.viewer.layers.remove(n)
-
     
-    def add_frame_mda(self, image):
-        try:
-            layer = self.viewer.layers['test']
-            layer.data = image
-        except KeyError:
-            self.viewer.add_image(image, name='test')
-    
-    def add_stack_mda(self, stack, xy_pos):
-        name = f'Pos_{xy_pos}'
+    def add_stack_mda(self, stack, cnt, xy_pos):
+        name = f'Exp_{cnt}_Pos_{xy_pos}'
         try:
             layer = self.viewer.layers[name]
             layer.data = stack

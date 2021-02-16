@@ -43,7 +43,7 @@ class MMCore(QObject):
 
     __instance = None
 
-    stack_to_viewer = Signal(np.ndarray, int)
+    stack_to_viewer = Signal(np.ndarray, int, int)
 
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
     def __new__(cls) -> pymmcore.CMMCore:
@@ -76,13 +76,12 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
-
     def to_viewer(self, results):
-        stack, p_index = results
-        self.stack_to_viewer.emit(stack, p_index)
+        stack, cnt, p_index = results
+        self.stack_to_viewer.emit(stack, cnt, p_index)
 
     # def run_mda_test(self, experiment):
-    def run_mda_test(self, experiment, stack):
+    def run_mda(self, experiment, stack, cnt):
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
@@ -93,7 +92,7 @@ class MMCore(QObject):
         if not experiment.channels:
             print("Select at least one channel.")
             return
-
+            
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
@@ -112,12 +111,12 @@ class MMCore(QObject):
             z_index = experiment.z_positions.index(frame.z)
             c_index = experiment.channels.index(frame.c)
 
-
-            # print(f'\nframe.t:{frame.t}, t_index:{t_index}')
-            # print(f'frame.p:{frame.p}, p_index:{p_index}')
+            # print(f'frame.t:{frame.t}, t_index:{t_index}')
+            print(f'frame.p:{frame.p}, p_index:{p_index}')
             # print(f'frame.z:{frame.z}, z_index:{z_index}')
             # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
 
+        
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -126,24 +125,23 @@ class MMCore(QObject):
             img = self._mmc.getImage()
 
             stack[t_index,z_index,c_index,:,:] = img
-            
+                
+            # @thread_worker(connect={"yielded": self.to_viewer})
+            # def acq_stack():
+            #     yield stack, cnt, p_index
+            # acq_stack()
 
-            @thread_worker(connect={"yielded": self.to_viewer})
-            def acq_stack():
-                yield stack, p_index
-            acq_stack()
+            self.stack_to_viewer.emit(stack, cnt, p_index)
 
-            # self.stack_to_viewer.emit(stack, p_index)
-
-        summary = """
-        ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-        {}
-        Finished in: {} Seconds
-         ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
-        """.format(
-            str(experiment), round(time.perf_counter() - t0, 4)
-        )
-        print(dedent(summary))
+        # summary = """
+        # ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+        # {}
+        # Finished in: {} Seconds
+        #  ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
+        # """.format(
+        #     str(experiment), round(time.perf_counter() - t0, 4)
+        # )
+        # print(dedent(summary))
 
 
 
