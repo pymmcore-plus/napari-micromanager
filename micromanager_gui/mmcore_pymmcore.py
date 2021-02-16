@@ -111,6 +111,7 @@ class MMCore(QObject):
             z_index = experiment.z_positions.index(frame.z)
             c_index = experiment.channels.index(frame.c)
 
+
             # print(f'\nframe.t:{frame.t}, t_index:{t_index}')
             # print(f'frame.p:{frame.p}, p_index:{p_index}')
             # print(f'frame.z:{frame.z}, z_index:{z_index}')
@@ -132,7 +133,6 @@ class MMCore(QObject):
             # image()
 
             # self.to_viewer.emit(img)
-            print('P_INDEX:', p_index)
             self.stack_to_viewer.emit(stack, p_index)
 
         summary = """
