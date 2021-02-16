@@ -175,7 +175,8 @@ class MainWindow(QtW.QMainWindow):
         self.explorer.send_explorer_info.connect(self.get_explorer_info)
         self.explorer.delete_previous_scan.connect(self.delete_explorer_previous_scan)
 
-        mmcore.to_viewer.connect(self.add_frame_mda)
+        # mmcore.to_viewer.connect(self.add_frame_mda)
+        mmcore.stack_to_viewer.connect(self.add_stack_mda)
         #________________________________________________________________________
 
 
@@ -241,6 +242,14 @@ class MainWindow(QtW.QMainWindow):
             layer.data = image
         except KeyError:
             self.viewer.add_image(image, name='test')
+    
+    def add_stack_mda(self, stack, xy_pos):
+        name = f'Pos_{xy_pos}'
+        try:
+            layer = self.viewer.layers[name]
+            layer.data = stack
+        except KeyError:
+            self.viewer.add_image(image, name=name)
 
 
        # def add_frame_multid(self, name, image, position, t, z_position, c):

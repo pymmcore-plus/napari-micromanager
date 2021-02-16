@@ -43,7 +43,8 @@ class MMCore(QObject):
 
     __instance = None
 
-    to_viewer = Signal(np.ndarray)
+    # to_viewer = Signal(np.ndarray)
+    stack_to_viewer = Signal(np.ndarray, int)
 
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
     def __new__(cls) -> pymmcore.CMMCore:
@@ -77,19 +78,22 @@ class MMCore(QObject):
         return self._mmc.setProperty
 
 
-    def run_mda_test(self, experiment):
+    # def run_mda_test(self, experiment):
+    def run_mda_test(self, experiment, stack):
+
+        print(f'stack.shape: {stack.shape}')
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
-        # experiment = MultiDExperiment(**self._get_state_dict())
         print(f"running {repr(experiment)}")
 
         if not experiment.channels:
             print("Select at least one channel.")
             return
 
+    
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
@@ -102,6 +106,17 @@ class MMCore(QObject):
             progress.set_description(f"{frame}")
             xpos, ypos, z_midpoint = frame.p
             channel_name, exposure_ms = frame.c
+
+            t_index = experiment.time_deltas.index(frame.t)
+            p_index = experiment.stage_positions.index(frame.p)
+            z_index = experiment.z_positions.index(frame.z)
+            c_index = experiment.channels.index(frame.c)
+
+            print(f'\nframe.t:{frame.t}, t_index:{t_index}')
+            print(f'frame.p:{frame.p}, p_index:{p_index}')
+            print(f'frame.z:{frame.z}, z_index:{z_index}')
+            print(f'frame.c:{frame.c}, c_index:{c_index}\n')
+
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -109,20 +124,16 @@ class MMCore(QObject):
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
+            stack[t_index,z_index,c_index,:,:] = img
+            
+
             # @thread_worker(connect={"yielded": self.to_viewer.emit})
             # def image():
             #     yield img
             # image()
 
-            self.to_viewer.emit(img)
-
-
-            print('_____')
-            print(frame.t)
-            print(frame.c)
-            print(frame.p)
-            print(frame.z)
-            print('_____')
+            # self.to_viewer.emit(img)
+            self.stack_to_viewer.emit(stack, p_index)
 
         summary = """
         ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
