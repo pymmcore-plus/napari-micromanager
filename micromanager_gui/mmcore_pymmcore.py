@@ -76,9 +76,9 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
-    def to_viewer(self, results):
-        stack, cnt, p_index = results
-        self.stack_to_viewer.emit(stack, cnt, p_index)
+    # def to_viewer(self, results):
+    #     stack, cnt, p_index = results
+    #     self.stack_to_viewer.emit(stack, cnt, p_index)
 
     # def run_mda_test(self, experiment):
     def run_mda(self, experiment, stack, cnt):
