@@ -238,17 +238,8 @@ class MainWindow(QtW.QMainWindow):
              if layer_name in str(n):
                 self.viewer.layers.remove(n)
     
-    #multid_widget.py
-    # def add_empty_stack_mda(self, stack, name):
-    #     print('EMPTY STACK SENT...')
-    #     try:
-    #         layer = self.viewer.layers[name]
-    #         layer.data = stack
-    #     except KeyError:
-    #         self.viewer.add_image(stack, name=name)
-
     #mmcore_pymmcore.py
-    def add_stack_mda(self, stack, cnt, xy_pos):
+    def add_stack_mda(self, stack, cnt, xy_pos): # TO DO: add the file name form the save box
         print('STACK SENT...')
         name = f'Exp{cnt}_Pos{xy_pos}'
         try:
