@@ -218,12 +218,13 @@ class MainWindow(QtW.QMainWindow):
         layer_list = []
         for l in self.viewer.layers:
             layer_list.append(l)
-        while len(self.viewer.layers)>0:
-            if name in self.viewer.layers:
+        for i in layer_list:
+            if name in str(i):
                 self.viewer.layers.remove(name)
-                layer_list.clear()
                 break
-    
+        layer_list.clear()
+
+
     def add_frame_explorer(self, name, array):
         layer_name = name
         try:
