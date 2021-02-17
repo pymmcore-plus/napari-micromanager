@@ -127,12 +127,12 @@ class MultiDWidget(QtW.QWidget):
         super().__init__(*args)
         uic.loadUi(UI_FILE, self)
 
-        self.pos_list = []
-        self.pos_stack_list = []
-        self.list_ch = []
-        self.acq_stack_list = []
+        # self.pos_list = []
+        # self.pos_stack_list = []
+        # self.list_ch = []
+        # self.acq_stack_list = []
 
-        self.cnt = 0
+        self.cnt = 0#count every time the "Run button is pressed" - define the experiment number
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -249,9 +249,6 @@ class MultiDWidget(QtW.QWidget):
     #             executor.submit(self.run_multi_d_acq_tpzcxy())
     #     #elif:
 
-    def update_viewer(self):
-        pass
-
     def mda_summary_string(self):
         pass
 
@@ -318,17 +315,17 @@ class MultiDWidget(QtW.QWidget):
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
 
-        self.cnt = self.cnt+1
+        self.cnt = self.cnt+1#count every time the "Run button is pressed" - define the experiment number
 
-        nC = self.channel_tableWidget.rowCount()
-        Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
-        Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
+        nC = self.channel_tableWidget.rowCount()#n of channels
+        Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1#n of timepoints
+        Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1#n of z steps
 
-        stack = self.create_stack_array(Tp, Zp, nC)
+        stack = self.create_stack_array(Tp, Zp, nC)#create empty stack to use in mmcore.run_mda(...) 
         
         experiment = MultiDExperiment(**self._get_state_dict())
 
-        mmcore.run_mda(experiment, stack, self.cnt)
+        mmcore.run_mda(experiment, stack, self.cnt)#run the MDA acquisition experiment
 
 
 
