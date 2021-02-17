@@ -13,6 +13,8 @@ from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QFileDialog
 from tqdm import tqdm
 
+from napari.qt import thread_worker
+
 from .mmcore_pymmcore import MMCore
 
 icon_path = Path(__file__).parent / "icons"
@@ -84,6 +86,7 @@ class MultiDExperiment:
             raise ValueError(f"Duplicate entries found in acquisition order: {order}")
 
         for item in product(*(self._axes_dict[ax] for ax in order)):
+            # print(f'frame: {Frame(**dict(zip(order, item)))}')
             yield Frame(**dict(zip(order, item)))
 
 
@@ -118,6 +121,7 @@ class MultiDWidget(QtW.QWidget):
     acquisition_order_comboBox: QtW.QComboBox
     run_Button: QtW.QPushButton
 
+    # empty_stack_to_viewer = Signal(np.ndarray, str)
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -127,6 +131,8 @@ class MultiDWidget(QtW.QWidget):
         self.pos_stack_list = []
         self.list_ch = []
         self.acq_stack_list = []
+
+        self.cnt = 0
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -301,23 +307,68 @@ class MultiDWidget(QtW.QWidget):
                 xp = float(self.stage_tableWidget.item(row, 0).text())
                 yp = float(self.stage_tableWidget.item(row, 1).text())
                 zp = float(self.stage_tableWidget.item(row, 2).text())
-                state["stage_positions"].append((zp, yp, zp))
+                state["stage_positions"].append((xp, yp, zp))
         else:
             xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
             zp = float(mmcore.getPosition("Z_Stage"))
             state["stage_positions"].append((xp, yp, zp))
-        
-        return state
 
+        return state
 
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
-        experiment = MultiDExperiment(**self._get_state_dict())
-        mmcore.run_mda_test(experiment)
+
+        self.cnt = self.cnt+1
+
+        nC = self.channel_tableWidget.rowCount()
+        Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
+        Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
         
-   
-   
-   
+        XYp = self.stage_tableWidget.rowCount()
+
+        stack = self.create_stack_array(Tp, Zp, nC)
+
+        # if XYp == 0:
+        #     self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos0')
+        #     QtCore.QCoreApplication.processEvents()
+        # else:
+        #     for i in range(XYp):
+        #         self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos{i}')
+        #         QtCore.QCoreApplication.processEvents()
+        
+        
+        experiment = MultiDExperiment(**self._get_state_dict())
+
+        mmcore.run_mda(experiment, stack, self.cnt)
+
+        # @thread_worker(connect={"yielded": mmcore.run_mda})
+        # def _acq():
+        #     print('IN THE _acq THREAD...')
+        #     yield experiment, stack, self.cnt
+        # _acq()
+
+ 
+ 
+
+
+
+    # import concurrent.futures
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         executor.submit(self.create_experiment, stack, self.cnt)
+    #         executor.submit(self.send_empty_stack_to_viewer, stack, self.cnt, XYp)
+            
+    # def send_empty_stack_to_viewer(self, stack, cnt, XYp):
+    #     if XYp == 0:
+    #         self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos0')
+    #     else:
+    #         for i in range(XYp):
+    #             self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos{i}')
+       
+    # def create_experiment(self, stack, cnt):
+    #     time.sleep(0.01)
+    #     experiment = MultiDExperiment(**self._get_state_dict())
+    #     mmcore.run_mda(experiment, stack, cnt)
+        
    
    
    

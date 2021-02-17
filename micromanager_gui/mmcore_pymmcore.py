@@ -5,11 +5,9 @@ from qtpy.QtCore import QObject, Signal
 import numpy as np
 from napari.qt import thread_worker
 
-
 import time
 from tqdm import tqdm
 from textwrap import dedent
-
 
 
 def find_micromanager():
@@ -43,7 +41,7 @@ class MMCore(QObject):
 
     __instance = None
 
-    to_viewer = Signal(np.ndarray)
+    stack_to_viewer = Signal(np.ndarray, int, int)
 
     # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
     def __new__(cls) -> pymmcore.CMMCore:
@@ -76,20 +74,26 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
+    # def to_viewer(self, results):
+    #     print('TO_VIEWER FUNCTION...')
+    #     stack, cnt, p_index = results
+    #     self.stack_to_viewer.emit(stack, cnt, p_index)
 
-    def run_mda_test(self, experiment):
+    def run_mda(self, results):
+
+        experiment, stack, cnt = results
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
-        # experiment = MultiDExperiment(**self._get_state_dict())
+        print('')
         print(f"running {repr(experiment)}")
 
         if not experiment.channels:
             print("Select at least one channel.")
             return
-
+            
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
@@ -102,6 +106,18 @@ class MMCore(QObject):
             progress.set_description(f"{frame}")
             xpos, ypos, z_midpoint = frame.p
             channel_name, exposure_ms = frame.c
+
+            t_index = experiment.time_deltas.index(frame.t)
+            p_index = experiment.stage_positions.index(frame.p)
+            z_index = experiment.z_positions.index(frame.z)
+            c_index = experiment.channels.index(frame.c)
+
+            # print(f'frame.t:{frame.t}, t_index:{t_index}')
+            # print(f'frame.p:{frame.p}, p_index:{p_index}')
+            # print(f'frame.z:{frame.z}, z_index:{z_index}')
+            # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
+
+        
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -109,30 +125,33 @@ class MMCore(QObject):
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
-            # @thread_worker(connect={"yielded": self.to_viewer.emit})
-            # def image():
-            #     yield img
-            # image()
+            stack[t_index,z_index,c_index,:,:] = img
 
-            self.to_viewer.emit(img)
+            self.stack_to_viewer.emit(stack, cnt, p_index)
+            
+            # @thread_worker(connect={"yielded": self.to_viewer})
+            # # @thread_worker(connect={"yielded": self.stack_to_viewer.emit})
+            # def acq_stack():
+            #     print('IN THE THREAD...')
+            #     yield stack, cnt, p_index
+            # acq_stack()
 
 
-            print('_____')
-            print(frame.t)
-            print(frame.c)
-            print(frame.p)
-            print(frame.z)
-            print('_____')
 
-        summary = """
-        ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-        {}
-        Finished in: {} Seconds
-         ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
-        """.format(
-            str(experiment), round(time.perf_counter() - t0, 4)
-        )
-        print(dedent(summary))
+     
+
+
+            
+
+        # summary = """
+        # ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+        # {}
+        # Finished in: {} Seconds
+        #  ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
+        # """.format(
+        #     str(experiment), round(time.perf_counter() - t0, 4)
+        # )
+        # print(dedent(summary))
 
 
 
