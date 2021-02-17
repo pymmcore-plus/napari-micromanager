@@ -74,12 +74,14 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
-    def to_viewer(self, results):
-        print('TO_VIEWER FUNCTION...')
-        stack, cnt, p_index = results
-        self.stack_to_viewer.emit(stack, cnt, p_index)
+    # def to_viewer(self, results):
+    #     print('TO_VIEWER FUNCTION...')
+    #     stack, cnt, p_index = results
+    #     self.stack_to_viewer.emit(stack, cnt, p_index)
 
-    def run_mda(self, experiment, stack, cnt):
+    def run_mda(self, results):
+
+        experiment, stack, cnt = results
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
@@ -125,14 +127,14 @@ class MMCore(QObject):
 
             stack[t_index,z_index,c_index,:,:] = img
 
-            # self.stack_to_viewer.emit(stack, cnt, p_index)
+            self.stack_to_viewer.emit(stack, cnt, p_index)
             
-            @thread_worker(connect={"yielded": self.to_viewer})
-            # @thread_worker(connect={"yielded": self.stack_to_viewer.emit})
-            def acq_stack():
-                print('IN THE THREAD...')
-                yield stack, cnt, p_index
-            acq_stack()
+            # @thread_worker(connect={"yielded": self.to_viewer})
+            # # @thread_worker(connect={"yielded": self.stack_to_viewer.emit})
+            # def acq_stack():
+            #     print('IN THE THREAD...')
+            #     yield stack, cnt, p_index
+            # acq_stack()
 
 
 

@@ -13,6 +13,8 @@ from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QFileDialog
 from tqdm import tqdm
 
+from napari.qt import thread_worker
+
 from .mmcore_pymmcore import MMCore
 
 icon_path = Path(__file__).parent / "icons"
@@ -338,6 +340,16 @@ class MultiDWidget(QtW.QWidget):
         experiment = MultiDExperiment(**self._get_state_dict())
 
         mmcore.run_mda(experiment, stack, self.cnt)
+
+        # @thread_worker(connect={"yielded": mmcore.run_mda})
+        # def _acq():
+        #     print('IN THE _acq THREAD...')
+        #     yield experiment, stack, self.cnt
+        # _acq()
+
+ 
+ 
+
 
 
     # import concurrent.futures
