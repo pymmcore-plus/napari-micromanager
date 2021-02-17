@@ -106,7 +106,7 @@
         <item row="0" column="0">
          <layout class="QGridLayout" name="gridLayout_3">
           <item row="0" column="1">
-           <widget class="QSpinBox" name="scan_size_spinBox">
+           <widget class="QSpinBox" name="scan_size_spinBox_x">
             <property name="enabled">
              <bool>true</bool>
             </property>
@@ -155,18 +155,18 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>90</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
-              <width>90</width>
+              <width>16777215</width>
               <height>16777215</height>
              </size>
             </property>
             <property name="text">
-             <string>x 1 scan area</string>
+             <string>x </string>
             </property>
            </widget>
           </item>
@@ -195,7 +195,7 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="3">
+          <item row="0" column="4">
            <spacer name="horizontalSpacer">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -210,6 +210,50 @@
              </size>
             </property>
            </spacer>
+          </item>
+          <item row="0" column="3">
+           <widget class="QSpinBox" name="scan_size_spinBox_y">
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>60</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+            <property name="buttonSymbols">
+             <enum>QAbstractSpinBox::PlusMinus</enum>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QComboBox" name="scan_channel_comboBox">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>85</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>85</width>
+              <height>16777215</height>
+             </size>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -253,25 +297,6 @@
             </property>
             <property name="text">
              <string>Exposure Time:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="scan_channel_comboBox">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>85</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>85</width>
-              <height>16777215</height>
-             </size>
             </property>
            </widget>
           </item>
