@@ -5,11 +5,9 @@ from qtpy.QtCore import QObject, Signal
 import numpy as np
 from napari.qt import thread_worker
 
-
 import time
 from tqdm import tqdm
 from textwrap import dedent
-
 
 
 def find_micromanager():
@@ -76,17 +74,18 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
-    # def to_viewer(self, results):
-    #     stack, cnt, p_index = results
-    #     self.stack_to_viewer.emit(stack, cnt, p_index)
+    def to_viewer(self, results):
+        print('TO_VIEWER FUNCTION...')
+        stack, cnt, p_index = results
+        self.stack_to_viewer.emit(stack, cnt, p_index)
 
-    # def run_mda_test(self, experiment):
     def run_mda(self, experiment, stack, cnt):
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
+        print('')
         print(f"running {repr(experiment)}")
 
         if not experiment.channels:
@@ -112,7 +111,7 @@ class MMCore(QObject):
             c_index = experiment.channels.index(frame.c)
 
             # print(f'frame.t:{frame.t}, t_index:{t_index}')
-            print(f'frame.p:{frame.p}, p_index:{p_index}')
+            # print(f'frame.p:{frame.p}, p_index:{p_index}')
             # print(f'frame.z:{frame.z}, z_index:{z_index}')
             # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
 
@@ -125,13 +124,22 @@ class MMCore(QObject):
             img = self._mmc.getImage()
 
             stack[t_index,z_index,c_index,:,:] = img
-                
-            # @thread_worker(connect={"yielded": self.to_viewer})
-            # def acq_stack():
-            #     yield stack, cnt, p_index
-            # acq_stack()
 
-            self.stack_to_viewer.emit(stack, cnt, p_index)
+            # self.stack_to_viewer.emit(stack, cnt, p_index)
+            
+            @thread_worker(connect={"yielded": self.to_viewer})
+            # @thread_worker(connect={"yielded": self.stack_to_viewer.emit})
+            def acq_stack():
+                print('IN THE THREAD...')
+                yield stack, cnt, p_index
+            acq_stack()
+
+
+
+     
+
+
+            
 
         # summary = """
         # ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾

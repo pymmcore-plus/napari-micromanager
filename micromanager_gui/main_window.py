@@ -175,12 +175,15 @@ class MainWindow(QtW.QMainWindow):
         self.explorer.send_explorer_info.connect(self.get_explorer_info)
         self.explorer.delete_previous_scan.connect(self.delete_explorer_previous_scan)
 
-        # mmcore.to_viewer.connect(self.add_frame_mda)
+        # self.mda.empty_stack_to_viewer.connect(self.add_empty_stack_mda)
         mmcore.stack_to_viewer.connect(self.add_stack_mda)
+
         #________________________________________________________________________
 
 
     #SIGNAL________________________________________________________________________
+
+    #explor_sample.py
     def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
     
         ##Get coordinates mouse_drag_callbacks
@@ -235,24 +238,25 @@ class MainWindow(QtW.QMainWindow):
              if layer_name in str(n):
                 self.viewer.layers.remove(n)
     
+    #multid_widget.py
+    # def add_empty_stack_mda(self, stack, name):
+    #     print('EMPTY STACK SENT...')
+    #     try:
+    #         layer = self.viewer.layers[name]
+    #         layer.data = stack
+    #     except KeyError:
+    #         self.viewer.add_image(stack, name=name)
+
+    #mmcore_pymmcore.py
     def add_stack_mda(self, stack, cnt, xy_pos):
-        name = f'Exp_{cnt}_Pos_{xy_pos}'
+        print('STACK SENT...')
+        name = f'Exp{cnt}_Pos{xy_pos}'
         try:
             layer = self.viewer.layers[name]
             layer.data = stack
         except KeyError:
             self.viewer.add_image(stack, name=name)
 
-
-       # def add_frame_multid(self, name, image, position, t, z_position, c):
-
-    #     stack = self.mda.pos_stack_list[position]
-    #     stack[t,z_position,c,:,:] = image
-    #     try:
-    #         layer = self.viewer.layers[name]
-    #         layer.data = stack
-    #     except KeyError:
-    #         self.viewer.add_image(stack, name=name)
     #________________________________________________________________________
 
     def get_devices_and_props(self):

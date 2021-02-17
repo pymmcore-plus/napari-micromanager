@@ -119,6 +119,7 @@ class MultiDWidget(QtW.QWidget):
     acquisition_order_comboBox: QtW.QComboBox
     run_Button: QtW.QPushButton
 
+    # empty_stack_to_viewer = Signal(np.ndarray, str)
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -305,15 +306,12 @@ class MultiDWidget(QtW.QWidget):
                 yp = float(self.stage_tableWidget.item(row, 1).text())
                 zp = float(self.stage_tableWidget.item(row, 2).text())
                 state["stage_positions"].append((xp, yp, zp))
-                print(xp,yp,zp)
         else:
             xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
             zp = float(mmcore.getPosition("Z_Stage"))
             state["stage_positions"].append((xp, yp, zp))
-            print(xp,yp,zp)
 
         return state
-
 
     #function is exequted when run_Button is clicked (self.run_Button.clicked.connect(self.run))
     def run(self):
@@ -323,15 +321,42 @@ class MultiDWidget(QtW.QWidget):
         nC = self.channel_tableWidget.rowCount()
         Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
         Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
+        
+        XYp = self.stage_tableWidget.rowCount()
+
         stack = self.create_stack_array(Tp, Zp, nC)
 
+        # if XYp == 0:
+        #     self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos0')
+        #     QtCore.QCoreApplication.processEvents()
+        # else:
+        #     for i in range(XYp):
+        #         self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos{i}')
+        #         QtCore.QCoreApplication.processEvents()
+        
+        
         experiment = MultiDExperiment(**self._get_state_dict())
 
         mmcore.run_mda(experiment, stack, self.cnt)
+
+
+    # import concurrent.futures
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         executor.submit(self.create_experiment, stack, self.cnt)
+    #         executor.submit(self.send_empty_stack_to_viewer, stack, self.cnt, XYp)
+            
+    # def send_empty_stack_to_viewer(self, stack, cnt, XYp):
+    #     if XYp == 0:
+    #         self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos0')
+    #     else:
+    #         for i in range(XYp):
+    #             self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos{i}')
+       
+    # def create_experiment(self, stack, cnt):
+    #     time.sleep(0.01)
+    #     experiment = MultiDExperiment(**self._get_state_dict())
+    #     mmcore.run_mda(experiment, stack, cnt)
         
-   
-   
-   
    
    
    
