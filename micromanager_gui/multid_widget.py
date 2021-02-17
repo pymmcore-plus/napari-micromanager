@@ -323,98 +323,16 @@ class MultiDWidget(QtW.QWidget):
         nC = self.channel_tableWidget.rowCount()
         Tp = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
         Zp = self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
-        
-        XYp = self.stage_tableWidget.rowCount()
 
         stack = self.create_stack_array(Tp, Zp, nC)
-
-        # if XYp == 0:
-        #     self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos0')
-        #     QtCore.QCoreApplication.processEvents()
-        # else:
-        #     for i in range(XYp):
-        #         self.empty_stack_to_viewer.emit(stack, f'Exp{self.cnt}_Pos{i}')
-        #         QtCore.QCoreApplication.processEvents()
-        
         
         experiment = MultiDExperiment(**self._get_state_dict())
 
         mmcore.run_mda(experiment, stack, self.cnt)
 
-        # @thread_worker(connect={"yielded": mmcore.run_mda})
-        # def _acq():
-        #     print('IN THE _acq THREAD...')
-        #     yield experiment, stack, self.cnt
-        # _acq()
-
- 
- 
 
 
 
-    # import concurrent.futures
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         executor.submit(self.create_experiment, stack, self.cnt)
-    #         executor.submit(self.send_empty_stack_to_viewer, stack, self.cnt, XYp)
-            
-    # def send_empty_stack_to_viewer(self, stack, cnt, XYp):
-    #     if XYp == 0:
-    #         self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos0')
-    #     else:
-    #         for i in range(XYp):
-    #             self.empty_stack_to_viewer.emit(stack, f'Exp{cnt}_Pos{i}')
-       
-    # def create_experiment(self, stack, cnt):
-    #     time.sleep(0.01)
-    #     experiment = MultiDExperiment(**self._get_state_dict())
-    #     mmcore.run_mda(experiment, stack, cnt)
-        
-   
-   
-   
-   
-    # this should really be put on the mmcore class as run_multid(experiment)
-    # def run_mda(self):
-        # if len(mmcore.getLoadedDevices()) < 2:
-        #     print("Load a cfg file first.")
-        #     return
-
-        # experiment = MultiDExperiment(**self._get_state_dict())
-        # print(f"running {repr(experiment)}")
-
-        # if not experiment.channels:
-        #     print("Select at least one channel.")
-        #     return
-
-        # t0 = time.perf_counter()  # reference time, in seconds
-        # progress = tqdm(experiment)  # this gives us a progress bar in the console
-        # for frame in progress:
-        #     elapsed = time.perf_counter() - t0
-        #     target = frame.t / 1000
-        #     wait_time = target - elapsed
-        #     if wait_time > 0:
-        #         progress.set_description(f"waiting for {wait_time}")
-        #         time.sleep(wait_time)
-        #     progress.set_description(f"{frame}")
-        #     xpos, ypos, z_midpoint = frame.p
-        #     channel_name, exposure_ms = frame.c
-        #     mmcore.setXYPosition(xpos, ypos)
-        #     mmcore.setPosition("Z_Stage", z_midpoint + frame.z)
-        #     mmcore.setExposure(exposure_ms)
-        #     mmcore.setConfig("Channel", channel_name)
-        #     mmcore.snapImage()
-        #     img = mmcore.getImage()
-        #     # yield img
-
-        # summary = """
-        # ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-        # {}
-        # Finished in: {} Seconds
-        #  ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
-        # """.format(
-        #     str(experiment), round(time.perf_counter() - t0, 4)
-        # )
-        # print(dedent(summary))
 
 
 # import os
