@@ -110,7 +110,7 @@ class ExploreSample(QtW.QWidget):
         #calculate position increments depending on pixle size
         increment_x = self.width * mmcore.getPixelSizeUm()
         increment_y = self.height * mmcore.getPixelSizeUm()
-        print(f'increments: {increment_x},{increment_y}')
+        # print(f'increments: {increment_x},{increment_y}')
 
         #create the xyz position matrix 
         for r in range(self.scan_size):
