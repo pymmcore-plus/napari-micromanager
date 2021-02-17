@@ -75,9 +75,7 @@ class MMCore(QObject):
         return self._mmc.setProperty
 
 
-    def run_mda(self, results):
-
-        experiment, stack, cnt = results
+    def run_mda(self, experiment, stack, cnt):
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
