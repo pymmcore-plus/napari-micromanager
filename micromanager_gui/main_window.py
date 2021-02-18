@@ -215,15 +215,12 @@ class MainWindow(QtW.QMainWindow):
                 pass
 
     def delete_explorer_previous_scan(self, name):
-        layer_list = []
+        layer_set = set()
         for l in self.viewer.layers:
-            layer_list.append(l)
-        for i in layer_list:
-            if name in str(i):
-                self.viewer.layers.remove(name)
-                break
-        layer_list.clear()
-
+            layer_set.add(str(l))
+        if name in layer_set:
+            self.viewer.layers.remove(name)
+        layer_set.clear()
 
     def add_frame_explorer(self, name, array):
         layer_name = name

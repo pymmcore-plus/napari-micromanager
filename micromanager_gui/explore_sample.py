@@ -223,7 +223,7 @@ class ExploreSample(QtW.QWidget):
         for row in range(1,len(self.stitched_image_array_list)):
             st = self.stitched_image_array_list[row]
             stitched_image_final = np.concatenate((stitched_image_final, st), axis = 0)
-        print(f'stitched_image_final.shape = {stitched_image_final.shape}')
+        # print(f'stitched_image_final.shape = {stitched_image_final.shape}')
         self.new_frame.emit(f'stitched_{self.scan_size_r}x{self.scan_size_c}', stitched_image_final)
         self.progressBar.setValue(100)
         self.shape_stitched_x = stitched_image_final.shape[1]
