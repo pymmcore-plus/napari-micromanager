@@ -261,8 +261,8 @@ class ExploreSample(QtW.QWidget):
                     # for row in range(self.scan_size):
                     for row in range(self.scan_size_r):
                         if coord_y <= y_snap:
-                            print(f'coord_x = {coord_x}, coord_y = {coord_y}')
-                            print(f'row = {row}, col = {col}')
+                            # print(f'coord_x = {coord_x}, coord_y = {coord_y}')
+                            # print(f'row = {row}, col = {col}')
                             x_scan_pos = self.array_pos_x[row][col]
                             y_scan_pos = self.array_pos_y[row][col]
                             z_scan_pos = self.array_pos_z[row][col]
