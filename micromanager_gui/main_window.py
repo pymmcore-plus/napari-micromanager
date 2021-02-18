@@ -171,9 +171,9 @@ class MainWindow(QtW.QMainWindow):
         # self.mda.new_frame.connect(self.add_frame_multid)
 
         self.explorer.new_frame.connect(self.add_frame_explorer)
-        self.explorer.delete_snaps.connect(self.delete_snaps)
+        self.explorer.delete_snaps.connect(self.delete_layer)
         self.explorer.send_explorer_info.connect(self.get_explorer_info)
-        self.explorer.delete_previous_scan.connect(self.delete_explorer_previous_scan)
+        self.explorer.delete_previous_scan.connect(self.delete_layer)
 
         # self.mda.empty_stack_to_viewer.connect(self.add_empty_stack_mda)
         mmcore.stack_to_viewer.connect(self.add_stack_mda)
@@ -214,7 +214,15 @@ class MainWindow(QtW.QMainWindow):
             except KeyError:
                 pass
 
-    def delete_explorer_previous_scan(self, name):
+    # def delete_explorer_previous_scan(self, name):
+    #     layer_set = set()
+    #     for l in self.viewer.layers:
+    #         layer_set.add(str(l))
+    #     if name in layer_set:
+    #         self.viewer.layers.remove(name)
+    #     layer_set.clear()
+    
+    def delete_layer(self, name):
         layer_set = set()
         for l in self.viewer.layers:
             layer_set.add(str(l))
@@ -230,11 +238,15 @@ class MainWindow(QtW.QMainWindow):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
-    def delete_snaps(self, name):
-        layer_name = name
-        for n in self.viewer.layers:
-             if layer_name in str(n):
-                self.viewer.layers.remove(n)
+    # def delete_snaps(self, name):
+    #     layer_set = set()
+    #     for l in self.viewer.layers:
+    #         layer_set.add(str(l))
+    #     if name in layer_set:
+    #         self.viewer.layers.remove(name)
+    #     layer_set.clear()
+        
+        
     
     #mmcore_pymmcore.py
     def add_stack_mda(self, stack, cnt, xy_pos): # TO DO: add the file name form the save box
