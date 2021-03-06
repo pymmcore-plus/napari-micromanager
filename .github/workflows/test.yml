@@ -42,7 +42,7 @@ jobs:
 
       - name: Install Micro-Manager
         if: runner.os == 'Windows'
-        run: install_mm.ps1
+        run: .\install_mm.ps1
 
       - name: Install Micro-Manager
         if: runner.os == 'macOS'
