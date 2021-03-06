@@ -1,13 +1,12 @@
 import sys
+import time
 from pathlib import Path
+from textwrap import dedent
+
+import numpy as np
 import pymmcore
 from qtpy.QtCore import QObject, Signal
-import numpy as np
-from napari.qt import thread_worker
-
-import time
 from tqdm import tqdm
-from textwrap import dedent
 
 
 def find_micromanager():
@@ -25,7 +24,8 @@ def find_micromanager():
         )
     except StopIteration:
         print("could not find micromanager directory")
- 
+
+
 class MMCore(QObject):
     properties_changed = Signal()
     property_changed = Signal(str, str, object)
@@ -57,7 +57,7 @@ class MMCore(QObject):
         self._mmc = pymmcore.CMMCore()
         if not adapter_paths:
             adapter_paths = [find_micromanager()]
-            print(f'Micromanager path: {adapter_paths}')
+            print(f"Micromanager path: {adapter_paths}")
         self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
@@ -74,20 +74,19 @@ class MMCore(QObject):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
 
-
     def run_mda(self, experiment, stack, cnt):
 
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
-        print('')
+        print("")
         print(f"running {repr(experiment)}")
 
         if not experiment.channels:
             print("Select at least one channel.")
             return
-            
+
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
@@ -111,7 +110,6 @@ class MMCore(QObject):
             # print(f'frame.z:{frame.z}, z_index:{z_index}')
             # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
 
-        
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -119,10 +117,9 @@ class MMCore(QObject):
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
-            stack[t_index,z_index,c_index,:,:] = img
+            stack[t_index, z_index, c_index, :, :] = img
 
             self.stack_to_viewer.emit(stack, cnt, p_index)
-                
 
         summary = """
         ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
@@ -133,7 +130,6 @@ class MMCore(QObject):
             str(experiment), round(time.perf_counter() - t0, 4)
         )
         print(dedent(summary))
-
 
 
 class CallbackRelay(pymmcore.MMEventCallback):
@@ -173,5 +169,3 @@ class CallbackRelay(pymmcore.MMEventCallback):
 
     def onSLMExposureChanged(self, name: str, new_exposure: float):
         self._emitter.slm_exposure_changed.emit(name, new_exposure)
-        
-
