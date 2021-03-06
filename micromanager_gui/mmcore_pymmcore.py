@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from pathlib import Path
@@ -10,6 +11,9 @@ from tqdm import tqdm
 
 
 def find_micromanager():
+    env_path = os.getenv("MICROMANAGER_PATH")
+    if env_path and os.path.isdir(env_path):
+        return env_path
     try:
         if sys.platform == "darwin":
             mm_path = str(next(Path("/Applications/").glob("Micro-Manager*")))

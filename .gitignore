@@ -141,3 +141,4 @@ cython_debug/
 .DS_Store
 
 micromanager_gui/_version.py
+mm/*
