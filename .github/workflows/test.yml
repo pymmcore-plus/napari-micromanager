@@ -38,12 +38,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools tox tox-gh-actions
+          pip install .
           sh install_mm.sh
 
       # this runs the platform-specific tests declared in tox.ini
-      - name: Test with tox
-        run: tox
+      - name: Test
+        run: pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
         env:
           PLATFORM: ${{ matrix.platform }}
           MICROMANAGER_PATH: mm/Micro-Manager
