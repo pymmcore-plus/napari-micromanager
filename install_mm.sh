@@ -11,3 +11,4 @@ hdiutil detach /Volumes/Micro-Manager
 sudo xattr -r -d com.apple.quarantine mm
 mv mm/Micro-Manager-2.0.0-gamma1-*/ImageJ.app ~
 mv ~/ImageJ.app mm/Micro-Manager-2.0.0-gamma1-*
+mv mm/Micro-Manager-2.0.0-gamma1-* mm/Micro-Manager

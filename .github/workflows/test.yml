@@ -40,13 +40,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools tox tox-gh-actions
           sh install_mm.sh
-          echo "MICROMANAGER_PATH=(mm/Micro-Manager-2.0.0-gamma1-*)" >> $GITHUB_ENV
 
       # this runs the platform-specific tests declared in tox.ini
       - name: Test with tox
         run: tox
         env:
           PLATFORM: ${{ matrix.platform }}
+          MICROMANAGER_PATH: mm/Micro-Manager
 
       - name: Coverage
         uses: codecov/codecov-action@v1
