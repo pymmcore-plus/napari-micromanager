@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
-from napari.qt import thread_worker
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets as QtW
 from PyQt5.QtGui import QIcon
@@ -13,6 +13,9 @@ from .explore_sample import ExploreSample
 from .mmcore_pymmcore import MMCore
 from .multid_widget import MultiDWidget
 from .optocamp_widget import OptocampWidget
+
+if TYPE_CHECKING:
+    import napari
 
 # dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent / "icons"
@@ -70,7 +73,7 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
-    def __init__(self, viewer):
+    def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
 
         self.viewer = viewer
@@ -523,6 +526,8 @@ class MainWindow(QtW.QMainWindow):
             pass
 
     def start_live(self):
+        from napari.qt import thread_worker
+
         @thread_worker(connect={"yielded": self.update_viewer})
         def live_mode():
             import time
