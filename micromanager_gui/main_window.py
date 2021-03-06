@@ -1,18 +1,18 @@
 import os
-from PyQt5 import QtWidgets as QtW
-from qtpy import uic
 from pathlib import Path
-from qtpy.QtWidgets import QFileDialog, QGridLayout
-from PyQt5.QtGui import QIcon
-from PyQt5 import QtCore
+
 import numpy as np
 from napari.qt import thread_worker
+from PyQt5 import QtCore
+from PyQt5 import QtWidgets as QtW
+from PyQt5.QtGui import QIcon
+from qtpy import uic
+from qtpy.QtWidgets import QFileDialog, QGridLayout
 
+from .explore_sample import ExploreSample
 from .mmcore_pymmcore import MMCore
 from .multid_widget import MultiDWidget
-from .explore_sample import ExploreSample
 from .optocamp_widget import OptocampWidget
-
 
 # dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent / "icons"
@@ -83,38 +83,38 @@ class MainWindow(QtW.QMainWindow):
         )  # fill cfg line with DEFAULT_CFG_NAME ('demo.cfg')
 
         self.obj_mag = []
-        self.is_true = False# self.get_explorer_info()
+        self.is_true = False  # self.get_explorer_info()
         self.magnification = None
 
-        #________________________________________________________________________
-        #create MultiDWidget() and OptocampWidget() widgets
+        # ________________________________________________________________________
+        # create MultiDWidget() and OptocampWidget() widgets
         self.mda = MultiDWidget()
-        self.explorer = ExploreSample()###
+        self.explorer = ExploreSample()
         self.optocamp = OptocampWidget()
-        
-        #create QWidget() to be added to the main tabWidget
-        self.multid_tab =  QtW.QWidget()
-        self.explorer_tab =  QtW.QWidget()#####
-        self.optocamp_tab =  QtW.QWidget()
 
-        #add tabs
-        self.tabWidget.addTab(self.multid_tab,"Multi-D Acquisition")
-        self.tabWidget.addTab(self.explorer_tab,"Sample Explorer")#####
-        self.tabWidget.addTab(self.optocamp_tab,"OptoCaMP")
+        # create QWidget() to be added to the main tabWidget
+        self.multid_tab = QtW.QWidget()
+        self.explorer_tab = QtW.QWidget()
+        self.optocamp_tab = QtW.QWidget()
 
-        #create tabs layout and add the widgets
+        # add tabs
+        self.tabWidget.addTab(self.multid_tab, "Multi-D Acquisition")
+        self.tabWidget.addTab(self.explorer_tab, "Sample Explorer")
+        self.tabWidget.addTab(self.optocamp_tab, "OptoCaMP")
+
+        # create tabs layout and add the widgets
         self.multid_tab.layout = QGridLayout()
         self.multid_tab.layout.addWidget(self.mda)
         self.multid_tab.setLayout(self.multid_tab.layout)
 
-        self.explorer_tab.layout = QGridLayout()#####
-        self.explorer_tab.layout.addWidget(self.explorer)#####
-        self.explorer_tab.setLayout(self.explorer_tab.layout)#####
+        self.explorer_tab.layout = QGridLayout()
+        self.explorer_tab.layout.addWidget(self.explorer)
+        self.explorer_tab.setLayout(self.explorer_tab.layout)
 
         self.optocamp_tab.layout = QGridLayout()
         self.optocamp_tab.layout.addWidget(self.optocamp)
         self.optocamp_tab.setLayout(self.optocamp_tab.layout)
-        #________________________________________________________________________
+        # ________________________________________________________________________
 
         # connect buttons
         self.load_cgf_Button.clicked.connect(self.load_cfg)
@@ -163,11 +163,11 @@ class MainWindow(QtW.QMainWindow):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
-        #connect callback
+        # connect callback
         mmcore.xy_stage_position_changed.connect(self.update_stage_position_xy)
         mmcore.stage_position_changed.connect(self.update_stage_position_z)
 
-        #connect the Signal________________________________________________________________________
+        # connect the Signal____________________________________________________________
         # self.mda.new_frame.connect(self.add_frame_multid)
 
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -178,21 +178,20 @@ class MainWindow(QtW.QMainWindow):
         # self.mda.empty_stack_to_viewer.connect(self.add_empty_stack_mda)
         mmcore.stack_to_viewer.connect(self.add_stack_mda)
 
-        #________________________________________________________________________
+        # ________________________________________________________________________
 
+    # SIGNAL________________________________________________________________________
 
-    #SIGNAL________________________________________________________________________
-
-    #explor_sample.py
+    # explor_sample.py
     def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
-    
-        ##Get coordinates mouse_drag_callbacks
-        @self.viewer.mouse_drag_callbacks.append    #is it possible to double click?
+
+        # Get coordinates mouse_drag_callbacks
+        @self.viewer.mouse_drag_callbacks.append  # is it possible to double click?
         def get_event_add(viewer, event):
             try:
                 for i in self.viewer.layers:
                     selected_layer = self.viewer.layers.selected
-                    if 'stitched_' in str(i) and 'stitched_' in str(selected_layer):
+                    if "stitched_" in str(i) and "stitched_" in str(selected_layer):
                         layer = self.viewer.layers[str(i)]
                         coord = layer.coordinates
                         # self.is_true = True
@@ -206,18 +205,18 @@ class MainWindow(QtW.QMainWindow):
                                 break
 
                             else:
-                                self.explorer.x_lineEdit.setText('None')
-                                self.explorer.y_lineEdit.setText('None')
+                                self.explorer.x_lineEdit.setText("None")
+                                self.explorer.y_lineEdit.setText("None")
                         else:
-                            self.explorer.x_lineEdit.setText('None')
-                            self.explorer.y_lineEdit.setText('None')
+                            self.explorer.x_lineEdit.setText("None")
+                            self.explorer.y_lineEdit.setText("None")
             except KeyError:
                 pass
 
     def delete_layer(self, name):
         layer_set = set()
-        for l in self.viewer.layers:
-            layer_set.add(str(l))
+        for layer in self.viewer.layers:
+            layer_set.add(str(layer))
         if name in layer_set:
             self.viewer.layers.remove(name)
         layer_set.clear()
@@ -229,21 +228,23 @@ class MainWindow(QtW.QMainWindow):
             layer.data = array
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
-    
-    #mmcore_pymmcore.py
-    def add_stack_mda(self, stack, cnt, xy_pos): # TO DO: add the file name form the save box
-        print('STACK SENT...')
-        name = f'Exp{cnt}_Pos{xy_pos}'
+
+    # mmcore_pymmcore.py
+    def add_stack_mda(
+        self, stack, cnt, xy_pos
+    ):  # TO DO: add the file name form the save box
+        print("STACK SENT...")
+        name = f"Exp{cnt}_Pos{xy_pos}"
         try:
             layer = self.viewer.layers[name]
             layer.data = stack
         except KeyError:
             self.viewer.add_image(stack, name=name)
 
-    #________________________________________________________________________
+    # ________________________________________________________________________
 
     def get_devices_and_props(self):
-        ##List devices and properties that you can set
+        # List devices and properties that you can set
         devices = mmcore.getLoadedDevices()
         print("\nDevice status:__________________________")
         for i in range(len(devices)):
@@ -253,7 +254,7 @@ class MainWindow(QtW.QMainWindow):
                 prop = properties[p]
                 values = mmcore.getAllowedPropertyValues(device, prop)
                 print(
-                    f"Device: {str(device)}  Property: {str(prop)}  Value: {str(values)}"
+                    f"Device: {str(device)}  Property: {str(prop)} Value: {str(values)}"
                 )
         print("________________________________________")
 
@@ -264,9 +265,8 @@ class MainWindow(QtW.QMainWindow):
             for configName in mmcore.getAvailableConfigs(groupName):
                 group.append(configName)
                 print(f"Config_Name: {str(configName)}")
-                print(
-                    f"Properties: {str(mmcore.getConfigData(groupName, configName).getVerbose())}"
-                )
+                props = str(mmcore.getConfigData(groupName, configName).getVerbose())
+                print(f"Properties: {props}")
             print("*********")
 
     def browse_cfg(self):
@@ -333,13 +333,13 @@ class MainWindow(QtW.QMainWindow):
         # Get Objective Options
         if "Objective" in mmcore.getLoadedDevices():
             mmcore.setPosition("Z_Stage", 0)
-            obj_opts = mmcore.getStateLabels("Objective")    
+            obj_opts = mmcore.getStateLabels("Objective")
 
             self.objective_comboBox.addItems(obj_opts)
             self.objective_comboBox.setCurrentText(obj_opts[5])
 
-            #obj_curr_pos = mmcore.getState("Objective")
-            #print(f'Objective Nosepiece Position: {obj_curr_pos}')
+            # obj_curr_pos = mmcore.getState("Objective")
+            # print(f'Objective Nosepiece Position: {obj_curr_pos}')
 
         # Get Channel List
         if "Channel" in mmcore.getAvailableConfigGroups():
@@ -362,9 +362,8 @@ class MainWindow(QtW.QMainWindow):
             mmcore.setProperty(
                 self.cam_device, "PixelType", self.bit_comboBox.currentText()
             )
-            print(
-                f'PixelType: {mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")}'
-            )
+            pixel_type = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
+            print(f"PixelType: {pixel_type}")
 
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
@@ -377,19 +376,19 @@ class MainWindow(QtW.QMainWindow):
         x = int(mmcore.getXPosition())
         y = int(mmcore.getYPosition())
         z = int(mmcore.getPosition("Z_Stage"))
-        self.x_lineEdit.setText(str('%.0f'%x))
-        self.y_lineEdit.setText(str('%.0f'%y))
-        self.z_lineEdit.setText(str('%.1f'%z))
-        #print(f'XY Stage moved to x:{x} y:{y} (z:{z})')
+        self.x_lineEdit.setText(str("%.0f" % x))
+        self.y_lineEdit.setText(str("%.0f" % y))
+        self.z_lineEdit.setText(str("%.1f" % z))
+        # print(f'XY Stage moved to x:{x} y:{y} (z:{z})')
 
     def update_stage_position_z(self):
         x = int(mmcore.getXPosition())
         y = int(mmcore.getYPosition())
         z = int(mmcore.getPosition("Z_Stage"))
-        self.x_lineEdit.setText(str('%.0f'%x))
-        self.y_lineEdit.setText(str('%.0f'%y))
-        self.z_lineEdit.setText(str('%.1f'%z))
-        #print(f'Z Stage moved to z:{z} (x:{x} y:{y})')
+        self.x_lineEdit.setText(str("%.0f" % x))
+        self.y_lineEdit.setText(str("%.0f" % y))
+        self.z_lineEdit.setText(str("%.1f" % z))
+        # print(f'Z Stage moved to z:{z} (x:{x} y:{y})')
 
     def stage_x_left(self):
         xpos = mmcore.getXPosition()
@@ -397,7 +396,7 @@ class MainWindow(QtW.QMainWindow):
         val = int(self.xy_step_size_SpinBox.value())
         mmcore.setXYPosition((xpos + (-val)), ypos)
         x_new = int(mmcore.getXPosition())
-        self.x_lineEdit.setText((str("%.0f" % x_new)))
+        self.x_lineEdit.setText(str("%.0f" % x_new))
         mmcore.waitForDevice("XY_Stage")
 
     def stage_x_right(self):
@@ -406,7 +405,7 @@ class MainWindow(QtW.QMainWindow):
         val = int(self.xy_step_size_SpinBox.value())
         mmcore.setXYPosition((xpos + val), ypos)
         x_new = int(mmcore.getXPosition())
-        self.x_lineEdit.setText((str("%.0f" % x_new)))
+        self.x_lineEdit.setText(str("%.0f" % x_new))
         mmcore.waitForDevice("XY_Stage")
 
     def stage_y_up(self):
@@ -415,7 +414,7 @@ class MainWindow(QtW.QMainWindow):
         val = int(self.xy_step_size_SpinBox.value())
         mmcore.setXYPosition(xpos, (ypos + val))
         y_new = int(mmcore.getYPosition())
-        self.y_lineEdit.setText((str("%.0f" % y_new)))
+        self.y_lineEdit.setText(str("%.0f" % y_new))
         mmcore.waitForDevice("XY_Stage")
 
     def stage_y_down(self):
@@ -424,7 +423,7 @@ class MainWindow(QtW.QMainWindow):
         val = int(self.xy_step_size_SpinBox.value())
         mmcore.setXYPosition(xpos, (ypos + (-val)))
         y_new = int(mmcore.getYPosition())
-        self.y_lineEdit.setText((str("%.0f" % y_new)))
+        self.y_lineEdit.setText(str("%.0f" % y_new))
         mmcore.waitForDevice("XY_Stage")
 
     def stage_z_up(self):
@@ -432,7 +431,7 @@ class MainWindow(QtW.QMainWindow):
         z_val = float(self.z_step_size_doubleSpinBox.value())
         mmcore.setPosition("Z_Stage", zpos + z_val)
         z_new = float(mmcore.getPosition("Z_Stage"))
-        self.z_lineEdit.setText((str("%.1f" % z_new)))
+        self.z_lineEdit.setText(str("%.1f" % z_new))
         mmcore.waitForDevice("Z_Stage")
 
     def stage_z_down(self):
@@ -440,18 +439,20 @@ class MainWindow(QtW.QMainWindow):
         z_val = float(self.z_step_size_doubleSpinBox.value())
         mmcore.setPosition("Z_Stage", zpos + (-z_val))
         z_new = float(mmcore.getPosition("Z_Stage"))
-        self.z_lineEdit.setText((str("%.1f" % z_new)))
+        self.z_lineEdit.setText(str("%.1f" % z_new))
         mmcore.waitForDevice("Z_Stage")
 
     def change_objective(self):
         if self.objective_comboBox.count() > 0:
-            print('\nchanging objective...')
+            print("\nchanging objective...")
             currentZ = mmcore.getPosition("Z_Stage")
             print(f"currentZ: {currentZ}")
-            mmcore.setPosition("Z_Stage", 0)#set low z position
+            mmcore.setPosition("Z_Stage", 0)  # set low z position
             mmcore.waitForDevice("Z_Stage")
             print(self.objective_comboBox.currentText())
-            mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
+            mmcore.setProperty(
+                "Objective", "Label", self.objective_comboBox.currentText()
+            )
             mmcore.waitForDevice("Objective")
             print(f"downpos: {mmcore.getPosition('Z_Stage')}")
             mmcore.setPosition("Z_Stage", currentZ)
@@ -459,31 +460,38 @@ class MainWindow(QtW.QMainWindow):
             print(f"upagain: {mmcore.getPosition('Z_Stage')}")
             print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
 
-            #define and set pixel size Config 
+            # define and set pixel size Config
             mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
-            curr_obj_name = mmcore.getProperty('Objective', 'Label')
+            curr_obj_name = mmcore.getProperty("Objective", "Label")
             mmcore.definePixelSizeConfig(curr_obj_name)
             mmcore.setPixelSizeConfig(curr_obj_name)
-            print(f'Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}')
+            print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
 
-            #get magnification info from the objective
-            for l in range(len(curr_obj_name)):
-                character = curr_obj_name[l]
-                if character == 'X' or character == 'x':
-                    if l <= 3:
-                        magnification_string = curr_obj_name[:l]
+            # get magnification info from the objective
+            for i in range(len(curr_obj_name)):
+                character = curr_obj_name[i]
+                if character == "X" or character == "x":
+                    if i <= 3:
+                        magnification_string = curr_obj_name[:i]
                         self.magnification = int(magnification_string)
-                        print(f'Current Magnification: {self.magnification}X')
+                        print(f"Current Magnification: {self.magnification}X")
                     else:
                         self.magnification = None
-                        print(f'MAGNIFICATION NOT SET, STORE OBJECTIVES NAME STARTING WITH e.g. 100X or 100x.')
-            
-            #get and set image pixel sixe (x,y) for the current pixel size Config
-            if not self.magnification == None:
-                self.image_pixel_size = self.px_size_doubleSpinBox.value()/self.magnification
-                # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')  
-                mmcore.setPixelSizeUm(mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size)
-                print(f'Current Pixel Size in µm: {mmcore.getPixelSizeUm()}')
+                        print(
+                            "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                            "STARTING WITH e.g. 100X or 100x."
+                        )
+
+            # get and set image pixel sixe (x,y) for the current pixel size Config
+            if self.magnification is not None:
+                self.image_pixel_size = (
+                    self.px_size_doubleSpinBox.value() / self.magnification
+                )
+                # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
+                mmcore.setPixelSizeUm(
+                    mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size
+                )
+                print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm()}")
 
     def update_viewer(self, data):
         try:
@@ -549,8 +557,9 @@ class MainWindow(QtW.QMainWindow):
             self.live_Button.setIconSize(QtCore.QSize(40, 40))
 
     def toggle_live(self, event=None):
-        # same as writing: self.stop_live() if self.worker is not None else self.start_live()
-        if self.worker == None:
+        # same as writing:
+        # self.stop_live() if self.worker is not None else self.start_live()
+        if self.worker is None:
             self.start_live()
             self.live_Button.setIcon(QIcon(str(icon_path / "cam_stop.svg")))
             self.live_Button.setIconSize(QtCore.QSize(40, 40))
