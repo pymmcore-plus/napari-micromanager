@@ -3,7 +3,7 @@ mkdir mm
 #D=$(date -j -v-1d "+%Y%m%d")
 D=20201215  # known to work
 URL="https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Mac/Micro-Manager-2.0.0-gamma1-$D.dmg"
-curl $URL -o mm/mm.dmg
+curl -k $URL -o mm/mm.dmg
 hdiutil attach mm/mm.dmg
 cp -r /Volumes/Micro-Manager/Micro-Manager-* mm
 rm mm/mm.dmg
