@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,10 +19,7 @@ if TYPE_CHECKING:
 icon_path = Path(__file__).parent / "icons"
 
 UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
-DEFAULT_CFG_FILE = str(
-    (Path(__file__).parent / "demo_config.cfg").absolute()
-)  # look for the 'demo_config.cfg' in the parent folder
-DEFAULT_CFG_NAME = "demo.cfg"
+
 
 mmcore = MMCore()
 
@@ -79,9 +75,7 @@ class MainWindow(QtW.QMainWindow):
 
         uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
 
-        self.cfg_LineEdit.setText(
-            DEFAULT_CFG_NAME
-        )  # fill cfg line with DEFAULT_CFG_NAME ('demo.cfg')
+        self.cfg_LineEdit.setText("demo")
 
         self.obj_mag = []
         self.is_true = False  # self.get_explorer_info()
@@ -274,9 +268,7 @@ class MainWindow(QtW.QMainWindow):
         self.snap_channel_comboBox.clear()
 
         file_dir = QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
-        self.new_cfg_file = file_dir[0]
-        cfg_name = os.path.basename(str(self.new_cfg_file))
-        self.cfg_LineEdit.setText(str(cfg_name))
+        self.cfg_LineEdit.setText(str(file_dir[0]))
         self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
@@ -289,18 +281,7 @@ class MainWindow(QtW.QMainWindow):
         self.setEnabled(True)
 
         self.load_cgf_Button.setEnabled(False)
-
-        cfg_file = self.cfg_LineEdit.text()
-        if cfg_file == DEFAULT_CFG_NAME:
-            self.new_cfg_file = DEFAULT_CFG_FILE
-
-        try:
-            mmcore.loadSystemConfiguration(
-                self.new_cfg_file
-            )  # load the configuration file
-            print(f"Loaded Devicies: {mmcore.getLoadedDevices()}")
-        except KeyError:
-            print("Select a valid .cfg file.")
+        mmcore.loadSystemConfiguration(self.cfg_LineEdit.text())
 
         self.get_devices_and_props()
         self.get_groups_list()
