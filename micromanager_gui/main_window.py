@@ -188,8 +188,6 @@ class MainWindow(QtW.QMainWindow):
                     if "stitched_" in str(i) and "stitched_" in str(selected_layer):
                         layer = self.viewer.layers[str(i)]
                         coord = layer.coordinates
-                        # self.is_true = True
-                        # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
                         coord_x = coord[1]
                         coord_y = coord[0]
                         if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
@@ -227,7 +225,6 @@ class MainWindow(QtW.QMainWindow):
     def add_stack_mda(
         self, stack, cnt, xy_pos
     ):  # TO DO: add the file name form the save box
-        print("STACK SENT...")
         name = f"Exp{cnt}_Pos{xy_pos}"
         try:
             layer = self.viewer.layers[name]
@@ -265,7 +262,6 @@ class MainWindow(QtW.QMainWindow):
 
     def browse_cfg(self):
         mmcore.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devicies: {mmcore.getLoadedDevices()}")
 
         # clear spinbox/combobox
         self.objective_comboBox.clear()
@@ -298,7 +294,6 @@ class MainWindow(QtW.QMainWindow):
             mmcore.loadSystemConfiguration(
                 self.new_cfg_file
             )  # load the configuration file
-            print(f"Loaded Devicies: {mmcore.getLoadedDevices()}")
         except KeyError:
             print("Select a valid .cfg file.")
 
@@ -308,7 +303,6 @@ class MainWindow(QtW.QMainWindow):
         # Get Camera Options
         self.cam_device = mmcore.getCameraDevice()
         cam_props = mmcore.getDevicePropertyNames(self.cam_device)
-        #        print(cam_props)
         if "Binning" in cam_props:
             bin_opts = mmcore.getAllowedPropertyValues(self.cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
@@ -332,9 +326,6 @@ class MainWindow(QtW.QMainWindow):
             self.objective_comboBox.addItems(obj_opts)
             self.objective_comboBox.setCurrentText(obj_opts[5])
 
-            # obj_curr_pos = mmcore.getState("Objective")
-            # print(f'Objective Nosepiece Position: {obj_curr_pos}')
-
         # Get Channel List
         if "Channel" in mmcore.getAvailableConfigGroups():
             channel_list = list(mmcore.getAvailableConfigs("Channel"))
@@ -356,15 +347,12 @@ class MainWindow(QtW.QMainWindow):
             mmcore.setProperty(
                 self.cam_device, "PixelType", self.bit_comboBox.currentText()
             )
-            pixel_type = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
-            print(f"PixelType: {pixel_type}")
 
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
             mmcore.setProperty(
                 self.cam_device, "Binning", self.bin_comboBox.currentText()
             )
-            print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
 
     def update_stage_position_xy(self):
         x = int(mmcore.getXPosition())
@@ -373,7 +361,6 @@ class MainWindow(QtW.QMainWindow):
         self.x_lineEdit.setText(str("%.0f" % x))
         self.y_lineEdit.setText(str("%.0f" % y))
         self.z_lineEdit.setText(str("%.1f" % z))
-        # print(f'XY Stage moved to x:{x} y:{y} (z:{z})')
 
     def update_stage_position_z(self):
         x = int(mmcore.getXPosition())
@@ -382,7 +369,6 @@ class MainWindow(QtW.QMainWindow):
         self.x_lineEdit.setText(str("%.0f" % x))
         self.y_lineEdit.setText(str("%.0f" % y))
         self.z_lineEdit.setText(str("%.1f" % z))
-        # print(f'Z Stage moved to z:{z} (x:{x} y:{y})')
 
     def stage_x_left(self):
         xpos = mmcore.getXPosition()
@@ -438,28 +424,21 @@ class MainWindow(QtW.QMainWindow):
 
     def change_objective(self):
         if self.objective_comboBox.count() > 0:
-            print("\nchanging objective...")
             currentZ = mmcore.getPosition("Z_Stage")
-            print(f"currentZ: {currentZ}")
             mmcore.setPosition("Z_Stage", 0)  # set low z position
             mmcore.waitForDevice("Z_Stage")
-            print(self.objective_comboBox.currentText())
             mmcore.setProperty(
                 "Objective", "Label", self.objective_comboBox.currentText()
             )
             mmcore.waitForDevice("Objective")
-            print(f"downpos: {mmcore.getPosition('Z_Stage')}")
             mmcore.setPosition("Z_Stage", currentZ)
             mmcore.waitForDevice("Z_Stage")
-            print(f"upagain: {mmcore.getPosition('Z_Stage')}")
-            print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
 
             # define and set pixel size Config
             mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
             curr_obj_name = mmcore.getProperty("Objective", "Label")
             mmcore.definePixelSizeConfig(curr_obj_name)
             mmcore.setPixelSizeConfig(curr_obj_name)
-            print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
 
             # get magnification info from the objective
             for i in range(len(curr_obj_name)):
@@ -468,24 +447,17 @@ class MainWindow(QtW.QMainWindow):
                     if i <= 3:
                         magnification_string = curr_obj_name[:i]
                         self.magnification = int(magnification_string)
-                        print(f"Current Magnification: {self.magnification}X")
                     else:
                         self.magnification = None
-                        print(
-                            "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                            "STARTING WITH e.g. 100X or 100x."
-                        )
 
             # get and set image pixel sixe (x,y) for the current pixel size Config
             if self.magnification is not None:
                 self.image_pixel_size = (
                     self.px_size_doubleSpinBox.value() / self.magnification
                 )
-                # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
                 mmcore.setPixelSizeUm(
                     mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size
                 )
-                print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm()}")
 
     def update_viewer(self, data):
         try:
@@ -502,11 +474,6 @@ class MainWindow(QtW.QMainWindow):
         # mmcore.waitForDevice('')
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
-
-        # binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
-        # print(f'Binning: {binning}')
-        # bit = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
-        # print(f'Bit Depth: {bit}')
 
         try:  # display max and min gray values
             min_v = np.min(self.viewer.layers["preview"].data)

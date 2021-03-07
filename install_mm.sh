@@ -1,9 +1,10 @@
 #!/bin/bash
 mkdir mm
 #D=$(date -j -v-1d "+%Y%m%d")
-D=20201215  # known to work
+D=20201220  # known to work
 URL="https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Mac/Micro-Manager-2.0.0-gamma1-$D.dmg"
 curl -k $URL -o mm/mm.dmg
+# wget --no-check-certificate $URL -o mm/mm.dmg -q --show-progress
 hdiutil attach mm/mm.dmg
 cp -r /Volumes/Micro-Manager/Micro-Manager-* mm
 rm mm/mm.dmg

@@ -1,6 +1,8 @@
+import logging
 import os
 import sys
 import time
+import warnings
 from pathlib import Path
 from textwrap import dedent
 
@@ -8,6 +10,45 @@ import numpy as np
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
+
+try:
+    from functools import wraps
+
+    from IPython import get_ipython
+    from IPython.core.interactiveshell import InteractiveShell
+
+    if not get_ipython():
+        raise ImportError()
+
+    def change_function(func):
+        @wraps(func)
+        def showtraceback(*args, **kwargs):
+            # extract exception type, value and traceback
+            etype, evalue, tb = sys.exc_info()
+            if isinstance(evalue, RuntimeError) and evalue.args:
+                obj = evalue.args[0]
+                if isinstance(obj, pymmcore.CMMError):
+                    evalue = RuntimeError(obj.getMsg())
+                return func(*args, exc_tuple=(etype, evalue, tb), **kwargs)
+            # otherwise run the original hook
+            return func(*args, **kwargs)
+
+        return showtraceback
+
+    InteractiveShell.showtraceback = change_function(InteractiveShell.showtraceback)
+except ImportError:
+    ehook = sys.excepthook
+
+    def swig_hook(typ, value, tb):
+        if isinstance(value, RuntimeError) and value.args:
+            obj = value.args[0]
+            if isinstance(obj, pymmcore.CMMError):
+                value = RuntimeError(obj.getMsg())
+        ehook(typ, value, tb)
+
+    sys.excepthook = swig_hook
 
 
 def find_micromanager():
@@ -27,7 +68,7 @@ def find_micromanager():
             f"MM autodiscovery not implemented for platform: {sys.platform}"
         )
     except StopIteration:
-        print("could not find micromanager directory")
+        return None
 
 
 class MMCore(QObject):
@@ -60,9 +101,11 @@ class MMCore(QObject):
         super().__init__()
         self._mmc = pymmcore.CMMCore()
         if not adapter_paths:
-            adapter_paths = [find_micromanager()]
-            print(f"Micromanager path: {adapter_paths}")
-        self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
+            adapter_paths = find_micromanager()
+        if adapter_paths:
+            self._mmc.setDeviceAdapterSearchPaths([adapter_paths])
+        else:
+            warnings.warn("No adaptor path found! set MICROMANAGER_PATH env var")
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
@@ -81,14 +124,11 @@ class MMCore(QObject):
     def run_mda(self, experiment, stack, cnt):
 
         if len(self._mmc.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
+            warnings.warn("Cannot run MDA. Load a cfg file first.")
             return
 
-        print("")
-        print(f"running {repr(experiment)}")
-
         if not experiment.channels:
-            print("Select at least one channel.")
+            warnings.warn("Cannot run MDA. Select at least one channel.")
             return
 
         t0 = time.perf_counter()  # reference time, in seconds
@@ -109,11 +149,6 @@ class MMCore(QObject):
             z_index = experiment.z_positions.index(frame.z)
             c_index = experiment.channels.index(frame.c)
 
-            # print(f'frame.t:{frame.t}, t_index:{t_index}')
-            # print(f'frame.p:{frame.p}, p_index:{p_index}')
-            # print(f'frame.z:{frame.z}, z_index:{z_index}')
-            # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
-
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -133,7 +168,7 @@ class MMCore(QObject):
         """.format(
             str(experiment), round(time.perf_counter() - t0, 4)
         )
-        print(dedent(summary))
+        logger.info(dedent(summary))
 
 
 class CallbackRelay(pymmcore.MMEventCallback):

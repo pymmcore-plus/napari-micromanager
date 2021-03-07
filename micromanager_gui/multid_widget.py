@@ -81,7 +81,6 @@ class MultiDExperiment:
             raise ValueError(f"Duplicate entries found in acquisition order: {order}")
 
         for item in product(*(self._axes_dict[ax] for ax in order)):
-            # print(f'frame: {Frame(**dict(zip(order, item)))}')
             yield Frame(**dict(zip(order, item)))
 
 
@@ -121,11 +120,6 @@ class MultiDWidget(QtW.QWidget):
     def __init__(self, *args):
         super().__init__(*args)
         uic.loadUi(UI_FILE, self)
-
-        # self.pos_list = []
-        # self.pos_stack_list = []
-        # self.list_ch = []
-        # self.acq_stack_list = []
 
         # count every time the "Run button is pressed" - define the experiment number
         self.cnt = 0
@@ -217,18 +211,11 @@ class MultiDWidget(QtW.QWidget):
 
     def move_to_position(self):
         curr_row = self.stage_tableWidget.currentRow()
-        # print('---')
-        # print(f'curr_row: {curr_row}')
-        # if curr_row != -1:
         x_val = self.stage_tableWidget.item(curr_row, 0).text()
         y_val = self.stage_tableWidget.item(curr_row, 1).text()
         z_val = self.stage_tableWidget.item(curr_row, 2).text()
-        # print(f'x: {x_val}')
-        # print(f'y: {y_val}')
-        # print(f'z: {z_val}')
         mmcore.setXYPosition(float(x_val), float(y_val))
         mmcore.setPosition("Z_Stage", float(z_val))
-        print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
 
     def set_multi_d_acq_dir(self):
         # set the directory
@@ -237,13 +224,6 @@ class MultiDWidget(QtW.QWidget):
         self.save_dir = QFileDialog.getExistingDirectory(self.dir)
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
-
-    # TODO: go back to threading in a bit...
-    # def acquisition_order(self):
-    #     if self.acquisition_order_comboBox.currentText()=='tpzcxy':
-    #         with concurrent.futures.ThreadPoolExecutor() as executor:
-    #             executor.submit(self.run_multi_d_acq_tpzcxy())
-    #     #elif:
 
     def mda_summary_string(self):
         pass
