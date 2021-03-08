@@ -296,55 +296,53 @@ class MainWindow(QtW.QMainWindow):
         mmcore.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
 
     def change_objective(self):
-        if self.objective_comboBox.count() > 0:
-            print("\nchanging objective...")
-            currentZ = mmcore.getPosition(mmcore.PROP_FOCUS)
-            print(f"currentZ: {currentZ}")
-            mmcore.setPosition(mmcore.PROP_FOCUS, 0)  # set low z position
-            mmcore.waitForDevice(mmcore.PROP_FOCUS)
-            print(self.objective_comboBox.currentText())
-            mmcore.setProperty(
-                "Objective", "Label", self.objective_comboBox.currentText()
+        if not self.objective_comboBox.count() > 0:
+            return
+
+        print("\nchanging objective...")
+        currentZ = mmcore.getZPosition()
+        print(f"currentZ: {currentZ}")
+        mmcore.setPosition(mmcore.PROP_FOCUS, 0)
+        mmcore.waitForDevice(mmcore.PROP_FOCUS)
+        print(self.objective_comboBox.currentText())
+        mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
+        mmcore.waitForDevice("Objective")
+        print(f"downpos: {mmcore.getZPosition()}")
+        mmcore.setPosition(mmcore.PROP_FOCUS, currentZ)
+        mmcore.waitForDevice(mmcore.PROP_FOCUS)
+        print(f"upagain: {mmcore.getZPosition()}")
+        print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
+
+        # define and set pixel size Config
+        mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
+        curr_obj_name = mmcore.getProperty("Objective", "Label")
+        mmcore.definePixelSizeConfig(curr_obj_name)
+        mmcore.setPixelSizeConfig(curr_obj_name)
+        print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
+
+        magnification = None
+        # get magnification info from the objective
+        for i in range(len(curr_obj_name)):
+            character = curr_obj_name[i]
+            if character == "X" or character == "x":
+                if i <= 3:
+                    magnification_string = curr_obj_name[:i]
+                    magnification = int(magnification_string)
+                    print(f"Current Magnification: {magnification}X")
+                else:
+                    print(
+                        "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                        "STARTING WITH e.g. 100X or 100x."
+                    )
+
+        # get and set image pixel sixe (x,y) for the current pixel size Config
+        if magnification is not None:
+            self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
+            # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
+            mmcore.setPixelSizeUm(
+                mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
-            mmcore.waitForDevice("Objective")
-            print(f"downpos: {mmcore.getPosition(mmcore.PROP_FOCUS)}")
-            mmcore.setPosition(mmcore.PROP_FOCUS, currentZ)
-            mmcore.waitForDevice(mmcore.PROP_FOCUS)
-            print(f"upagain: {mmcore.getPosition(mmcore.PROP_FOCUS)}")
-            print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
-
-            # define and set pixel size Config
-            mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
-            curr_obj_name = mmcore.getProperty("Objective", "Label")
-            mmcore.definePixelSizeConfig(curr_obj_name)
-            mmcore.setPixelSizeConfig(curr_obj_name)
-            print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
-
-            magnification = None
-            # get magnification info from the objective
-            for i in range(len(curr_obj_name)):
-                character = curr_obj_name[i]
-                if character == "X" or character == "x":
-                    if i <= 3:
-                        magnification_string = curr_obj_name[:i]
-                        magnification = int(magnification_string)
-                        print(f"Current Magnification: {magnification}X")
-                    else:
-                        print(
-                            "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                            "STARTING WITH e.g. 100X or 100x."
-                        )
-
-            # get and set image pixel sixe (x,y) for the current pixel size Config
-            if magnification is not None:
-                self.image_pixel_size = (
-                    self.px_size_doubleSpinBox.value() / magnification
-                )
-                # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
-                mmcore.setPixelSizeUm(
-                    mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size
-                )
-                print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm()}")
+            print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm()}")
 
     def update_viewer(self, data):
         try:
