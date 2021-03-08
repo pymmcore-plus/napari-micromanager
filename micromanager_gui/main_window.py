@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from qtpy import QtCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
+from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
 from .explore_sample import ExploreSample
@@ -20,23 +20,20 @@ mmcore = QMMCore()
 
 
 class MainWindow(QtW.QMainWindow):
+
     # The UI_FILE above contains these objects:
     cfg_LineEdit: QtW.QLineEdit
     browse_cfg_Button: QtW.QPushButton
     load_cfg_Button: QtW.QPushButton
-
     objective_groupBox: QtW.QGroupBox
     objective_comboBox: QtW.QComboBox
-
     camera_groupBox: QtW.QGroupBox
     bin_comboBox: QtW.QComboBox
     bit_comboBox: QtW.QComboBox
-
     position_groupBox: QtW.QGroupBox
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     z_lineEdit: QtW.QLineEdit
-
     stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
     Z_groupBox: QtW.QGroupBox
@@ -48,17 +45,14 @@ class MainWindow(QtW.QMainWindow):
     down_Button: QtW.QPushButton
     xy_step_size_SpinBox: QtW.QSpinBox
     z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-
     tabWidget: QtW.QTabWidget
     snap_live_tab: QtW.QWidget
     multid_tab: QtW.QWidget
-
     snap_channel_groupBox: QtW.QGroupBox
     snap_channel_comboBox: QtW.QComboBox
     exp_spinBox: QtW.QSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
-
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
@@ -83,7 +77,6 @@ class MainWindow(QtW.QMainWindow):
         self.explorer = ExploreSample()
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_layer)
-        self.explorer.send_explorer_info.connect(self.get_explorer_info)
         self.explorer.delete_previous_scan.connect(self.delete_layer)
 
         # create tab widgets
@@ -117,56 +110,27 @@ class MainWindow(QtW.QMainWindow):
 
         # stage button icons
         self.left_Button.setIcon(QIcon(str(ICONS / "left_arrow_1_green.svg")))
-        self.left_Button.setIconSize(QtCore.QSize(30, 30))
+        self.left_Button.setIconSize(QSize(30, 30))
         self.right_Button.setIcon(QIcon(str(ICONS / "right_arrow_1_green.svg")))
-        self.right_Button.setIconSize(QtCore.QSize(30, 30))
+        self.right_Button.setIconSize(QSize(30, 30))
         self.y_up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
-        self.y_up_Button.setIconSize(QtCore.QSize(30, 30))
+        self.y_up_Button.setIconSize(QSize(30, 30))
         self.y_down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
-        self.y_down_Button.setIconSize(QtCore.QSize(30, 30))
+        self.y_down_Button.setIconSize(QSize(30, 30))
         self.up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
-        self.up_Button.setIconSize(QtCore.QSize(30, 30))
+        self.up_Button.setIconSize(QSize(30, 30))
         self.down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
-        self.down_Button.setIconSize(QtCore.QSize(30, 30))
+        self.down_Button.setIconSize(QSize(30, 30))
         # snap/live icons
         self.snap_Button.setIcon(QIcon(str(ICONS / "cam.svg")))
-        self.snap_Button.setIconSize(QtCore.QSize(30, 30))
+        self.snap_Button.setIconSize(QSize(30, 30))
         self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-        self.live_Button.setIconSize(QtCore.QSize(40, 40))
+        self.live_Button.setIconSize(QSize(40, 40))
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
-
-    def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
-
-        # Get coordinates mouse_drag_callbacks
-        @self.viewer.mouse_drag_callbacks.append  # is it possible to double click?
-        def get_event_add(viewer, event):
-            try:
-                for i in self.viewer.layers:
-                    selected_layer = self.viewer.layers.selected
-                    if "stitched_" in str(i) and "stitched_" in str(selected_layer):
-                        layer = self.viewer.layers[str(i)]
-                        coord = layer.coordinates
-                        # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
-                        coord_x = coord[1]
-                        coord_y = coord[0]
-                        if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
-                            if coord_x > 0 and coord_y > 0:
-                                self.explorer.x_lineEdit.setText(str(round(coord_x)))
-                                self.explorer.y_lineEdit.setText(str(round(coord_y)))
-                                break
-
-                            else:
-                                self.explorer.x_lineEdit.setText("None")
-                                self.explorer.y_lineEdit.setText("None")
-                        else:
-                            self.explorer.x_lineEdit.setText("None")
-                            self.explorer.y_lineEdit.setText("None")
-            except KeyError:
-                pass
 
     def delete_layer(self, name):
         layer_set = set()
@@ -184,11 +148,8 @@ class MainWindow(QtW.QMainWindow):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
-    # mmcore_pymmcore.py
-    def add_stack_mda(
-        self, stack, cnt, xy_pos
-    ):  # TO DO: add the file name form the save box
-        print("STACK SENT...")
+    # TO DO: add the file name form the save box
+    def add_stack_mda(self, stack, cnt, xy_pos):
         name = f"Exp{cnt}_Pos{xy_pos}"
         try:
             layer = self.viewer.layers[name]
@@ -208,7 +169,7 @@ class MainWindow(QtW.QMainWindow):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.setEnabled(False)
+        # self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
         self.load_cfg_Button.setEnabled(True)
@@ -236,37 +197,30 @@ class MainWindow(QtW.QMainWindow):
         if "Objective" in mmcore.getLoadedDevices():
             self.objective_comboBox.addItems(mmcore.getStateLabels("Objective"))
 
-    def _on_system_configuration_loaded(self):
-        self._refresh_camera_options()
-        self._refresh_objective_options()
-
-        # Get Channel List
+    def _refresh_channel_list(self):
         if "Channel" in mmcore.getAvailableConfigGroups():
             channel_list = list(mmcore.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
-        else:
-            print("Could not find 'Channel' in the ConfigGroups")
 
+    def _on_system_configuration_loaded(self):
+        self._refresh_camera_options()
+        self._refresh_objective_options()
+        self._refresh_channel_list()
         x, y = mmcore.getXPosition(), mmcore.getYPosition()
         self._on_xy_stage_position_changed(mmcore.getXYStageDevice(), x, y)
-        self.setEnabled(True)
 
-    # set (and print) properties when value/string change
-    # def cam_changed(self):
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
-            mmcore.setProperty(
-                mmcore.getCameraDevice(), "PixelType", self.bit_comboBox.currentText()
-            )
+            bits = self.bit_comboBox.currentText()
+            mmcore.setProperty(mmcore.getCameraDevice(), "PixelType", bits)
             pixel_type = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
             print(f"PixelType: {pixel_type}")
 
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
-            mmcore.setProperty(
-                mmcore.getCameraDevice(), "Binning", self.bin_comboBox.currentText()
-            )
+            bins = self.bin_comboBox.currentText()
+            mmcore.setProperty(mmcore.getCameraDevice(), "Binning", bins)
             print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
 
     def _on_xy_stage_position_changed(self, name, x, y):
@@ -387,7 +341,7 @@ class MainWindow(QtW.QMainWindow):
             self.worker = None
             self.live_Button.setText("Live")
             self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-            self.live_Button.setIconSize(QtCore.QSize(40, 40))
+            self.live_Button.setIconSize(QSize(40, 40))
 
     def toggle_live(self, event=None):
         # same as writing:
@@ -395,8 +349,8 @@ class MainWindow(QtW.QMainWindow):
         if self.worker is None:
             self.start_live()
             self.live_Button.setIcon(QIcon(str(ICONS / "cam_stop.svg")))
-            self.live_Button.setIconSize(QtCore.QSize(40, 40))
+            self.live_Button.setIconSize(QSize(40, 40))
         else:
             self.stop_live()
             self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-        self.live_Button.setIconSize(QtCore.QSize(40, 40))
+        self.live_Button.setIconSize(QSize(40, 40))
