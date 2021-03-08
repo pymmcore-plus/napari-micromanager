@@ -35,8 +35,8 @@ def test_load_default_config(main_window):
         "DHub",
         mmcore.getCameraDevice(),
         "Objective",
-        mmcore.PROP_FOCUS,
-        mmcore.PROP_XYSTAGE,
+        mmcore.getFocusDevice(),
+        mmcore.getXYStageDevice(),
         "Core",
     }
     assert expected.issubset(set(mmcore.getLoadedDevices()))
@@ -69,12 +69,12 @@ def test_stage_xy_position(main_window):
 
 def test_stage_z_position(main_window):
     mmcore = QMMCore()
-    zpos = mmcore.getPosition(mmcore.PROP_FOCUS)
+    zpos = mmcore.getPosition(mmcore.getFocusDevice())
     assert zpos == 0
 
     main_window.stage_z_up()
     expected = main_window.z_step_size_doubleSpinBox.value()
-    assert mmcore.getPosition(mmcore.PROP_FOCUS) == expected
+    assert mmcore.getPosition(mmcore.getFocusDevice()) == expected
 
     main_window.stage_z_down()
-    assert mmcore.getPosition(mmcore.PROP_FOCUS) == 0
+    assert mmcore.getPosition(mmcore.getFocusDevice()) == 0

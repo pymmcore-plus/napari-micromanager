@@ -8,7 +8,6 @@ import numpy as np
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
-from traitlets.traitlets import Enum
 
 try:
     from functools import wraps
@@ -66,21 +65,6 @@ def find_micromanager():
         )
     except StopIteration:
         print("could not find micromanager directory")
-
-
-class CoreProps(Enum):
-    AUTOFOCUS = "AutoFocus"
-    AUTOSHUTTER = "AutoShutter"
-    CAMERA = "Camera"
-    CHANNELGROUP = "ChannelGroup"
-    FOCUS = "Focus"
-    GALVO = "Galvo"
-    IMAGEPROCESSOR = "ImageProcessor"
-    INITIALIZE = "Initialize"
-    SLM = "SLM"
-    SHUTTER = "Shutter"
-    TIMEOUTMS = "TimeoutMs"
-    XYSTAGE = "XYStage"
 
 
 class QMMCore(QObject):
@@ -147,32 +131,16 @@ class QMMCore(QObject):
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._mmc.setXYPosition(x + dx, y + dy)
         if dz:
-            z = self._mmc.getPosition(self.PROP_FOCUS)
+            z = self._mmc.getPosition(self._mmc.getFocusDevice())
             self.setZPosition(z + dz)
-        self._mmc.waitForDevice(self.PROP_XYSTAGE)
-        self._mmc.waitForDevice(self.PROP_FOCUS)
+        self._mmc.waitForDevice(self._mmc.getXYStageDevice())
+        self._mmc.waitForDevice(self._mmc.getFocusDevice())
 
     def getZPosition(self):
-        return self._mmc.getPosition(self.PROP_FOCUS)
+        return self._mmc.getPosition(self._mmc.getFocusDevice())
 
     def setZPosition(self, val):
-        return self._mmc.setPosition(self.PROP_FOCUS, val)
-
-    @property
-    def PROP_FOCUS(self):
-        return self._mmc.getProperty("Core", CoreProps.FOCUS)
-
-    @property
-    def PROP_XYSTAGE(self):
-        return self._mmc.getProperty("Core", CoreProps.XYSTAGE)
-
-    @property
-    def PROP_CAMERA(self):
-        return self._mmc.getProperty("Core", CoreProps.CAMERA)
-
-    @property
-    def PROP_SHUTTER(self):
-        return self._mmc.getProperty("Core", CoreProps.SHUTTER)
+        return self._mmc.setPosition(self._mmc.getFocusDevice(), val)
 
     def run_mda(self, experiment, stack, cnt):
 

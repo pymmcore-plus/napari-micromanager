@@ -249,7 +249,7 @@ class MainWindow(QtW.QMainWindow):
             print("Could not find 'Channel' in the ConfigGroups")
 
         x, y = mmcore.getXPosition(), mmcore.getYPosition()
-        self._on_xy_stage_position_changed(mmcore.PROP_XYSTAGE, x, y)
+        self._on_xy_stage_position_changed(mmcore.getXYStageDevice(), x, y)
         self.setEnabled(True)
 
     # set (and print) properties when value/string change
@@ -274,7 +274,7 @@ class MainWindow(QtW.QMainWindow):
         self.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
-        if name == mmcore.PROP_FOCUS:
+        if name == mmcore.getFocusDevice():
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
@@ -299,17 +299,19 @@ class MainWindow(QtW.QMainWindow):
         if not self.objective_comboBox.count() > 0:
             return
 
+        zdev = mmcore.getFocusDevice()
+
         print("\nchanging objective...")
         currentZ = mmcore.getZPosition()
         print(f"currentZ: {currentZ}")
-        mmcore.setPosition(mmcore.PROP_FOCUS, 0)
-        mmcore.waitForDevice(mmcore.PROP_FOCUS)
+        mmcore.setPosition(zdev, 0)
+        mmcore.waitForDevice(zdev)
         print(self.objective_comboBox.currentText())
         mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
         mmcore.waitForDevice("Objective")
         print(f"downpos: {mmcore.getZPosition()}")
-        mmcore.setPosition(mmcore.PROP_FOCUS, currentZ)
-        mmcore.waitForDevice(mmcore.PROP_FOCUS)
+        mmcore.setPosition(zdev, currentZ)
+        mmcore.waitForDevice(zdev)
         print(f"upagain: {mmcore.getZPosition()}")
         print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
 
