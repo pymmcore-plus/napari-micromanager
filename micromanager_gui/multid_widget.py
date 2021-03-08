@@ -3,17 +3,14 @@ from pathlib import Path
 from typing import NamedTuple, Tuple
 
 import numpy as np
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets as QtW
-from PyQt5.QtGui import QIcon
+from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QFileDialog
+from qtpy.QtCore import QSize, Qt
+from qtpy.QtGui import QIcon
 
 from .qmmcore import QMMCore
 
-icon_path = Path(__file__).parent / "icons"
-
+ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
 
 mmcore = QMMCore()
@@ -146,8 +143,8 @@ class MultiDWidget(QtW.QWidget):
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
         # button icon
-        self.run_Button.setIcon(QIcon(str(icon_path / "play-button_1.svg")))
-        self.run_Button.setIconSize(QtCore.QSize(20, 20))
+        self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
+        self.run_Button.setIconSize(QSize(20, 0))
 
     # add, remove, clear channel table
     def add_channel(self):
@@ -232,9 +229,9 @@ class MultiDWidget(QtW.QWidget):
 
     def set_multi_d_acq_dir(self):
         # set the directory
-        self.dir = QFileDialog(self)
-        self.dir.setFileMode(QFileDialog.DirectoryOnly)
-        self.save_dir = QFileDialog.getExistingDirectory(self.dir)
+        self.dir = QtW.QFileDialog(self)
+        self.dir.setFileMode(QtW.QFileDialog.DirectoryOnly)
+        self.save_dir = QtW.QFileDialog.getExistingDirectory(self.dir)
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 

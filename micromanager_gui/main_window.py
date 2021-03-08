@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets as QtW
-from PyQt5.QtGui import QIcon
+from qtpy import QtCore
+from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtWidgets import QFileDialog, QGridLayout
+from qtpy.QtGui import QIcon
 
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
@@ -14,11 +13,8 @@ from .qmmcore import QMMCore
 if TYPE_CHECKING:
     import napari
 
-# dir_path = Path(__file__).parent
-icon_path = Path(__file__).parent / "icons"
-
+ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
-
 
 mmcore = QMMCore()
 
@@ -92,12 +88,12 @@ class MainWindow(QtW.QMainWindow):
 
         # create tab widgets
         multid_tab = QtW.QWidget(self)
-        multid_tab.layout = QGridLayout()
+        multid_tab.layout = QtW.QGridLayout()
         multid_tab.layout.addWidget(self.mda)
         multid_tab.setLayout(multid_tab.layout)
 
         explorer_tab = QtW.QWidget(self)
-        explorer_tab.layout = QGridLayout()
+        explorer_tab.layout = QtW.QGridLayout()
         explorer_tab.layout.addWidget(self.explorer)
         explorer_tab.setLayout(explorer_tab.layout)
 
@@ -120,22 +116,22 @@ class MainWindow(QtW.QMainWindow):
         self.live_Button.clicked.connect(self.toggle_live)
 
         # stage button icons
-        self.left_Button.setIcon(QIcon(str(icon_path / "left_arrow_1_green.svg")))
+        self.left_Button.setIcon(QIcon(str(ICONS / "left_arrow_1_green.svg")))
         self.left_Button.setIconSize(QtCore.QSize(30, 30))
-        self.right_Button.setIcon(QIcon(str(icon_path / "right_arrow_1_green.svg")))
+        self.right_Button.setIcon(QIcon(str(ICONS / "right_arrow_1_green.svg")))
         self.right_Button.setIconSize(QtCore.QSize(30, 30))
-        self.y_up_Button.setIcon(QIcon(str(icon_path / "up_arrow_1_green.svg")))
+        self.y_up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
         self.y_up_Button.setIconSize(QtCore.QSize(30, 30))
-        self.y_down_Button.setIcon(QIcon(str(icon_path / "down_arrow_1_green.svg")))
+        self.y_down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
         self.y_down_Button.setIconSize(QtCore.QSize(30, 30))
-        self.up_Button.setIcon(QIcon(str(icon_path / "up_arrow_1_green.svg")))
+        self.up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
         self.up_Button.setIconSize(QtCore.QSize(30, 30))
-        self.down_Button.setIcon(QIcon(str(icon_path / "down_arrow_1_green.svg")))
+        self.down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
         self.down_Button.setIconSize(QtCore.QSize(30, 30))
         # snap/live icons
-        self.snap_Button.setIcon(QIcon(str(icon_path / "cam.svg")))
+        self.snap_Button.setIcon(QIcon(str(ICONS / "cam.svg")))
         self.snap_Button.setIconSize(QtCore.QSize(30, 30))
-        self.live_Button.setIcon(QIcon(str(icon_path / "vcam.svg")))
+        self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
         self.live_Button.setIconSize(QtCore.QSize(40, 40))
 
         # connect comboBox
@@ -210,7 +206,7 @@ class MainWindow(QtW.QMainWindow):
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
 
-        file_dir = QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
         self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
@@ -390,7 +386,7 @@ class MainWindow(QtW.QMainWindow):
             self.worker.quit()
             self.worker = None
             self.live_Button.setText("Live")
-            self.live_Button.setIcon(QIcon(str(icon_path / "vcam.svg")))
+            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
             self.live_Button.setIconSize(QtCore.QSize(40, 40))
 
     def toggle_live(self, event=None):
@@ -398,9 +394,9 @@ class MainWindow(QtW.QMainWindow):
         # self.stop_live() if self.worker is not None else self.start_live()
         if self.worker is None:
             self.start_live()
-            self.live_Button.setIcon(QIcon(str(icon_path / "cam_stop.svg")))
+            self.live_Button.setIcon(QIcon(str(ICONS / "cam_stop.svg")))
             self.live_Button.setIconSize(QtCore.QSize(40, 40))
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(icon_path / "vcam.svg")))
+            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
         self.live_Button.setIconSize(QtCore.QSize(40, 40))

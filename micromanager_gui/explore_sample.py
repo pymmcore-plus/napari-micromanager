@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 import numpy as np
-from PyQt5 import QtWidgets as QtW
+from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import Signal
 from skimage.transform import resize
