@@ -5,20 +5,18 @@ from pathlib import Path
 
 import numpy as np
 import pyfirmata2
-from PyQt5 import QtCore
-from PyQt5 import QtWidgets as QtW
-from PyQt5.QtGui import QIcon
+from qtpy import QtCore
+from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtWidgets import QFileDialog
+from qtpy.QtGui import QIcon
 from skimage import io
 
-from .mmcore_pymmcore import MMCore
+from .qmmcore import QMMCore
 
-icon_path = Path(__file__).parent / "icons"
+ICONS = Path(__file__).parent / "icons"
+UI_FILE = str(Path(__file__).parent / "_ui" / "optocamp_gui.ui")
 
-UI_FILE = str(Path(__file__).parent / "optocamp_gui.ui")
-
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class OptocampWidget(QtW.QWidget):
@@ -61,8 +59,8 @@ class OptocampWidget(QtW.QWidget):
         self._viewer = None
 
         # button's icon
-        self.rec_Button.setIcon(QIcon(str(icon_path / "play-button_1.svg")))
-        self.rec_Button.setIconSize(QtCore.QSize(20, 20))
+        self.rec_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
+        self.rec_Button.setIconSize(QtCore.QSie(20, 20))
 
         # connect buttons
         self.detect_board_Button.clicked.connect(self.is_loaded)
@@ -195,9 +193,9 @@ class OptocampWidget(QtW.QWidget):
 
     def save_recordongs(self):
         # set the directory
-        self.dir = QFileDialog(self)
-        self.dir.setFileMode(QFileDialog.DirectoryOnly)
-        self.save_dir = QFileDialog.getExistingDirectory(self.dir)
+        self.dir = QtW.QFileDialog(self)
+        self.dir.setFileMode(QtW.QFileDialog.DirectoryOnly)
+        self.save_dir = QtW.QFileDialog.getExistingDirectory(self.dir)
         self.dir_rec_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 

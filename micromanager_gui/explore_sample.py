@@ -2,16 +2,16 @@ import time
 from pathlib import Path
 
 import numpy as np
-from PyQt5 import QtWidgets as QtW
+from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import Signal
 from skimage.transform import resize
 
-from .mmcore_pymmcore import MMCore
+from .qmmcore import QMMCore
 
-UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
+UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
 
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class ExploreSample(QtW.QWidget):
@@ -308,3 +308,34 @@ class ExploreSample(QtW.QWidget):
                 else:
                     x_snap = x_snap + x_snap_increment
                     col += 1
+
+
+# removed from main_window
+# def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
+
+#     # Get coordinates mouse_drag_callbacks
+#     @self.viewer.mouse_drag_callbacks.append  # is it possible to double click?
+#     def get_event_add(viewer, event):
+#         try:
+#             for i in self.viewer.layers:
+#                 selected_layer = self.viewer.layers.selected
+#                 if "stitched_" in str(i) and "stitched_" in str(selected_layer):
+#                     layer = self.viewer.layers[str(i)]
+#                     coord = layer.coordinates
+#                     # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
+#                     coord_x = coord[1]
+#                     coord_y = coord[0]
+#                     if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
+#                         if coord_x > 0 and coord_y > 0:
+#                             self.explorer.x_lineEdit.setText(str(round(coord_x)))
+#                             self.explorer.y_lineEdit.setText(str(round(coord_y)))
+#                             break
+
+#                         else:
+#                             self.explorer.x_lineEdit.setText("None")
+#                             self.explorer.y_lineEdit.setText("None")
+#                     else:
+#                         self.explorer.x_lineEdit.setText("None")
+#                         self.explorer.y_lineEdit.setText("None")
+#         except KeyError:
+#             pass

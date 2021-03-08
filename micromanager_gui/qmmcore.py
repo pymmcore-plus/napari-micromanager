@@ -9,6 +9,43 @@ import pymmcore
 from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
 
+try:
+    from functools import wraps
+
+    from IPython import get_ipython
+    from IPython.core.interactiveshell import InteractiveShell
+
+    if not get_ipython():
+        raise ImportError()
+
+    def change_function(func):
+        @wraps(func)
+        def showtraceback(*args, **kwargs):
+            # extract exception type, value and traceback
+            etype, evalue, tb = sys.exc_info()
+            if isinstance(evalue, RuntimeError) and evalue.args:
+                obj = evalue.args[0]
+                if isinstance(obj, pymmcore.CMMError):
+                    evalue = RuntimeError(obj.getMsg())
+                return func(*args, exc_tuple=(etype, evalue, tb), **kwargs)
+            # otherwise run the original hook
+            return func(*args, **kwargs)
+
+        return showtraceback
+
+    InteractiveShell.showtraceback = change_function(InteractiveShell.showtraceback)
+except ImportError:
+    ehook = sys.excepthook
+
+    def swig_hook(typ, value, tb):
+        if isinstance(value, RuntimeError) and value.args:
+            obj = value.args[0]
+            if isinstance(obj, pymmcore.CMMError):
+                value = RuntimeError(obj.getMsg())
+        ehook(typ, value, tb)
+
+    sys.excepthook = swig_hook
+
 
 def find_micromanager():
     env_path = os.getenv("MICROMANAGER_PATH")
@@ -30,7 +67,7 @@ def find_micromanager():
         print("could not find micromanager directory")
 
 
-class MMCore(QObject):
+class QMMCore(QObject):
     properties_changed = Signal()
     property_changed = Signal(str, str, object)
     channel_group_changed = Signal(str)
@@ -73,10 +110,37 @@ class MMCore(QObject):
     def __dir__(self):
         return set(object.__dir__(self)).union(dir(self._mmc))
 
+    def loadSystemConfiguration(self, file="demo"):
+        if file.lower() == "demo":
+            file = (Path(find_micromanager()) / "MMConfig_demo.cfg").resolve()
+            print(file)
+        self._mmc.loadSystemConfiguration(str(file))
+
     @property
     def setProperty(self):
         # conflicts with QObject.setProperty
         return self._mmc.setProperty
+
+    @property
+    def setQProperty(self):
+        # conflicts with MMCore.setProperty
+        return super().setProperty
+
+    def setRelPosition(self, dx=0, dy=0, dz=0):
+        if dx or dy:
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+            self._mmc.setXYPosition(x + dx, y + dy)
+        if dz:
+            z = self._mmc.getPosition(self._mmc.getFocusDevice())
+            self.setZPosition(z + dz)
+        self._mmc.waitForDevice(self._mmc.getXYStageDevice())
+        self._mmc.waitForDevice(self._mmc.getFocusDevice())
+
+    def getZPosition(self):
+        return self._mmc.getPosition(self._mmc.getFocusDevice())
+
+    def setZPosition(self, val):
+        return self._mmc.setPosition(self._mmc.getFocusDevice(), val)
 
     def run_mda(self, experiment, stack, cnt):
 
@@ -143,33 +207,44 @@ class CallbackRelay(pymmcore.MMEventCallback):
 
     def onPropertiesChanged(self):
         self._emitter.properties_changed.emit()
+        print("onPropertiesChanged")
 
     def onPropertyChanged(self, dev_name: str, prop_name: str, prop_val: str):
         self._emitter.property_changed.emit(dev_name, prop_name, prop_val)
+        print("onPropertyChanged", dev_name, prop_name, prop_val)
 
     def onChannelGroupChanged(self, new_channel_group_name: str):
         self._emitter.channel_group_changed.emit(new_channel_group_name)
+        print("onChannelGroupChanged", new_channel_group_name)
 
     def onConfigGroupChanged(self, group_name: str, new_config_name: str):
         self._emitter.config_group_changed.emit(group_name, new_config_name)
+        print("onConfigGroupChanged", group_name, new_config_name)
 
     def onSystemConfigurationLoaded(self):
         self._emitter.system_configuration_loaded.emit()
+        print("onSystemConfigurationLoaded")
 
     def onPixelSizeChanged(self, new_pixel_size_um: float):
         self._emitter.pixel_size_changed.emit(new_pixel_size_um)
+        print("onPixelSizeChanged", new_pixel_size_um)
 
     def onPixelSizeAffineChanged(self, v0, v1, v2, v3, v4, v5):
         self._emitter.pixel_size_affine_changed.emit(v0, v1, v2, v3, v4, v5)
+        print("onPixelSizeAffineChanged")
 
     def onStagePositionChanged(self, name: str, pos: float):
         self._emitter.stage_position_changed.emit(name, pos)
+        print("onStagePositionChanged", name, pos)
 
     def onXYStagePositionChanged(self, name: str, xpos: float, ypos: float):
         self._emitter.xy_stage_position_changed.emit(name, xpos, ypos)
+        print("onXYStagePositionChanged", name, xpos, ypos)
 
     def onExposureChanged(self, name: str, new_exposure: float):
         self._emitter.exposure_changed.emit(name, new_exposure)
+        print("onExposureChanged", name, new_exposure)
 
     def onSLMExposureChanged(self, name: str, new_exposure: float):
         self._emitter.slm_exposure_changed.emit(name, new_exposure)
+        print("onSLMExposureChanged", name, new_exposure)

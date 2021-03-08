@@ -1,5 +1,5 @@
 import pytest
-from micromanager_gui.mmcore_pymmcore import MMCore
+from micromanager_gui.qmmcore import QMMCore
 
 # tests are critical if you want to be able to build on things
 # without breaking previous functionality.  Keep tests as small
@@ -26,18 +26,25 @@ def main_window(qtbot):
 # here, we use the `main_window` fixture defined above.
 def test_load_default_config(main_window):
     """Test that load_cfg loads the default config."""
-    mmcore = MMCore()
+    mmcore = QMMCore()
 
     # the main idea in a test is to "assert" things you expect
     # to be true. Here we assert the demo_config (which was loaded
     # in the main_window fixture. will load these devices:
-    expected = {"DHub", "Cam", "Objective", "Z_Stage", "XY_Stage", "Core"}
-    assert set(mmcore.getLoadedDevices()) == expected
+    expected = {
+        "DHub",
+        mmcore.getCameraDevice(),
+        "Objective",
+        mmcore.getFocusDevice(),
+        mmcore.getXYStageDevice(),
+        "Core",
+    }
+    assert expected.issubset(set(mmcore.getLoadedDevices()))
 
 
 def test_stage_xy_position(main_window):
     """Test that we can move the stage."""
-    mmcore = MMCore()
+    mmcore = QMMCore()
     x, y = mmcore.getXPosition(), mmcore.getYPosition()
     assert (x, y) == (0, 0)
 
@@ -61,13 +68,13 @@ def test_stage_xy_position(main_window):
 
 
 def test_stage_z_position(main_window):
-    mmcore = MMCore()
-    zpos = mmcore.getPosition("Z_Stage")
+    mmcore = QMMCore()
+    zpos = mmcore.getPosition(mmcore.getFocusDevice())
     assert zpos == 0
 
     main_window.stage_z_up()
     expected = main_window.z_step_size_doubleSpinBox.value()
-    assert mmcore.getPosition("Z_Stage") == expected
+    assert mmcore.getPosition(mmcore.getFocusDevice()) == expected
 
     main_window.stage_z_down()
-    assert mmcore.getPosition("Z_Stage") == 0
+    assert mmcore.getPosition(mmcore.getFocusDevice()) == 0
