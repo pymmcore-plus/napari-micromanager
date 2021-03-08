@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 from PyQt5 import QtCore
 from PyQt5 import QtWidgets as QtW
 from PyQt5.QtGui import QIcon
@@ -9,8 +8,8 @@ from qtpy import uic
 from qtpy.QtWidgets import QFileDialog, QGridLayout
 
 from .explore_sample import ExploreSample
-from .mmcore_pymmcore import MMCore
 from .multid_widget import MultiDWidget
+from .qmmcore import QMMCore
 
 if TYPE_CHECKING:
     import napari
@@ -18,17 +17,17 @@ if TYPE_CHECKING:
 # dir_path = Path(__file__).parent
 icon_path = Path(__file__).parent / "icons"
 
-UI_FILE = str(Path(__file__).parent / "micromanager_gui.ui")
+UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 
 
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class MainWindow(QtW.QMainWindow):
     # The UI_FILE above contains these objects:
     cfg_LineEdit: QtW.QLineEdit
     browse_cfg_Button: QtW.QPushButton
-    load_cgf_Button: QtW.QPushButton
+    load_cfg_Button: QtW.QPushButton
 
     objective_groupBox: QtW.QGroupBox
     objective_comboBox: QtW.QComboBox
@@ -77,35 +76,37 @@ class MainWindow(QtW.QMainWindow):
 
         self.cfg_LineEdit.setText("demo")
 
-        self.obj_mag = []
-        self.is_true = False  # self.get_explorer_info()
-        self.magnification = None
+        mmcore.system_configuration_loaded.connect(self._on_system_configuration_loaded)
+        mmcore.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
+        mmcore.stage_position_changed.connect(self._on_stage_position_changed)
+        mmcore.stack_to_viewer.connect(self.add_stack_mda)
 
-        # ________________________________________________________________________
         # create MultiDWidget() widgets
         self.mda = MultiDWidget()
+
         self.explorer = ExploreSample()
+        self.explorer.new_frame.connect(self.add_frame_explorer)
+        self.explorer.delete_snaps.connect(self.delete_layer)
+        self.explorer.send_explorer_info.connect(self.get_explorer_info)
+        self.explorer.delete_previous_scan.connect(self.delete_layer)
 
-        # create QWidget() to be added to the main tabWidget
-        self.multid_tab = QtW.QWidget()
-        self.explorer_tab = QtW.QWidget()
+        # create tab widgets
+        multid_tab = QtW.QWidget(self)
+        multid_tab.layout = QGridLayout()
+        multid_tab.layout.addWidget(self.mda)
+        multid_tab.setLayout(multid_tab.layout)
 
-        # add tabs
-        self.tabWidget.addTab(self.multid_tab, "Multi-D Acquisition")
-        self.tabWidget.addTab(self.explorer_tab, "Sample Explorer")
+        explorer_tab = QtW.QWidget(self)
+        explorer_tab.layout = QGridLayout()
+        explorer_tab.layout.addWidget(self.explorer)
+        explorer_tab.setLayout(explorer_tab.layout)
 
         # create tabs layout and add the widgets
-        self.multid_tab.layout = QGridLayout()
-        self.multid_tab.layout.addWidget(self.mda)
-        self.multid_tab.setLayout(self.multid_tab.layout)
-
-        self.explorer_tab.layout = QGridLayout()
-        self.explorer_tab.layout.addWidget(self.explorer)
-        self.explorer_tab.setLayout(self.explorer_tab.layout)
-        # ________________________________________________________________________
+        self.tabWidget.addTab(multid_tab, "Multi-D Acquisition")
+        self.tabWidget.addTab(explorer_tab, "Sample Explorer")
 
         # connect buttons
-        self.load_cgf_Button.clicked.connect(self.load_cfg)
+        self.load_cfg_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
 
         self.left_Button.clicked.connect(self.stage_x_left)
@@ -118,28 +119,19 @@ class MainWindow(QtW.QMainWindow):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
-        # button's icon
-        # arrows icons
-        # self.left_Button.setIcon(QIcon(str(icon_path/'left_arrow_1.svg')))
+        # stage button icons
         self.left_Button.setIcon(QIcon(str(icon_path / "left_arrow_1_green.svg")))
         self.left_Button.setIconSize(QtCore.QSize(30, 30))
-        # self.right_Button.setIcon(QIcon(str(icon_path/'right_arrow_1.svg')))
         self.right_Button.setIcon(QIcon(str(icon_path / "right_arrow_1_green.svg")))
         self.right_Button.setIconSize(QtCore.QSize(30, 30))
-        # self.y_up_Button.setIcon(QIcon(str(icon_path/'up_arrow_1.svg')))
         self.y_up_Button.setIcon(QIcon(str(icon_path / "up_arrow_1_green.svg")))
         self.y_up_Button.setIconSize(QtCore.QSize(30, 30))
-        # self.y_down_Button.setIcon(QIcon(str(icon_path/'down_arrow_1.svg')))
         self.y_down_Button.setIcon(QIcon(str(icon_path / "down_arrow_1_green.svg")))
         self.y_down_Button.setIconSize(QtCore.QSize(30, 30))
-
-        # self.up_Button.setIcon(QIcon(str(icon_path/'up_arrow.svg')))
         self.up_Button.setIcon(QIcon(str(icon_path / "up_arrow_1_green.svg")))
         self.up_Button.setIconSize(QtCore.QSize(30, 30))
-        # self.down_Button.setIcon(QIcon(str(icon_path/'down_arrow.svg')))
         self.down_Button.setIcon(QIcon(str(icon_path / "down_arrow_1_green.svg")))
         self.down_Button.setIconSize(QtCore.QSize(30, 30))
-
         # snap/live icons
         self.snap_Button.setIcon(QIcon(str(icon_path / "cam.svg")))
         self.snap_Button.setIconSize(QtCore.QSize(30, 30))
@@ -151,26 +143,6 @@ class MainWindow(QtW.QMainWindow):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
-        # connect callback
-        mmcore.xy_stage_position_changed.connect(self.update_stage_position_xy)
-        mmcore.stage_position_changed.connect(self.update_stage_position_z)
-
-        # connect the Signal____________________________________________________________
-        # self.mda.new_frame.connect(self.add_frame_multid)
-
-        self.explorer.new_frame.connect(self.add_frame_explorer)
-        self.explorer.delete_snaps.connect(self.delete_layer)
-        self.explorer.send_explorer_info.connect(self.get_explorer_info)
-        self.explorer.delete_previous_scan.connect(self.delete_layer)
-
-        # self.mda.empty_stack_to_viewer.connect(self.add_empty_stack_mda)
-        mmcore.stack_to_viewer.connect(self.add_stack_mda)
-
-        # ________________________________________________________________________
-
-    # SIGNAL________________________________________________________________________
-
-    # explor_sample.py
     def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
 
         # Get coordinates mouse_drag_callbacks
@@ -182,7 +154,6 @@ class MainWindow(QtW.QMainWindow):
                     if "stitched_" in str(i) and "stitched_" in str(selected_layer):
                         layer = self.viewer.layers[str(i)]
                         coord = layer.coordinates
-                        # self.is_true = True
                         # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
                         coord_x = coord[1]
                         coord_y = coord[0]
@@ -229,34 +200,6 @@ class MainWindow(QtW.QMainWindow):
         except KeyError:
             self.viewer.add_image(stack, name=name)
 
-    # ________________________________________________________________________
-
-    def get_devices_and_props(self):
-        # List devices and properties that you can set
-        devices = mmcore.getLoadedDevices()
-        print("\nDevice status:__________________________")
-        for i in range(len(devices)):
-            device = devices[i]
-            properties = mmcore.getDevicePropertyNames(device)
-            for p in range(len(properties)):
-                prop = properties[p]
-                values = mmcore.getAllowedPropertyValues(device, prop)
-                print(
-                    f"Device: {str(device)}  Property: {str(prop)} Value: {str(values)}"
-                )
-        print("________________________________________")
-
-    def get_groups_list(self):
-        group = []
-        for groupName in mmcore.getAvailableConfigGroups():
-            print(f"*********\nGroup_Name: {str(groupName)}")
-            for configName in mmcore.getAvailableConfigs(groupName):
-                group.append(configName)
-                print(f"Config_Name: {str(configName)}")
-                props = str(mmcore.getConfigData(groupName, configName).getVerbose())
-                print(f"Properties: {props}")
-            print("*********")
-
     def browse_cfg(self):
         mmcore.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devicies: {mmcore.getLoadedDevices()}")
@@ -272,49 +215,34 @@ class MainWindow(QtW.QMainWindow):
         self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
-        self.load_cgf_Button.setEnabled(True)
+        self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
-
-        self.obj_mag.clear()
-
-        self.setEnabled(True)
-
-        self.load_cgf_Button.setEnabled(False)
+        self.load_cfg_Button.setEnabled(False)
         mmcore.loadSystemConfiguration(self.cfg_LineEdit.text())
 
-        self.get_devices_and_props()
-        self.get_groups_list()
-
-        # Get Camera Options
-        self.cam_device = mmcore.getCameraDevice()
-        cam_props = mmcore.getDevicePropertyNames(self.cam_device)
-        #        print(cam_props)
+    def _refresh_camera_options(self):
+        cam_device = mmcore.getCameraDevice()
+        cam_props = mmcore.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
-            bin_opts = mmcore.getAllowedPropertyValues(self.cam_device, "Binning")
+            bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(
-                mmcore.getProperty(self.cam_device, "Binning")
-            )
-            mmcore.setProperty(self.cam_device, "Binning", "1")
+            self.bin_comboBox.setCurrentText(mmcore.getProperty(cam_device, "Binning"))
 
         if "PixelType" in cam_props:
-            px_t = mmcore.getAllowedPropertyValues(self.cam_device, "PixelType")
+            px_t = mmcore.getAllowedPropertyValues(cam_device, "PixelType")
             self.bit_comboBox.addItems(px_t)
             if "16" in px_t:
                 self.bit_comboBox.setCurrentText("16bit")
-                mmcore.setProperty(self.cam_device, "PixelType", "16bit")
+                mmcore.setProperty(cam_device, "PixelType", "16bit")
 
-        # Get Objective Options
+    def _refresh_objective_options(self):
         if "Objective" in mmcore.getLoadedDevices():
-            mmcore.setPosition("Z_Stage", 0)
-            obj_opts = mmcore.getStateLabels("Objective")
+            self.objective_comboBox.addItems(mmcore.getStateLabels("Objective"))
 
-            self.objective_comboBox.addItems(obj_opts)
-            self.objective_comboBox.setCurrentText(obj_opts[5])
-
-            # obj_curr_pos = mmcore.getState("Objective")
-            # print(f'Objective Nosepiece Position: {obj_curr_pos}')
+    def _on_system_configuration_loaded(self):
+        self._refresh_camera_options()
+        self._refresh_objective_options()
 
         # Get Channel List
         if "Channel" in mmcore.getAvailableConfigGroups():
@@ -324,18 +252,16 @@ class MainWindow(QtW.QMainWindow):
         else:
             print("Could not find 'Channel' in the ConfigGroups")
 
-        self.update_stage_position_xy()
-        self.update_stage_position_z()
-
-        self.max_val_lineEdit.setText("None")
-        self.min_val_lineEdit.setText("None")
+        x, y = mmcore.getXPosition(), mmcore.getYPosition()
+        self._on_xy_stage_position_changed(mmcore.PROP_XYSTAGE, x, y)
+        self.setEnabled(True)
 
     # set (and print) properties when value/string change
     # def cam_changed(self):
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
             mmcore.setProperty(
-                self.cam_device, "PixelType", self.bit_comboBox.currentText()
+                mmcore.getCameraDevice(), "PixelType", self.bit_comboBox.currentText()
             )
             pixel_type = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
             print(f"PixelType: {pixel_type}")
@@ -343,96 +269,52 @@ class MainWindow(QtW.QMainWindow):
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
             mmcore.setProperty(
-                self.cam_device, "Binning", self.bin_comboBox.currentText()
+                mmcore.getCameraDevice(), "Binning", self.bin_comboBox.currentText()
             )
             print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
 
-    def update_stage_position_xy(self):
-        x = int(mmcore.getXPosition())
-        y = int(mmcore.getYPosition())
-        z = int(mmcore.getPosition("Z_Stage"))
-        self.x_lineEdit.setText(str("%.0f" % x))
-        self.y_lineEdit.setText(str("%.0f" % y))
-        self.z_lineEdit.setText(str("%.1f" % z))
-        # print(f'XY Stage moved to x:{x} y:{y} (z:{z})')
+    def _on_xy_stage_position_changed(self, name, x, y):
+        self.x_lineEdit.setText(f"{x:.1f}")
+        self.y_lineEdit.setText(f"{y:.1f}")
 
-    def update_stage_position_z(self):
-        x = int(mmcore.getXPosition())
-        y = int(mmcore.getYPosition())
-        z = int(mmcore.getPosition("Z_Stage"))
-        self.x_lineEdit.setText(str("%.0f" % x))
-        self.y_lineEdit.setText(str("%.0f" % y))
-        self.z_lineEdit.setText(str("%.1f" % z))
-        # print(f'Z Stage moved to z:{z} (x:{x} y:{y})')
+    def _on_stage_position_changed(self, name, value):
+        if name == mmcore.PROP_FOCUS:
+            self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        xpos = mmcore.getXPosition()
-        ypos = mmcore.getYPosition()
-        val = int(self.xy_step_size_SpinBox.value())
-        mmcore.setXYPosition((xpos + (-val)), ypos)
-        x_new = int(mmcore.getXPosition())
-        self.x_lineEdit.setText(str("%.0f" % x_new))
-        mmcore.waitForDevice("XY_Stage")
+        mmcore.setRelPosition(dx=-float(self.xy_step_size_SpinBox.value()))
 
     def stage_x_right(self):
-        xpos = mmcore.getXPosition()
-        ypos = mmcore.getYPosition()
-        val = int(self.xy_step_size_SpinBox.value())
-        mmcore.setXYPosition((xpos + val), ypos)
-        x_new = int(mmcore.getXPosition())
-        self.x_lineEdit.setText(str("%.0f" % x_new))
-        mmcore.waitForDevice("XY_Stage")
+        mmcore.setRelPosition(dx=float(self.xy_step_size_SpinBox.value()))
 
     def stage_y_up(self):
-        xpos = mmcore.getXPosition()
-        ypos = mmcore.getYPosition()
-        val = int(self.xy_step_size_SpinBox.value())
-        mmcore.setXYPosition(xpos, (ypos + val))
-        y_new = int(mmcore.getYPosition())
-        self.y_lineEdit.setText(str("%.0f" % y_new))
-        mmcore.waitForDevice("XY_Stage")
+        mmcore.setRelPosition(dy=float(self.xy_step_size_SpinBox.value()))
 
     def stage_y_down(self):
-        xpos = mmcore.getXPosition()
-        ypos = mmcore.getYPosition()
-        val = int(self.xy_step_size_SpinBox.value())
-        mmcore.setXYPosition(xpos, (ypos + (-val)))
-        y_new = int(mmcore.getYPosition())
-        self.y_lineEdit.setText(str("%.0f" % y_new))
-        mmcore.waitForDevice("XY_Stage")
+        mmcore.setRelPosition(dy=-float(self.xy_step_size_SpinBox.value()))
 
     def stage_z_up(self):
-        zpos = mmcore.getPosition("Z_Stage")
-        z_val = float(self.z_step_size_doubleSpinBox.value())
-        mmcore.setPosition("Z_Stage", zpos + z_val)
-        z_new = float(mmcore.getPosition("Z_Stage"))
-        self.z_lineEdit.setText(str("%.1f" % z_new))
-        mmcore.waitForDevice("Z_Stage")
+        mmcore.setRelPosition(dz=float(self.z_step_size_doubleSpinBox.value()))
 
     def stage_z_down(self):
-        zpos = mmcore.getPosition("Z_Stage")
-        z_val = float(self.z_step_size_doubleSpinBox.value())
-        mmcore.setPosition("Z_Stage", zpos + (-z_val))
-        z_new = float(mmcore.getPosition("Z_Stage"))
-        self.z_lineEdit.setText(str("%.1f" % z_new))
-        mmcore.waitForDevice("Z_Stage")
+        mmcore.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
 
     def change_objective(self):
         if self.objective_comboBox.count() > 0:
             print("\nchanging objective...")
-            currentZ = mmcore.getPosition("Z_Stage")
+            currentZ = mmcore.getPosition(mmcore.PROP_FOCUS)
             print(f"currentZ: {currentZ}")
-            mmcore.setPosition("Z_Stage", 0)  # set low z position
-            mmcore.waitForDevice("Z_Stage")
+            mmcore.setPosition(mmcore.PROP_FOCUS, 0)  # set low z position
+            mmcore.waitForDevice(mmcore.PROP_FOCUS)
             print(self.objective_comboBox.currentText())
             mmcore.setProperty(
                 "Objective", "Label", self.objective_comboBox.currentText()
             )
             mmcore.waitForDevice("Objective")
-            print(f"downpos: {mmcore.getPosition('Z_Stage')}")
-            mmcore.setPosition("Z_Stage", currentZ)
-            mmcore.waitForDevice("Z_Stage")
-            print(f"upagain: {mmcore.getPosition('Z_Stage')}")
+            print(f"downpos: {mmcore.getPosition(mmcore.PROP_FOCUS)}")
+            mmcore.setPosition(mmcore.PROP_FOCUS, currentZ)
+            mmcore.waitForDevice(mmcore.PROP_FOCUS)
+            print(f"upagain: {mmcore.getPosition(mmcore.PROP_FOCUS)}")
             print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
 
             # define and set pixel size Config
@@ -442,25 +324,25 @@ class MainWindow(QtW.QMainWindow):
             mmcore.setPixelSizeConfig(curr_obj_name)
             print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
 
+            magnification = None
             # get magnification info from the objective
             for i in range(len(curr_obj_name)):
                 character = curr_obj_name[i]
                 if character == "X" or character == "x":
                     if i <= 3:
                         magnification_string = curr_obj_name[:i]
-                        self.magnification = int(magnification_string)
-                        print(f"Current Magnification: {self.magnification}X")
+                        magnification = int(magnification_string)
+                        print(f"Current Magnification: {magnification}X")
                     else:
-                        self.magnification = None
                         print(
                             "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                             "STARTING WITH e.g. 100X or 100x."
                         )
 
             # get and set image pixel sixe (x,y) for the current pixel size Config
-            if self.magnification is not None:
+            if magnification is not None:
                 self.image_pixel_size = (
-                    self.px_size_doubleSpinBox.value() / self.magnification
+                    self.px_size_doubleSpinBox.value() / magnification
                 )
                 # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
                 mmcore.setPixelSizeUm(
@@ -477,25 +359,10 @@ class MainWindow(QtW.QMainWindow):
     def snap(self):
         self.stop_live()
         mmcore.setExposure(int(self.exp_spinBox.value()))
-        # mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-        # mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
         mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
         # mmcore.waitForDevice('')
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
-
-        # binning = mmcore.getProperty(mmcore.getCameraDevice(), "Binning")
-        # print(f'Binning: {binning}')
-        # bit = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
-        # print(f'Bit Depth: {bit}')
-
-        try:  # display max and min gray values
-            min_v = np.min(self.viewer.layers["preview"].data)
-            self.min_val_lineEdit.setText(str(min_v))
-            max_v = np.max(self.viewer.layers["preview"].data)
-            self.max_val_lineEdit.setText(str(max_v))
-        except KeyError:
-            pass
 
     def start_live(self):
         from napari.qt import thread_worker
@@ -504,23 +371,16 @@ class MainWindow(QtW.QMainWindow):
         def live_mode():
             import time
 
+            camdev = mmcore.getCameraDevice()
+
             while True:
                 mmcore.setExposure(int(self.exp_spinBox.value()))
-                mmcore.setProperty("Cam", "Binning", self.bin_comboBox.currentText())
-                mmcore.setProperty("Cam", "PixelType", self.bit_comboBox.currentText())
+                mmcore.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
+                mmcore.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
                 mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
                 mmcore.snapImage()
                 yield mmcore.getImage()
-
-                try:
-                    min_v = np.min(self.viewer.layers["preview"].data)
-                    self.min_val_lineEdit.setText(str(min_v))
-                    max_v = np.max(self.viewer.layers["preview"].data)
-                    self.max_val_lineEdit.setText(str(max_v))
-                except KeyError:
-                    pass
-
-                time.sleep(0.03)
+                time.sleep(0.02)
 
         self.live_Button.setText("Stop")
         self.worker = live_mode()

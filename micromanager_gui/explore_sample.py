@@ -7,11 +7,11 @@ from qtpy import uic
 from qtpy.QtCore import Signal
 from skimage.transform import resize
 
-from .mmcore_pymmcore import MMCore
+from .qmmcore import QMMCore
 
-UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
+UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
 
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class ExploreSample(QtW.QWidget):

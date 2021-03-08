@@ -8,6 +8,44 @@ import numpy as np
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
+from traitlets.traitlets import Enum
+
+try:
+    from functools import wraps
+
+    from IPython import get_ipython
+    from IPython.core.interactiveshell import InteractiveShell
+
+    if not get_ipython():
+        raise ImportError()
+
+    def change_function(func):
+        @wraps(func)
+        def showtraceback(*args, **kwargs):
+            # extract exception type, value and traceback
+            etype, evalue, tb = sys.exc_info()
+            if isinstance(evalue, RuntimeError) and evalue.args:
+                obj = evalue.args[0]
+                if isinstance(obj, pymmcore.CMMError):
+                    evalue = RuntimeError(obj.getMsg())
+                return func(*args, exc_tuple=(etype, evalue, tb), **kwargs)
+            # otherwise run the original hook
+            return func(*args, **kwargs)
+
+        return showtraceback
+
+    InteractiveShell.showtraceback = change_function(InteractiveShell.showtraceback)
+except ImportError:
+    ehook = sys.excepthook
+
+    def swig_hook(typ, value, tb):
+        if isinstance(value, RuntimeError) and value.args:
+            obj = value.args[0]
+            if isinstance(obj, pymmcore.CMMError):
+                value = RuntimeError(obj.getMsg())
+        ehook(typ, value, tb)
+
+    sys.excepthook = swig_hook
 
 
 def find_micromanager():
@@ -30,7 +68,22 @@ def find_micromanager():
         print("could not find micromanager directory")
 
 
-class MMCore(QObject):
+class CoreProps(Enum):
+    AUTOFOCUS = "AutoFocus"
+    AUTOSHUTTER = "AutoShutter"
+    CAMERA = "Camera"
+    CHANNELGROUP = "ChannelGroup"
+    FOCUS = "Focus"
+    GALVO = "Galvo"
+    IMAGEPROCESSOR = "ImageProcessor"
+    INITIALIZE = "Initialize"
+    SLM = "SLM"
+    SHUTTER = "Shutter"
+    TIMEOUTMS = "TimeoutMs"
+    XYSTAGE = "XYStage"
+
+
+class QMMCore(QObject):
     properties_changed = Signal()
     property_changed = Signal(str, str, object)
     channel_group_changed = Signal(str)
@@ -86,8 +139,40 @@ class MMCore(QObject):
 
     @property
     def setQProperty(self):
-        # conflicts with QObject.setProperty
+        # conflicts with MMCore.setProperty
         return super().setProperty
+
+    def setRelPosition(self, dx=0, dy=0, dz=0):
+        if dx or dy:
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+            self._mmc.setXYPosition(x + dx, y + dy)
+        if dz:
+            z = self._mmc.getPosition(self.PROP_FOCUS)
+            self.setZPosition(z + dz)
+        self._mmc.waitForDevice(self.PROP_XYSTAGE)
+        self._mmc.waitForDevice(self.PROP_FOCUS)
+
+    def getZPosition(self):
+        return self._mmc.getPosition(self.PROP_FOCUS)
+
+    def setZPosition(self, val):
+        return self._mmc.setPosition(self.PROP_FOCUS, val)
+
+    @property
+    def PROP_FOCUS(self):
+        return self._mmc.getProperty("Core", CoreProps.FOCUS)
+
+    @property
+    def PROP_XYSTAGE(self):
+        return self._mmc.getProperty("Core", CoreProps.XYSTAGE)
+
+    @property
+    def PROP_CAMERA(self):
+        return self._mmc.getProperty("Core", CoreProps.CAMERA)
+
+    @property
+    def PROP_SHUTTER(self):
+        return self._mmc.getProperty("Core", CoreProps.SHUTTER)
 
     def run_mda(self, experiment, stack, cnt):
 

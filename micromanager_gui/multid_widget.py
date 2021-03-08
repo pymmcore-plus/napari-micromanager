@@ -10,13 +10,13 @@ from qtpy import uic
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFileDialog
 
-from .mmcore_pymmcore import MMCore
+from .qmmcore import QMMCore
 
 icon_path = Path(__file__).parent / "icons"
 
-UI_FILE = str(Path(__file__).parent / "multid_gui.ui")
+UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
 
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class Frame(NamedTuple):

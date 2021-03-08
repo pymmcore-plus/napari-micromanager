@@ -12,13 +12,13 @@ from qtpy import uic
 from qtpy.QtWidgets import QFileDialog
 from skimage import io
 
-from .mmcore_pymmcore import MMCore
+from .qmmcore import QMMCore
 
 icon_path = Path(__file__).parent / "icons"
 
-UI_FILE = str(Path(__file__).parent / "optocamp_gui.ui")
+UI_FILE = str(Path(__file__).parent / "_ui" / "optocamp_gui.ui")
 
-mmcore = MMCore()
+mmcore = QMMCore()
 
 
 class OptocampWidget(QtW.QWidget):
