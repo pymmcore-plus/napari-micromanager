@@ -32,7 +32,7 @@ def mac_main():
     run(["hdiutil", "attach", "-nobrowse", fname], check=True)
     src = f"/Volumes/Micro-Manager/{fname[:-4]}"
     dst = Path(__file__).parent / f"{fname[:-4]}_mac"
-    shutil.copytree(src, dst, dirs_exist_ok=True)
+    shutil.copytree(src, dst)
     run(["hdiutil", "detach", "/Volumes/Micro-Manager"], check=True)
     os.unlink(fname)
     # fix gatekeeper ... requires password
