@@ -6,6 +6,7 @@ curl -k $URL -o mm.dmg
 hdiutil attach -nobrowse mm.dmg
 echo copying...
 cp -r /Volumes/Micro-Manager/Micro-Manager-* micromanager_gui
+ls micromanager_gui
 rm mm.dmg
 hdiutil detach /Volumes/Micro-Manager
 # fix gatekeeper ... requires password
