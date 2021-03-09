@@ -40,9 +40,6 @@ def mac_main():
     # # fix path randomization
     os.rename(dst / "ImageJ.app", "ImageJ.app")
     os.rename("ImageJ.app", dst / "ImageJ.app")
-    print(f"Finished install, {Path(__file__).parent} files:")
-    print(os.listdir(Path(__file__).parent))
-    print(os.listdir(dst))
 
 
 def win_main():
