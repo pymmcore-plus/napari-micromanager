@@ -12,42 +12,44 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-try:
-    from functools import wraps
 
-    from IPython import get_ipython
-    from IPython.core.interactiveshell import InteractiveShell
+def patch_swig_errors():
+    try:
+        from functools import wraps
 
-    if not get_ipython():
-        raise ImportError()
+        from IPython import get_ipython
+        from IPython.core.interactiveshell import InteractiveShell
 
-    def change_function(func):
-        @wraps(func)
-        def showtraceback(*args, **kwargs):
-            # extract exception type, value and traceback
-            etype, evalue, tb = sys.exc_info()
-            if isinstance(evalue, RuntimeError) and evalue.args:
-                obj = evalue.args[0]
+        if not get_ipython():
+            raise ImportError()
+
+        def change_function(func):
+            @wraps(func)
+            def showtraceback(*args, **kwargs):
+                # extract exception type, value and traceback
+                etype, evalue, tb = sys.exc_info()
+                if isinstance(evalue, RuntimeError) and evalue.args:
+                    obj = evalue.args[0]
+                    if isinstance(obj, pymmcore.CMMError):
+                        evalue = RuntimeError(obj.getMsg())
+                    return func(*args, exc_tuple=(etype, evalue, tb), **kwargs)
+                # otherwise run the original hook
+                return func(*args, **kwargs)
+
+            return showtraceback
+
+        InteractiveShell.showtraceback = change_function(InteractiveShell.showtraceback)
+    except ImportError:
+        ehook = sys.excepthook
+
+        def swig_hook(typ, value, tb):
+            if isinstance(value, RuntimeError) and value.args:
+                obj = value.args[0]
                 if isinstance(obj, pymmcore.CMMError):
-                    evalue = RuntimeError(obj.getMsg())
-                return func(*args, exc_tuple=(etype, evalue, tb), **kwargs)
-            # otherwise run the original hook
-            return func(*args, **kwargs)
+                    value = RuntimeError(obj.getMsg())
+            ehook(typ, value, tb)
 
-        return showtraceback
-
-    InteractiveShell.showtraceback = change_function(InteractiveShell.showtraceback)
-except ImportError:
-    ehook = sys.excepthook
-
-    def swig_hook(typ, value, tb):
-        if isinstance(value, RuntimeError) and value.args:
-            obj = value.args[0]
-            if isinstance(obj, pymmcore.CMMError):
-                value = RuntimeError(obj.getMsg())
-        ehook(typ, value, tb)
-
-    sys.excepthook = swig_hook
+        sys.excepthook = swig_hook
 
 
 def find_micromanager():
@@ -112,6 +114,7 @@ class QMMCore(QObject):
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
+        patch_swig_errors()
 
     def __getattr__(self, name):
         return getattr(self._mmc, name)
