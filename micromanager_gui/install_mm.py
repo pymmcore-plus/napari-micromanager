@@ -42,6 +42,7 @@ def mac_main():
     os.rename("ImageJ.app", dst / "ImageJ.app")
     print(f"Finished install, {Path(__file__).parent} files:")
     print(os.listdir(Path(__file__).parent))
+    print(os.listdir(dst))
 
 
 def win_main():

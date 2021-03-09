@@ -58,13 +58,15 @@ def find_micromanager():
     env_path = os.getenv("MICROMANAGER_PATH")
     if env_path and os.path.isdir(env_path):
         return env_path
-
+    print("NO env var mm")
     # then look for an installation in this folder (use `install_mm.sh` to install)
     sfx = "_win" if os.name == "nt" else "_mac"
     local_install = list(Path(__file__).parent.glob(f"Micro-Manager*{sfx}"))
     if local_install:
+        print("returning local install at ", str(local_install[0]))
         return str(local_install[0])
 
+    print("NO LOCAL INSTALL FOUND")
     # lastly, look in the applications folder
     try:
         if sys.platform == "darwin":
@@ -112,6 +114,7 @@ class QMMCore(QObject):
         if not adapter_paths:
             adapter_paths = [find_micromanager()]
             logger.info(f"Micromanager path: {adapter_paths}")
+        print("ADAPTER PATHS:", adapter_paths)
         self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
