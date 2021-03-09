@@ -14,7 +14,8 @@ def progressBar(current, chunksize, total, barLength=40):
     percent = float(current * chunksize) * 100 / total
     arrow = "-" * int(percent / 100 * barLength - 1) + ">"
     spaces = " " * (barLength - len(arrow))
-    print("Progress: [%s%s] %d %%" % (arrow, spaces, percent), end="\r")
+    if not os.getenv("CI"):
+        print("Progress: [%s%s] %d %%" % (arrow, spaces, percent), end="\r")
 
 
 def download_url(url, output_path):
@@ -39,6 +40,8 @@ def mac_main():
     # # fix path randomization
     os.rename(dst / "ImageJ.app", "ImageJ.app")
     os.rename("ImageJ.app", dst / "ImageJ.app")
+    print(f"Finished install, {Path(__file__).parent} files:")
+    print(os.listdir(Path(__file__).parent))
 
 
 def win_main():
