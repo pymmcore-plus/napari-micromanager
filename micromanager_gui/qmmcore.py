@@ -169,7 +169,7 @@ class QMMCore(QObject):
             print("Select at least one channel.")
             return
 
-        t0 = time.perf_counter()  # reference time,  in seconds
+        t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
         for frame in progress:
             elapsed = time.perf_counter() - t0
