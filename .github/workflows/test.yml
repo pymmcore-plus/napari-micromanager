@@ -53,7 +53,6 @@ jobs:
         run: tox
         env:
           PLATFORM: ${{ matrix.platform }}
-          MICROMANAGER_PATH: mm/Micro-Manager
 
       - name: Coverage
         uses: codecov/codecov-action@v1

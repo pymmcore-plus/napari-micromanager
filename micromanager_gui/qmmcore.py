@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -8,6 +9,8 @@ import numpy as np
 import pymmcore
 from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 try:
     from functools import wraps
@@ -48,23 +51,29 @@ except ImportError:
 
 
 def find_micromanager():
+    # environment variable takes precedence
     env_path = os.getenv("MICROMANAGER_PATH")
     if env_path and os.path.isdir(env_path):
         return env_path
+    # then look for an installation in this folder (use `install_mm.sh` to install)
+    local_install = list(Path(__file__).parent.glob("Micro-Manager*"))
+    if local_install:
+        return str(local_install[0])
+    # lastly, look in the applications folder
     try:
         if sys.platform == "darwin":
             mm_path = str(next(Path("/Applications/").glob("Micro-Manager*")))
             return mm_path
 
         if sys.platform == "win32":
-            mm_path = str(next(Path("C:/Program Files/").glob("Micro-Manager-2*")))
+            mm_path = str(next(Path("C:/Program Files/").glob("Micro-Manager*")))
             return mm_path
 
         raise NotImplementedError(
             f"MM autodiscovery not implemented for platform: {sys.platform}"
         )
     except StopIteration:
-        print("could not find micromanager directory")
+        logger.error("could not find micromanager directory")
 
 
 class QMMCore(QObject):
@@ -98,7 +107,7 @@ class QMMCore(QObject):
         self._mmc = pymmcore.CMMCore()
         if not adapter_paths:
             adapter_paths = [find_micromanager()]
-            print(f"Micromanager path: {adapter_paths}")
+            logger.info(f"Micromanager path: {adapter_paths}")
         self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
@@ -113,7 +122,7 @@ class QMMCore(QObject):
     def loadSystemConfiguration(self, file="demo"):
         if file.lower() == "demo":
             file = (Path(find_micromanager()) / "MMConfig_demo.cfg").resolve()
-            print(file)
+        logger.info(f"loading config at {file}")
         self._mmc.loadSystemConfiguration(str(file))
 
     @property
@@ -207,44 +216,33 @@ class CallbackRelay(pymmcore.MMEventCallback):
 
     def onPropertiesChanged(self):
         self._emitter.properties_changed.emit()
-        print("onPropertiesChanged")
 
     def onPropertyChanged(self, dev_name: str, prop_name: str, prop_val: str):
         self._emitter.property_changed.emit(dev_name, prop_name, prop_val)
-        print("onPropertyChanged", dev_name, prop_name, prop_val)
 
     def onChannelGroupChanged(self, new_channel_group_name: str):
         self._emitter.channel_group_changed.emit(new_channel_group_name)
-        print("onChannelGroupChanged", new_channel_group_name)
 
     def onConfigGroupChanged(self, group_name: str, new_config_name: str):
         self._emitter.config_group_changed.emit(group_name, new_config_name)
-        print("onConfigGroupChanged", group_name, new_config_name)
 
     def onSystemConfigurationLoaded(self):
         self._emitter.system_configuration_loaded.emit()
-        print("onSystemConfigurationLoaded")
 
     def onPixelSizeChanged(self, new_pixel_size_um: float):
         self._emitter.pixel_size_changed.emit(new_pixel_size_um)
-        print("onPixelSizeChanged", new_pixel_size_um)
 
     def onPixelSizeAffineChanged(self, v0, v1, v2, v3, v4, v5):
         self._emitter.pixel_size_affine_changed.emit(v0, v1, v2, v3, v4, v5)
-        print("onPixelSizeAffineChanged")
 
     def onStagePositionChanged(self, name: str, pos: float):
         self._emitter.stage_position_changed.emit(name, pos)
-        print("onStagePositionChanged", name, pos)
 
     def onXYStagePositionChanged(self, name: str, xpos: float, ypos: float):
         self._emitter.xy_stage_position_changed.emit(name, xpos, ypos)
-        print("onXYStagePositionChanged", name, xpos, ypos)
 
     def onExposureChanged(self, name: str, new_exposure: float):
         self._emitter.exposure_changed.emit(name, new_exposure)
-        print("onExposureChanged", name, new_exposure)
 
     def onSLMExposureChanged(self, name: str, new_exposure: float):
         self._emitter.slm_exposure_changed.emit(name, new_exposure)
-        print("onSLMExposureChanged", name, new_exposure)
