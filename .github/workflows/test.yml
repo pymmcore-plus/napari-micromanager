@@ -40,13 +40,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools tox tox-gh-actions
 
-      - name: Install Micro-Manager
-        if: runner.os == 'Windows'
-        run: .\install_mm.ps1
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: micromanager_gui/Micro-Manager-*
+          key: ${{ hashFiles('micromanager_gui/install_mm.py') }}
 
       - name: Install Micro-Manager
-        if: runner.os == 'macOS'
-        run: sh install_mm.sh
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: python micromanager_gui/install_mm.py
 
       # this runs the platform-specific tests declared in tox.ini
       - name: Test with tox
