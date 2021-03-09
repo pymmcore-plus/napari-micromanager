@@ -8,6 +8,8 @@
 
 GUI interface between napari and micromanager
 
+🚧 Experimental!  Work in progress!  Here be 🐲 🚧
+
 ----------------------------------
 
 This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [cookiecutter-napari-plugin] template.
