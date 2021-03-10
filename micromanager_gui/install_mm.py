@@ -48,11 +48,12 @@ def win_main():
     url = "https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Windows/"
     fname = f"MMSetup_64bit_2.0.0-gamma1_{release}.exe"
     download_url(f"{url}{fname}", fname)
-    dst = Path(__file__).parent / f'Micro-Manager-2.0.0-gamma1-{release}_win'
+    dst = Path(__file__).parent / f"Micro-Manager-2.0.0-gamma1-{release}_win"
     run(
         [fname, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", f"/DIR={dst}"],
         check=True,
     )
+    os.unlink(fname)
 
 
 if __name__ == "__main__":
