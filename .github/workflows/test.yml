@@ -48,7 +48,7 @@ jobs:
           key: ${{ hashFiles('micromanager_gui/install_mm.py') }}
 
       - name: Install Micro-Manager
-        # if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: python micromanager_gui/install_mm.py
 
       - name: Test
