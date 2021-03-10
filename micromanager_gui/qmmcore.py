@@ -55,6 +55,7 @@ def patch_swig_errors():
 def find_micromanager():
     """Locate a Micro-Manager folder (for device adapters)."""
     # environment variable takes precedence
+    print("path", Path(__file__).parent)
     print(os.listdir(Path(__file__).parent))
     env_path = os.getenv("MICROMANAGER_PATH")
     if env_path and os.path.isdir(env_path):

@@ -32,6 +32,7 @@ def mac_main():
     run(["hdiutil", "attach", "-nobrowse", fname], check=True)
     src = f"/Volumes/Micro-Manager/{fname[:-4]}"
     dst = Path(__file__).parent / f"{fname[:-4]}_mac"
+    print("copied to", dst)
     shutil.copytree(src, dst)
     run(["hdiutil", "detach", "/Volumes/Micro-Manager"], check=True)
     os.unlink(fname)
