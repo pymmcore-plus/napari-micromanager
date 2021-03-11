@@ -207,8 +207,9 @@ class MainWindow(QtW.QMainWindow):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
-        x, y = mmcore.getXPosition(), mmcore.getYPosition()
-        self._on_xy_stage_position_changed(mmcore.getXYStageDevice(), x, y)
+        if mmcore.getXYStageDevice():
+            x, y = mmcore.getXPosition(), mmcore.getYPosition()
+            self._on_xy_stage_position_changed(mmcore.getXYStageDevice(), x, y)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -309,7 +310,7 @@ class MainWindow(QtW.QMainWindow):
     def snap(self):
         self.stop_live()
         mmcore.setExposure(int(self.exp_spinBox.value()))
-        mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
+        # mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
         # mmcore.waitForDevice('')
         mmcore.snapImage()
         self.update_viewer(mmcore.getImage())
