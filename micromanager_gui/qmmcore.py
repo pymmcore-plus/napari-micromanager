@@ -113,11 +113,21 @@ class QMMCore(QObject):
         self._mmc = pymmcore.CMMCore()
         if not adapter_paths:
             adapter_paths = [find_micromanager()]
-        logger.info(f"using adapter search paths: {adapter_paths}")
-        self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
+        self.setDeviceAdapterSearchPaths(adapter_paths)
+
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
+
+    def setDeviceAdapterSearchPaths(self, adapter_paths):
+        # add to PATH as well for dynamic dlls
+        logger.info(f"setting adapter search paths: {adapter_paths}")
+        env_path = os.environ["PATH"]
+        for p in adapter_paths:
+            if p not in env_path:
+                env_path = p + os.pathsep + env_path
+        os.environ["PATH"] = env_path
+        self._mmc.setDeviceAdapterSearchPaths(adapter_paths)
 
     def __getattr__(self, name):
         return getattr(self._mmc, name)
