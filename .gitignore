@@ -141,4 +141,8 @@ cython_debug/
 .DS_Store
 
 micromanager_gui/_version.py
-mm/*
+
+micromanager_gui/Micro-Manager-*
+micromanager_gui/qmmcore.py
+MMSetup_*.exe
+.cenv
