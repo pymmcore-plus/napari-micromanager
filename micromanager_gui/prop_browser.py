@@ -165,17 +165,20 @@ class PropTable(Table):
 
 
 def get_editor_widget(prop: PropertyItem) -> Widget:
+    wdg = None
     if prop.allowed:
-        return ComboBox(value=prop.value, choices=prop.allowed)
+        wdg = ComboBox(value=prop.value, choices=prop.allowed)
 
-    if prop.has_range:
+    elif prop.has_range:
         cls = FloatSlider if PropertyType(prop.prop_type).name == "Float" else Slider
         wdg = cls(value=float(prop.value), min=prop.lower_lim, max=prop.upper_lim)
-        wdg.changed.connect(
-            lambda e: mmc.setProperty(prop.device, prop.name, float(e.value))
-        )
-        return wdg
-    return prop.value
+
+    else:
+        wdg = LineEdit(value=prop.value)
+    wdg.changed.connect(
+        lambda e: mmc.setProperty(prop.device, prop.name, float(e.value))
+    )
+    return wdg
 
 
 def make_checkboxes(pt):
@@ -223,6 +226,9 @@ class PropBrowser(Container):
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(level="DEBUG")
     mmc = QMMCore()
     mmc.loadSystemConfiguration()
     pb = PropBrowser()

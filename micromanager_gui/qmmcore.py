@@ -4,6 +4,7 @@ import sys
 import time
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
 import numpy as np
 import pymmcore
@@ -141,15 +142,15 @@ class QMMCore(QObject):
         logger.info(f"loading config at {file}")
         self._mmc.loadSystemConfiguration(str(file))
 
-    @property
-    def setProperty(self):
+    def setProperty(self, device_label: str, property: str, value: Any):
         # conflicts with QObject.setProperty
-        return self._mmc.setProperty
+        logger.debug(f"Setting {device_label}.{property} = {value!r}")
+        return self._mmc.setProperty(device_label, property, value)
 
     @property
     def setQProperty(self):
         # conflicts with MMCore.setProperty
-        return super().setProperty
+        return QObject.setProperty
 
     def setRelPosition(self, dx=0, dy=0, dz=0):
         if dx or dy:
