@@ -3,6 +3,8 @@ from typing import Sequence, Tuple, overload
 
 from PyQt5.QtCore import QObject
 
+from ._mda_sequence import MDASequence
+
 class Configuration:
     pass
 
@@ -496,3 +498,4 @@ class QMMCore(QObject):
     def getUserId(self) -> str: ...
     def getHostName(self) -> str: ...
     def getMACAddresses(self, void) -> Tuple[str]: ...
+    def run_mda(self, experiment: MDASequence) -> None: ...

@@ -4,7 +4,7 @@ import sys
 import time
 from pathlib import Path
 from textwrap import dedent
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pymmcore
@@ -12,6 +12,9 @@ from qtpy.QtCore import QObject, Signal
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from ._mda_sequence import MDASequence
 
 
 def patch_swig_errors():
@@ -168,18 +171,9 @@ class QMMCore(QObject):
     def setZPosition(self, val):
         return self._mmc.setPosition(self._mmc.getFocusDevice(), val)
 
-    def run_mda(self, experiment, stack, cnt):
+    def run_mda(self, experiment: MDASequence):
 
-        if len(self._mmc.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
-            return
-
-        print("")
         print(f"running {repr(experiment)}")
-
-        if not experiment.channels:
-            print("Select at least one channel.")
-            return
 
         t0 = time.perf_counter()  # reference time, in seconds
         progress = tqdm(experiment)  # this gives us a progress bar in the console
@@ -194,16 +188,6 @@ class QMMCore(QObject):
             xpos, ypos, z_midpoint = frame.p
             channel_name, exposure_ms = frame.c
 
-            t_index = experiment.time_deltas.index(frame.t)
-            p_index = experiment.stage_positions.index(frame.p)
-            z_index = experiment.z_positions.index(frame.z)
-            c_index = experiment.channels.index(frame.c)
-
-            # print(f'frame.t:{frame.t}, t_index:{t_index}')
-            # print(f'frame.p:{frame.p}, p_index:{p_index}')
-            # print(f'frame.z:{frame.z}, z_index:{z_index}')
-            # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
-
             self._mmc.setXYPosition(xpos, ypos)
             self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
             self._mmc.setExposure(exposure_ms)
@@ -211,9 +195,7 @@ class QMMCore(QObject):
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
-            stack[t_index, z_index, c_index, :, :] = img
-
-            self.stack_to_viewer.emit(stack, cnt, p_index)
+            self.stack_to_viewer.emit(img, frame)
 
         summary = """
         ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾

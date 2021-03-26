@@ -6,7 +6,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 
-from ._experiment import MDASequence
+from ._mda_sequence import MDASequence
 from .qmmcore import QMMCore
 
 ICONS = Path(__file__).parent / "icons"
@@ -23,7 +23,7 @@ class MultiDWidget(QtW.QWidget):
     browse_save_Button: QtW.QPushButton
 
     channel_groupBox: QtW.QGroupBox
-    channel_tableWidget: QtW.QTableWidget
+    channel_tableWidget: QtW.QTableWidget  # TODO: extract
     add_ch_Button: QtW.QPushButton
     clear_ch_Button: QtW.QPushButton
     remove_ch_Button: QtW.QPushButton
@@ -38,7 +38,7 @@ class MultiDWidget(QtW.QWidget):
     step_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     stage_pos_groupBox: QtW.QGroupBox
-    stage_tableWidget: QtW.QTableWidget
+    stage_tableWidget: QtW.QTableWidget  # TODO: extract
     add_pos_Button: QtW.QPushButton
     clear_pos_Button: QtW.QPushButton
     remove_pos_Button: QtW.QPushButton
@@ -70,7 +70,7 @@ class MultiDWidget(QtW.QWidget):
 
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
 
-        self.run_Button.clicked.connect(self.run)
+        self.run_Button.clicked.connect(self._on_run_clicked)
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
@@ -168,16 +168,6 @@ class MultiDWidget(QtW.QWidget):
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-    # TODO: go back to threading in a bit...
-    # def acquisition_order(self):
-    #     if self.acquisition_order_comboBox.currentText()=='tpzcxy':
-    #         with concurrent.futures.ThreadPoolExecutor() as executor:
-    #             executor.submit(self.run_multi_d_acq_tpzcxy())
-    #     #elif:
-
-    def mda_summary_string(self):
-        pass
-
     # create stack array
     def create_stack_array(self, tp, Zp, nC):  # np.concatenate
         width = mmcore.getROI(mmcore.getCameraDevice())[2]
@@ -238,31 +228,19 @@ class MultiDWidget(QtW.QWidget):
 
         return state
 
-    # function is exequted when run_Button is clicked
+    # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
-    def run(self):
+    def _on_run_clicked(self):
+        if len(mmcore.getLoadedDevices()) < 2:
+            print("Load a cfg file first.")
+            return
 
-        self.cnt = (
-            self.cnt + 1
-        )  # count every time the "Run button is pressed" - define the experiment number
-
-        nC = self.channel_tableWidget.rowCount()  # n of channels
-        Tp = (
-            self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
-        )  # n of timepoints
-        Zp = (
-            self.step_spinBox.value() if self.stack_groupBox.isChecked() else 1
-        )  # n of z steps
-
-        stack = self.create_stack_array(
-            Tp, Zp, nC
-        )  # create empty stack to use in mmcore.run_mda(...)
+        if not self.channel_tableWidget.rowCount() > 0:
+            print("Select at least one channel.")
+            return
 
         experiment = MDASequence(**self._get_state_dict())
-
-        mmcore.run_mda(
-            experiment, stack, self.cnt
-        )  # run the MDA acquisition experiment
+        mmcore.run_mda(experiment)  # run the MDA acquisition experiment
 
 
 if __name__ == "__main__":
