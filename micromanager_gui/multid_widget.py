@@ -5,8 +5,8 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
+from useq import MDASequence
 
-from ._mda_sequence import MDASequence
 from .qmmcore import QMMCore
 
 ICONS = Path(__file__).parent / "icons"
@@ -34,7 +34,7 @@ class MultiDWidget(QtW.QWidget):
     time_comboBox: QtW.QComboBox
 
     stack_groupBox: QtW.QGroupBox
-    step_spinBox: QtW.QSpinBox
+    zrange_spinBox: QtW.QSpinBox
     step_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     stage_pos_groupBox: QtW.QGroupBox
@@ -118,7 +118,7 @@ class MultiDWidget(QtW.QWidget):
         if len(dev_loaded) > 1:
             x = mmcore.getXPosition()
             y = mmcore.getYPosition()
-            z = mmcore.getPosition("Z_Stage")
+            z = mmcore.getZPosition()
 
             x_txt = QtW.QTableWidgetItem(str(x))
             y_txt = QtW.QTableWidgetItem(str(y))
@@ -174,58 +174,59 @@ class MultiDWidget(QtW.QWidget):
         height = mmcore.getROI(mmcore.getCameraDevice())[3]
         bitd = mmcore.getProperty(mmcore.getCameraDevice(), "BitDepth")
         dt = f"uint{bitd}"
-        mda_stack = np.empty((tp, Zp, nC, height, width), dtype=dt)
-        return mda_stack
+        return np.empty((tp, Zp, nC, height, width), dtype=dt)
 
     def _get_state_dict(self) -> dict:
         state = {
-            "acquisition_order": self.acquisition_order_comboBox.currentText(),
+            "axis_order": self.acquisition_order_comboBox.currentText(),
             "channels": [],
             "stage_positions": [],
+            "z_plan": None,
+            "time_plan": None,
         }
-        for c in range(self.channel_tableWidget.rowCount()):
-            ch = self.channel_tableWidget.cellWidget(c, 0).currentText()
-            exp = self.channel_tableWidget.cellWidget(c, 1).value()
-            state["channels"].append((ch, exp))
-
-        # Z settings
-        # TODO: restrict the spinbox to >= 1
-        if self.stack_groupBox.isChecked():
-            n_steps = self.step_spinBox.value()
-            stepsize = self.step_size_doubleSpinBox.value()
-        else:
-            n_steps = 1
-            stepsize = 0
-        half = stepsize * ((max(1, n_steps) - 1) / 2)
-        state["z_positions"] = list(np.linspace(-half, half, n_steps))
-
-        # timelapse settings
-        # TODO: restrict nTime to >= 1
-        # TODO: restrict interval to >= 1 ms
-        nt = self.timepoints_spinBox.value() if self.time_groupBox.isChecked() else 1
-        nt = max(1, nt)
-        interval = self.interval_spinBox.value()
-        # convert interval  ms
-        interval *= {"min": 60000, "sec": 1000, "ms": 1}[
-            self.time_comboBox.currentText()
+        state["channels"] = [
+            {
+                "config": self.channel_tableWidget.cellWidget(c, 0).currentText(),
+                "group": mmcore.getChannelGroup(),
+                "exposure": self.channel_tableWidget.cellWidget(c, 1).value(),
+            }
+            for c in range(self.channel_tableWidget.rowCount())
         ]
-        state["time_deltas"] = list(np.arange(nt) * interval)
+        if self.stack_groupBox.isChecked():
+            state["z_plan"] = {
+                "range": self.zrange_spinBox.value(),
+                "step": self.step_size_doubleSpinBox.value(),
+            }
+        if self.time_groupBox.isChecked():
+            unit = {"min": "minutes", "sec": "seconds", "ms": "milliseconds"}[
+                self.time_comboBox.currentText()
+            ]
+            state["time_plan"] = {
+                "interval": {unit: self.interval_spinBox.value()},
+                "loops": self.timepoints_spinBox.value(),
+            }
 
         # position settings
         if (
             self.stage_pos_groupBox.isChecked()
             and self.stage_tableWidget.rowCount() > 0
         ):
-            for row in range(self.stage_tableWidget.rowCount()):
-                xp = float(self.stage_tableWidget.item(row, 0).text())
-                yp = float(self.stage_tableWidget.item(row, 1).text())
-                zp = float(self.stage_tableWidget.item(row, 2).text())
-                state["stage_positions"].append((xp, yp, zp))
+            for r in range(self.stage_tableWidget.rowCount()):
+                state["stage_positions"].append(
+                    {
+                        "x": float(self.stage_tableWidget.item(r, 0).text()),
+                        "y": float(self.stage_tableWidget.item(r, 1).text()),
+                        "z": float(self.stage_tableWidget.item(r, 2).text()),
+                    }
+                )
         else:
-            xp, yp = float(mmcore.getXPosition()), float(mmcore.getYPosition())
-            zp = float(mmcore.getPosition("Z_Stage"))
-            state["stage_positions"].append((xp, yp, zp))
-
+            state["stage_positions"].append(
+                {
+                    "x": float(mmcore.getXPosition()),
+                    "y": float(mmcore.getYPosition()),
+                    "z": float(mmcore.getZPosition()),
+                }
+            )
         return state
 
     # function is executed when run_Button is clicked

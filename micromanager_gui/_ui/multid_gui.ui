@@ -39,8 +39,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>481</width>
-        <height>671</height>
+        <width>478</width>
+        <height>656</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout_6">
@@ -410,10 +410,19 @@
              </size>
             </property>
             <property name="minimum">
-             <double>0.010000000000000</double>
+             <double>0.050000000000000</double>
             </property>
             <property name="maximum">
              <double>10000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.050000000000000</double>
+            </property>
+            <property name="stepType">
+             <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
+            </property>
+            <property name="value">
+             <double>0.500000000000000</double>
             </property>
            </widget>
           </item>
@@ -431,7 +440,7 @@
            </widget>
           </item>
           <item row="0" column="2">
-           <widget class="QSpinBox" name="step_spinBox">
+           <widget class="QSpinBox" name="zrange_spinBox">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -470,7 +479,7 @@
              </size>
             </property>
             <property name="text">
-             <string>Steps:</string>
+             <string>Range (µm):</string>
             </property>
            </widget>
           </item>

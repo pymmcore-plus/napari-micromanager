@@ -14,7 +14,7 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from ._mda_sequence import MDASequence
+    from useq import MDASequence
 
 
 def patch_swig_errors():
@@ -122,6 +122,13 @@ class QMMCore(QObject):
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
+        self.system_configuration_loaded.connect(self._on_system_configuration_loaded)
+
+    def _on_system_configuration_loaded(self):
+        for g in self._mmc.getAvailableConfigGroups():
+            if g.lower() == "channel":
+                self._mmc.setChannelGroup(g)
+                break
 
     def setDeviceAdapterSearchPaths(self, adapter_paths):
         # add to PATH as well for dynamic dlls
@@ -171,7 +178,7 @@ class QMMCore(QObject):
     def setZPosition(self, val):
         return self._mmc.setPosition(self._mmc.getFocusDevice(), val)
 
-    def run_mda(self, experiment: MDASequence):
+    def run_mda(self, experiment: "MDASequence"):
 
         print(f"running {repr(experiment)}")
 
