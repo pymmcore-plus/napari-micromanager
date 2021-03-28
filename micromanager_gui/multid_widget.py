@@ -1,18 +1,15 @@
 from pathlib import Path
 
-import numpy as np
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 from useq import MDASequence
 
-from .qmmcore import QMMCore
+from .qmmcore import mmcore
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
-
-mmcore = QMMCore()
 
 
 class MultiDWidget(QtW.QWidget):
@@ -168,14 +165,6 @@ class MultiDWidget(QtW.QWidget):
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-    # create stack array
-    def create_stack_array(self, tp, Zp, nC):  # np.concatenate
-        width = mmcore.getROI(mmcore.getCameraDevice())[2]
-        height = mmcore.getROI(mmcore.getCameraDevice())[3]
-        bitd = mmcore.getProperty(mmcore.getCameraDevice(), "BitDepth")
-        dt = f"uint{bitd}"
-        return np.empty((tp, Zp, nC, height, width), dtype=dt)
-
     def _get_state_dict(self) -> dict:
         state = {
             "axis_order": self.acquisition_order_comboBox.currentText(),
@@ -241,7 +230,7 @@ class MultiDWidget(QtW.QWidget):
             return
 
         experiment = MDASequence(**self._get_state_dict())
-        mmcore.run_mda(experiment)  # run the MDA acquisition experiment
+        return mmcore.submit("run_mda", (experiment,))  # run the MDA experiment
 
 
 if __name__ == "__main__":

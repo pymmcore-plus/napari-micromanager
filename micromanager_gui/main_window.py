@@ -8,15 +8,13 @@ from qtpy.QtGui import QIcon
 
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
-from .qmmcore import QMMCore
+from .qmmcore import mmcore
 
 if TYPE_CHECKING:
     import napari
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
-
-mmcore = QMMCore()
 
 
 class MainWindow(QtW.QMainWindow):
@@ -66,10 +64,14 @@ class MainWindow(QtW.QMainWindow):
 
         self.cfg_LineEdit.setText("demo")
 
-        mmcore.system_configuration_loaded.connect(self._on_system_configuration_loaded)
-        mmcore.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
-        mmcore.stage_position_changed.connect(self._on_stage_position_changed)
-        mmcore.stack_to_viewer.connect(self.add_stack_mda)
+        mmcore.worker.system_configuration_loaded.connect(
+            self._on_system_configuration_loaded
+        )
+        mmcore.worker.xy_stage_position_changed.connect(
+            self._on_xy_stage_position_changed
+        )
+        mmcore.worker.stage_position_changed.connect(self._on_stage_position_changed)
+        mmcore.worker.mda_frame_ready.connect(self._on_mda_frame)
 
         # create MultiDWidget() widgets
         self.mda = MultiDWidget()
@@ -128,14 +130,12 @@ class MainWindow(QtW.QMainWindow):
         self.live_Button.setIconSize(QSize(40, 40))
 
         # connect comboBox
-        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        # self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
     def delete_layer(self, name):
-        layer_set = set()
-        for layer in self.viewer.layers:
-            layer_set.add(str(layer))
+        layer_set = {str(layer) for layer in self.viewer.layers}
         if name in layer_set:
             self.viewer.layers.remove(name)
         layer_set.clear()
@@ -149,13 +149,14 @@ class MainWindow(QtW.QMainWindow):
             self.viewer.add_image(array, name=layer_name)
 
     # TO DO: add the file name form the save box
-    def add_stack_mda(self, stack, cnt, xy_pos):
-        name = f"Exp{cnt}_Pos{xy_pos}"
+    def _on_mda_frame(self, img, event):
+        print("RECVEIVE FRAME")
+        name = "mda"
         try:
             layer = self.viewer.layers[name]
-            layer.data = stack
+            layer.data = img
         except KeyError:
-            self.viewer.add_image(stack, name=name)
+            self.viewer.add_image(img, name=name)
 
     def browse_cfg(self):
         mmcore.unloadAllDevices()  # unload all devicies
@@ -221,7 +222,9 @@ class MainWindow(QtW.QMainWindow):
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
             bins = self.bin_comboBox.currentText()
-            mmcore.setProperty(mmcore.getCameraDevice(), "Binning", bins)
+            cd = mmcore.getCameraDevice()
+            print("cd", cd)
+            mmcore.setProperty(cd, "Binning", bins)
             print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
 
     def _on_xy_stage_position_changed(self, name, x, y):
@@ -281,7 +284,7 @@ class MainWindow(QtW.QMainWindow):
         # get magnification info from the objective
         for i in range(len(curr_obj_name)):
             character = curr_obj_name[i]
-            if character == "X" or character == "x":
+            if character in ["X", "x"]:
                 if i <= 3:
                     magnification_string = curr_obj_name[:i]
                     magnification = int(magnification_string)
