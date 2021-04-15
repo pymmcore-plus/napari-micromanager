@@ -96,22 +96,20 @@ class QMMCore(QObject):
     xy_stage_position_changed = Signal(str, float, float)
     exposure_changed = Signal(str, float)
     slm_exposure_changed = Signal(str, float)
-    resultReady = Signal(object)
-
-    __instance = None
-
     mda_frame_ready = Signal(np.ndarray, MDAEvent)
+    
+    # __instance = None
 
-    # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
-    def __new__(cls) -> pymmcore.CMMCore:
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-            cls.__instance._initialized = False
-        return cls.__instance
+    # # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
+    # def __new__(cls) -> pymmcore.CMMCore:
+    #     if cls.__instance is None:
+    #         cls.__instance = super().__new__(cls)
+    #         cls.__instance._initialized = False
+    #     return cls.__instance
 
     def __init__(self, adapter_paths=None):
-        if self._initialized:
-            return
+        # if self._initialized:
+        #     return
         super().__init__()
         patch_swig_errors()
         self._mmc = pymmcore.CMMCore()
@@ -182,11 +180,11 @@ class QMMCore(QObject):
 
         t0 = time.perf_counter()  # reference time, in seconds
         for event in sequence:
-            target = event.min_start_time / 1000
-            elapsed = time.perf_counter() - t0
-            if target > elapsed:
-                time.sleep(target - (time.perf_counter() - t0))
-                # self.thread().msleep(1000 * int(target - (time.perf_counter() - t0)))
+            if event.min_start_time:
+                elapsed = time.perf_counter() - t0
+                if event.min_start_time > elapsed:
+                    time.sleep(event.min_start_time - (time.perf_counter() - t0))
+                    # self.thread().msleep(1000 * int(target - (time.perf_counter() - t0)))
             logger.info(event)
 
             # prep hardware
@@ -200,24 +198,22 @@ class QMMCore(QObject):
                 self.setExposure(event.exposure)
             if event.channel is not None:
                 self.setConfig(event.channel.group, event.channel.config)
-            self.waitForSystem()
-            # TODO: make more interesting
-            self._mmc.snapImage()
 
-            print("send event")
-            self.mda_frame_ready.emit(self._mmc.getImage(), event)
-            self.thread().usleep(1)
+            # acquire
+            self.waitForSystem()
+            self._mmc.snapImage()
+            img = self._mmc.getImage()
+
+            # emit
+            print("send event", img.shape, event)
+            self.mda_frame_ready.emit(img, event)
+            print("after send")
 
         logger.info(f"Finished MDA in {round(time.perf_counter() - t0, 4)} seconds")
 
-    def _process_command(self, name, args):
-        logger.info(name, args)
-        result = getattr(self, name)(*args)
-        self.resultReady.emit(result)
-
 
 class CallbackRelay(pymmcore.MMEventCallback):
-    def __init__(self, emitter):
+    def __init__(self, emitter: QMMCore):
         super().__init__()
         self._emitter = emitter
 

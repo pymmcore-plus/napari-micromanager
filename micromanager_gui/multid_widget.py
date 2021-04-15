@@ -78,7 +78,7 @@ class MultiDWidget(QtW.QWidget):
 
     # add, remove, clear channel table
     def add_channel(self):
-        dev_loaded = list(mmcore.getLoadedDevices())
+        dev_loaded = list(mmcore.getLoadedDevices().result())
         if len(dev_loaded) > 1:
 
             idx = self.channel_tableWidget.rowCount()
@@ -90,9 +90,9 @@ class MultiDWidget(QtW.QWidget):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in mmcore.getAvailableConfigGroups():
+            if "Channel" not in mmcore.getAvailableConfigGroups().result():
                 raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(mmcore.getAvailableConfigs("Channel"))
+            channel_list = list(mmcore.getAvailableConfigs("Channel").result())
             self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
@@ -111,11 +111,11 @@ class MultiDWidget(QtW.QWidget):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
-        dev_loaded = list(mmcore.getLoadedDevices())
+        dev_loaded = list(mmcore.getLoadedDevices().result())
         if len(dev_loaded) > 1:
-            x = mmcore.getXPosition()
-            y = mmcore.getYPosition()
-            z = mmcore.getZPosition()
+            x = mmcore.getXPosition().result()
+            y = mmcore.getYPosition().result()
+            z = mmcore.getZPosition().result()
 
             x_txt = QtW.QTableWidgetItem(str(x))
             y_txt = QtW.QTableWidgetItem(str(y))
@@ -176,7 +176,7 @@ class MultiDWidget(QtW.QWidget):
         state["channels"] = [
             {
                 "config": self.channel_tableWidget.cellWidget(c, 0).currentText(),
-                "group": mmcore.getChannelGroup(),
+                "group": mmcore.getChannelGroup().result(),
                 "exposure": self.channel_tableWidget.cellWidget(c, 1).value(),
             }
             for c in range(self.channel_tableWidget.rowCount())
@@ -211,9 +211,9 @@ class MultiDWidget(QtW.QWidget):
         else:
             state["stage_positions"].append(
                 {
-                    "x": float(mmcore.getXPosition()),
-                    "y": float(mmcore.getYPosition()),
-                    "z": float(mmcore.getZPosition()),
+                    "x": float(mmcore.getXPosition().result()),
+                    "y": float(mmcore.getYPosition().result()),
+                    "z": float(mmcore.getZPosition().result()),
                 }
             )
         return state
@@ -221,7 +221,7 @@ class MultiDWidget(QtW.QWidget):
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
-        if len(mmcore.getLoadedDevices()) < 2:
+        if len(mmcore.getLoadedDevices().result()) < 2:
             print("Load a cfg file first.")
             return
 
