@@ -152,7 +152,6 @@ class MainWindow(QtW.QMainWindow):
 
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, img, event):
-        print("RECVEIVE FRAME")
         name = "mda"
         try:
             layer = self.viewer.layers[name]
@@ -187,7 +186,9 @@ class MainWindow(QtW.QMainWindow):
         if "Binning" in cam_props:
             bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning").result()
             self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(mmcore.getProperty(cam_device, "Binning").result())
+            self.bin_comboBox.setCurrentText(
+                mmcore.getProperty(cam_device, "Binning").result()
+            )
 
         if "PixelType" in cam_props:
             px_t = mmcore.getAllowedPropertyValues(cam_device, "PixelType").result()
@@ -198,7 +199,9 @@ class MainWindow(QtW.QMainWindow):
 
     def _refresh_objective_options(self):
         if "Objective" in mmcore.getLoadedDevices().result():
-            self.objective_comboBox.addItems(mmcore.getStateLabels("Objective").result())
+            self.objective_comboBox.addItems(
+                mmcore.getStateLabels("Objective").result()
+            )
 
     def _refresh_channel_list(self):
         if "Channel" in mmcore.getAvailableConfigGroups().result():
@@ -230,7 +233,7 @@ class MainWindow(QtW.QMainWindow):
         self.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
-        if 'z' in name.lower():  # hack
+        if "z" in name.lower():  # hack
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
@@ -257,26 +260,19 @@ class MainWindow(QtW.QMainWindow):
 
         zdev = mmcore.getFocusDevice().result()
 
-        print("\nchanging objective...")
         currentZ = mmcore.getZPosition().result()
-        print(f"currentZ: {currentZ}")
         mmcore.setPosition(zdev, 0)
         mmcore.waitForDevice(zdev)
-        print(self.objective_comboBox.currentText())
         mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
         mmcore.waitForDevice("Objective")
-        print(f"downpos: {mmcore.getZPosition().result()}")
         mmcore.setPosition(zdev, currentZ)
         mmcore.waitForDevice(zdev)
-        print(f"upagain: {mmcore.getZPosition().result()}")
-        print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label').result()}")
 
         # define and set pixel size Config
         mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig().result())
         curr_obj_name = mmcore.getProperty("Objective", "Label").result()
         mmcore.definePixelSizeConfig(curr_obj_name)
         mmcore.setPixelSizeConfig(curr_obj_name)
-        print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig().result()}")
 
         magnification = None
         # get magnification info from the objective
