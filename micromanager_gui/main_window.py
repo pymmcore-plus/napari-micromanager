@@ -3,20 +3,18 @@ from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize
+from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
-from .qmmcore import QMMCore
+from .qmmcore import mmcore
 
 if TYPE_CHECKING:
     import napari
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
-
-mmcore = QMMCore()
 
 
 class MainWindow(QtW.QMainWindow):
@@ -66,10 +64,16 @@ class MainWindow(QtW.QMainWindow):
 
         self.cfg_LineEdit.setText("demo")
 
-        mmcore.system_configuration_loaded.connect(self._on_system_configuration_loaded)
-        mmcore.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
-        mmcore.stage_position_changed.connect(self._on_stage_position_changed)
-        mmcore.stack_to_viewer.connect(self.add_stack_mda)
+        mmcore.worker.system_configuration_loaded.connect(
+            self._on_system_configuration_loaded
+        )
+        mmcore.worker.xy_stage_position_changed.connect(
+            self._on_xy_stage_position_changed
+        )
+        # mmcore.worker.stage_position_changed.connect(self._on_stage_position_changed)
+        mmcore.worker.mda_frame_ready.connect(
+            self._on_mda_frame, Qt.BlockingQueuedConnection
+        )
 
         # create MultiDWidget() widgets
         self.mda = MultiDWidget()
@@ -128,14 +132,12 @@ class MainWindow(QtW.QMainWindow):
         self.live_Button.setIconSize(QSize(40, 40))
 
         # connect comboBox
-        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        # self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
     def delete_layer(self, name):
-        layer_set = set()
-        for layer in self.viewer.layers:
-            layer_set.add(str(layer))
+        layer_set = {str(layer) for layer in self.viewer.layers}
         if name in layer_set:
             self.viewer.layers.remove(name)
         layer_set.clear()
@@ -149,13 +151,13 @@ class MainWindow(QtW.QMainWindow):
             self.viewer.add_image(array, name=layer_name)
 
     # TO DO: add the file name form the save box
-    def add_stack_mda(self, stack, cnt, xy_pos):
-        name = f"Exp{cnt}_Pos{xy_pos}"
+    def _on_mda_frame(self, img, event):
+        name = "mda"
         try:
             layer = self.viewer.layers[name]
-            layer.data = stack
+            layer.data = img
         except KeyError:
-            self.viewer.add_image(stack, name=name)
+            self.viewer.add_image(img, name=name)
 
     def browse_cfg(self):
         mmcore.unloadAllDevices()  # unload all devicies
@@ -179,27 +181,31 @@ class MainWindow(QtW.QMainWindow):
         mmcore.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
-        cam_device = mmcore.getCameraDevice()
-        cam_props = mmcore.getDevicePropertyNames(cam_device)
+        cam_device = mmcore.getCameraDevice().result()
+        cam_props = mmcore.getDevicePropertyNames(cam_device).result()
         if "Binning" in cam_props:
-            bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning")
+            bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning").result()
             self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(mmcore.getProperty(cam_device, "Binning"))
+            self.bin_comboBox.setCurrentText(
+                mmcore.getProperty(cam_device, "Binning").result()
+            )
 
         if "PixelType" in cam_props:
-            px_t = mmcore.getAllowedPropertyValues(cam_device, "PixelType")
+            px_t = mmcore.getAllowedPropertyValues(cam_device, "PixelType").result()
             self.bit_comboBox.addItems(px_t)
             if "16" in px_t:
                 self.bit_comboBox.setCurrentText("16bit")
                 mmcore.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
-        if "Objective" in mmcore.getLoadedDevices():
-            self.objective_comboBox.addItems(mmcore.getStateLabels("Objective"))
+        if "Objective" in mmcore.getLoadedDevices().result():
+            self.objective_comboBox.addItems(
+                mmcore.getStateLabels("Objective").result()
+            )
 
     def _refresh_channel_list(self):
-        if "Channel" in mmcore.getAvailableConfigGroups():
-            channel_list = list(mmcore.getAvailableConfigs("Channel"))
+        if "Channel" in mmcore.getAvailableConfigGroups().result():
+            channel_list = list(mmcore.getAvailableConfigs("Channel").result())
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
 
@@ -207,29 +213,27 @@ class MainWindow(QtW.QMainWindow):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
-        if mmcore.getXYStageDevice():
-            x, y = mmcore.getXPosition(), mmcore.getYPosition()
-            self._on_xy_stage_position_changed(mmcore.getXYStageDevice(), x, y)
+        if mmcore.getXYStageDevice().result():
+            x, y = mmcore.getXPosition().result(), mmcore.getYPosition().result()
+            self._on_xy_stage_position_changed(mmcore.getXYStageDevice().result(), x, y)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
             bits = self.bit_comboBox.currentText()
-            mmcore.setProperty(mmcore.getCameraDevice(), "PixelType", bits)
-            pixel_type = mmcore.getProperty(mmcore.getCameraDevice(), "PixelType")
-            print(f"PixelType: {pixel_type}")
+            mmcore.setProperty(mmcore.getCameraDevice().result(), "PixelType", bits)
 
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
             bins = self.bin_comboBox.currentText()
-            mmcore.setProperty(mmcore.getCameraDevice(), "Binning", bins)
-            print(f'Binning: {mmcore.getProperty(mmcore.getCameraDevice(), "Binning")}')
+            cd = mmcore.getCameraDevice().result()
+            mmcore.setProperty(cd, "Binning", bins)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
         self.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
-        if name == mmcore.getFocusDevice():
+        if "z" in name.lower():  # hack
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
@@ -254,34 +258,27 @@ class MainWindow(QtW.QMainWindow):
         if not self.objective_comboBox.count() > 0:
             return
 
-        zdev = mmcore.getFocusDevice()
+        zdev = mmcore.getFocusDevice().result()
 
-        print("\nchanging objective...")
-        currentZ = mmcore.getZPosition()
-        print(f"currentZ: {currentZ}")
+        currentZ = mmcore.getZPosition().result()
         mmcore.setPosition(zdev, 0)
         mmcore.waitForDevice(zdev)
-        print(self.objective_comboBox.currentText())
         mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
         mmcore.waitForDevice("Objective")
-        print(f"downpos: {mmcore.getZPosition()}")
         mmcore.setPosition(zdev, currentZ)
         mmcore.waitForDevice(zdev)
-        print(f"upagain: {mmcore.getZPosition()}")
-        print(f"OBJECTIVE: {mmcore.getProperty('Objective', 'Label')}")
 
         # define and set pixel size Config
-        mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig())
-        curr_obj_name = mmcore.getProperty("Objective", "Label")
+        mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig().result())
+        curr_obj_name = mmcore.getProperty("Objective", "Label").result()
         mmcore.definePixelSizeConfig(curr_obj_name)
         mmcore.setPixelSizeConfig(curr_obj_name)
-        print(f"Current pixel cfg: {mmcore.getCurrentPixelSizeConfig()}")
 
         magnification = None
         # get magnification info from the objective
         for i in range(len(curr_obj_name)):
             character = curr_obj_name[i]
-            if character == "X" or character == "x":
+            if character in ["X", "x"]:
                 if i <= 3:
                     magnification_string = curr_obj_name[:i]
                     magnification = int(magnification_string)
@@ -297,9 +294,9 @@ class MainWindow(QtW.QMainWindow):
             self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
             # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
             mmcore.setPixelSizeUm(
-                mmcore.getCurrentPixelSizeConfig(), self.image_pixel_size
+                mmcore.getCurrentPixelSizeConfig().result(), self.image_pixel_size
             )
-            print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm()}")
+            print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm().result()}")
 
     def update_viewer(self, data):
         try:
@@ -313,7 +310,7 @@ class MainWindow(QtW.QMainWindow):
         # mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
         # mmcore.waitForDevice('')
         mmcore.snapImage()
-        self.update_viewer(mmcore.getImage())
+        self.update_viewer(mmcore.getImage().result())
 
     def start_live(self):
         from napari.qt import thread_worker

@@ -1,17 +1,19 @@
-import logging
 import os
 import sys
 import time
 from pathlib import Path
-from textwrap import dedent
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pymmcore
+from loguru import logger
 from qtpy.QtCore import QObject, Signal
-from tqdm import tqdm
+from useq import MDAEvent
 
-logger = logging.getLogger(__name__)
+from ._controller import Controller
+
+if TYPE_CHECKING:
+    from useq import MDASequence
 
 
 def patch_swig_errors():
@@ -94,21 +96,20 @@ class QMMCore(QObject):
     xy_stage_position_changed = Signal(str, float, float)
     exposure_changed = Signal(str, float)
     slm_exposure_changed = Signal(str, float)
+    mda_frame_ready = Signal(np.ndarray, MDAEvent)
+    
+    # __instance = None
 
-    __instance = None
-
-    stack_to_viewer = Signal(np.ndarray, int, int)
-
-    # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
-    def __new__(cls) -> pymmcore.CMMCore:
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-            cls.__instance._initialized = False
-        return cls.__instance
+    # # Singleton pattern: https://python-patterns.guide/gang-of-four/singleton/
+    # def __new__(cls) -> pymmcore.CMMCore:
+    #     if cls.__instance is None:
+    #         cls.__instance = super().__new__(cls)
+    #         cls.__instance._initialized = False
+    #     return cls.__instance
 
     def __init__(self, adapter_paths=None):
-        if self._initialized:
-            return
+        # if self._initialized:
+        #     return
         super().__init__()
         patch_swig_errors()
         self._mmc = pymmcore.CMMCore()
@@ -119,6 +120,13 @@ class QMMCore(QObject):
         self._callback = CallbackRelay(self)
         self._mmc.registerCallback(self._callback)
         self._initialized = True
+        self.system_configuration_loaded.connect(self._on_system_configuration_loaded)
+
+    def _on_system_configuration_loaded(self):
+        for g in self._mmc.getAvailableConfigGroups():
+            if g.lower() == "channel":
+                self._mmc.setChannelGroup(g)
+                break
 
     def setDeviceAdapterSearchPaths(self, adapter_paths):
         # add to PATH as well for dynamic dlls
@@ -136,11 +144,11 @@ class QMMCore(QObject):
     def __dir__(self):
         return set(object.__dir__(self)).union(dir(self._mmc))
 
-    def loadSystemConfiguration(self, file="demo"):
-        if file.lower() == "demo":
-            file = (Path(find_micromanager()) / "MMConfig_demo.cfg").resolve()
-        logger.info(f"loading config at {file}")
-        self._mmc.loadSystemConfiguration(str(file))
+    def loadSystemConfiguration(self, fileName="demo"):
+        if fileName.lower() == "demo":
+            fileName = (Path(find_micromanager()) / "MMConfig_demo.cfg").resolve()
+        logger.info(f"loading config at {fileName}")
+        self._mmc.loadSystemConfiguration(str(fileName))
 
     def setProperty(self, device_label: str, property: str, value: Any):
         # conflicts with QObject.setProperty
@@ -168,66 +176,44 @@ class QMMCore(QObject):
     def setZPosition(self, val):
         return self._mmc.setPosition(self._mmc.getFocusDevice(), val)
 
-    def run_mda(self, experiment, stack, cnt):
-
-        if len(self._mmc.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
-            return
-
-        print("")
-        print(f"running {repr(experiment)}")
-
-        if not experiment.channels:
-            print("Select at least one channel.")
-            return
+    def run_mda(self, sequence: "MDASequence"):
 
         t0 = time.perf_counter()  # reference time, in seconds
-        progress = tqdm(experiment)  # this gives us a progress bar in the console
-        for frame in progress:
-            elapsed = time.perf_counter() - t0
-            target = frame.t / 1000
-            wait_time = target - elapsed
-            if wait_time > 0:
-                progress.set_description(f"waiting for {wait_time}")
-                time.sleep(wait_time)
-            progress.set_description(f"{frame}")
-            xpos, ypos, z_midpoint = frame.p
-            channel_name, exposure_ms = frame.c
+        for event in sequence:
+            if event.min_start_time:
+                elapsed = time.perf_counter() - t0
+                if event.min_start_time > elapsed:
+                    time.sleep(event.min_start_time - (time.perf_counter() - t0))
+                    # self.thread().msleep(1000 * int(target - (time.perf_counter() - t0)))
+            logger.info(event)
 
-            t_index = experiment.time_deltas.index(frame.t)
-            p_index = experiment.stage_positions.index(frame.p)
-            z_index = experiment.z_positions.index(frame.z)
-            c_index = experiment.channels.index(frame.c)
+            # prep hardware
+            if event.x_pos is not None or event.y_pos is not None:
+                x = event.x_pos or self.getXPosition()
+                y = event.y_pos or self.getYPosition()
+                self.setXYPosition(x, y)
+            if event.z_pos is not None:
+                self.setZPosition(event.z_pos)
+            if event.exposure is not None:
+                self.setExposure(event.exposure)
+            if event.channel is not None:
+                self.setConfig(event.channel.group, event.channel.config)
 
-            # print(f'frame.t:{frame.t}, t_index:{t_index}')
-            # print(f'frame.p:{frame.p}, p_index:{p_index}')
-            # print(f'frame.z:{frame.z}, z_index:{z_index}')
-            # print(f'frame.c:{frame.c}, c_index:{c_index}\n')
-
-            self._mmc.setXYPosition(xpos, ypos)
-            self._mmc.setPosition("Z_Stage", z_midpoint + frame.z)
-            self._mmc.setExposure(exposure_ms)
-            self._mmc.setConfig("Channel", channel_name)
+            # acquire
+            self.waitForSystem()
             self._mmc.snapImage()
             img = self._mmc.getImage()
 
-            stack[t_index, z_index, c_index, :, :] = img
+            # emit
+            print("send event", img.shape, event)
+            self.mda_frame_ready.emit(img, event)
+            print("after send")
 
-            self.stack_to_viewer.emit(stack, cnt, p_index)
-
-        summary = """
-        ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
-        {}
-        Finished in: {} Seconds
-         ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲ ̲
-        """.format(
-            str(experiment), round(time.perf_counter() - t0, 4)
-        )
-        print(dedent(summary))
+        logger.info(f"Finished MDA in {round(time.perf_counter() - t0, 4)} seconds")
 
 
 class CallbackRelay(pymmcore.MMEventCallback):
-    def __init__(self, emitter):
+    def __init__(self, emitter: QMMCore):
         super().__init__()
         self._emitter = emitter
 
@@ -263,3 +249,6 @@ class CallbackRelay(pymmcore.MMEventCallback):
 
     def onSLMExposureChanged(self, name: str, new_exposure: float):
         self._emitter.slm_exposure_changed.emit(name, new_exposure)
+
+
+mmcore = Controller(QMMCore)
