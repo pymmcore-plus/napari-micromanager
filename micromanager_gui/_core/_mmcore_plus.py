@@ -1,11 +1,9 @@
 import os
-import sys
 import time
 from pathlib import Path
 
 import pymmcore
 from loguru import logger
-from Pyro5.api import oneway
 from useq import MDASequence
 
 from ._util import find_micromanager
@@ -18,8 +16,10 @@ class MMCorePlus(pymmcore.CMMCore):
         if not adapter_paths:
             adapter_paths = [self._mm_path]
         self.setDeviceAdapterSearchPaths(adapter_paths)
-        self._cb = MMCallback(self)
-        self.registerCallback(self._cb)
+        self._callbacks = MMCallback(self)
+        self.registerCallback(self._callbacks)
+        self._abort = False
+        self._paused = False
 
     def setDeviceAdapterSearchPaths(self, adapter_paths):
         # add to PATH as well for dynamic dlls
@@ -52,7 +52,6 @@ class MMCorePlus(pymmcore.CMMCore):
     def setZPosition(self, val: float) -> None:
         return self.setPosition(self.getFocusDevice(), val)
 
-    @oneway
     def run_mda(self, sequence: MDASequence) -> None:
         logger.info("RUN MDA: {}", sequence.dict())
         t0 = time.perf_counter()  # reference time, in seconds
@@ -80,11 +79,16 @@ class MMCorePlus(pymmcore.CMMCore):
             self.snapImage()
             img = self.getImage()
 
-            # emit
-            logger.info("mda_frame_ready, {}, {}", img, event)
-            # self.mda_frame_ready.emit(img, event)
+            self.emit_signal("mda_frame_ready", img, event)
 
-        logger.info(f"Finished MDA in {round(time.perf_counter() - t0, 4)} seconds")
+    def emit_signal(self, signal_name, *args):
+        logger.debug("signal {}: {}", signal_name, args)
+
+    def abort(self):
+        self._abort = True
+
+    def toggle_pause(self):
+        self._paused = not self._paused
 
 
 class MMCallback(pymmcore.MMEventCallback):
@@ -93,45 +97,34 @@ class MMCallback(pymmcore.MMEventCallback):
         self._core = core
 
     def onPropertiesChanged(self):
-        _log_callback()
+        self._core.emit_signal("propertiesChanged")
 
     def onPropertyChanged(self, dev_name: str, prop_name: str, prop_val: str):
-        _log_callback()
+        self._core.emit_signal("propertyChanged", dev_name, prop_name, prop_val)
 
     def onChannelGroupChanged(self, new_channel_group_name: str):
-        _log_callback()
+        self._core.emit_signal("channelGroupChanged", new_channel_group_name)
 
     def onConfigGroupChanged(self, group_name: str, new_config_name: str):
-        _log_callback()
+        self._core.emit_signal("configGroupChanged", group_name, new_config_name)
 
     def onSystemConfigurationLoaded(self):
-        _log_callback()
-        for grp in self._core.getAvailableConfigGroups():
-            if grp.lower() == "channel":
-                self._core.setChannelGroup(grp)
-                break
+        self._core.emit_signal("systemConfigurationLoaded")
 
     def onPixelSizeChanged(self, new_pixel_size_um: float):
-        _log_callback()
+        self._core.emit_signal("pixelSizeChanged", new_pixel_size_um)
 
     def onPixelSizeAffineChanged(self, v0, v1, v2, v3, v4, v5):
-        _log_callback()
+        self._core.emit_signal("pixelSizeAffineChanged", v0, v1, v2, v3, v4, v5)
 
     def onStagePositionChanged(self, name: str, pos: float):
-        _log_callback()
+        self._core.emit_signal("stagePositionChanged", name, pos)
 
     def onXYStagePositionChanged(self, name: str, xpos: float, ypos: float):
-        _log_callback()
+        self._core.emit_signal("xYStagePositionChanged", name, xpos, ypos)
 
     def onExposureChanged(self, name: str, new_exposure: float):
-        _log_callback()
+        self._core.emit_signal("exposureChanged", name, new_exposure)
 
     def onSLMExposureChanged(self, name: str, new_exposure: float):
-        _log_callback()
-
-
-def _log_callback():
-    frame = sys._getframe().f_back
-    name = frame.f_code.co_name.replace("on", "")
-    locs = {k: v for k, v in frame.f_locals.items() if k != "self"}
-    logger.debug("{}: {}", name, locs)
+        self._core.emit_signal("sLMExposureChanged", name, new_exposure)

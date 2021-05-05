@@ -31,11 +31,13 @@ def wrap_for_pyro(cls: Type) -> Type:
         _f.__name__ = name
         return _f
 
-    _dict_ = {
-        k: _proxy_method(k)
-        for k, v in chain(*(c.__dict__.items() for c in reversed(cls.mro())))
-        if callable(v) and not k.startswith("_")
-    }
+    _dict_ = {}
+    for k, v in chain(*(c.__dict__.items() for c in reversed(cls.mro()))):
+        if callable(v) and not k.startswith("_"):
+            _dict_[k] = _proxy_method(k)
+            for attr in dir(v):
+                if attr.startswith("_pyro"):
+                    setattr(_dict_[k], attr, getattr(v, attr))
 
     _dict_["__init__"] = __init__
     return type(f"{cls.__name__}Proxy", (), _dict_)

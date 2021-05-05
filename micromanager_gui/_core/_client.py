@@ -5,7 +5,7 @@ import sys
 import time
 from typing import TYPE_CHECKING
 
-from Pyro5 import api, client, core
+from Pyro5 import api, core
 
 from . import _server
 from ._serialize import register_serializers
@@ -25,12 +25,12 @@ class detatched_mmcore(subprocess.Popen):
 
         register_serializers()
         self._wait_for_daemon(timeout)
-        self._core = self._get_remote_core()
+        self._core = api.Proxy(f"PYRO:{_server.CORE_NAME}@{self._host}:{self._port}")
         if config:
             self._core.loadSystemConfiguration(config)
 
     def _wait_for_daemon(self, timeout=5):
-        daemon = client.Proxy(f"PYRO:{core.DAEMON_NAME}@{self._host}:{self._port}")
+        daemon = api.Proxy(f"PYRO:{core.DAEMON_NAME}@{self._host}:{self._port}")
         while timeout > 0:
             try:
                 daemon.ping()
@@ -39,9 +39,9 @@ class detatched_mmcore(subprocess.Popen):
                 timeout -= 0.1
                 time.sleep(0.1)
 
-    def _get_remote_core(self) -> MMCorePlus:
-        return api.Proxy(f"PYRO:{_server.CORE_NAME}@{self._host}:{self._port}")
-
     @property
     def core(self) -> MMCorePlus:
         return self._core
+
+    def __exit__(self, *args):
+        super().__exit__(*args)

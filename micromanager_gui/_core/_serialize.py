@@ -1,6 +1,7 @@
 import atexit
 import datetime
-from multiprocessing import shared_memory
+from multiprocessing.shared_memory import SharedMemory
+from typing import List
 
 import numpy as np
 import pymmcore
@@ -11,8 +12,8 @@ from Pyro5.api import register_class_to_dict, register_dict_to_class
 
 Pyro5.config.SERIALIZER = "msgpack"
 
-SHM_SENT = []
-SHM_RECV = []
+SHM_SENT: List[SharedMemory] = []
+SHM_RECV: List[SharedMemory] = []
 
 
 @atexit.register
@@ -26,7 +27,7 @@ def _cleanup():
 
 def ndarray_to_dict(obj):
     """convert numpy array to dict."""
-    shm = shared_memory.SharedMemory(create=True, size=obj.nbytes)
+    shm = SharedMemory(create=True, size=obj.nbytes)
     SHM_SENT.append(shm)
     b = np.ndarray(obj.shape, dtype=obj.dtype, buffer=shm.buf)
     b[:] = obj[:]
@@ -40,7 +41,7 @@ def ndarray_to_dict(obj):
 
 def dict_to_ndarray(classname, d):
     """convert dict from `ndarray_to_dict` back to np.ndarray"""
-    shm = shared_memory.SharedMemory(name=d["shm"], create=False)
+    shm = SharedMemory(name=d["shm"], create=False)
     SHM_RECV.append(shm)
     return np.ndarray(d["shape"], dtype=d["dtype"], buffer=shm.buf)
 
@@ -79,7 +80,6 @@ def mdaseq_to_dict(mda_sequence: useq.MDASequence):
 
 
 def dict_to_mdaseq(classname, d):
-    print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
     return useq.MDASequence.parse_obj(d.get("val"))
 
 
