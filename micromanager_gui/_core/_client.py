@@ -1,21 +1,47 @@
+from __future__ import annotations
+
+import subprocess
 import sys
+import time
+from typing import TYPE_CHECKING
 
-import Pyro5.errors
-from micromanager_gui._core._serialize import register_serializers
-from Pyro5.api import Proxy
+from Pyro5 import api, client, core
 
-register_serializers()
+from . import _server
+from ._serialize import register_serializers
+
+if TYPE_CHECKING:
+    from micromanager_gui._core._mmcore_plus import MMCorePlus
 
 
-sys.excepthook = Pyro5.errors.excepthook
+class detatched_mmcore(subprocess.Popen):
+    """Subprocess that runs an MMCore server via Pyro"""
 
-HOST = "127.0.0.1"
-PORT = 54333
-objname = "mmgui.cmmcore"
+    def __init__(self, host="127.0.0.1", port=54333, timeout=5, config=None) -> None:
+        self._host = host
+        self._port = port
+        cmd = [sys.executable, _server.__file__, "-p", str(port), "--host", host]
+        super().__init__(cmd)  # type: ignore
 
-core = Proxy(f"PYRO:{objname}@{HOST}:{PORT}")
-core.loadSystemConfiguration()
-core.snapImage()
-a = core.getImage()
-print("arr", a.shape, a.dtype, a.mean())
-print(a)
+        register_serializers()
+        self._wait_for_daemon(timeout)
+        self._core = self._get_remote_core()
+        if config:
+            self._core.loadSystemConfiguration(config)
+
+    def _wait_for_daemon(self, timeout=5):
+        daemon = client.Proxy(f"PYRO:{core.DAEMON_NAME}@{self._host}:{self._port}")
+        while timeout > 0:
+            try:
+                daemon.ping()
+                break
+            except Exception:
+                timeout -= 0.1
+                time.sleep(0.1)
+
+    def _get_remote_core(self) -> MMCorePlus:
+        return api.Proxy(f"PYRO:{_server.CORE_NAME}@{self._host}:{self._port}")
+
+    @property
+    def core(self) -> MMCorePlus:
+        return self._core
