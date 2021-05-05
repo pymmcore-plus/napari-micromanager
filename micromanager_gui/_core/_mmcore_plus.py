@@ -2,15 +2,13 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pymmcore
 from loguru import logger
+from Pyro5.api import oneway
+from useq import MDASequence
 
 from ._util import find_micromanager
-
-if TYPE_CHECKING:
-    from useq import MDASequence
 
 
 class MMCorePlus(pymmcore.CMMCore):
@@ -54,8 +52,9 @@ class MMCorePlus(pymmcore.CMMCore):
     def setZPosition(self, val: float) -> None:
         return self.setPosition(self.getFocusDevice(), val)
 
-    def run_mda(self, sequence: "MDASequence") -> None:
-
+    @oneway
+    def run_mda(self, sequence: MDASequence) -> None:
+        logger.info("RUN MDA: {}", sequence.dict())
         t0 = time.perf_counter()  # reference time, in seconds
         for event in sequence:
             if event.min_start_time:
@@ -82,9 +81,8 @@ class MMCorePlus(pymmcore.CMMCore):
             img = self.getImage()
 
             # emit
-            print("send event", img.shape, event)
+            logger.info("mda_frame_ready, {}, {}", img, event)
             # self.mda_frame_ready.emit(img, event)
-            print("after send")
 
         logger.info(f"Finished MDA in {round(time.perf_counter() - t0, 4)} seconds")
 

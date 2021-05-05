@@ -1,9 +1,12 @@
 import atexit
+import datetime
 from multiprocessing import shared_memory
 
 import numpy as np
 import pymmcore
 import Pyro5
+import useq
+from pydantic.datetime_parse import parse_duration
 from Pyro5.api import register_class_to_dict, register_dict_to_class
 
 Pyro5.config.SERIALIZER = "msgpack"
@@ -57,12 +60,41 @@ def dict_to_CMMError(classname, d):
     return pymmcore.CMMError(str(d.get("msg")))
 
 
+def timedelta_to_dict(obj):
+    return {
+        "__class__": "datetime.timedelta",
+        "val": str(obj),
+    }
+
+
+def dict_to_timedelta(classname, d):
+    return parse_duration(d.get("val"))
+
+
+def mdaseq_to_dict(mda_sequence: useq.MDASequence):
+    return {
+        "__class__": "useq.MDASequence",
+        "val": mda_sequence.dict(),
+    }
+
+
+def dict_to_mdaseq(classname, d):
+    print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+    return useq.MDASequence.parse_obj(d.get("val"))
+
+
 def register_serializers():
     register_class_to_dict(np.ndarray, ndarray_to_dict)
     register_dict_to_class("numpy.ndarray", dict_to_ndarray)
 
     register_class_to_dict(pymmcore.CMMError, CMMError_to_dict)
     register_dict_to_class("pymmcore.CMMError", dict_to_CMMError)
+
+    register_class_to_dict(datetime.timedelta, timedelta_to_dict)
+    register_dict_to_class("datetime.timedelta", dict_to_timedelta)
+
+    register_class_to_dict(useq.MDASequence, mdaseq_to_dict)
+    register_dict_to_class("useq.MDASequence", dict_to_mdaseq)
 
 
 def remove_shm_from_resource_tracker():
