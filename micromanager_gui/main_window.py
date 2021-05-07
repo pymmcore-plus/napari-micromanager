@@ -63,31 +63,26 @@ class MainWindow(QtW.QMainWindow):
         self.streaming_timer = None
 
         uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
-
-        self.cfg_LineEdit.setText("demo")
+        # create MultiDWidget() widgets
 
         self._proc = detatched_mmcore()
         self._mmc = self._proc.core
+        sig = self._proc.signals
 
-        self._proc.signals.system_configuration_loaded.connect(
-            self._on_system_configuration_loaded
-        )
-        self._proc.signals.xy_stage_position_changed.connect(
-            self._on_xy_stage_position_changed
-        )
-        # self._proc.signals.stage_position_changed.connect(self._on_stage_position_changed)
-        self._proc.signals.mda_frame_ready.connect(
-            self._on_mda_frame, Qt.BlockingQueuedConnection
-        )
-
-        # create MultiDWidget() widgets
-        self.mda = MultiDWidget(self._mmc)
-
+        self.mda = MultiDWidget(self._mmc, sig)
         self.explorer = ExploreSample(self._mmc)
+
+        sig.mda_finished.connect(self._on_system_configuration_loaded)
+        sig.system_configuration_loaded.connect(self._on_system_configuration_loaded)
+        sig.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
+        # sig.stage_position_changed.connect(self._on_stage_position_changed)
+        sig.mda_frame_ready.connect(self._on_mda_frame, Qt.BlockingQueuedConnection)
+
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_layer)
         self.explorer.delete_previous_scan.connect(self.delete_layer)
 
+        self.cfg_LineEdit.setText("demo")
         # create tab widgets
         multid_tab = QtW.QWidget(self)
         multid_tab.layout = QtW.QGridLayout()

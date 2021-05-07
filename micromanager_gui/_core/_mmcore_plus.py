@@ -18,7 +18,7 @@ class MMCorePlus(pymmcore.CMMCore):
         self.setDeviceAdapterSearchPaths(adapter_paths)
         self._callbacks = MMCallback(self)
         self.registerCallback(self._callbacks)
-        self._abort = False
+        self._canceled = False
         self._paused = False
 
     def setDeviceAdapterSearchPaths(self, adapter_paths):
@@ -53,13 +53,26 @@ class MMCorePlus(pymmcore.CMMCore):
         return self.setPosition(self.getFocusDevice(), val)
 
     def run_mda(self, sequence: MDASequence) -> None:
-        logger.info("RUN MDA: {}", sequence)
+        self.emit_signal("mda_started")
+        self._paused = False
+        logger.info("MDA Started: {}", sequence)
         t0 = time.perf_counter()  # reference time, in seconds
+        paused_time = 0.0
         for event in sequence:
+            while self._paused and not self._canceled:
+                paused_time += 0.1  # fixme: be more precise
+                time.sleep(0.1)
+            if self._canceled:
+                logger.warning("MDA Canceled: {}", sequence)
+                self.emit_signal("mda_canceled")
+                self._canceled = False
+                break
+
             if event.min_start_time:
-                elapsed = time.perf_counter() - t0
-                if event.min_start_time > elapsed:
-                    time.sleep(event.min_start_time - (time.perf_counter() - t0))
+                go_at = event.min_start_time + paused_time
+                # TODO: we need to enter a loop here checking paused and canceled.
+                if go_at > time.perf_counter() - t0:
+                    time.sleep(go_at - (time.perf_counter() - t0))
             logger.info(event)
 
             # prep hardware
@@ -80,17 +93,19 @@ class MMCorePlus(pymmcore.CMMCore):
             img = self.getImage()
 
             self.emit_signal("mda_frame_ready", img, event)
-        logger.info("MDA FINISHED: {}", sequence)
+        logger.info("MDA Finished: {}", sequence)
+        self.emit_signal("mda_finished")
 
     def emit_signal(self, signal_name, *args):
         # for pyro subclass
         logger.debug("{}: {}", signal_name, args)
 
-    def abort(self):
-        self._abort = True
+    def cancel(self):
+        self._canceled = True
 
     def toggle_pause(self):
         self._paused = not self._paused
+        self.emit_signal("mda_paused", self._paused)
 
 
 class MMCallback(pymmcore.MMEventCallback):

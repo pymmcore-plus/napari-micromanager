@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -8,6 +11,10 @@ from useq import MDASequence
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
+
+if TYPE_CHECKING:
+    from ._core._client import QCoreListener
+    from ._core._mmcore_plus import MMCorePlus
 
 
 class MultiDWidget(QtW.QWidget):
@@ -40,21 +47,26 @@ class MultiDWidget(QtW.QWidget):
 
     acquisition_order_comboBox: QtW.QComboBox
     run_Button: QtW.QPushButton
+    pause_Button: QtW.QPushButton
+    cancel_Button: QtW.QPushButton
 
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
-    def __init__(self, mmcore, parent=None):
+    # TODO: don't love passing `signals` here...
+    def __init__(self, mmcore: MMCorePlus, signals: QCoreListener, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
-        # self.pos_list = []
-        # self.pos_stack_list = []
-        # self.list_ch = []
-        # self.acq_stack_list = []
-
-        # count every time the "Run button is pressed" - define the experiment number
-        self.cnt = 0
+        signals.mda_started.connect(self._on_mda_started)
+        signals.mda_finished.connect(self._on_mda_finished)
+        signals.mda_paused.connect(
+            lambda p: self.pause_Button.setText("GO" if p else "PAUSE")
+        )
+        self.pause_Button.released.connect(self._mmc.toggle_pause)
+        self.cancel_Button.released.connect(self._mmc.cancel)
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -74,6 +86,16 @@ class MultiDWidget(QtW.QWidget):
         # button icon
         self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
         self.run_Button.setIconSize(QSize(20, 0))
+
+    def _on_mda_started(self):
+        self.pause_Button.show()
+        self.cancel_Button.show()
+        self.run_Button.hide()
+
+    def _on_mda_finished(self):
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
+        self.run_Button.show()
 
     # add, remove, clear channel table
     def add_channel(self):
@@ -229,7 +251,8 @@ class MultiDWidget(QtW.QWidget):
             return
 
         experiment = MDASequence(**self._get_state_dict())
-        return self._mmc.run_mda(experiment)  # run the MDA experiment
+        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        return
 
 
 if __name__ == "__main__":

@@ -30,6 +30,10 @@ class QCoreListener(QObject):
     exposure_changed = Signal(str, float)
     slm_exposure_changed = Signal(str, float)
     mda_frame_ready = Signal(object, object)
+    mda_started = Signal()
+    mda_canceled = Signal()
+    mda_paused = Signal(bool)
+    mda_finished = Signal()
 
     @api.expose
     def emit(self, signal_name, args):

@@ -26,7 +26,7 @@ btn1 = QPushButton("quit")
 btn2 = QPushButton("stop")
 btn3 = QPushButton("pause/go")
 btn1.clicked.connect(app.quit)
-btn2.clicked.connect(lambda x: proc.core.abort())
+btn2.clicked.connect(lambda x: proc.core.cancel())
 btn3.clicked.connect(lambda x: proc.core.toggle_pause())
 
 w.setLayout(QVBoxLayout())
