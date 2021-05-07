@@ -146,3 +146,4 @@ micromanager_gui/Micro-Manager-*
 micromanager_gui/qmmcore.py
 MMSetup_*.exe
 .cenv
+.qt_for_python

@@ -1,33 +1,39 @@
-from qtpy.QtCore import QCoreApplication
+import sys
 
-app = QCoreApplication([])
-from micromanager_gui.qmmcore import QMMCore
-from micromanager_gui._controller import Controller
-
-# from pycromanager import Acquisition
+import Pyro5
+from micromanager_gui._core._client import detatched_mmcore
+from qtpy.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 from useq import MDASequence
 
-c = Controller(QMMCore)
-
-def _on_mda_frame(self, img, event):
-    print("RECVEIVE FRAME", event)
-
-
-c.worker.mda_frame_ready.connect(print)
-c.loadSystemConfiguration()
+sys.excepthook = Pyro5.errors.excepthook
 
 mda = MDASequence(
-    axis_order="tzpc",
+    axis_order="tpzc",
+    time_plan=dict(interval=1.3, loops=10),
     stage_positions=[(10, 20, 30)],
     channels=[dict(config="Cy5", exposure=100)],
-    time_plan=dict(interval=3, loops=4),
     z_plan=dict(range=1.0, step=0.5),
 )
 
-c.run_mda(mda)
 
-# with Acquisition('/Users/talley/Desktop/out/', name='hi') as ac:
-#     ac.acquire(mda.to_pycromanager())
+app = QApplication([])
 
-print("hi")
-# app.exec_()
+proc = detatched_mmcore(config="demo")
+
+w = QWidget()
+
+btn1 = QPushButton("quit")
+btn2 = QPushButton("stop")
+btn3 = QPushButton("pause/go")
+btn1.clicked.connect(app.quit)
+btn2.clicked.connect(lambda x: proc.core.cancel())
+btn3.clicked.connect(lambda x: proc.core.toggle_pause())
+
+w.setLayout(QVBoxLayout())
+w.layout().addWidget(btn1)
+w.layout().addWidget(btn2)
+w.layout().addWidget(btn3)
+w.show()
+
+proc.core.run_mda(mda)
+app.exec_()

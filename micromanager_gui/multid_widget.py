@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -6,10 +9,12 @@ from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 from useq import MDASequence
 
-from .qmmcore import mmcore
-
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
+
+if TYPE_CHECKING:
+    from ._core._client import QCoreListener
+    from ._core._mmcore_plus import MMCorePlus
 
 
 class MultiDWidget(QtW.QWidget):
@@ -42,20 +47,26 @@ class MultiDWidget(QtW.QWidget):
 
     acquisition_order_comboBox: QtW.QComboBox
     run_Button: QtW.QPushButton
+    pause_Button: QtW.QPushButton
+    cancel_Button: QtW.QPushButton
 
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    # TODO: don't love passing `signals` here...
+    def __init__(self, mmcore: MMCorePlus, signals: QCoreListener, parent=None):
+        self._mmc = mmcore
+        super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
-        # self.pos_list = []
-        # self.pos_stack_list = []
-        # self.list_ch = []
-        # self.acq_stack_list = []
-
-        # count every time the "Run button is pressed" - define the experiment number
-        self.cnt = 0
+        signals.mda_started.connect(self._on_mda_started)
+        signals.mda_finished.connect(self._on_mda_finished)
+        signals.mda_paused.connect(
+            lambda p: self.pause_Button.setText("GO" if p else "PAUSE")
+        )
+        self.pause_Button.released.connect(self._mmc.toggle_pause)
+        self.cancel_Button.released.connect(self._mmc.cancel)
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -76,9 +87,19 @@ class MultiDWidget(QtW.QWidget):
         self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
         self.run_Button.setIconSize(QSize(20, 0))
 
+    def _on_mda_started(self):
+        self.pause_Button.show()
+        self.cancel_Button.show()
+        self.run_Button.hide()
+
+    def _on_mda_finished(self):
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
+        self.run_Button.show()
+
     # add, remove, clear channel table
     def add_channel(self):
-        dev_loaded = list(mmcore.getLoadedDevices().result())
+        dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
             idx = self.channel_tableWidget.rowCount()
@@ -90,9 +111,9 @@ class MultiDWidget(QtW.QWidget):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in mmcore.getAvailableConfigGroups().result():
+            if "Channel" not in self._mmc.getAvailableConfigGroups():
                 raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(mmcore.getAvailableConfigs("Channel").result())
+            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
@@ -111,11 +132,11 @@ class MultiDWidget(QtW.QWidget):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
-        dev_loaded = list(mmcore.getLoadedDevices().result())
+        dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
-            x = mmcore.getXPosition().result()
-            y = mmcore.getYPosition().result()
-            z = mmcore.getZPosition().result()
+            x = self._mmc.getXPosition()
+            y = self._mmc.getYPosition()
+            z = self._mmc.getZPosition()
 
             x_txt = QtW.QTableWidgetItem(str(x))
             y_txt = QtW.QTableWidgetItem(str(y))
@@ -153,8 +174,8 @@ class MultiDWidget(QtW.QWidget):
         # print(f'x: {x_val}')
         # print(f'y: {y_val}')
         # print(f'z: {z_val}')
-        mmcore.setXYPosition(float(x_val), float(y_val))
-        mmcore.setPosition("Z_Stage", float(z_val))
+        self._mmc.setXYPosition(float(x_val), float(y_val))
+        self._mmc.setPosition("Z_Stage", float(z_val))
         print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
 
     def set_multi_d_acq_dir(self):
@@ -176,7 +197,7 @@ class MultiDWidget(QtW.QWidget):
         state["channels"] = [
             {
                 "config": self.channel_tableWidget.cellWidget(c, 0).currentText(),
-                "group": mmcore.getChannelGroup().result(),
+                "group": self._mmc.getChannelGroup() or "Channel",
                 "exposure": self.channel_tableWidget.cellWidget(c, 1).value(),
             }
             for c in range(self.channel_tableWidget.rowCount())
@@ -211,9 +232,9 @@ class MultiDWidget(QtW.QWidget):
         else:
             state["stage_positions"].append(
                 {
-                    "x": float(mmcore.getXPosition().result()),
-                    "y": float(mmcore.getYPosition().result()),
-                    "z": float(mmcore.getZPosition().result()),
+                    "x": float(self._mmc.getXPosition()),
+                    "y": float(self._mmc.getYPosition()),
+                    "z": float(self._mmc.getZPosition()),
                 }
             )
         return state
@@ -221,7 +242,7 @@ class MultiDWidget(QtW.QWidget):
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
-        if len(mmcore.getLoadedDevices().result()) < 2:
+        if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
@@ -230,7 +251,8 @@ class MultiDWidget(QtW.QWidget):
             return
 
         experiment = MDASequence(**self._get_state_dict())
-        return mmcore.submit("run_mda", (experiment,))  # run the MDA experiment
+        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        return
 
 
 if __name__ == "__main__":

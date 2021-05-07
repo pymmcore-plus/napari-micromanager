@@ -7,11 +7,7 @@ from qtpy import uic
 from qtpy.QtCore import Signal
 from skimage.transform import resize
 
-from .qmmcore import QMMCore
-
 UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
-
-mmcore = QMMCore()
 
 
 class ExploreSample(QtW.QWidget):
@@ -35,8 +31,9 @@ class ExploreSample(QtW.QWidget):
     delete_previous_scan = Signal(str)
     # ________________________________________________________________________
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, mmcore, parent=None):
+        self._mmc = mmcore
+        super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
         self.scan_position_list = []
@@ -82,32 +79,32 @@ class ExploreSample(QtW.QWidget):
         prigress_values = prigress_values.astype(int)
 
         # set acquisition parameters
-        mmcore.setExposure(int(self.scan_exp_spinBox.value()))
-        mmcore.setConfig("Channel", self.scan_channel_comboBox.currentText())
+        self._mmc.setExposure(int(self.scan_exp_spinBox.value()))
+        self._mmc.setConfig("Channel", self.scan_channel_comboBox.currentText())
 
         # get current position
-        x_curr_pos_explorer = int(mmcore.getXPosition())
-        y_curr_pos_explorer = int(mmcore.getYPosition())
-        z_curr_pos_explorer = int(mmcore.getPosition("Z_Stage"))
+        x_curr_pos_explorer = int(self._mmc.getXPosition())
+        y_curr_pos_explorer = int(self._mmc.getYPosition())
+        z_curr_pos_explorer = int(self._mmc.getPosition("Z_Stage"))
         # print(f'curr_pos:{x_curr_pos_explorer},{y_curr_pos_explorer},{z_curr_pos_explorer}')
 
         # calculate initial scan position
-        self.width = mmcore.getROI(mmcore.getCameraDevice())[
+        self.width = self._mmc.getROI(self._mmc.getCameraDevice())[
             2
         ]  # maybe they are inverted
-        self.height = mmcore.getROI(mmcore.getCameraDevice())[
+        self.height = self._mmc.getROI(self._mmc.getCameraDevice())[
             3
         ]  # maybe they are inverted
-        move_x = (self.width / 2) * (self.scan_size_r - 1) * mmcore.getPixelSizeUm()
-        move_y = (self.height / 2) * (self.scan_size_c - 1) * mmcore.getPixelSizeUm()
+        move_x = (self.width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+        move_y = (self.height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
 
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
         # print(f'start pos: {x_pos_explorer},{y_pos_explorer}')
 
         # calculate position increments depending on pixle size
-        increment_x = self.width * mmcore.getPixelSizeUm()
-        increment_y = self.height * mmcore.getPixelSizeUm()
+        increment_x = self.width * self._mmc.getPixelSizeUm()
+        increment_y = self.height * self._mmc.getPixelSizeUm()
         # print(f'increments: {increment_x},{increment_y}')
 
         # create the xyz position matrix
@@ -146,13 +143,13 @@ class ExploreSample(QtW.QWidget):
                     vy = self.array_pos_y[row][s]
                     vz = self.array_pos_z[row][s]
                     # print(f'even row: {vx},{vy},{vz}')
-                    mmcore.setXYPosition(vx, vy)
-                    mmcore.setPosition("Z_Stage", vz)
-                    # print(mmcore.getXPosition(),mmcore.getYPosition(),mmcore.getPosition("Z_Stage"))
+                    self._mmc.setXYPosition(vx, vy)
+                    self._mmc.setPosition("Z_Stage", vz)
+                    # print(self._mmc.getXPosition(),self._mmc.getYPosition(),self._mmc.getPosition("Z_Stage"))
 
                     # snap image
-                    mmcore.snapImage()
-                    snap = mmcore.getImage()
+                    self._mmc.snapImage()
+                    snap = self._mmc.getImage()
                     # print(f'    temp_snap_{row}_{s}')
 
                     # scale down image
@@ -192,17 +189,17 @@ class ExploreSample(QtW.QWidget):
                     vy = self.array_pos_y[row][col]
                     vz = self.array_pos_z[row][col]
                     # print(f'odd row: {vx},{vy},{vz}')
-                    mmcore.setXYPosition(vx, vy)
-                    mmcore.setPosition("Z_Stage", vz)
+                    self._mmc.setXYPosition(vx, vy)
+                    self._mmc.setPosition("Z_Stage", vz)
                     # print(
-                    #     mmcore.getXPosition(),
-                    #     mmcore.getYPosition(),
-                    #     mmcore.getPosition("Z_Stage"),
+                    #     self._mmc.getXPosition(),
+                    #     self._mmc.getYPosition(),
+                    #     self._mmc.getPosition("Z_Stage"),
                     # )
 
                     # snap image
-                    mmcore.snapImage()
-                    snap = mmcore.getImage()
+                    self._mmc.snapImage()
+                    snap = self._mmc.getImage()
                     # print(f'    temp_snap_{row}_{s}')
 
                     # scale down image
@@ -289,16 +286,16 @@ class ExploreSample(QtW.QWidget):
                             # print(f'moving to y: {y_scan_pos}')
                             # print(f'moving to z: {z_scan_pos}')
                             # set position
-                            mmcore.setXYPosition(x_scan_pos, y_scan_pos)
-                            mmcore.setPosition("Z_Stage", z_scan_pos)
+                            self._mmc.setXYPosition(x_scan_pos, y_scan_pos)
+                            self._mmc.setPosition("Z_Stage", z_scan_pos)
 
                             # snap image at position
-                            mmcore.setExposure(int(self.scan_exp_spinBox.value()))
-                            mmcore.setConfig(
+                            self._mmc.setExposure(int(self.scan_exp_spinBox.value()))
+                            self._mmc.setConfig(
                                 "Channel", self.scan_channel_comboBox.currentText()
                             )
-                            mmcore.snapImage()
-                            image = mmcore.getImage()
+                            self._mmc.snapImage()
+                            image = self._mmc.getImage()
                             self.new_frame.emit("preview", image)
                             done = True
                             break

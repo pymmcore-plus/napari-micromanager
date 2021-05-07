@@ -3,18 +3,20 @@ from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, Qt
+from qtpy.QtCore import QSize, Qt, QTimer
 from qtpy.QtGui import QIcon
 
+from ._core._client import detatched_mmcore
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
-from .qmmcore import mmcore
 
 if TYPE_CHECKING:
     import napari
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
+CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
+CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(QtW.QMainWindow):
@@ -58,31 +60,29 @@ class MainWindow(QtW.QMainWindow):
         super().__init__()
 
         self.viewer = viewer
-        self.worker = None
+        self.streaming_timer = None
 
         uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
-
-        self.cfg_LineEdit.setText("demo")
-
-        mmcore.worker.system_configuration_loaded.connect(
-            self._on_system_configuration_loaded
-        )
-        mmcore.worker.xy_stage_position_changed.connect(
-            self._on_xy_stage_position_changed
-        )
-        # mmcore.worker.stage_position_changed.connect(self._on_stage_position_changed)
-        mmcore.worker.mda_frame_ready.connect(
-            self._on_mda_frame, Qt.BlockingQueuedConnection
-        )
-
         # create MultiDWidget() widgets
-        self.mda = MultiDWidget()
 
-        self.explorer = ExploreSample()
+        self._proc = detatched_mmcore()
+        self._mmc = self._proc.core
+        sig = self._proc.signals
+
+        self.mda = MultiDWidget(self._mmc, sig)
+        self.explorer = ExploreSample(self._mmc)
+
+        sig.mda_finished.connect(self._on_system_configuration_loaded)
+        sig.system_configuration_loaded.connect(self._on_system_configuration_loaded)
+        sig.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
+        # sig.stage_position_changed.connect(self._on_stage_position_changed)
+        sig.mda_frame_ready.connect(self._on_mda_frame, Qt.BlockingQueuedConnection)
+
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_layer)
         self.explorer.delete_previous_scan.connect(self.delete_layer)
 
+        self.cfg_LineEdit.setText("demo")
         # create tab widgets
         multid_tab = QtW.QWidget(self)
         multid_tab.layout = QtW.QGridLayout()
@@ -160,8 +160,8 @@ class MainWindow(QtW.QMainWindow):
             self.viewer.add_image(img, name=name)
 
     def browse_cfg(self):
-        mmcore.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devicies: {mmcore.getLoadedDevices()}")
+        self._mmc.unloadAllDevices()  # unload all devicies
+        print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
 
         # clear spinbox/combobox
         self.objective_comboBox.clear()
@@ -178,34 +178,32 @@ class MainWindow(QtW.QMainWindow):
 
     def load_cfg(self):
         self.load_cfg_Button.setEnabled(False)
-        mmcore.loadSystemConfiguration(self.cfg_LineEdit.text())
+        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
-        cam_device = mmcore.getCameraDevice().result()
-        cam_props = mmcore.getDevicePropertyNames(cam_device).result()
+        cam_device = self._mmc.getCameraDevice()
+        cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
-            bin_opts = mmcore.getAllowedPropertyValues(cam_device, "Binning").result()
+            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
             self.bin_comboBox.setCurrentText(
-                mmcore.getProperty(cam_device, "Binning").result()
+                self._mmc.getProperty(cam_device, "Binning")
             )
 
         if "PixelType" in cam_props:
-            px_t = mmcore.getAllowedPropertyValues(cam_device, "PixelType").result()
+            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
             self.bit_comboBox.addItems(px_t)
             if "16" in px_t:
                 self.bit_comboBox.setCurrentText("16bit")
-                mmcore.setProperty(cam_device, "PixelType", "16bit")
+                self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
-        if "Objective" in mmcore.getLoadedDevices().result():
-            self.objective_comboBox.addItems(
-                mmcore.getStateLabels("Objective").result()
-            )
+        if "Objective" in self._mmc.getLoadedDevices():
+            self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self):
-        if "Channel" in mmcore.getAvailableConfigGroups().result():
-            channel_list = list(mmcore.getAvailableConfigs("Channel").result())
+        if "Channel" in self._mmc.getAvailableConfigGroups():
+            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
 
@@ -213,20 +211,20 @@ class MainWindow(QtW.QMainWindow):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
-        if mmcore.getXYStageDevice().result():
-            x, y = mmcore.getXPosition().result(), mmcore.getYPosition().result()
-            self._on_xy_stage_position_changed(mmcore.getXYStageDevice().result(), x, y)
+        if self._mmc.getXYStageDevice():
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+            self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
             bits = self.bit_comboBox.currentText()
-            mmcore.setProperty(mmcore.getCameraDevice().result(), "PixelType", bits)
+            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
 
     def bin_changed(self):
         if self.bin_comboBox.count() > 0:
             bins = self.bin_comboBox.currentText()
-            cd = mmcore.getCameraDevice().result()
-            mmcore.setProperty(cd, "Binning", bins)
+            cd = self._mmc.getCameraDevice()
+            self._mmc.setProperty(cd, "Binning", bins)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -237,42 +235,44 @@ class MainWindow(QtW.QMainWindow):
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        mmcore.setRelPosition(dx=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelPosition(dx=-float(self.xy_step_size_SpinBox.value()))
 
     def stage_x_right(self):
-        mmcore.setRelPosition(dx=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelPosition(dx=float(self.xy_step_size_SpinBox.value()))
 
     def stage_y_up(self):
-        mmcore.setRelPosition(dy=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelPosition(dy=float(self.xy_step_size_SpinBox.value()))
 
     def stage_y_down(self):
-        mmcore.setRelPosition(dy=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelPosition(dy=-float(self.xy_step_size_SpinBox.value()))
 
     def stage_z_up(self):
-        mmcore.setRelPosition(dz=float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelPosition(dz=float(self.z_step_size_doubleSpinBox.value()))
 
     def stage_z_down(self):
-        mmcore.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
 
     def change_objective(self):
         if not self.objective_comboBox.count() > 0:
             return
 
-        zdev = mmcore.getFocusDevice().result()
+        zdev = self._mmc.getFocusDevice()
 
-        currentZ = mmcore.getZPosition().result()
-        mmcore.setPosition(zdev, 0)
-        mmcore.waitForDevice(zdev)
-        mmcore.setProperty("Objective", "Label", self.objective_comboBox.currentText())
-        mmcore.waitForDevice("Objective")
-        mmcore.setPosition(zdev, currentZ)
-        mmcore.waitForDevice(zdev)
+        currentZ = self._mmc.getZPosition()
+        self._mmc.setPosition(zdev, 0)
+        self._mmc.waitForDevice(zdev)
+        self._mmc.setProperty(
+            "Objective", "Label", self.objective_comboBox.currentText()
+        )
+        self._mmc.waitForDevice("Objective")
+        self._mmc.setPosition(zdev, currentZ)
+        self._mmc.waitForDevice(zdev)
 
         # define and set pixel size Config
-        mmcore.deletePixelSizeConfig(mmcore.getCurrentPixelSizeConfig().result())
-        curr_obj_name = mmcore.getProperty("Objective", "Label").result()
-        mmcore.definePixelSizeConfig(curr_obj_name)
-        mmcore.setPixelSizeConfig(curr_obj_name)
+        self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
+        curr_obj_name = self._mmc.getProperty("Objective", "Label")
+        self._mmc.definePixelSizeConfig(curr_obj_name)
+        self._mmc.setPixelSizeConfig(curr_obj_name)
 
         magnification = None
         # get magnification info from the objective
@@ -293,12 +293,17 @@ class MainWindow(QtW.QMainWindow):
         if magnification is not None:
             self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
             # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
-            mmcore.setPixelSizeUm(
-                mmcore.getCurrentPixelSizeConfig().result(), self.image_pixel_size
+            self._mmc.setPixelSizeUm(
+                self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
-            print(f"Current Pixel Size in µm: {mmcore.getPixelSizeUm().result()}")
+            print(f"Current Pixel Size in µm: {self._mmc.getPixelSizeUm()}")
 
-    def update_viewer(self, data):
+    def update_viewer(self, data=None):
+        if data is None:
+            try:
+                data = self._mmc.popNextImage()
+            except RuntimeError:
+                return
         try:
             self.viewer.layers["preview"].data = data
         except KeyError:
@@ -306,49 +311,35 @@ class MainWindow(QtW.QMainWindow):
 
     def snap(self):
         self.stop_live()
-        mmcore.setExposure(int(self.exp_spinBox.value()))
-        # mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
-        # mmcore.waitForDevice('')
-        mmcore.snapImage()
-        self.update_viewer(mmcore.getImage().result())
+        self._mmc.setExposure(int(self.exp_spinBox.value()))
+        self._mmc.snapImage()
+        self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        from napari.qt import thread_worker
+        camdev = self._mmc.getCameraDevice()
+        self._mmc.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
+        self._mmc.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
+        self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
 
-        @thread_worker(connect={"yielded": self.update_viewer})
-        def live_mode():
-            import time
+        self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
 
-            camdev = mmcore.getCameraDevice()
-
-            while True:
-                mmcore.setExposure(int(self.exp_spinBox.value()))
-                mmcore.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
-                mmcore.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
-                mmcore.setConfig("Channel", self.snap_channel_comboBox.currentText())
-                mmcore.snapImage()
-                yield mmcore.getImage()
-                time.sleep(0.02)
-
+        self.streaming_timer = QTimer()
+        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.start(int(self.exp_spinBox.value()))
         self.live_Button.setText("Stop")
-        self.worker = live_mode()
 
     def stop_live(self):
-        if self.worker:
-            self.worker.quit()
-            self.worker = None
-            self.live_Button.setText("Live")
-            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-            self.live_Button.setIconSize(QSize(40, 40))
+        self._mmc.stopSequenceAcquisition()
+        if self.streaming_timer is not None:
+            self.streaming_timer.stop()
+            self.streaming_timer = None
+        self.live_Button.setText("Live")
+        self.live_Button.setIcon(CAM_ICON)
 
     def toggle_live(self, event=None):
-        # same as writing:
-        # self.stop_live() if self.worker is not None else self.start_live()
-        if self.worker is None:
+        if self.streaming_timer is None:
             self.start_live()
-            self.live_Button.setIcon(QIcon(str(ICONS / "cam_stop.svg")))
-            self.live_Button.setIconSize(QSize(40, 40))
+            self.live_Button.setIcon(CAM_STOP_ICON)
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-        self.live_Button.setIconSize(QSize(40, 40))
+            self.live_Button.setIcon(CAM_ICON)
