@@ -55,9 +55,7 @@ class MMCorePlus(pymmcore.CMMCore):
     def run_mda(self, sequence: MDASequence) -> None:
         logger.info("RUN MDA: {}", sequence)
         t0 = time.perf_counter()  # reference time, in seconds
-        logger.info("----")
         for event in sequence:
-            logger.info("AAA")
             if event.min_start_time:
                 elapsed = time.perf_counter() - t0
                 if event.min_start_time > elapsed:
@@ -69,27 +67,18 @@ class MMCorePlus(pymmcore.CMMCore):
                 x = event.x_pos or self.getXPosition()
                 y = event.y_pos or self.getYPosition()
                 self.setXYPosition(x, y)
-            logger.info("BBB")
             if event.z_pos is not None:
                 self.setZPosition(event.z_pos)
-            logger.info("CCC")
             if event.exposure is not None:
                 self.setExposure(event.exposure)
-            logger.info("DDD")
             if event.channel is not None:
-                print("SETCONFIG", event.channel.group, event.channel.config)
                 self.setConfig(event.channel.group, event.channel.config)
-            logger.info("EEE")
 
             # acquire
-            logger.info("waiting")
             self.waitForSystem()
-            logger.info("snapping")
             self.snapImage()
-            logger.info("getting")
             img = self.getImage()
 
-            logger.info("emitting")
             self.emit_signal("mda_frame_ready", img, event)
         logger.info("MDA FINISHED: {}", sequence)
 

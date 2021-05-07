@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, Qt
+from qtpy.QtCore import QSize, Qt, QTimer
 from qtpy.QtGui import QIcon
 
 from ._core._client import detatched_mmcore
@@ -15,6 +15,8 @@ if TYPE_CHECKING:
 
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
+CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
+CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(QtW.QMainWindow):
@@ -58,7 +60,7 @@ class MainWindow(QtW.QMainWindow):
         super().__init__()
 
         self.viewer = viewer
-        self.worker = None
+        self.streaming_timer = None
 
         uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
 
@@ -301,7 +303,12 @@ class MainWindow(QtW.QMainWindow):
             )
             print(f"Current Pixel Size in µm: {self._mmc.getPixelSizeUm()}")
 
-    def update_viewer(self, data):
+    def update_viewer(self, data=None):
+        if data is None:
+            try:
+                data = self._mmc.popNextImage()
+            except RuntimeError:
+                return
         try:
             self.viewer.layers["preview"].data = data
         except KeyError:
@@ -310,52 +317,34 @@ class MainWindow(QtW.QMainWindow):
     def snap(self):
         self.stop_live()
         self._mmc.setExposure(int(self.exp_spinBox.value()))
-        # self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
-        # self._mmc.waitForDevice('')
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        from napari.qt import thread_worker
+        camdev = self._mmc.getCameraDevice()
+        self._mmc.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
+        self._mmc.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
+        self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
 
-        @thread_worker(connect={"yielded": self.update_viewer})
-        def live_mode():
-            import time
+        self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
 
-            camdev = self._mmc.getCameraDevice()
-
-            while True:
-                self._mmc.setExposure(int(self.exp_spinBox.value()))
-                self._mmc.setProperty(
-                    camdev, "Binning", self.bin_comboBox.currentText()
-                )
-                self._mmc.setProperty(
-                    camdev, "PixelType", self.bit_comboBox.currentText()
-                )
-                self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
-                self._mmc.snapImage()
-                yield self._mmc.getImage()
-                time.sleep(0.02)
-
+        self.streaming_timer = QTimer()
+        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.start(int(self.exp_spinBox.value()))
         self.live_Button.setText("Stop")
-        self.worker = live_mode()
 
     def stop_live(self):
-        if self.worker:
-            self.worker.quit()
-            self.worker = None
-            self.live_Button.setText("Live")
-            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-            self.live_Button.setIconSize(QSize(40, 40))
+        self._mmc.stopSequenceAcquisition()
+        if self.streaming_timer is not None:
+            self.streaming_timer.stop()
+            self.streaming_timer = None
+        self.live_Button.setText("Live")
+        self.live_Button.setIcon(CAM_ICON)
 
     def toggle_live(self, event=None):
-        # same as writing:
-        # self.stop_live() if self.worker is not None else self.start_live()
-        if self.worker is None:
+        if self.streaming_timer is None:
             self.start_live()
-            self.live_Button.setIcon(QIcon(str(ICONS / "cam_stop.svg")))
-            self.live_Button.setIconSize(QSize(40, 40))
+            self.live_Button.setIcon(CAM_STOP_ICON)
         else:
             self.stop_live()
-            self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-        self.live_Button.setIconSize(QSize(40, 40))
+            self.live_Button.setIcon(CAM_ICON)

@@ -1,7 +1,7 @@
 import atexit
 import datetime
 from multiprocessing.shared_memory import SharedMemory
-from typing import List
+from typing import Deque
 
 import numpy as np
 import pymmcore
@@ -12,8 +12,8 @@ from Pyro5.api import register_class_to_dict, register_dict_to_class
 
 Pyro5.config.SERIALIZER = "msgpack"
 
-SHM_SENT: List[SharedMemory] = []
-SHM_RECV: List[SharedMemory] = []
+SHM_SENT: Deque[SharedMemory] = Deque(maxlen=10)
+SHM_RECV: Deque[SharedMemory] = Deque(maxlen=10)
 
 
 @atexit.register
