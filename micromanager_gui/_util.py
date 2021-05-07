@@ -1,10 +1,6 @@
-from .qmmcore import QMMCore
-
-
 def get_devices_and_props(self):
-
+    mmc = None
     # List devices and properties that you can set
-    mmc = QMMCore()
     devices = mmc.getLoadedDevices()
     print("\nDevice status:__________________________")
     for i in range(len(devices)):
@@ -18,7 +14,7 @@ def get_devices_and_props(self):
 
 
 def get_groups_list(self):
-    mmc = QMMCore()
+    mmc = None
     group = []
     for groupName in mmc.getAvailableConfigGroups():
         print(f"*********\nGroup_Name: {str(groupName)}")

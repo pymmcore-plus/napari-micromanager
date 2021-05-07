@@ -6,8 +6,6 @@ from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 from useq import MDASequence
 
-from .qmmcore import mmcore
-
 ICONS = Path(__file__).parent / "icons"
 UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
 
@@ -45,8 +43,9 @@ class MultiDWidget(QtW.QWidget):
 
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, mmcore, parent=None):
+        self._mmc = mmcore
+        super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
         # self.pos_list = []
@@ -78,7 +77,7 @@ class MultiDWidget(QtW.QWidget):
 
     # add, remove, clear channel table
     def add_channel(self):
-        dev_loaded = list(mmcore.getLoadedDevices().result())
+        dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
             idx = self.channel_tableWidget.rowCount()
@@ -90,9 +89,9 @@ class MultiDWidget(QtW.QWidget):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in mmcore.getAvailableConfigGroups().result():
+            if "Channel" not in self._mmc.getAvailableConfigGroups():
                 raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(mmcore.getAvailableConfigs("Channel").result())
+            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
@@ -111,11 +110,11 @@ class MultiDWidget(QtW.QWidget):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
-        dev_loaded = list(mmcore.getLoadedDevices().result())
+        dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
-            x = mmcore.getXPosition().result()
-            y = mmcore.getYPosition().result()
-            z = mmcore.getZPosition().result()
+            x = self._mmc.getXPosition()
+            y = self._mmc.getYPosition()
+            z = self._mmc.getZPosition()
 
             x_txt = QtW.QTableWidgetItem(str(x))
             y_txt = QtW.QTableWidgetItem(str(y))
@@ -153,8 +152,8 @@ class MultiDWidget(QtW.QWidget):
         # print(f'x: {x_val}')
         # print(f'y: {y_val}')
         # print(f'z: {z_val}')
-        mmcore.setXYPosition(float(x_val), float(y_val))
-        mmcore.setPosition("Z_Stage", float(z_val))
+        self._mmc.setXYPosition(float(x_val), float(y_val))
+        self._mmc.setPosition("Z_Stage", float(z_val))
         print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
 
     def set_multi_d_acq_dir(self):
@@ -176,7 +175,7 @@ class MultiDWidget(QtW.QWidget):
         state["channels"] = [
             {
                 "config": self.channel_tableWidget.cellWidget(c, 0).currentText(),
-                "group": mmcore.getChannelGroup().result(),
+                "group": self._mmc.getChannelGroup() or "Channel",
                 "exposure": self.channel_tableWidget.cellWidget(c, 1).value(),
             }
             for c in range(self.channel_tableWidget.rowCount())
@@ -211,9 +210,9 @@ class MultiDWidget(QtW.QWidget):
         else:
             state["stage_positions"].append(
                 {
-                    "x": float(mmcore.getXPosition().result()),
-                    "y": float(mmcore.getYPosition().result()),
-                    "z": float(mmcore.getZPosition().result()),
+                    "x": float(self._mmc.getXPosition()),
+                    "y": float(self._mmc.getYPosition()),
+                    "z": float(self._mmc.getZPosition()),
                 }
             )
         return state
@@ -221,7 +220,7 @@ class MultiDWidget(QtW.QWidget):
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
-        if len(mmcore.getLoadedDevices().result()) < 2:
+        if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
 
@@ -230,7 +229,7 @@ class MultiDWidget(QtW.QWidget):
             return
 
         experiment = MDASequence(**self._get_state_dict())
-        return mmcore.submit("run_mda", (experiment,))  # run the MDA experiment
+        return self._mmc.run_mda(experiment)  # run the MDA experiment
 
 
 if __name__ == "__main__":
