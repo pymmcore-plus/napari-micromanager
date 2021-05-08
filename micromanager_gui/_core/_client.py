@@ -1,20 +1,14 @@
-from __future__ import annotations
-
 import atexit
 import subprocess
 import sys
 import threading
 import time
-from typing import TYPE_CHECKING
 
 from Pyro5 import api, core
 from qtpy.QtCore import QObject, Signal
 
 from . import _server
 from ._serialize import register_serializers
-
-if TYPE_CHECKING:
-    pass
 
 
 class QCoreListener(QObject):
