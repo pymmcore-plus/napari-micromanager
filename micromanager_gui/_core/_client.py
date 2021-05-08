@@ -64,16 +64,17 @@ class detatched_mmcore:
     def __init__(self, host="127.0.0.1", port=54333, timeout=5, cleanup=True):
         self._cleanup = cleanup
 
+        register_serializers()
         self.proc = ensure_server_running(host, port, timeout)
         if cleanup and self.proc:
             atexit.register(self.proc.kill)
 
-        register_serializers()
         self.core = api.Proxy(f"PYRO:{_server.CORE_NAME}@{host}:{port}")
+        self.qsignals = QCoreListener()
 
         self._callback_daemon = api.Daemon()
-        self.qsignals = QCoreListener()
         self._callback_daemon.register(self.qsignals)
+        self.core.connect_remote_callback(self.qsignals)
         thread = threading.Thread(target=self._callback_daemon.requestLoop, daemon=True)
         thread.start()
 
