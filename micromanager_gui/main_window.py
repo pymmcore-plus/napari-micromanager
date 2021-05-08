@@ -65,9 +65,9 @@ class MainWindow(QtW.QMainWindow):
         uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
         # create MultiDWidget() widgets
 
-        self._proc = detatched_mmcore()
-        self._mmc = self._proc.core
-        sig = self._proc.signals
+        self.context = detatched_mmcore()
+        self.destroyed.connect(self.context.close)
+        self._mmc, sig = self.context.core, self.context.qsignals
 
         self.mda = MultiDWidget(self._mmc, sig)
         self.explorer = ExploreSample(self._mmc)
@@ -316,10 +316,10 @@ class MainWindow(QtW.QMainWindow):
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        camdev = self._mmc.getCameraDevice()
-        self._mmc.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
-        self._mmc.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
-        self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
+        # camdev = self._mmc.getCameraDevice()
+        # self._mmc.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
+        # self._mmc.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
+        # self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
 
         self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
 
