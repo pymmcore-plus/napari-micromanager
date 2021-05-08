@@ -13,7 +13,6 @@ from magicgui.widgets import (
     Table,
     Widget,
 )
-from micromanager_gui.qmmcore import QMMCore
 from qtpy.QtCore import Qt
 
 
@@ -37,20 +36,21 @@ class DeviceType(IntEnum):
     HubDevice = getattr(pymmcore, "HubDevice")
     GalvoDevice = getattr(pymmcore, "GalvoDevice")
 
-
-other_devices = (
-    DeviceType.XYStageDevice,
-    DeviceType.SerialDevice,
-    DeviceType.GenericDevice,
-    DeviceType.AutoFocusDevice,
-    DeviceType.CoreDevice,
-    DeviceType.ImageProcessorDevice,
-    DeviceType.SignalIODevice,
-    DeviceType.MagnifierDevice,
-    DeviceType.SLMDevice,
-    DeviceType.HubDevice,
-    DeviceType.GalvoDevice,
-)
+    @classmethod
+    def other(cls):
+        return (
+            DeviceType.XYStageDevice,
+            DeviceType.SerialDevice,
+            DeviceType.GenericDevice,
+            DeviceType.AutoFocusDevice,
+            DeviceType.CoreDevice,
+            DeviceType.ImageProcessorDevice,
+            DeviceType.SignalIODevice,
+            DeviceType.MagnifierDevice,
+            DeviceType.SLMDevice,
+            DeviceType.HubDevice,
+            DeviceType.GalvoDevice,
+        )
 
 
 class PropertyType(IntEnum):
@@ -78,8 +78,7 @@ class PropertyItem:
     allowed: Sequence[str]
 
 
-def yield_dev_props(mmc=None) -> Iterator[PropertyItem]:
-    mmc = mmc or QMMCore()
+def yield_dev_props(mmc) -> Iterator[PropertyItem]:
     for dev in mmc.getLoadedDevices():
         dev_type = DeviceType(mmc.getDeviceType(dev))
         for prop in mmc.getDevicePropertyNames(dev):
@@ -99,8 +98,9 @@ def yield_dev_props(mmc=None) -> Iterator[PropertyItem]:
 
 
 class PropTable(Table):
-    def __init__(self) -> None:
+    def __init__(self, mmcore) -> None:
         super().__init__()
+        self.mmcore = mmcore
         self._update()
         vh = self.native.verticalHeader()
         vh.setSectionResizeMode(vh.Fixed)
@@ -111,8 +111,8 @@ class PropTable(Table):
 
     def _update(self):
         data = []
-        for p in yield_dev_props():
-            val = p.value if p.read_only else get_editor_widget(p)
+        for p in yield_dev_props(self.mmcore):
+            val = p.value if p.read_only else get_editor_widget(p, self.mmcore)
             data.append([int(p.dev_type), p.read_only, f"{p.device}-{p.name}", val])
         self.value = {
             "data": data,
@@ -164,20 +164,20 @@ class PropTable(Table):
         self._refresh_visibilty()
 
 
-def get_editor_widget(prop: PropertyItem) -> Widget:
+def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
     wdg = None
     if prop.allowed:
         wdg = ComboBox(value=prop.value, choices=prop.allowed)
-
     elif prop.has_range:
         cls = FloatSlider if PropertyType(prop.prop_type).name == "Float" else Slider
         wdg = cls(value=float(prop.value), min=prop.lower_lim, max=prop.upper_lim)
-
     else:
         wdg = LineEdit(value=prop.value)
-    wdg.changed.connect(
-        lambda e: mmc.setProperty(prop.device, prop.name, float(e.value))
-    )
+
+    def _on_change(e):
+        mmc.setProperty(prop.device, prop.name, e.value)
+
+    wdg.changed.connect(_on_change)
     return wdg
 
 
@@ -188,7 +188,7 @@ def make_checkboxes(pt):
         ("shutters", DeviceType.ShutterDevice),
         ("stages", DeviceType.StageDevice),
         ("wheels, turrets, etc.", DeviceType.StateDevice),
-        ("other devices", other_devices),
+        ("other devices", DeviceType.other()),
     ]
     for label, dtype in dt:
 
@@ -209,8 +209,8 @@ def make_checkboxes(pt):
 
 
 class PropBrowser(Container):
-    def __init__(self):
-        self.pt = PropTable()
+    def __init__(self, mmcore=None):
+        self.pt = PropTable(mmcore)
         self.le = LineEdit(label="Filter:")
         self.le.changed.connect(self._on_le_change)
         right = Container(widgets=[self.le, self.pt], labels=False)
@@ -226,10 +226,10 @@ class PropBrowser(Container):
 
 
 if __name__ == "__main__":
-    import logging
+    from micromanager_gui._core._mmcore_plus import MMCorePlus
 
-    logging.basicConfig(level="DEBUG")
-    mmc = QMMCore()
-    mmc.loadSystemConfiguration()
-    pb = PropBrowser()
+    mmcore = MMCorePlus()
+    mmcore.loadSystemConfiguration()
+    pb = PropBrowser(mmcore)
+
     pb.show(run=True)
