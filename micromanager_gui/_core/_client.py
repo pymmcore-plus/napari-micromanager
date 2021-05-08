@@ -1,20 +1,15 @@
-from __future__ import annotations
-
 import atexit
 import subprocess
 import sys
 import threading
 import time
-from typing import TYPE_CHECKING
 
+from loguru import logger
 from Pyro5 import api, core
 from qtpy.QtCore import QObject, Signal
 
 from . import _server
 from ._serialize import register_serializers
-
-if TYPE_CHECKING:
-    from micromanager_gui._core._server import pyroCMMCore
 
 
 class QCoreListener(QObject):
@@ -42,43 +37,68 @@ class QCoreListener(QObject):
             emitter.emit(*args)
 
 
-class detatched_mmcore(subprocess.Popen):
-    """Subprocess that runs an MMCore server via Pyro"""
-
-    def __init__(self, host="127.0.0.1", port=54333, timeout=5, config=None) -> None:
-        self._host = host
-        self._port = port
+def ensure_server_running(host="127.0.0.1", port=54333, timeout=5):
+    uri = f"PYRO:{core.DAEMON_NAME}@{host}:{port}"
+    remote_daemon = api.Proxy(uri)
+    try:
+        remote_daemon.ping()
+        logger.debug("Found existing server:\n{}", remote_daemon.info())
+    except Exception:
+        logger.debug("No server found, creating new mmcore server")
         cmd = [sys.executable, _server.__file__, "-p", str(port), "--host", host]
-        super().__init__(cmd)  # type: ignore
-        atexit.register(self.kill)
-
-        register_serializers()
-        self._wait_for_daemon(timeout)
-        self._core = api.Proxy(f"PYRO:{_server.CORE_NAME}@{self._host}:{self._port}")
-        if config:
-            self._core.loadSystemConfiguration(config)
-
-        daemon = api.Daemon()
-        self.signals = QCoreListener()
-        daemon.register(self.signals)
-        thread = threading.Thread(target=daemon.requestLoop, daemon=True)
-        thread.start()
-
-        self._core.connect_remote_callback(self.signals)
-
-    def _wait_for_daemon(self, timeout=5):
-        remote_daemon = api.Proxy(f"PYRO:{core.DAEMON_NAME}@{self._host}:{self._port}")
+        proc = subprocess.Popen(cmd)
         while timeout > 0:
             try:
                 remote_daemon.ping()
-                break
+                return proc
             except Exception:
                 timeout -= 0.1
                 time.sleep(0.1)
+        raise TimeoutError(f"Timeout connecting to server {uri}")
 
-    @property
-    def core(self) -> pyroCMMCore:  # incorrect. but nicer autocompletion
-        return self._core
+
+class detatched_mmcore:
+    _instance = None
+
+    def __init__(self, host="127.0.0.1", port=54333, timeout=5, cleanup=True):
+        detatched_mmcore._instance = self
+        self._cleanup = cleanup
+
+        register_serializers()
+        self.proc = ensure_server_running(host, port, timeout)
+        if cleanup and self.proc:
+            atexit.register(self.proc.kill)
+
+        self.core = api.Proxy(f"PYRO:{_server.CORE_NAME}@{host}:{port}")
+        self.qsignals = QCoreListener()
+
+        self._callback_daemon = api.Daemon()
+        self._callback_daemon.register(self.qsignals)
+        self.core.connect_remote_callback(self.qsignals)  # must come after register()
+        thread = threading.Thread(target=self._callback_daemon.requestLoop, daemon=True)
+        thread.start()
+
+    def __enter__(self):
+        # FIXME: weird...
+        return (self.core, self.qsignals)
 
     def __exit__(self, *args):
-        super().__exit__(*args)
+        self.close()
+
+    def close(self):
+        logger.debug("closing pyro client")
+        self.core.disconnect_remote_callback(self.qsignals)
+        self.core._pyroRelease()
+        self._callback_daemon.close()
+        if self._cleanup and self.proc is not None:
+            self.proc.kill()
+
+    @classmethod
+    def instance(cls):
+        return cls._instance
+
+
+if __name__ == "__main__":
+    with detatched_mmcore() as (mmcore, signals):
+        print(mmcore._pyroUri)
+        mmcore.loadSystemConfiguration()
