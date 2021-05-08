@@ -50,6 +50,7 @@ class detatched_mmcore(subprocess.Popen):
         self._port = port
         cmd = [sys.executable, _server.__file__, "-p", str(port), "--host", host]
         super().__init__(cmd)  # type: ignore
+        atexit.register(self.kill)
 
         register_serializers()
         self._wait_for_daemon(timeout)
@@ -64,7 +65,6 @@ class detatched_mmcore(subprocess.Popen):
         thread.start()
 
         self._core.connect_remote_callback(self.signals)
-        atexit.register(self.kill)
 
     def _wait_for_daemon(self, timeout=5):
         remote_daemon = api.Proxy(f"PYRO:{core.DAEMON_NAME}@{self._host}:{self._port}")
