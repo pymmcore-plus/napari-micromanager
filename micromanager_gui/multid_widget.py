@@ -10,14 +10,15 @@ from qtpy.QtGui import QIcon
 from useq import MDASequence
 
 ICONS = Path(__file__).parent / "icons"
-UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
 
 if TYPE_CHECKING:
     from ._core._client import QCoreListener
     from ._core._mmcore_plus import MMCorePlus
 
 
-class MultiDWidget(QtW.QWidget):
+class _MultiDUI:
+    UI_FILE = str(Path(__file__).parent / "_ui" / "multid_gui.ui")
+
     # The UI_FILE above contains these objects:
     save_groupBox: QtW.QGroupBox
     fname_lineEdit: QtW.QLineEdit
@@ -50,13 +51,24 @@ class MultiDWidget(QtW.QWidget):
     pause_Button: QtW.QPushButton
     cancel_Button: QtW.QPushButton
 
+    def setup_ui(self):
+        uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
+        # button icon
+        self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
+        self.run_Button.setIconSize(QSize(20, 0))
+
+
+class MultiDWidget(QtW.QWidget, _MultiDUI):
+
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
     # TODO: don't love passing `signals` here...
     def __init__(self, mmcore: MMCorePlus, signals: QCoreListener, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
-        uic.loadUi(UI_FILE, self)
+        self.setup_ui()
 
         signals.mda_started.connect(self._on_mda_started)
         signals.mda_finished.connect(self._on_mda_finished)
@@ -65,8 +77,6 @@ class MultiDWidget(QtW.QWidget):
         )
         self.pause_Button.released.connect(self._mmc.toggle_pause)
         self.cancel_Button.released.connect(self._mmc.cancel)
-        self.pause_Button.hide()
-        self.cancel_Button.hide()
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -77,15 +87,10 @@ class MultiDWidget(QtW.QWidget):
         self.clear_ch_Button.clicked.connect(self.clear_channel)
 
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
-
         self.run_Button.clicked.connect(self._on_run_clicked)
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
-
-        # button icon
-        self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
-        self.run_Button.setIconSize(QSize(20, 0))
 
     def _on_mda_started(self):
         self.pause_Button.show()

@@ -15,7 +15,13 @@ def main():
 
     register_serializers()
 
-    serve({pyroCMMCore: CORE_NAME}, use_ns=False, host=args.host, port=args.port)
+    serve(
+        {pyroCMMCore: CORE_NAME},
+        use_ns=False,
+        host=args.host,
+        port=args.port,
+        verbose=False,
+    )
 
 
 if __name__ == "__main__":

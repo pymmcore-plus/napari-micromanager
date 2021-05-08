@@ -14,12 +14,12 @@ if TYPE_CHECKING:
     import napari
 
 ICONS = Path(__file__).parent / "icons"
-UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
-class MainWindow(QtW.QMainWindow):
+class _MainUI:
+    UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 
     # The UI_FILE above contains these objects:
     cfg_LineEdit: QtW.QLineEdit
@@ -56,83 +56,74 @@ class MainWindow(QtW.QMainWindow):
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
 
+    def setup_ui(self):
+        uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
+
+        # set some defaults
+        self.cfg_LineEdit.setText("demo")
+
+        # button icons
+        for attr, icon in [
+            ("left_Button", "left_arrow_1_green.svg"),
+            ("right_Button", "right_arrow_1_green.svg"),
+            ("y_up_Button", "up_arrow_1_green.svg"),
+            ("y_down_Button", "down_arrow_1_green.svg"),
+            ("up_Button", "up_arrow_1_green.svg"),
+            ("down_Button", "down_arrow_1_green.svg"),
+            ("snap_Button", "cam.svg"),
+            ("live_Button", "vcam.svg"),
+        ]:
+            btn = getattr(self, attr)
+            btn.setIcon(QIcon(str(ICONS / icon)))
+            btn.setIconSize(QSize(30, 30))
+
+
+class MainWindow(QtW.QWidget, _MainUI):
     def __init__(self, viewer: "napari.viewer.Viewer"):
         super().__init__()
+        self.setup_ui()
 
         self.viewer = viewer
         self.streaming_timer = None
 
-        uic.loadUi(UI_FILE, self)  # load QtDesigner .ui file
-        # create MultiDWidget() widgets
+        # create connection to mmcore server
+        self.mmcore_context = detatched_mmcore()
+        self.destroyed.connect(lambda: self.mmcore_context.close())
+        self._mmc = self.mmcore_context.core
+        sig = self.mmcore_context.qsignals
 
-        self.context = detatched_mmcore()
-        self.destroyed.connect(self.context.close)
-        self._mmc, sig = self.context.core, self.context.qsignals
-
+        # tab widgets
         self.mda = MultiDWidget(self._mmc, sig)
         self.explorer = ExploreSample(self._mmc)
+        self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
+        # connect mmcore signals
         sig.mda_finished.connect(self._on_system_configuration_loaded)
         sig.system_configuration_loaded.connect(self._on_system_configuration_loaded)
         sig.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
-        # sig.stage_position_changed.connect(self._on_stage_position_changed)
+        sig.stage_position_changed.connect(self._on_stage_position_changed)
         sig.mda_frame_ready.connect(self._on_mda_frame, Qt.BlockingQueuedConnection)
 
+        # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_layer)
         self.explorer.delete_previous_scan.connect(self.delete_layer)
 
-        self.cfg_LineEdit.setText("demo")
-        # create tab widgets
-        multid_tab = QtW.QWidget(self)
-        multid_tab.layout = QtW.QGridLayout()
-        multid_tab.layout.addWidget(self.mda)
-        multid_tab.setLayout(multid_tab.layout)
-
-        explorer_tab = QtW.QWidget(self)
-        explorer_tab.layout = QtW.QGridLayout()
-        explorer_tab.layout.addWidget(self.explorer)
-        explorer_tab.setLayout(explorer_tab.layout)
-
-        # create tabs layout and add the widgets
-        self.tabWidget.addTab(multid_tab, "Multi-D Acquisition")
-        self.tabWidget.addTab(explorer_tab, "Sample Explorer")
-
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
-
         self.left_Button.clicked.connect(self.stage_x_left)
         self.right_Button.clicked.connect(self.stage_x_right)
         self.y_up_Button.clicked.connect(self.stage_y_up)
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
-
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
-        # stage button icons
-        self.left_Button.setIcon(QIcon(str(ICONS / "left_arrow_1_green.svg")))
-        self.left_Button.setIconSize(QSize(30, 30))
-        self.right_Button.setIcon(QIcon(str(ICONS / "right_arrow_1_green.svg")))
-        self.right_Button.setIconSize(QSize(30, 30))
-        self.y_up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
-        self.y_up_Button.setIconSize(QSize(30, 30))
-        self.y_down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
-        self.y_down_Button.setIconSize(QSize(30, 30))
-        self.up_Button.setIcon(QIcon(str(ICONS / "up_arrow_1_green.svg")))
-        self.up_Button.setIconSize(QSize(30, 30))
-        self.down_Button.setIcon(QIcon(str(ICONS / "down_arrow_1_green.svg")))
-        self.down_Button.setIconSize(QSize(30, 30))
-        # snap/live icons
-        self.snap_Button.setIcon(QIcon(str(ICONS / "cam.svg")))
-        self.snap_Button.setIconSize(QSize(30, 30))
-        self.live_Button.setIcon(QIcon(str(ICONS / "vcam.svg")))
-        self.live_Button.setIconSize(QSize(40, 40))
-
         # connect comboBox
-        # self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
@@ -316,13 +307,7 @@ class MainWindow(QtW.QMainWindow):
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        # camdev = self._mmc.getCameraDevice()
-        # self._mmc.setProperty(camdev, "Binning", self.bin_comboBox.currentText())
-        # self._mmc.setProperty(camdev, "PixelType", self.bit_comboBox.currentText())
-        # self._mmc.setConfig("Channel", self.snap_channel_comboBox.currentText())
-
         self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
-
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self.exp_spinBox.value()))
