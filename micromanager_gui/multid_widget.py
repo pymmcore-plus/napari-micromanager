@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -10,10 +9,6 @@ from qtpy.QtGui import QIcon
 from useq import MDASequence
 
 ICONS = Path(__file__).parent / "icons"
-
-if TYPE_CHECKING:
-    from ._core._client import QCoreListener
-    from ._core._mmcore_plus import MMCorePlus
 
 
 class _MultiDUI:
@@ -65,14 +60,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
     # TODO: don't love passing `signals` here...
-    def __init__(self, mmcore: MMCorePlus, signals: QCoreListener, parent=None):
+    def __init__(self, mmcore, signals, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
         self.setup_ui()
 
-        signals.mda_started.connect(self._on_mda_started)
-        signals.mda_finished.connect(self._on_mda_finished)
-        signals.mda_paused.connect(
+        signals.onMDAStarted.connect(self._on_mda_started)
+        signals.onMDAFinished.connect(self._on_mda_finished)
+        signals.onMDAPaused.connect(
             lambda p: self.pause_Button.setText("GO" if p else "PAUSE")
         )
         self.pause_Button.released.connect(self._mmc.toggle_pause)
