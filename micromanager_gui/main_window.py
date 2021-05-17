@@ -1,12 +1,13 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pymmcore_remote import RemoteMMCore
+from pymmcore_remote.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, Qt, QTimer
+from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from ._core._client import detatched_mmcore
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
@@ -87,23 +88,27 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.streaming_timer = None
 
         # create connection to mmcore server
-        self.mmcore_context = detatched_mmcore()
-        self.destroyed.connect(lambda: self.mmcore_context.close())
-        self._mmc = self.mmcore_context.core
-        sig = self.mmcore_context.qsignals
+        self._mmc = RemoteMMCore()
+        sig = QCoreCallback()
+        self._mmc.register_callback(sig)
 
         # tab widgets
-        self.mda = MultiDWidget(self._mmc, sig)
+        self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         # connect mmcore signals
-        sig.mda_finished.connect(self._on_system_configuration_loaded)
-        sig.system_configuration_loaded.connect(self._on_system_configuration_loaded)
-        sig.xy_stage_position_changed.connect(self._on_xy_stage_position_changed)
-        sig.stage_position_changed.connect(self._on_stage_position_changed)
-        sig.mda_frame_ready.connect(self._on_mda_frame, Qt.BlockingQueuedConnection)
+        sig.MDAStarted.connect(self.mda._on_mda_started)
+        sig.MDAFinished.connect(self.mda._on_mda_finished)
+        sig.MDAFinished.connect(self._on_system_configuration_loaded)
+        sig.MDAPauseToggled.connect(
+            lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
+        )
+        sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
+        sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
+        sig.stagePositionChanged.connect(self._on_stage_position_changed)
+        sig.MDAFrameReady.connect(self._on_mda_frame)
 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -143,6 +148,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, img, event):
+        print("got frame", img, event)
         name = "mda"
         try:
             layer = self.viewer.layers[name]
@@ -293,7 +299,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         if data is None:
             try:
                 data = self._mmc.popNextImage()
-            except RuntimeError:
+            except (RuntimeError, IndexError):
+                # circular buffer empty
                 return
         try:
             self.viewer.layers["preview"].data = data

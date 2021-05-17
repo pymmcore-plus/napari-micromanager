@@ -9,11 +9,10 @@ from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
 from useq import MDASequence
 
-ICONS = Path(__file__).parent / "icons"
-
 if TYPE_CHECKING:
-    from ._core._client import QCoreListener
-    from ._core._mmcore_plus import MMCorePlus
+    from pymmcore_remote import RemoteMMCore
+
+ICONS = Path(__file__).parent / "icons"
 
 
 class _MultiDUI:
@@ -65,16 +64,11 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # empty_stack_to_viewer = Signal(np.ndarray, str)
 
     # TODO: don't love passing `signals` here...
-    def __init__(self, mmcore: MMCorePlus, signals: QCoreListener, parent=None):
+    def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
         self.setup_ui()
 
-        signals.mda_started.connect(self._on_mda_started)
-        signals.mda_finished.connect(self._on_mda_finished)
-        signals.mda_paused.connect(
-            lambda p: self.pause_Button.setText("GO" if p else "PAUSE")
-        )
         self.pause_Button.released.connect(self._mmc.toggle_pause)
         self.cancel_Button.released.connect(self._mmc.cancel)
 
@@ -92,7 +86,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
-    def _on_mda_started(self):
+    def _on_mda_started(self, sequence):
         self.pause_Button.show()
         self.cancel_Button.show()
         self.run_Button.hide()
