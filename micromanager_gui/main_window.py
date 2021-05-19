@@ -147,14 +147,88 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.add_image(array, name=layer_name)
 
     # TO DO: add the file name form the save box
-    def _on_mda_frame(self, img, event):
-        print("got frame", img, event)
-        name = "mda"
+    def _on_mda_frame(self, image, event):
+
+        print('MDA')
+
+        from useq import MDAEvent
+        event = MDAEvent.parse_obj(event)
+
+        sequence = event.sequence
+
+        event['__dict__']['index'].setdefault('t', 0)
+        event['__dict__']['index'].setdefault('z', 0)
+
+        z_stack_length = len(sequence.z_plan) or 1
+        c_stack_length = len(sequence.channels)
+
+        event_index_t = event['__dict__']['index']["t"]
+        event_index_p = event['__dict__']['index']["p"]
+        event_index_z = event['__dict__']['index']["z"]
+        event_index_c = event['__dict__']['index']["c"]
+        
+        file_name = 'mda'
+
+        layer_name = f'{file_name}_[{sequence.axis_order}]_p{event_index_p}_t{len(sequence.time_plan)}_z{len(sequence.z_plan)}_c{len(sequence.channels)}'
+
         try:
-            layer = self.viewer.layers[name]
-            layer.data = img
+            layer = self.viewer.layers[layer_name]
+
+            if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':
+                #channels
+                if event_index_c > 0 and event_index_z == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*3  + image.shape), dtype=np.uint16) 
+                    layer.data = np.concatenate((layer.data,empty_im), axis=2)
+                
+                #zpositions
+                if event_index_z > 0 and event_index_c == 0 and layer.data.shape[0] == 1:
+                    empty_im = np.empty(((1,)*2 + (c_stack_length,) + image.shape), dtype=np.uint16)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=1)
+
+                #timepoints
+                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0:
+                    empty_im = np.empty(((1,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=0)
+            
+            if sequence.axis_order == 'tpcz' or sequence.axis_order == 'ptcz':
+                #zpositions
+                if event_index_z > 0 and event_index_c == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*3  + image.shape), dtype=np.uint16) 
+                    layer.data = np.concatenate((layer.data,empty_im), axis=1)
+                
+                #channels
+                if event_index_c > 0 and event_index_z == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,z_stack_length,1) + image.shape), dtype=np.uint16)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=2)
+            
+                #timepoints
+                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0:
+                    empty_im = np.empty(((1,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=0)
+
+            layer.data[event_index_t,event_index_z,event_index_c, ...] = image
+
+            print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
+         
+            #set which dimension to display in napari viewer -> viewer.dims.set_point(axis, index)
+            self.viewer.dims.set_point(2, event_index_c)
+            self.viewer.dims.set_point(1, event_index_z)      
+            self.viewer.dims.set_point(0, event_index_t)
+
         except KeyError:
-            self.viewer.add_image(img, name=name)
+
+            label = ''
+            for i in range(len(image.shape)-2):
+                label+='*'
+            label = 'tzc' + label + 'yx'
+
+            layer = self.viewer.add_image(image, name=layer_name)
+
+            layer.data = layer.data[(np.newaxis,)*3]
+            
+            self.viewer.dims.axis_labels = label
+
+            print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
