@@ -8,6 +8,8 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
+import numpy as np
+
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
@@ -149,12 +151,7 @@ class MainWindow(QtW.QWidget, _MainUI):
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, image, event):
 
-        print('MDA')
-
-        from useq import MDAEvent
-        event = MDAEvent.parse_obj(event)
-
-        sequence = event.sequence
+        sequence = event['__dict__']['sequence']
 
         event['__dict__']['index'].setdefault('t', 0)
         event['__dict__']['index'].setdefault('z', 0)
