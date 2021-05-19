@@ -151,18 +151,18 @@ class MainWindow(QtW.QWidget, _MainUI):
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, image, event):
 
-        sequence = event['__dict__']['sequence']
+        sequence = event.sequence
 
-        event['__dict__']['index'].setdefault('t', 0)
-        event['__dict__']['index'].setdefault('z', 0)
+        event.index.setdefault('t', 0)
+        event.index.setdefault('z', 0)
 
         z_stack_length = len(sequence.z_plan) or 1
         c_stack_length = len(sequence.channels)
 
-        event_index_t = event['__dict__']['index']["t"]
-        event_index_p = event['__dict__']['index']["p"]
-        event_index_z = event['__dict__']['index']["z"]
-        event_index_c = event['__dict__']['index']["c"]
+        event_index_t = event.index["t"]
+        event_index_p = event.index["p"]
+        event_index_z = event.index["z"]
+        event_index_c = event.index["c"]
         
         file_name = 'mda'
 
