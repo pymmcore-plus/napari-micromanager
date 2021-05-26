@@ -178,7 +178,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':
                 #channels
                 if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*len(sequence.axis_order)  + image.shape), dtype=np.uint16) 
+                    empty_im = np.empty(((1,)*len(sequence.axis_order) + image.shape), dtype=np.uint16) 
                     print('ch empty: ', empty_im.shape)
                     layer.data = np.concatenate((layer.data,empty_im), axis=-3)
                     print('layer.data.shape: ', layer.data.shape)
