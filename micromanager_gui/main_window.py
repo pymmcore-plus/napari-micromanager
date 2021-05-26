@@ -156,6 +156,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         event.index.setdefault('t', 0)
         event.index.setdefault('z', 0)
 
+        t_stack_length = len(sequence.time_plan) or 1
+        p_stack_length = len(sequence.stage_positions)
         z_stack_length = len(sequence.z_plan) or 1
         c_stack_length = len(sequence.channels)
 
@@ -163,29 +165,44 @@ class MainWindow(QtW.QWidget, _MainUI):
         event_index_p = event.index["p"]
         event_index_z = event.index["z"]
         event_index_c = event.index["c"]
+
+        print(event_index_t,event_index_p,event_index_z,event_index_c)
         
         file_name = 'mda'
 
-        layer_name = f'{file_name}_[{sequence.axis_order}]_p{event_index_p}_t{len(sequence.time_plan)}_z{len(sequence.z_plan)}_c{len(sequence.channels)}'
+        layer_name = f'{file_name}_[{sequence.axis_order}]_p{p_stack_length}_t{t_stack_length}_z{z_stack_length}_c{c_stack_length}'
 
         try:
             layer = self.viewer.layers[layer_name]
 
             if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':
                 #channels
-                if event_index_c > 0 and event_index_z == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*3  + image.shape), dtype=np.uint16) 
-                    layer.data = np.concatenate((layer.data,empty_im), axis=2)
+                if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*len(sequence.axis_order)  + image.shape), dtype=np.uint16) 
+                    print('ch empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-3)
+                    print('layer.data.shape: ', layer.data.shape)
                 
                 #zpositions
-                if event_index_z > 0 and event_index_c == 0 and layer.data.shape[0] == 1:
-                    empty_im = np.empty(((1,)*2 + (c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=1)
+                if event_index_z > 0 and event_index_c == 0 and event_index_p == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-1) + (c_stack_length,) + image.shape), dtype=np.uint16)
+                    print('z empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-4)
+                    print('layer.data.shape: ', layer.data.shape)
+                
+                #xypositions
+                if event_index_p > 0 and event_index_c == 0 and event_index_z == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    print('xy empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-5)
+                    print('layer.data.shape: ', layer.data.shape)
 
                 #timepoints
-                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0:
-                    empty_im = np.empty(((1,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=0)
+                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0 and event_index_p == 0:
+                    empty_im = np.empty(((1,p_stack_length,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    print('t empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-6)
+                    print('layer.data.shape: ', layer.data.shape)
             
             if sequence.axis_order == 'tpcz' or sequence.axis_order == 'ptcz':
                 #zpositions
@@ -203,29 +220,29 @@ class MainWindow(QtW.QWidget, _MainUI):
                     empty_im = np.empty(((1,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
                     layer.data = np.concatenate((layer.data,empty_im), axis=0)
 
-            layer.data[event_index_t,event_index_z,event_index_c, ...] = image
+            layer.data[event_index_t,event_index_p,event_index_z,event_index_c, ...] = image
+            print('         layer.data.shape: ', layer.data.shape)
 
-            print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
+            # print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
          
             #set which dimension to display in napari viewer -> viewer.dims.set_point(axis, index)
-            self.viewer.dims.set_point(2, event_index_c)
-            self.viewer.dims.set_point(1, event_index_z)      
-            self.viewer.dims.set_point(0, event_index_t)
+            self.viewer.dims.set_point(3, event_index_c)
+            self.viewer.dims.set_point(2, event_index_z)
+            self.viewer.dims.set_point(1, event_index_p)
+            self.viewer.dims.set_point(0, event_index_t)   
 
         except KeyError:
 
-            label = ''
-            for i in range(len(image.shape)-2):
-                label+='*'
-            label = 'tzc' + label + 'yx'
+            label = str(sequence.axis_order) + 'yx'
 
             layer = self.viewer.add_image(image, name=layer_name)
 
-            layer.data = layer.data[(np.newaxis,)*3]
+            layer.data = layer.data[(np.newaxis,)*len(sequence.axis_order)]
+            print('layer.data.shape: ', layer.data.shape)
             
             self.viewer.dims.axis_labels = label
 
-            print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
+            # print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
