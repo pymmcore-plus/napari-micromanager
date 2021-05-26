@@ -148,6 +148,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
+
+    # def stack_mda(self, sequence, event, empty_shape, empty_dtype, layer_data, axis_index):
+
+    #     indexes = []
+    #     for i in event.index:
+    #         indexes.append(event.index[str(i)])
+        
+    #     if sum(indexes) == 1:
+    #         for ax in sequence.axis_order:
+    #             if event.index[str(i)]>0:
+    #                 empty_im = np.empty((empty_shape), dtype=empty_dtype)
+    #                 layer_data = np.concatenate((layer_data,empty_im), axis=axis_index)
+        
+    #     indexes.clear
+    #     return layer_data
+                
+
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, image, event):
 
