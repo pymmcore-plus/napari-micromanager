@@ -168,7 +168,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         
         file_name = 'mda'
 
-        layer_name = f'{file_name}_[{sequence.axis_order}]_p{p_stack_length}_t{t_stack_length}_z{z_stack_length}_c{c_stack_length}'
+        layer_name = (
+            f'{file_name}_[{sequence.axis_order}]_p{p_stack_length}_'
+            f't{t_stack_length}_z{z_stack_length}_c{c_stack_length}'
+        )
 
         try:
             layer = self.viewer.layers[layer_name]
