@@ -316,8 +316,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             
     #         self.viewer.dims.axis_labels = 'tpzcyx'
 
-
-
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
