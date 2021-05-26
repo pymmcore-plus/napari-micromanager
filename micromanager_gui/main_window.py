@@ -224,11 +224,17 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.set_point(1, event_index_p)
             self.viewer.dims.set_point(0, event_index_t)   
 
+
+
         except KeyError:
 
             layer = self.viewer.add_image(image[(np.newaxis,)*len(sequence.axis_order)], name=layer_name)
             
             self.viewer.dims.axis_labels = 'tpzcyx'
+
+            layer.metadata['Metadata'] = sequence
+
+
 
 
     #if we want to create new layers per position
