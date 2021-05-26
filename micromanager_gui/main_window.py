@@ -166,7 +166,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         event_index_z = event.index["z"]
         event_index_c = event.index["c"]
         
-        file_name = 'mda'
+        if self.mda.save_groupBox.isChecked():
+            file_name = self.mda.fname_lineEdit.text()
+        else:
+            file_name = 'Experiment'
 
         layer_name = f'{file_name}_[{sequence.axis_order}]_p{p_stack_length}_t{t_stack_length}_z{z_stack_length}_c{c_stack_length}'
 
@@ -222,9 +225,14 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.set_point(3, event_index_c)
             self.viewer.dims.set_point(2, event_index_z)
             self.viewer.dims.set_point(1, event_index_p)
-            self.viewer.dims.set_point(0, event_index_t)   
+            self.viewer.dims.set_point(0, event_index_t)
 
+            i_width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  
+            i_height = self._mmc.getROI(self._mmc.getCameraDevice())[3] 
 
+            if layer.data.shape == (t_stack_length,p_stack_length,z_stack_length,c_stack_length,i_height,i_width):
+                if self.mda.save_groupBox.isChecked() and self.mda.dir_lineEdit.text() != "":
+                    print('saving')
 
         except KeyError:
 
