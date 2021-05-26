@@ -240,7 +240,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             self.viewer.dims.axis_labels = 'tpzcyx'
 
-            layer.metadata['Metadata'] = sequence
+            layer.metadata['useq_sequence'] = sequence
 
 
 
