@@ -230,7 +230,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             self.viewer.dims.axis_labels = 'tpzcyx'
 
-            layer.metadata['Metadata'] = sequence
+            layer.metadata['useq_sequence'] = sequence
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
