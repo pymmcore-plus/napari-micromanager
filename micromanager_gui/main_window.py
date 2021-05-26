@@ -230,7 +230,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             self.viewer.dims.axis_labels = 'tpzcyx'
 
-
+            layer.metadata['Metadata'] = sequence
+            
     #if we want to create new layers per position
     # def _on_mda_frame(self, image, event):
 
