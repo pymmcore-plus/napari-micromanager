@@ -148,6 +148,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
+
+    # def stack_mda(self, sequence, event, empty_shape, empty_dtype, layer_data, axis_index):
+
+    #     indexes = []
+    #     for i in event.index:
+    #         indexes.append(event.index[str(i)])
+        
+    #     if sum(indexes) == 1:
+    #         for ax in sequence.axis_order:
+    #             if event.index[str(i)]>0:
+    #                 empty_im = np.empty((empty_shape), dtype=empty_dtype)
+    #                 layer_data = np.concatenate((layer_data,empty_im), axis=axis_index)
+        
+    #     indexes.clear
+    #     return layer_data
+                
+
     # TO DO: add the file name form the save box
     def _on_mda_frame(self, image, event):
 
@@ -175,7 +192,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         try:
             layer = self.viewer.layers[layer_name]
 
-            if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':
+            if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':            
                 #channels
                 if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
                     empty_im = np.empty(((1,)*len(sequence.axis_order) + image.shape), dtype=np.uint16) 
@@ -203,22 +220,36 @@ class MainWindow(QtW.QWidget, _MainUI):
                     print('t empty: ', empty_im.shape)
                     layer.data = np.concatenate((layer.data,empty_im), axis=-6)
                     print('layer.data.shape: ', layer.data.shape)
-            
+
+
             if sequence.axis_order == 'tpcz' or sequence.axis_order == 'ptcz':
                 #zpositions
-                if event_index_z > 0 and event_index_c == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*3  + image.shape), dtype=np.uint16) 
-                    layer.data = np.concatenate((layer.data,empty_im), axis=1)
+                if event_index_z > 0 and event_index_c == 0 and event_index_p == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*len(sequence.axis_order) + image.shape), dtype=np.uint16) 
+                    print('z empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-4)
+                    print('layer.data.shape: ', layer.data.shape)
                 
                 #channels
-                if event_index_c > 0 and event_index_z == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,z_stack_length,1) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=2)
-            
+                if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,1,) + image.shape), dtype=np.uint16)
+                    print('ch empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-3)
+                    print('layer.data.shape: ', layer.data.shape)
+
+                #xypositions
+                if event_index_p > 0 and event_index_c == 0 and event_index_z == 0 and event_index_t == 0:
+                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    print('xy empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-5)
+                    print('layer.data.shape: ', layer.data.shape)
+
                 #timepoints
-                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0:
-                    empty_im = np.empty(((1,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=0)
+                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0 and event_index_p == 0:
+                    empty_im = np.empty(((1,p_stack_length,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
+                    print('t empty: ', empty_im.shape)
+                    layer.data = np.concatenate((layer.data,empty_im), axis=-6)
+                    print('layer.data.shape: ', layer.data.shape)
 
             layer.data[event_index_t,event_index_p,event_index_z,event_index_c, ...] = image
             print('         layer.data.shape: ', layer.data.shape)
