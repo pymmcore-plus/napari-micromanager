@@ -233,14 +233,12 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         except KeyError:
 
-            label = str(sequence.axis_order) + 'yx'
-
             layer = self.viewer.add_image(image, name=layer_name)
 
             layer.data = layer.data[(np.newaxis,)*len(sequence.axis_order)]
             print('layer.data.shape: ', layer.data.shape)
             
-            self.viewer.dims.axis_labels = label
+            self.viewer.dims.axis_labels = 'tpzcyx'
 
             # print('SIZE: ', layer.data.nbytes/1000000 ,' MB')
 
