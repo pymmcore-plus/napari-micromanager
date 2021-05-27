@@ -246,21 +246,21 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
 
 
-    def toggle_run_btn(self):
-        if self.save_groupBox.isChecked(): 
+    # def toggle_run_btn(self):
+    #     if self.save_groupBox.isChecked(): 
 
-            if self.fname_lineEdit.text() == '' or \
-                (self.dir_lineEdit.text() == '' or \
-                    not Path.is_dir(Path(self.dir_lineEdit.text()))
-                    ):
+    #         if self.fname_lineEdit.text() == '' or \
+    #             (self.dir_lineEdit.text() == '' or \
+    #                 not Path.is_dir(Path(self.dir_lineEdit.text()))
+    #                 ):
 
-                        self.run_Button.setEnabled(False)
-                        print('select a filename and a valid directory.')
-            else:
-                self.run_Button.setEnabled(True)
+    #                     self.run_Button.setEnabled(False)
+    #                     print('select a filename and a valid directory.')
+    #         else:
+    #             self.run_Button.setEnabled(True)
 
-        else:
-            self.run_Button.setEnabled(True)
+    #     else:
+    #         self.run_Button.setEnabled(True)
 
 
 
@@ -295,9 +295,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
             return
 
-        # experiment = MDASequence(**self._get_state_dict())
-        # self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-        # return
 
 
 if __name__ == "__main__":
