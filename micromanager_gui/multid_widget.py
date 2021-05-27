@@ -246,21 +246,21 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
 
 
-    def toggle_run_btn(self):
-        if self.save_groupBox.isChecked(): 
+    # def toggle_run_btn(self):
+    #     if self.save_groupBox.isChecked(): 
 
-            if self.fname_lineEdit.text() == '' or \
-                (self.dir_lineEdit.text() == '' or \
-                    not Path.is_dir(Path(self.dir_lineEdit.text()))
-                    ):
+    #         if self.fname_lineEdit.text() == '' or \
+    #             (self.dir_lineEdit.text() == '' or \
+    #                 not Path.is_dir(Path(self.dir_lineEdit.text()))
+    #                 ):
 
-                        self.run_Button.setEnabled(False)
-                        print('select a filename and a valid directory.')
-            else:
-                self.run_Button.setEnabled(True)
+    #                     self.run_Button.setEnabled(False)
+    #                     print('select a filename and a valid directory.')
+    #         else:
+    #             self.run_Button.setEnabled(True)
 
-        else:
-            self.run_Button.setEnabled(True)
+    #     else:
+    #         self.run_Button.setEnabled(True)
 
 
 
@@ -274,8 +274,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if not self.channel_tableWidget.rowCount() > 0:
             print("Select at least one channel.")
             return
-        
-        #alternative way than disabling the run button
+
         if self.save_groupBox.isChecked(): 
 
             if self.fname_lineEdit.text() == '' or \
