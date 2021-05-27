@@ -84,8 +84,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.run_Button.clicked.connect(self._on_run_clicked)
 
         #toggle connect
-        self.save_groupBox.toggled.connect(self.toggle_run_btn)
-        self.fname_lineEdit.textChanged.connect(self.toggle_run_btn)
+        # self.save_groupBox.toggled.connect(self.toggle_run_btn)
+        # self.fname_lineEdit.textChanged.connect(self.toggle_run_btn)
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
@@ -276,28 +276,28 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             return
         
         #alternative way than disabling the run button
-        # if self.save_groupBox.isChecked(): 
+        if self.save_groupBox.isChecked(): 
 
-        #     if self.fname_lineEdit.text() == '' or \
-        #         (self.dir_lineEdit.text() == '' or \
-        #             not Path.is_dir(Path(self.dir_lineEdit.text()))
-        #             ):
+            if self.fname_lineEdit.text() == '' or \
+                (self.dir_lineEdit.text() == '' or \
+                    not Path.is_dir(Path(self.dir_lineEdit.text()))
+                    ):
+                        raise ValueError ('select a filename and a valid directory.')
+                        print('select a filename and a valid directory.')
 
-        #                 print('select a filename and a valid directory.')
+            else:
+                experiment = MDASequence(**self._get_state_dict())
+                self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+                return
 
-        #     else:
-        #         experiment = MDASequence(**self._get_state_dict())
-        #         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-        #         return
+        else:
+            experiment = MDASequence(**self._get_state_dict())
+            self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+            return
 
-        # else:
-        #     experiment = MDASequence(**self._get_state_dict())
-        #     self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-        #     return
-
-        experiment = MDASequence(**self._get_state_dict())
-        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-        return
+        # experiment = MDASequence(**self._get_state_dict())
+        # self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        # return
 
 
 if __name__ == "__main__":
