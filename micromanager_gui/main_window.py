@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import napari
+import numpy as np
 from pymmcore_remote import RemoteMMCore
 from pymmcore_remote.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
@@ -8,13 +13,12 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-import numpy as np
-
+from ._util import extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
 if TYPE_CHECKING:
-    import napari
+    import useq
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
@@ -82,7 +86,7 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: "napari.viewer.Viewer"):
+    def __init__(self, viewer: napari.viewer.Viewer):
         super().__init__()
         self.setup_ui()
 
@@ -149,91 +153,40 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.add_image(array, name=layer_name)
 
     # TO DO: add the file name form the save box
-    def _on_mda_frame(self, image, event):
+    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
-        sequence = event.sequence
-
-        event.index.setdefault('t', 0)
-        event.index.setdefault('z', 0)
-
-        t_stack_length = len(sequence.time_plan) or 1
-        p_stack_length = len(sequence.stage_positions)
-        z_stack_length = len(sequence.z_plan) or 1
-        c_stack_length = len(sequence.channels)
-
-        event_index_t = event.index["t"]
-        event_index_p = event.index["p"]
-        event_index_z = event.index["z"]
-        event_index_c = event.index["c"]
-        
-        file_name = 'mda'
-
-        layer_name = (
-            f'{file_name}_[{sequence.axis_order}]_p{p_stack_length}_'
-            f't{t_stack_length}_z{z_stack_length}_c{c_stack_length}'
-        )
+        seq = event.sequence
 
         try:
+            # see if we already have a layer with this sequence
+            layer = next(
+                x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+            )
+
+            # get the index of the incoming image
+            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
+            # make sure array shape contains im_idx, or pad with zeros
+            new_array = extend_array_for_index(layer.data, im_idx)
+            # add the incoming index at the appropriate index
+            new_array[im_idx] = image
+
+            # set layer data
+            layer.data = new_array
+
+            for a, v in enumerate(im_idx):
+                self.viewer.dims.set_point(a, v)
+
+        except StopIteration:
+            layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
+            _image = image[(np.newaxis,) * len(seq.shape)]
+            layer = self.viewer.add_image(_image, name=layer_name)
+            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+
+            self.viewer.dims.axis_labels = labels
+            layer.metadata["useq_sequence"] = seq
+            layer.metadata["uid"] = seq.uid
+
             layer = self.viewer.layers[layer_name]
-
-            if sequence.axis_order == 'tpzc' or sequence.axis_order == 'ptzc':            
-                #channels
-                if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*len(sequence.axis_order) + image.shape), dtype=np.uint16) 
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-3)
-                
-                #zpositions
-                if event_index_z > 0 and event_index_c == 0 and event_index_p == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-1) + (c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-4)
-                
-                #xypositions
-                if event_index_p > 0 and event_index_c == 0 and event_index_z == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-5)
-
-                #timepoints
-                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0 and event_index_p == 0:
-                    empty_im = np.empty(((1,p_stack_length,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-6)
-
-
-            if sequence.axis_order == 'tpcz' or sequence.axis_order == 'ptcz':
-                #zpositions
-                if event_index_z > 0 and event_index_c == 0 and event_index_p == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*len(sequence.axis_order) + image.shape), dtype=np.uint16) 
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-4)
-                
-                #channels
-                if event_index_c > 0 and event_index_z == 0 and event_index_p == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,1,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-3)
-
-                #xypositions
-                if event_index_p > 0 and event_index_c == 0 and event_index_z == 0 and event_index_t == 0:
-                    empty_im = np.empty(((1,)*(len(sequence.axis_order)-2) + (z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-5)
-
-                #timepoints
-                if event_index_t > 0 and event_index_z == 0 and event_index_c == 0 and event_index_p == 0:
-                    empty_im = np.empty(((1,p_stack_length,z_stack_length,c_stack_length,) + image.shape), dtype=np.uint16)
-                    layer.data = np.concatenate((layer.data,empty_im), axis=-6)
-
-            layer.data[event_index_t,event_index_p,event_index_z,event_index_c, ...] = image
-         
-            #set which dimension to display in napari viewer -> viewer.dims.set_point(axis, index)
-            self.viewer.dims.set_point(3, event_index_c)
-            self.viewer.dims.set_point(2, event_index_z)
-            self.viewer.dims.set_point(1, event_index_p)
-            self.viewer.dims.set_point(0, event_index_t)   
-
-        except KeyError:
-
-            layer = self.viewer.add_image(image[(np.newaxis,)*len(sequence.axis_order)], name=layer_name)
-            
-            self.viewer.dims.axis_labels = 'tpzcyx'
-
-            layer.metadata['useq_sequence'] = sequence
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
