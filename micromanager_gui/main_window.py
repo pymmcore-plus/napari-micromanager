@@ -181,26 +181,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
-
-                final_shape = ()
-                for i in seq.axis_order:
-                    if i == 't' and len(seq.time_plan) != 0:
-                        final_shape+=(len(seq.time_plan),)
-                    if i == 'p' and len(seq.stage_positions) != 0:
-                        final_shape+=(len(seq.stage_positions),)
-                    if i == 'z' and len(seq.z_plan) != 0:
-                        final_shape+=(len(seq.z_plan),)
-                    if i == 'c' and len(seq.channels) != 0:
-                        final_shape+=(len(seq.channels),)
-
-                if layer.data.shape == final_shape + image.shape and \
-                    layer.data.min() != 0: 
-
-                        print('saving')
+                
+                if layer.data.shape == seq.shape + image.shape and \
+                    layer.data.min() != 0:
 
                         name = self.viewer.layers.selection.active.name
 
-                        save_path = Path(str(self.mda.dir_lineEdit.Text())) / name
+                        save_path = Path(self.mda.dir_lineEdit.text()) / name
                 
                         self.viewer.layers[name].save(str(save_path))
 
@@ -222,6 +209,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             layer.metadata["uid"] = seq.uid
 
             layer = self.viewer.layers[layer_name]
+
+            #save layer when acquisition is finished
+            if self.mda.save_groupBox.isChecked():
+
+                if layer.data.shape == seq.shape + image.shape and \
+                    layer.data.min() != 0: 
+
+                        name = self.viewer.layers.selection.active.name
+
+                        save_path = Path(self.mda.dir_lineEdit.text()) / name
+                
+                        self.viewer.layers[name].save(str(save_path))
                     
 
     def browse_cfg(self):
