@@ -197,16 +197,22 @@ class MainWindow(QtW.QWidget, _MainUI):
                     layer.data.min() != 0: 
 
                         print('saving')
-                        self.viewer.layers[self.filename].save(str(bin_path / self.filename))
 
-                else:
-                    print('layer_min: ', layer.data.min())
+                        name = self.viewer.layers.selection.active.name
+
+                        save_path = Path(str(self.mda.dir_lineEdit.Text())) / name
+                
+                        self.viewer.layers[name].save(str(save_path))
 
 
         except StopIteration:
 
-            
-            layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
+            if self.mda.save_groupBox.isChecked():
+                file_name = self.mda.fname_lineEdit.text()
+                layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
+            else:
+                layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
+
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
