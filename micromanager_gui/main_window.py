@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING
 
 import napari
 import numpy as np
@@ -176,6 +176,28 @@ class MainWindow(QtW.QWidget, _MainUI):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
+            #TODO: save each frame in temp folder
+
+            #save layer when acquisition is finished
+            if self.mda.save_groupBox.isChecked():
+
+                final_shape = ()
+                for i in seq.axis_order:
+                    if i == 't':
+                        final_shape+=(len(event.time_plan),)
+                    if i == 'p':
+                        final_shape+=(len(event.stage_positions),)
+                    if i == 'z':
+                        final_shape+=(len(event.z_plan),)
+                    if i == 'c':
+                        final_shape+=(len(event.channels),)
+
+                if layer.data.shape == (final_shape) and \
+                    layer.data.min() != 0: 
+
+                        print('saving')
+
+
         except StopIteration:
             layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
             _image = image[(np.newaxis,) * len(seq.shape)]
@@ -187,6 +209,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             layer.metadata["uid"] = seq.uid
 
             layer = self.viewer.layers[layer_name]
+                    
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies

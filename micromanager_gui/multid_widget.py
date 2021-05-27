@@ -189,7 +189,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-        self.toggle_run_btn()
+        # self.toggle_run_btn()
 
     def _get_state_dict(self) -> dict:
         state = {
