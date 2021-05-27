@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from re import escape
 from typing import Sequence, TYPE_CHECKING
 
 import napari
@@ -183,22 +184,28 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 final_shape = ()
                 for i in seq.axis_order:
-                    if i == 't':
-                        final_shape+=(len(event.time_plan),)
-                    if i == 'p':
-                        final_shape+=(len(event.stage_positions),)
-                    if i == 'z':
-                        final_shape+=(len(event.z_plan),)
-                    if i == 'c':
-                        final_shape+=(len(event.channels),)
+                    if i == 't' and len(seq.time_plan) != 0:
+                        final_shape+=(len(seq.time_plan),)
+                    if i == 'p' and len(seq.stage_positions) != 0:
+                        final_shape+=(len(seq.stage_positions),)
+                    if i == 'z' and len(seq.z_plan) != 0:
+                        final_shape+=(len(seq.z_plan),)
+                    if i == 'c' and len(seq.channels) != 0:
+                        final_shape+=(len(seq.channels),)
 
-                if layer.data.shape == (final_shape) and \
+                if layer.data.shape == final_shape + image.shape and \
                     layer.data.min() != 0: 
 
                         print('saving')
+                        self.viewer.layers[self.filename].save(str(bin_path / self.filename))
+
+                else:
+                    print('layer_min: ', layer.data.min())
 
 
         except StopIteration:
+
+            
             layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
