@@ -83,6 +83,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
         self.run_Button.clicked.connect(self._on_run_clicked)
 
+        #toggle connect
+        self.save_groupBox.toggled.connect(self.toggle_run_btn)
+        self.fname_lineEdit.textChanged.connect(self.toggle_run_btn)
+
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
@@ -185,6 +189,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
+        self.toggle_run_btn()
+
     def _get_state_dict(self) -> dict:
         state = {
             "axis_order": self.acquisition_order_comboBox.currentText(),
@@ -238,6 +244,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             )
         return state
 
+
+
+    def toggle_run_btn(self):
+        if self.save_groupBox.isChecked(): 
+
+            if self.fname_lineEdit.text() == '' or \
+                (self.dir_lineEdit.text() == '' or \
+                    not Path.is_dir(Path(self.dir_lineEdit.text()))
+                    ):
+
+                        self.run_Button.setEnabled(False)
+                        print('select a filename and a valid directory.')
+            else:
+                self.run_Button.setEnabled(True)
+
+        else:
+            self.run_Button.setEnabled(True)
+
+
+
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
@@ -248,6 +274,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if not self.channel_tableWidget.rowCount() > 0:
             print("Select at least one channel.")
             return
+        
+        #alternative way than disabling the run button
+        # if self.save_groupBox.isChecked(): 
+
+        #     if self.fname_lineEdit.text() == '' or \
+        #         (self.dir_lineEdit.text() == '' or \
+        #             not Path.is_dir(Path(self.dir_lineEdit.text()))
+        #             ):
+
+        #                 print('select a filename and a valid directory.')
+
+        #     else:
+        #         experiment = MDASequence(**self._get_state_dict())
+        #         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        #         return
+
+        # else:
+        #     experiment = MDASequence(**self._get_state_dict())
+        #     self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        #     return
 
         experiment = MDASequence(**self._get_state_dict())
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously

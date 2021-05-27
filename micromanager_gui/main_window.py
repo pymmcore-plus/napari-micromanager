@@ -88,7 +88,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
-
+        
         # create connection to mmcore server
         self._mmc = RemoteMMCore()
         sig = QCoreCallback()
@@ -166,6 +166,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         event_index_z = event.index["z"]
         event_index_c = event.index["c"]
         
+        #TODO: add _001 if filename exists (in save dir or in layer_list)
         if self.mda.save_groupBox.isChecked():
             file_name = self.mda.fname_lineEdit.text()
         else:
@@ -230,12 +231,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.set_point(1, event_index_p)
             self.viewer.dims.set_point(0, event_index_t)
 
+
+            #save layer when acquisition is finished
             i_width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  
             i_height = self._mmc.getROI(self._mmc.getCameraDevice())[3] 
 
-            if layer.data.shape == (t_stack_length,p_stack_length,z_stack_length,c_stack_length,i_height,i_width):
-                if self.mda.save_groupBox.isChecked() and self.mda.dir_lineEdit.text() != "":
+            if layer.data.shape == (t_stack_length,p_stack_length,z_stack_length,
+                c_stack_length,i_height,i_width) and \
+                layer.data.min() != 0:
+                
+                if self.mda.save_groupBox.isChecked():
                     print('saving')
+
 
         except KeyError:
 
@@ -244,6 +251,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.axis_labels = 'tpzcyx'
 
             layer.metadata['useq_sequence'] = sequence
+
 
 
 
