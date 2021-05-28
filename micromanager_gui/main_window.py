@@ -7,8 +7,6 @@ from typing import Sequence, TYPE_CHECKING
 
 import tifffile
 import tempfile
-import shutil
-import time
 
 import napari
 import numpy as np
