@@ -5,7 +5,8 @@ import urllib.request
 from pathlib import Path
 from subprocess import run
 
-RELEASE = 20210527
+MAC_RELEASE = 20210527
+WIN_RELEASE = 20210518
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -19,13 +20,14 @@ def progressBar(current, chunksize, total, barLength=40):
 
 
 def download_url(url, output_path):
+    print(f"downloading {url} ...")
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     urllib.request.urlretrieve(url, filename=output_path, reporthook=progressBar)
 
 
-def mac_main(release=RELEASE):
+def mac_main(release=MAC_RELEASE):
     url = "https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Mac/"
     fname = f"Micro-Manager-2.0.0-gamma1-{release}.dmg"
     download_url(f"{url}{fname}", fname)
@@ -44,7 +46,7 @@ def mac_main(release=RELEASE):
     print(os.listdir(Path(__file__).parent))
 
 
-def win_main(release=RELEASE):
+def win_main(release=WIN_RELEASE):
     url = "https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Windows/"
     fname = f"MMSetup_64bit_2.0.0-gamma1_{release}.exe"
     download_url(f"{url}{fname}", fname)
