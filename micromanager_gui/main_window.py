@@ -170,13 +170,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     # delete temp folder and files when mda is done and save layer
     def _on_mda_finished_rmv_temp_save_layer(self, sequence: useq.MDASequence):
-        
-        list_trmp_dir = [str(i) for i in Path(tempfile.gettempdir()).iterdir() if i.is_dir()]
-
-        for f in list_trmp_dir:
-            folde_name = f.split('/')[-1]
-            if str(sequence.uid) in folde_name:
-                shutil.rmtree(f)
             
         if self.mda.save_groupBox.isChecked():
 
@@ -188,8 +181,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
-        self.time_list.append(time.time())
 
         seq = event.sequence
 
