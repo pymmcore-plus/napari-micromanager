@@ -11,7 +11,6 @@ import shutil
 import napari
 import numpy as np
 from pymmcore_remote import RemoteMMCore
-from pymmcore_remote._util import find_micromanager
 from pymmcore_remote.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -97,9 +96,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
-
-        #used to create a temp folder for image storage during mda
-        self.mm_path = find_micromanager()
         
         # create connection to mmcore server
         self._mmc = RemoteMMCore()
@@ -166,7 +162,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
 
         #create temp folder if it doesnt exist
-        temp_folder = Path(self.mm_path) / 'tmp_folder'
+        # temp_folder = Path(self.mm_path) / 'tmp_folder'
+        temp_folder = Path(__file__).parent.parent / 'tmp_folder'
         try:
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
