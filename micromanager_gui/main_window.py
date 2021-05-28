@@ -8,6 +8,7 @@ from typing import Sequence, TYPE_CHECKING
 import tifffile
 import tempfile
 import shutil
+import time
 
 import napari
 import numpy as np
@@ -187,6 +188,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
+
+        self.time_list.append(time.time())
 
         seq = event.sequence
 
