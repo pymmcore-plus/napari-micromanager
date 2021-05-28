@@ -121,7 +121,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
 
-        sig.MDAFinished.connect(self._on_mda_finished_delete_temp_and_save_layer)
+        sig.MDAFinished.connect(self._on_mda_finished_rmv_temp_save_layer)
+        sig.MDAStarted.connect(self._on_mda_started_temp_folder)
                 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -159,15 +160,22 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
-    
-    #and delete temp folder and files when mda is done
-    def _on_mda_finished_delete_temp_and_save_layer(self, sequence: useq.MDASequence):
+
+    # create temp folder when mda starts
+    def _on_mda_started_temp_folder(self, sequence: useq.MDASequence):
+
+        self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
+        return self.temp_folder.name
+
+    # delete temp folder and files when mda is done and save layer
+    def _on_mda_finished_rmv_temp_save_layer(self, sequence: useq.MDASequence):
         
-        try:
-            temp_folder = Path(tempfile.gettempdir()) / ('uid_' + str(sequence.uid))
-            shutil.rmtree(temp_folder)
-        except FileExistsError:
-            pass
+        list_trmp_dir = [str(i) for i in Path(tempfile.gettempdir()).iterdir() if i.is_dir()]
+
+        for f in list_trmp_dir:
+            folde_name = f.split('/')[-1]
+            if str(sequence.uid) in folde_name:
+                shutil.rmtree(f)
             
         if self.mda.save_groupBox.isChecked():
 
@@ -181,14 +189,6 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence
-
-        #create temp folder if it doesnt exist using uid
-        try:
-            temp_folder = Path(tempfile.gettempdir()) / ('uid_' + str(seq.uid))
-            Path(temp_folder).mkdir(parents=True, exist_ok=False)
-            # temp_folder = tempfile.TemporaryDirectory('','uid_' + str(seq.uid))
-        except FileExistsError:
-            pass
 
         # get the index of the incoming image
         im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
@@ -212,7 +212,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
-            savefile = Path(temp_folder) / image_name
+            savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image)
                 
         except StopIteration:
@@ -233,7 +233,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
-            savefile = Path(temp_folder) / image_name
+            savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image)
 
 
