@@ -163,6 +163,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         seq = event.sequence
 
+        print('**********************', len(seq))
+
         #TODO: change default temp_folder path
         #create temp folder if it doesnt exist
         temp_folder = Path('/Users/FG/Desktop/untitled')
@@ -191,21 +193,21 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.viewer.dims.set_point(a, v)
 
             #save each image in the temp folder, 
-            #and then delete everything when mda is done
             image_name = f'{im_idx}.tif'
             savefile = temp_folder / image_name
 
             tifffile.tifffile.imsave(str(savefile), image)
 
-            if layer.data.shape == seq.shape + image.shape and \
-                layer.data.min() != 0:
+            #and delete temp folder and files when mda is done
+            if np.prod(layer.data.shape[:-2]) == len(seq) and \
+                layer.data.min() != 0: #maybe find better condition
 
                     shutil.rmtree(temp_folder)
                 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
 
-                if layer.data.shape == seq.shape + image.shape and \
+                if np.prod(layer.data.shape[:-2]) == len(seq) and \
                     layer.data.min() != 0: #maybe find better condition
 
                         name = self.viewer.layers.selection.active.name
@@ -242,11 +244,16 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             tifffile.tifffile.imsave(str(savefile), image)
 
+            if np.prod(layer.data.shape[:-2]) == len(seq) and \
+                layer.data.min() != 0: #maybe find better condition
+
+                    shutil.rmtree(temp_folder)
+
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
 
-                if layer.data.shape == seq.shape + image.shape and \
-                    layer.data.min() != 0: 
+                if np.prod(layer.data.shape[:-2]) == len(seq) and \
+                    layer.data.min() != 0: #maybe find better condition
 
                         name = self.viewer.layers.selection.active.name
 
