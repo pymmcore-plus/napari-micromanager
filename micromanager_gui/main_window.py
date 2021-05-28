@@ -6,6 +6,7 @@ from re import escape
 from typing import Sequence, TYPE_CHECKING
 
 import tifffile
+import tempfile
 import shutil
 
 import napari
@@ -162,13 +163,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
 
         #create temp folder if it doesnt exist using uid
-        tmp_uid_name = Path('tmp_folder') / str(seq.uid)
-        temp_folder = Path(__file__).parent.parent / tmp_uid_name
-
         try:
+            temp_folder = Path(tempfile.gettempdir()), ('uid_' + str(seq.uid))
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
+            # temp_folder = tempfile.TemporaryDirectory('','uid_' + str(seq.uid))
         except FileExistsError:
             pass
+
+        # get the index of the incoming image
+        im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
         try:
             # see if we already have a layer with this sequence
@@ -176,8 +179,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
             )
 
-            # get the index of the incoming image
-            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
             # make sure array shape contains im_idx, or pad with zeros
             new_array = extend_array_for_index(layer.data, im_idx)
             # add the incoming index at the appropriate index
@@ -191,14 +192,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
-            savefile = temp_folder / image_name
+            savefile = Path(temp_folder.name) / image_name
 
             tifffile.tifffile.imsave(str(savefile), image)
 
             #and delete temp folder and files when mda is done
             if tuple(i+1 for i in im_idx) == seq.shape:
 
-                shutil.rmtree(temp_folder.parent)
+                shutil.rmtree(temp_folder)
                 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
@@ -218,7 +219,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 file_name = self.mda.fname_lineEdit.text()
                 layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
             else:
-                layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
+                layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
 
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
@@ -227,21 +228,16 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.axis_labels = labels
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
-
-            layer = self.viewer.layers[layer_name]
-
-            # get the index of the incoming image
-            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
-            savefile = temp_folder / image_name
+            savefile = Path(temp_folder.name) / image_name
 
             tifffile.tifffile.imsave(str(savefile), image)
 
             if tuple(i+1 for i in im_idx) == seq.shape:
 
-                shutil.rmtree(temp_folder.parent)
+                shutil.rmtree(temp_folder)
 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
