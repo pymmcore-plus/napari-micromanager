@@ -207,6 +207,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def load_cfg(self):
         self.load_cfg_Button.setEnabled(False)
+        print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):

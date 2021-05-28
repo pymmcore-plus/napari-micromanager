@@ -5,7 +5,7 @@ import urllib.request
 from pathlib import Path
 from subprocess import run
 
-release = 20201220  # known to work
+RELEASE = 20210527
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -25,7 +25,7 @@ def download_url(url, output_path):
     urllib.request.urlretrieve(url, filename=output_path, reporthook=progressBar)
 
 
-def mac_main():
+def mac_main(release=RELEASE):
     url = "https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Mac/"
     fname = f"Micro-Manager-2.0.0-gamma1-{release}.dmg"
     download_url(f"{url}{fname}", fname)
@@ -44,7 +44,7 @@ def mac_main():
     print(os.listdir(Path(__file__).parent))
 
 
-def win_main():
+def win_main(release=RELEASE):
     url = "https://valelab4.ucsf.edu/~MM/nightlyBuilds/2.0.0-gamma/Windows/"
     fname = f"MMSetup_64bit_2.0.0-gamma1_{release}.exe"
     download_url(f"{url}{fname}", fname)
