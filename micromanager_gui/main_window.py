@@ -6,13 +6,12 @@ from re import escape
 from typing import Sequence, TYPE_CHECKING
 
 import tifffile
-import tempfile
-import os
 import shutil
 
 import napari
 import numpy as np
 from pymmcore_remote import RemoteMMCore
+from pymmcore_remote._util import find_micromanager
 from pymmcore_remote.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -98,6 +97,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
+
+        self.mm_path = find_micromanager()
         
         # create connection to mmcore server
         self._mmc = RemoteMMCore()
@@ -163,11 +164,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         seq = event.sequence
 
-        print('**********************', len(seq))
-
-        #TODO: change default temp_folder path
         #create temp folder if it doesnt exist
-        temp_folder = Path('/Users/FG/Desktop/untitled')
+        temp_folder = Path(self.mm_path) / 'tmp_folder'
         try:
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
@@ -203,6 +201,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 layer.data.min() != 0: #maybe find better condition
 
                     shutil.rmtree(temp_folder)
+                    #TODO: remove also when cancel button is pressed
                 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
@@ -248,6 +247,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 layer.data.min() != 0: #maybe find better condition
 
                     shutil.rmtree(temp_folder)
+                    #TODO: remove also when cancel button is pressed
 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
