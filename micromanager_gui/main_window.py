@@ -162,7 +162,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
 
         #create temp folder if it doesnt exist using uid
-        temp_folder = Path(__file__).parent.parent / str(seq.uid)
+        tmp_uid_name = Path('tmp_folder') / str(seq.uid)
+        temp_folder = Path(__file__).parent.parent / tmp_uid_name
 
         try:
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
@@ -197,7 +198,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #and delete temp folder and files when mda is done
             if tuple(i+1 for i in im_idx) == seq.shape:
 
-                shutil.rmtree(temp_folder)
+                shutil.rmtree(temp_folder.parent)
                 #TODO: remove also when cancel button is pressed
                 
             #save layer when acquisition is finished
@@ -241,7 +242,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             if tuple(i+1 for i in im_idx) == seq.shape:
 
-                shutil.rmtree(temp_folder)
+                shutil.rmtree(temp_folder.parent)
                 #TODO: remove also when cancel button is pressed
 
             #save layer when acquisition is finished
