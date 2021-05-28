@@ -199,7 +199,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             if tuple(i+1 for i in im_idx) == seq.shape:
 
                 shutil.rmtree(temp_folder.parent)
-                #TODO: remove also when cancel button is pressed
                 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
@@ -243,7 +242,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             if tuple(i+1 for i in im_idx) == seq.shape:
 
                 shutil.rmtree(temp_folder.parent)
-                #TODO: remove also when cancel button is pressed
 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
