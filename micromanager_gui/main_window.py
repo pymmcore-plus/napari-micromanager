@@ -161,8 +161,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         seq = event.sequence
 
-        #create temp folder if it doesnt exist
-        temp_folder = Path(__file__).parent.parent / 'tmp_folder'
+        #create temp folder if it doesnt exist using uid
+        temp_folder = Path(__file__).parent.parent / str(seq.uid)
+
         try:
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
         except FileExistsError:
