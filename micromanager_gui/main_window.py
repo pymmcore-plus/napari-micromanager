@@ -156,13 +156,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
-    # TO DO: add the file name form the save box
+  
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence
 
         #create temp folder if it doesnt exist
-        # temp_folder = Path(self.mm_path) / 'tmp_folder'
         temp_folder = Path(__file__).parent.parent / 'tmp_folder'
         try:
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
