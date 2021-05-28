@@ -121,6 +121,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
 
+        sig.MDAFinished.connect(self._on_mda_finished_delete_temp_and_save_layer)
+                
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
         self.explorer.delete_snaps.connect(self.delete_layer)
@@ -157,14 +159,34 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             self.viewer.add_image(array, name=layer_name)
 
-  
+    
+    #and delete temp folder and files when mda is done
+    def _on_mda_finished_delete_temp_and_save_layer(self, sequence: useq.MDASequence):
+        
+        try:
+            temp_folder = Path(tempfile.gettempdir()) / ('uid_' + str(sequence.uid))
+            shutil.rmtree(temp_folder)
+        except FileExistsError:
+            pass
+            
+        if self.mda.save_groupBox.isChecked():
+
+            print('LAYER SAVED')
+
+            name = self.viewer.layers.selection.active.name
+
+            save_path = Path(self.mda.dir_lineEdit.text()) / name
+
+            self.viewer.layers[name].save(str(save_path))
+
+    
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence
 
         #create temp folder if it doesnt exist using uid
         try:
-            temp_folder = Path(tempfile.gettempdir()), ('uid_' + str(seq.uid))
+            temp_folder = Path(tempfile.gettempdir()) / ('uid_' + str(seq.uid))
             Path(temp_folder).mkdir(parents=True, exist_ok=False)
             # temp_folder = tempfile.TemporaryDirectory('','uid_' + str(seq.uid))
         except FileExistsError:
@@ -192,27 +214,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
-            savefile = Path(temp_folder.name) / image_name
+            savefile = Path(temp_folder) / image_name
 
             tifffile.tifffile.imsave(str(savefile), image)
-
-            #and delete temp folder and files when mda is done
-            if tuple(i+1 for i in im_idx) == seq.shape:
-
-                shutil.rmtree(temp_folder)
                 
-            #save layer when acquisition is finished
-            if self.mda.save_groupBox.isChecked():
-
-                if tuple(i+1 for i in im_idx) == seq.shape:
-
-                    name = self.viewer.layers.selection.active.name
-
-                    save_path = Path(self.mda.dir_lineEdit.text()) / name
-            
-                    self.viewer.layers[name].save(str(save_path))
-
-
         except StopIteration:
 
             if self.mda.save_groupBox.isChecked():
@@ -231,26 +236,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
-            savefile = Path(temp_folder.name) / image_name
+            savefile = Path(temp_folder) / image_name
 
             tifffile.tifffile.imsave(str(savefile), image)
-
-            if tuple(i+1 for i in im_idx) == seq.shape:
-
-                shutil.rmtree(temp_folder)
-
-            #save layer when acquisition is finished
-            if self.mda.save_groupBox.isChecked():
-
-                if tuple(i+1 for i in im_idx) == seq.shape:
-
-                    name = self.viewer.layers.selection.active.name
-
-                    save_path = Path(self.mda.dir_lineEdit.text()) / name
-            
-                    self.viewer.layers[name].save(str(save_path))
-
-
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
