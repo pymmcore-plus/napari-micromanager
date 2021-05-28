@@ -98,6 +98,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
+        #used to create a temp folder for image storage during mda
         self.mm_path = find_micromanager()
         
         # create connection to mmcore server
