@@ -5,6 +5,11 @@ from pathlib import Path
 from re import escape
 from typing import Sequence, TYPE_CHECKING
 
+import tifffile
+import tempfile
+import os
+import shutil
+
 import napari
 import numpy as np
 from pymmcore_remote import RemoteMMCore
@@ -158,6 +163,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         seq = event.sequence
 
+        #TODO: change default temp_folder path
+        #create temp folder if it doesnt exist
+        temp_folder = Path('/Users/FG/Desktop/untitled')
+        try:
+            Path(temp_folder).mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            pass
+
         try:
             # see if we already have a layer with this sequence
             layer = next(
@@ -177,13 +190,23 @@ class MainWindow(QtW.QWidget, _MainUI):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
-            #TODO: save each frame in temp folder
+            #save each image in the temp folder, 
+            #and then delete everything when mda is done
+            image_name = f'{im_idx}.tif'
+            savefile = temp_folder / image_name
 
+            tifffile.tifffile.imsave(str(savefile), image)
+
+            if layer.data.shape == seq.shape + image.shape and \
+                layer.data.min() != 0:
+
+                    shutil.rmtree(temp_folder)
+                
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
-                
+
                 if layer.data.shape == seq.shape + image.shape and \
-                    layer.data.min() != 0:
+                    layer.data.min() != 0: #maybe find better condition
 
                         name = self.viewer.layers.selection.active.name
 
@@ -210,6 +233,15 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             layer = self.viewer.layers[layer_name]
 
+            # get the index of the incoming image
+            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
+            
+            #save first image in the temp folder
+            image_name = f'{im_idx}.tif'
+            savefile = temp_folder / image_name
+
+            tifffile.tifffile.imsave(str(savefile), image)
+
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
 
@@ -221,7 +253,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                         save_path = Path(self.mda.dir_lineEdit.text()) / name
                 
                         self.viewer.layers[name].save(str(save_path))
-                    
+
+
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
