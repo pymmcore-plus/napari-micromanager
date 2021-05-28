@@ -198,23 +198,21 @@ class MainWindow(QtW.QWidget, _MainUI):
             tifffile.tifffile.imsave(str(savefile), image)
 
             #and delete temp folder and files when mda is done
-            if np.prod(layer.data.shape[:-2]) == len(seq) and \
-                layer.data.min() != 0: #maybe find better condition
+            if tuple(i+1 for i in im_idx) == seq.shape:
 
-                    shutil.rmtree(temp_folder)
-                    #TODO: remove also when cancel button is pressed
+                shutil.rmtree(temp_folder)
+                #TODO: remove also when cancel button is pressed
                 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
 
-                if np.prod(layer.data.shape[:-2]) == len(seq) and \
-                    layer.data.min() != 0: #maybe find better condition
+                if tuple(i+1 for i in im_idx) == seq.shape:
 
-                        name = self.viewer.layers.selection.active.name
+                    name = self.viewer.layers.selection.active.name
 
-                        save_path = Path(self.mda.dir_lineEdit.text()) / name
-                
-                        self.viewer.layers[name].save(str(save_path))
+                    save_path = Path(self.mda.dir_lineEdit.text()) / name
+            
+                    self.viewer.layers[name].save(str(save_path))
 
 
         except StopIteration:
@@ -244,23 +242,21 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             tifffile.tifffile.imsave(str(savefile), image)
 
-            if np.prod(layer.data.shape[:-2]) == len(seq) and \
-                layer.data.min() != 0: #maybe find better condition
+            if tuple(i+1 for i in im_idx) == seq.shape:
 
-                    shutil.rmtree(temp_folder)
-                    #TODO: remove also when cancel button is pressed
+                shutil.rmtree(temp_folder)
+                #TODO: remove also when cancel button is pressed
 
             #save layer when acquisition is finished
             if self.mda.save_groupBox.isChecked():
 
-                if np.prod(layer.data.shape[:-2]) == len(seq) and \
-                    layer.data.min() != 0: #maybe find better condition
+                if tuple(i+1 for i in im_idx) == seq.shape:
 
-                        name = self.viewer.layers.selection.active.name
+                    name = self.viewer.layers.selection.active.name
 
-                        save_path = Path(self.mda.dir_lineEdit.text()) / name
-                
-                        self.viewer.layers[name].save(str(save_path))
+                    save_path = Path(self.mda.dir_lineEdit.text()) / name
+            
+                    self.viewer.layers[name].save(str(save_path))
 
 
 
