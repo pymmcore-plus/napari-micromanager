@@ -171,8 +171,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             
         if self.mda.save_groupBox.isChecked():
 
-            print('LAYER SAVED')
-
             name = self.viewer.layers.selection.active.name
 
             save_path = Path(self.mda.dir_lineEdit.text()) / name
@@ -215,7 +213,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
             savefile = Path(temp_folder) / image_name
-
             tifffile.tifffile.imsave(str(savefile), image)
                 
         except StopIteration:
@@ -237,8 +234,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
             savefile = Path(temp_folder) / image_name
-
             tifffile.tifffile.imsave(str(savefile), image)
+
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
