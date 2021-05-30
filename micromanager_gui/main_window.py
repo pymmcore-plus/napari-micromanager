@@ -166,6 +166,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
         return self.temp_folder.name
 
+    def get_filename(self, fname, list_dir):
+        while True:
+            val = int(fname.split('_')[-1])
+            new_val = '{0:03}'.format(val + 1)
+            fname = fname[:-3] + new_val
+            if ((fname + '.tif') or (fname + '.tiff')) not in set(list_dir):
+                break
+        return fname
+
     # delete temp folder and files when mda is done and save layer
     def _on_mda_finished_rmv_temp_save_layer(self, sequence: useq.MDASequence):
             
@@ -178,29 +187,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             save_path = Path(self.mda.dir_lineEdit.text())
 
             list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
-                if (str(i).split('/')[-1]).endswith('.tif')]
+                if (str(i).split('/')[-1]).endswith(('.tif', '.tiff'))]
             
+            #TODO: Fix when input same is like Experiment_1
             if any(fname in f for f in list_dir):
 
                 try:
                     if (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
-    
-                        while True:   
-                            val = int(fname.split('_')[-1])
-                            new_val = '{0:03}'.format(val + 1)
-                            fname = fname[:-3] + new_val
-                            if (fname + '.tif') not in set(list_dir):
-                                break
+                        fname = self.get_filename(fname,list_dir)
             
                 except ValueError:
                     fname = fname + '_000'
-                    while True:
-                        val = int(fname.split('_')[-1])
-                        new_val = '{0:03}'.format(val + 1)
-                        fname = fname[:-3] + new_val
-                        if (fname + '.tif') not in set(list_dir):
-                            break
-
+                    fname = self.get_filename(fname,list_dir)
             else:
                 try:
                     if not (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
