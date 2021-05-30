@@ -166,13 +166,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
         return self.temp_folder.name
 
+    #get the name to use to save the active ayer
     def get_filename(self, fname, list_dir):
+        val = int(fname.split('_')[-1])
         while True:
-            val = int(fname.split('_')[-1])
-            new_val = '{0:03}'.format(val + 1)
+            new_val = '{0:03}'.format(val)
             fname = fname[:-3] + new_val
             if ((fname + '.tif') or (fname + '.tiff')) not in set(list_dir):
                 break
+            else:
+                val += 1
         return fname
 
     # delete temp folder and files when mda is done and save layer
@@ -188,24 +191,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
                 if (str(i).split('/')[-1]).endswith(('.tif', '.tiff'))]
-            
-            #TODO: Fix when input same is like Experiment_1
-            if any(fname in f for f in list_dir):
-
-                try:
-                    if (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
-                        fname = self.get_filename(fname,list_dir)
-            
-                except ValueError:
+        
+            try:
+                n = int(fname.split('_')[-1])
+                len_n = len(fname.split('_')[-1])
+                if len_n == 3 and n >= 0:
+                    fname = self.get_filename(fname,list_dir)
+                else:
                     fname = fname + '_000'
                     fname = self.get_filename(fname,list_dir)
-            else:
-                try:
-                    if not (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
-                        pass
 
-                except ValueError:
-                    fname = fname + '_000'
+            except ValueError:
+                fname = fname + '_000'
+                fname = self.get_filename(fname,list_dir)
 
             self.viewer.layers[active_layer].save(str(save_path / fname))
 
