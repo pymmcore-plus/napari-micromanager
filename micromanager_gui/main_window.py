@@ -180,10 +180,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
                 if (str(i).split('/')[-1]).endswith('.tif')]
             
-            #TODO: make functions for the repetitive part below 
             if any(fname in f for f in list_dir):
-
-                print('TRUE')
 
                 try:
                     if (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
