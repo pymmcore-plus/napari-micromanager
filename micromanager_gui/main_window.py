@@ -191,7 +191,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
                 if (str(i).split('/')[-1]).endswith(('.tif', '.tiff'))]
-                
+
             try:
                 n = fname.split('_')[-1]
                 
@@ -217,6 +217,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 fname = self.get_filename(fname,list_dir)
 
             self.viewer.layers[active_layer].save(str(save_path / fname))
+
+            list_dir.append(fname + '.tif')
+            fname = self.get_filename(fname,list_dir)
+            self.mda.fname_lineEdit.setText(fname)
+
 
     
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
