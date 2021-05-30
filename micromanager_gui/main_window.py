@@ -183,6 +183,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             #TODO: make functions for the repetitive part below 
             if any(fname in f for f in list_dir):
 
+                print('TRUE')
+
                 try:
                     if (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
     
@@ -191,15 +193,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                             new_val = '{0:03}'.format(val + 1)
                             fname = fname[:-3] + new_val
                             if (fname + '.tif') not in set(list_dir):
-                                
-                                for _ in list_dir:
-                                    new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
-                                    if (new_filename + '.tif') not in set(list_dir):
-                                        self.mda.fname_lineEdit.setText(new_filename)
-                                        break
-                                    else:
-                                        new_val += 1
-
                                 break
             
                 except ValueError:
@@ -209,28 +202,15 @@ class MainWindow(QtW.QWidget, _MainUI):
                         new_val = '{0:03}'.format(val + 1)
                         fname = fname[:-3] + new_val
                         if (fname + '.tif') not in set(list_dir):
-
-                            for _ in list_dir:
-                                new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
-                                if (new_filename + '.tif') not in set(list_dir):
-                                    self.mda.fname_lineEdit.setText(new_filename)
-                                    break
-                                else:
-                                    new_val += 1
-
                             break
 
             else:
-                fname = fname + '_000'
+                try:
+                    if not (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
+                        pass
 
-                for _ in list_dir:
-                    new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
-                    if (new_filename + '.tif') not in set(list_dir):
-                        self.mda.fname_lineEdit.setText(new_filename)
-                        break
-                    else:
-                        new_val += 1
-
+                except ValueError:
+                    fname = fname + '_000'
 
             self.viewer.layers[active_layer].save(str(save_path / fname))
 
