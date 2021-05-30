@@ -171,11 +171,68 @@ class MainWindow(QtW.QWidget, _MainUI):
             
         if self.mda.save_groupBox.isChecked():
 
-            name = self.viewer.layers.selection.active.name
+            active_layer = self.viewer.layers.selection.active.name
 
-            save_path = Path(self.mda.dir_lineEdit.text()) / name
+            fname =  self.mda.fname_lineEdit.text()
 
-            self.viewer.layers[name].save(str(save_path))
+            save_path = Path(self.mda.dir_lineEdit.text())
+
+            list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
+                if (str(i).split('/')[-1]).endswith('.tif')]
+            
+            #TODO: make functions for the repetitive part below 
+            if any(fname in f for f in list_dir):
+
+                try:
+                    if (int(fname.split('_')[-1]) or int(fname.split('_')[-1])==0):
+    
+                        while True:   
+                            val = int(fname.split('_')[-1])
+                            new_val = '{0:03}'.format(val + 1)
+                            fname = fname[:-3] + new_val
+                            if (fname + '.tif') not in set(list_dir):
+                                
+                                for _ in list_dir:
+                                    new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
+                                    if (new_filename + '.tif') not in set(list_dir):
+                                        self.mda.fname_lineEdit.setText(new_filename)
+                                        break
+                                    else:
+                                        new_val += 1
+
+                                break
+            
+                except ValueError:
+                    fname = fname + '_000'
+                    while True:
+                        val = int(fname.split('_')[-1])
+                        new_val = '{0:03}'.format(val + 1)
+                        fname = fname[:-3] + new_val
+                        if (fname + '.tif') not in set(list_dir):
+
+                            for _ in list_dir:
+                                new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
+                                if (new_filename + '.tif') not in set(list_dir):
+                                    self.mda.fname_lineEdit.setText(new_filename)
+                                    break
+                                else:
+                                    new_val += 1
+
+                            break
+
+            else:
+                fname = fname + '_000'
+
+                for _ in list_dir:
+                    new_filename = fname[:-3] + '{0:03}'.format(new_val + 1)
+                    if (new_filename + '.tif') not in set(list_dir):
+                        self.mda.fname_lineEdit.setText(new_filename)
+                        break
+                    else:
+                        new_val += 1
+
+
+            self.viewer.layers[active_layer].save(str(save_path / fname))
 
     
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
