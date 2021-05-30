@@ -179,6 +179,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         return fname
 
     # delete temp folder and files when mda is done and save layer
+    # and add increment to save name
     def _on_mda_finished_save_layer(self, sequence: useq.MDASequence):
             
         if self.mda.save_groupBox.isChecked():
