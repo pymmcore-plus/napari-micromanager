@@ -120,7 +120,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
 
-        sig.MDAFinished.connect(self._on_mda_finished_rmv_temp_save_layer)
+        sig.MDAFinished.connect(self._on_mda_finished_save_layer)
         sig.MDAStarted.connect(self._on_mda_started_temp_folder)
                 
         # connect explorer
@@ -179,7 +179,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         return fname
 
     # delete temp folder and files when mda is done and save layer
-    def _on_mda_finished_rmv_temp_save_layer(self, sequence: useq.MDASequence):
+    def _on_mda_finished_save_layer(self, sequence: useq.MDASequence):
             
         if self.mda.save_groupBox.isChecked():
 
@@ -191,12 +191,23 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
                 if (str(i).split('/')[-1]).endswith(('.tif', '.tiff'))]
-        
+                
             try:
-                n = int(fname.split('_')[-1])
-                len_n = len(fname.split('_')[-1])
-                if len_n == 3 and n >= 0:
+                n = fname.split('_')[-1]
+                
+                if len(n) == 3 and int(n)>= 0:
                     fname = self.get_filename(fname,list_dir)
+                
+                elif len(n) != 3 and int(n) >= 0:
+                    print(len(n), int(n))
+                    s = ''
+                    for i in fname.split('_')[:-1]:
+                        s = s + i + '_'
+                        print(s)
+                    print('s', s)
+                    fname = s + '{0:03}'.format(int(n))
+                    fname = self.get_filename(fname,list_dir)
+                
                 else:
                     fname = fname + '_000'
                     fname = self.get_filename(fname,list_dir)
