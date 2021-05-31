@@ -145,6 +145,22 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
+    def enable_gui(self):
+        self.objective_groupBox.setEnabled(True)
+        self.camera_groupBox.setEnabled(True)
+        self.XY_groupBox.setEnabled(True)
+        self.Z_groupBox.setEnabled(True)
+        self.snap_live_tab.setEnabled(True)
+        #TODO: add explorer tab when ready
+
+    def disable_gui(self):
+        self.objective_groupBox.setEnabled(False)
+        self.camera_groupBox.setEnabled(False)
+        self.XY_groupBox.setEnabled(False)
+        self.Z_groupBox.setEnabled(False)
+        self.snap_live_tab.setEnabled(False)
+        #TODO: add explorer tab when ready
+
     def delete_layer(self, name):
         layer_set = {str(layer) for layer in self.viewer.layers}
         if name in layer_set:
@@ -165,10 +181,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
-        """blok mda gui tab when mda starts."""
-        #TODO: blok mda gui tab when acq start (and reactivate when finished)
-        #TODO: check for other thungs that might have to be blocked in the gui 
-        #      (e.g. objective combobox, etc...)
+        """blok gui when mda starts."""
+        self.mda.disable_mda_groupbox()
+        self.disable_gui()
 
     
     def get_filename(self, fname, list_dir):
@@ -200,7 +215,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             save_path = Path(self.mda.dir_lineEdit.text())
 
-            """Look into the saving directory (save_path) and get tif files names""":
+            """Look into the saving directory (save_path) and get tif files names"""
 
             list_dir = [f.name for f in save_path.glob("*.tif")]
 
@@ -245,9 +260,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
 
-            """reactivate mda gui tab when mda finishes."""
-            #TODO: reactivate mda gui tab when acq is finished (was bloked when acq started)
-            #TODO: reactivate any other blocked gui parts
+        """reactivate gui when mda finishes."""
+        self.mda.enable_mda_groupbox()
+        self.enable_gui()
 
 
     

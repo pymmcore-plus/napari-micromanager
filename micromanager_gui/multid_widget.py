@@ -90,6 +90,23 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
+    def enable_mda_groupbox(self):
+        self.save_groupBox.setEnabled(True)
+        self.channel_groupBox.setEnabled(True)
+        self.time_groupBox.setEnabled(True)
+        self.stack_groupBox.setEnabled(True)
+        self.stage_pos_groupBox.setEnabled(True)
+        self.acquisition_order_comboBox.setEnabled(True)
+    
+    def disable_mda_groupbox(self):
+        self.save_groupBox.setEnabled(False)
+        self.channel_groupBox.setEnabled(False)
+        self.time_groupBox.setEnabled(False)
+        self.stack_groupBox.setEnabled(False)
+        self.stage_pos_groupBox.setEnabled(False)
+        self.acquisition_order_comboBox.setEnabled(False)
+
+
     def _on_mda_started(self, sequence):
         self.pause_Button.show()
         self.cancel_Button.show()
@@ -243,26 +260,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 }
             )
         return state
-
-
-
-    # def toggle_run_btn(self):
-    #     if self.save_groupBox.isChecked(): 
-
-    #         if self.fname_lineEdit.text() == '' or \
-    #             (self.dir_lineEdit.text() == '' or \
-    #                 not Path.is_dir(Path(self.dir_lineEdit.text()))
-    #                 ):
-
-    #                     self.run_Button.setEnabled(False)
-    #                     print('select a filename and a valid directory.')
-    #         else:
-    #             self.run_Button.setEnabled(True)
-
-    #     else:
-    #         self.run_Button.setEnabled(True)
-
-
 
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
