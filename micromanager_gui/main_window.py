@@ -160,8 +160,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.add_image(array, name=layer_name)
 
 
-    # create temp folder when mda starts
-    def _on_mda_started_temp_folder(self, sequence: useq.MDASequence):
+    def _on_mda_started(self, sequence: useq.MDASequence):
+        """"create temp folder when mda starts."""
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
         return self.temp_folder.name
