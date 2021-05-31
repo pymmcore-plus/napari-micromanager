@@ -120,8 +120,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
 
-        sig.MDAFinished.connect(self._on_mda_finished_save_layer)
-        sig.MDAStarted.connect(self._on_mda_started_temp_folder)
+        sig.MDAFinished.connect(self._on_mda_finished)
+        sig.MDAStarted.connect(self._on_mda_started)
                 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -164,10 +164,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         """"create temp folder when mda starts."""
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
-        return self.temp_folder.name
 
-    #get the name to use to save the active ayer
+        """blok mda gui tab when mda starts."""
+        #TODO: blok mda gui tab when acq start (and reactivate when finished)
+        #TODO: check for other thungs that might have to be blocked in the gui 
+        #      (e.g. objective combobox, etc...)
+
+    
     def get_filename(self, fname, list_dir):
+        """
+            check if the filename_nnn used to save the layer exists
+            and increment _nnn accordingly.
+        """
         val = int(fname.split('_')[-1])
         while True:
             new_val = '{0:03}'.format(val)
@@ -179,22 +187,34 @@ class MainWindow(QtW.QWidget, _MainUI):
         return fname
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        """Delete temp folder and files when mda is done and save layer.
+        """Save layer and add increment to save name."""
         
-        and add increment to save name
-        """
-            
         if self.mda.save_groupBox.isChecked():
 
-            active_layer = self.viewer.layers.selection.active.name
+            layer_uid = [l.name for l in self.viewer.layers \
+                if l.metadata['uid'] == sequence.uid]
+
+            active_layer = self.viewer.layers[str(layer_uid[0])]
 
             fname =  self.mda.fname_lineEdit.text()
 
             save_path = Path(self.mda.dir_lineEdit.text())
 
-            list_dir = [str(i).split('/')[-1] for i in save_path.iterdir() \
-                if (str(i).split('/')[-1]).endswith(('.tif', '.tiff'))]
+            """Look into the saving directory (save_path) and get tif files names""":
 
+            list_dir = [f.name for f in save_path.glob("*.tif")]
+
+            """
+               Ckeck the input filename and modify it to add _nnn in the end.
+               The get_filename(fname,list_dir) function check if the name 
+               is already present in the save_path and incremant the _nnn accordingly.
+
+               filename examples: user input -> output:
+                - mda       -> mda_000
+                - mda_3     -> mda_003
+                - mda_0001  -> mda_001
+                - mda1      -> mda1_000
+            """
             try:
                 n = fname.split('_')[-1]
                 
@@ -220,9 +240,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.layers[active_layer].save(str(save_path / fname))
 
+            """update filename in mda.fname_lineEdit for the next aquisition."""
             list_dir.append(fname + '.tif')
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
+
+            """reactivate mda gui tab when mda finishes."""
+            #TODO: reactivate mda gui tab when acq is finished (was bloked when acq started)
+            #TODO: reactivate any other blocked gui parts
 
 
     
