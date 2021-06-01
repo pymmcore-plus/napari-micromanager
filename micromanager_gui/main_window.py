@@ -268,6 +268,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     fname = self.get_filename(fname,list_dir)
 
 
+            #TODO: save also metadata
             self.viewer.layers[str(active_layer)].save(str(save_path / fname))
 
             """update filename in mda.fname_lineEdit for the next aquisition."""
