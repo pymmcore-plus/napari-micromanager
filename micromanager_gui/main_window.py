@@ -353,7 +353,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image.astype('uint16'), imagej=True)
+            tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
 
     def browse_cfg(self):
