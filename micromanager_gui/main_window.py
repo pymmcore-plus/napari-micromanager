@@ -206,10 +206,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         
         if self.mda.save_groupBox.isChecked():
 
-            layer_uid = [l.name for l in self.viewer.layers \
-                if l.metadata['uid'] == sequence.uid]
-
-            active_layer = self.viewer.layers[str(layer_uid[0])]
+            try:
+                active_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
+            except StopIteration:
+                raise IndexError("could not find layer corresponding to sequence")
 
             fname =  self.mda.fname_lineEdit.text()
 
@@ -228,21 +228,23 @@ class MainWindow(QtW.QWidget, _MainUI):
                 - mda       -> mda_000
                 - mda_3     -> mda_003
                 - mda_0001  -> mda_001
-                - mda1      -> mda1_000
+                - mda1      -> mda_001
+                - mda011021 -> mda011021_000
             """
             try:
                 n = fname.split('_')[-1]
+                int_n = int(n)
                 
-                if len(n) == 3 and int(n)>= 0:
+                if len(n) == 3 and int_n>= 0:
                     fname = self.get_filename(fname,list_dir)
                 
-                elif len(n) != 3 and len(n) <=4 and int(n) >= 0:
+                elif len(n) != 3 and len(n) <=4 and int_n >= 0:
                     s = ''
                     for i in fname.split('_')[:-1]:
                         s = s + i + '_'
                         print(s)
                     print('s', s)
-                    fname = s + '{0:03}'.format(int(n))
+                    fname = s + '{0:03}'.format(int_n)
                     fname = self.get_filename(fname,list_dir)
                 
                 else:
@@ -250,10 +252,22 @@ class MainWindow(QtW.QWidget, _MainUI):
                     fname = self.get_filename(fname,list_dir)
 
             except ValueError:
-                fname = fname + '_000'
-                fname = self.get_filename(fname,list_dir)
+                n = ''
+                for i in range(1,len(fname)+1):
+                    try:
+                        n += str(int(fname[-i]))
+                    except ValueError:
+                        break
+                if len(n) > 0 and len(n) <= 4:
+                    n = n[::-1]
+                    fname = fname.replace(n, '_' + '{0:03}'.format(int(n)))
+                    fname = self.get_filename(fname,list_dir)
+                else:
+                    fname = fname + '_000'
+                    fname = self.get_filename(fname,list_dir)
 
-            self.viewer.layers[active_layer].save(str(save_path / fname))
+
+            self.viewer.layers[str(active_layer)].save(str(save_path / fname))
 
             """update filename in mda.fname_lineEdit for the next aquisition."""
             list_dir.append(fname + '.tif')
