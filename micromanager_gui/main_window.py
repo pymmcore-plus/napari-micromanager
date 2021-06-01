@@ -332,7 +332,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image.astype('uint16'))
+            tifffile.tifffile.imsave(str(savefile), image)
                 
         except StopIteration:
 
