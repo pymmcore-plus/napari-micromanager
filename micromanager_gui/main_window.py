@@ -205,7 +205,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 val += 1
         return fname
 
-
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
         
@@ -275,8 +274,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     fname = fname + '_000'
                     fname = self.get_filename(fname,list_dir)
 
-            # if split pos is checked, save each position in a separate file
             if self.mda.checkBox_save_pos.isChecked():
+                """ save each position in a separate file """
 
                 for p in range(len(sequence.stage_positions)):
                     pos_num = '{0:03}'.format(int(p))
