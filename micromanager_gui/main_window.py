@@ -207,15 +207,15 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-        
+
+        try:
+            active_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
+        except StopIteration:
+            raise IndexError("could not find layer corresponding to sequence")
+
+        fname =  self.mda.fname_lineEdit.text()
+
         if self.mda.save_groupBox.isChecked():
-
-            try:
-                active_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
-            except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence")
-
-            fname =  self.mda.fname_lineEdit.text()
 
             save_path = Path(self.mda.dir_lineEdit.text())
 
@@ -283,7 +283,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                     if len(sequence.time_plan) > 0 and \
                         sequence.axis_order[0] == 't':
-                            layer_p = active_layer.data[:,p,:]   
+                            layer_p = active_layer.data[:,p]   
                     else:
                         layer_p = active_layer.data[p,:]
 
@@ -299,6 +299,37 @@ class MainWindow(QtW.QWidget, _MainUI):
             list_dir.append(fname + '.tif')
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
+
+
+        if self.mda.checkBox_split_channels.isChecked():
+
+            for a, _ in enumerate(self.viewer.dims.axis_labels):
+                self.viewer.dims.set_point(a, 0)
+            
+            layer_c = list(self.viewer.dims.axis_labels)
+            layer_c.remove('c')
+
+            layer_info = active_layer.metadata.get('useq_sequence')
+
+            for c in range(len(sequence.channels)):
+                
+                ch_layer_name = f'Channel_{layer_info.channels[c].config}_{fname}'
+
+                if len(sequence.time_plan) > 0 and len(sequence.z_plan) > 0:
+                    layer_c = active_layer.data[:,:,:,c]
+                elif (len(sequence.time_plan) > 0 and not len(sequence.z_plan) > 0) or \
+                    (not len(sequence.time_plan) > 0 and len(sequence.z_plan) > 0):
+                    layer_c = active_layer.data[:,:,c]                 
+                else:
+                    layer_c = active_layer.data[:,c]
+                self.viewer.add_image(layer_c, name = ch_layer_name)
+
+            self.viewer.layers.remove(active_layer)
+
+            #TODO: fix axis_labels
+            print(list(self.viewer.dims.axis_labels))
+            
+            # self.viewer.dims.axis_labels = layer_c
 
         """reactivate gui when mda finishes."""
         self.mda.enable_mda_groupbox()
@@ -334,7 +365,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image)
-                
+            
         except StopIteration:
 
             if self.mda.save_groupBox.isChecked():

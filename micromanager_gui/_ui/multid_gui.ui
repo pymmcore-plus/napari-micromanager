@@ -167,25 +167,6 @@
           <property name="bottomMargin">
            <number>7</number>
           </property>
-          <item row="1" column="1">
-           <widget class="QPushButton" name="remove_ch_Button">
-            <property name="minimumSize">
-             <size>
-              <width>90</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>90</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Remove</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0" rowspan="3">
            <widget class="QTableWidget" name="channel_tableWidget">
             <property name="editTriggers">
@@ -255,6 +236,25 @@
             </property>
            </widget>
           </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="remove_ch_Button">
+            <property name="minimumSize">
+             <size>
+              <width>90</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>90</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>Remove</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="1">
            <widget class="QPushButton" name="add_ch_Button">
             <property name="minimumSize">
@@ -271,6 +271,16 @@
             </property>
             <property name="text">
              <string>Add</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="checkBox_split_channels">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>Split channels</string>
             </property>
            </widget>
           </item>

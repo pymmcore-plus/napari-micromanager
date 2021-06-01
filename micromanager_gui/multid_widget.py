@@ -24,6 +24,7 @@ class _MultiDUI:
     dir_lineEdit: QtW.QLineEdit
     browse_save_Button: QtW.QPushButton
     checkBox_save_pos: QtW.QCheckBox
+    checkBox_split_channels: QtW.QCheckBox
 
     channel_groupBox: QtW.QGroupBox
     channel_tableWidget: QtW.QTableWidget  # TODO: extract
