@@ -289,6 +289,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                     name = fname_pos + '.tif'
                     save_path_pos = Path(save_path) / name
+                    #TODO: astype 'uint_' dependimg on camera bit depth selected
                     tifffile.tifffile.imsave(str(save_path_pos), layer_p.astype('uint16'), imagej=True)                    
 
             else:
