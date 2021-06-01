@@ -289,7 +289,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                     name = fname_pos + '.tif'
                     save_path_pos = Path(save_path) / name
-                    tifffile.tifffile.imsave(str(save_path_pos), layer_p)                    
+                    tifffile.tifffile.imsave(str(save_path_pos), layer_p.astype('uint16'), imagej=True)                    
 
             else:
                 self.viewer.layers[str(active_layer)].save(str(save_path / fname))
@@ -332,7 +332,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image)
+            tifffile.tifffile.imsave(str(savefile), image.astype('uint16'))
                 
         except StopIteration:
 
@@ -353,7 +353,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image)
+            tifffile.tifffile.imsave(str(savefile), image.astype('uint16'), imagej=True)
 
 
     def browse_cfg(self):
