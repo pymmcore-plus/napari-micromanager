@@ -235,7 +235,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 n = fname.split('_')[-1]
                 int_n = int(n)
                 
-                if len(n) == 3 and int_n>= 0:
+                if len(n) == 3 and int_n >= 0:
                     fname = self.get_filename(fname,list_dir)
                 
                 elif len(n) != 3 and len(n) <=4 and int_n >= 0:
