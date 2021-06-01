@@ -225,8 +225,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             """
                Ckeck the input filename and modify it to add _nnn in the end.
-               The get_filename(fname,list_dir) function check if the name 
-               is already present in the save_path and incremant the _nnn accordingly.
+               The get_filename(fname,list_dir) function checks if the name 
+               is already present in the save_path and increments the _nnn accordingly.
 
                filename examples: user input -> output:
                 - mda       -> mda_000
