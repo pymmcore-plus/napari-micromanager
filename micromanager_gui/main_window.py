@@ -230,6 +230,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 - mda_0001  -> mda_001
                 - mda1      -> mda_001
                 - mda011021 -> mda011021_000
+                - mda_011021 -> mda_011021_000
             """
             try:
                 n = fname.split('_')[-1]
