@@ -195,7 +195,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         while True:
             new_val = '{0:03}'.format(val)
             fname = fname[:-3] + new_val
-            if ((fname + '.tif') or (fname + '.tiff')) not in set(list_dir):
+            if not any(fname in f for f in list_dir):
                 break
             else:
                 val += 1
