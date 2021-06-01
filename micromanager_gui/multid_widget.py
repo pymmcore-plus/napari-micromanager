@@ -23,6 +23,7 @@ class _MultiDUI:
     fname_lineEdit: QtW.QLineEdit
     dir_lineEdit: QtW.QLineEdit
     browse_save_Button: QtW.QPushButton
+    checkBox_save_pos: QtW.QCheckBox
 
     channel_groupBox: QtW.QGroupBox
     channel_tableWidget: QtW.QTableWidget  # TODO: extract
@@ -84,8 +85,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.run_Button.clicked.connect(self._on_run_clicked)
 
         #toggle connect
-        # self.save_groupBox.toggled.connect(self.toggle_run_btn)
-        # self.fname_lineEdit.textChanged.connect(self.toggle_run_btn)
+        self.save_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
+        self.stage_pos_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
@@ -150,6 +151,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.channel_tableWidget.clearContents()
         self.channel_tableWidget.setRowCount(0)
 
+    def toggle_checkbox_save_pos(self):
+        if self.stage_pos_groupBox.isChecked() and \
+            self.stage_tableWidget.rowCount() > 0:
+                self.checkBox_save_pos.setEnabled(True)
+        else:
+            self.checkBox_save_pos.setCheckState(False)
+            self.checkBox_save_pos.setEnabled(False)
+
     # add, remove, clear, move_to positions table
     def add_position(self):
         dev_loaded = list(self._mmc.getLoadedDevices())
@@ -172,16 +181,20 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 1, QtW.QTableWidgetItem(y_txt))
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
+            self.toggle_checkbox_save_pos()
+
     def remove_position(self):
         # remove selected position
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
+        self.toggle_checkbox_save_pos()
 
     def clear_positions(self):
         # clear all positions
         self.stage_tableWidget.clearContents()
         self.stage_tableWidget.setRowCount(0)
+        self.toggle_checkbox_save_pos()
 
     def move_to_position(self):
         curr_row = self.stage_tableWidget.currentRow()

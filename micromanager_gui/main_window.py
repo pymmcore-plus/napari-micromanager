@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from os import PRIO_PGRP
 from pathlib import Path
-from re import escape
+from re import escape, split
 from typing import Sequence, TYPE_CHECKING
+from napari.layers.base.base import Layer
 
 import tifffile
 import tempfile
@@ -191,15 +193,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             check if the filename_nnn used to save the layer exists
             and increment _nnn accordingly.
         """
+
         val = int(fname.split('_')[-1])
+            
         while True:
             new_val = '{0:03}'.format(val)
             fname = fname[:-3] + new_val
-            if ((fname + '.tif') or (fname + '.tiff')) not in set(list_dir):
+            if not any(fname in f for f in list_dir):
                 break
             else:
                 val += 1
         return fname
+
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
@@ -231,6 +236,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                 - mda1      -> mda_001
                 - mda011021 -> mda011021_000
                 - mda_011021 -> mda_011021_000
+
+                - mda (with split positions) -> mda_000_[p000], mda_000_[p001], mda_000_[p002]
+                - ...
             """
             try:
                 n = fname.split('_')[-1]
@@ -267,9 +275,26 @@ class MainWindow(QtW.QWidget, _MainUI):
                     fname = fname + '_000'
                     fname = self.get_filename(fname,list_dir)
 
+            # if split pos is checked, save each position in a separate file
+            if self.mda.checkBox_save_pos.isChecked():
 
-            self.viewer.layers[str(active_layer)].save(str(save_path / fname))
+                for p in range(len(sequence.stage_positions)):
+                    pos_num = '{0:03}'.format(int(p))
+                    fname_pos = f'{fname}_[p{pos_num}]'
 
+                    if len(sequence.time_plan) > 0 and \
+                        sequence.axis_order[0] == 't':
+                            layer_p = active_layer.data[:,p,:]   
+                    else:
+                        layer_p = active_layer.data[p,:]
+
+                    name = fname_pos + '.tif'
+                    save_path_pos = Path(save_path) / name
+                    tifffile.tifffile.imsave(str(save_path_pos), layer_p)                    
+
+            else:
+                self.viewer.layers[str(active_layer)].save(str(save_path / fname))
+            
             """update filename in mda.fname_lineEdit for the next aquisition."""
             list_dir.append(fname + '.tif')
             fname = self.get_filename(fname,list_dir)

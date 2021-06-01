@@ -100,13 +100,6 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QPushButton" name="browse_save_Button">
-            <property name="text">
-             <string>...</string>
-            </property>
-           </widget>
-          </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_2">
             <property name="text">
@@ -118,6 +111,23 @@
            <widget class="QLineEdit" name="fname_lineEdit">
             <property name="text">
              <string>Experiment</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QPushButton" name="browse_save_Button">
+            <property name="text">
+             <string>...</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="checkBox_save_pos">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Save XY Positions is separate files</string>
             </property>
            </widget>
           </item>
@@ -371,11 +381,11 @@
              </size>
             </property>
             <property name="currentText">
-             <string>min</string>
+             <string>ms</string>
             </property>
             <item>
              <property name="text">
-              <string>min</string>
+              <string>ms</string>
              </property>
             </item>
             <item>
@@ -385,7 +395,7 @@
             </item>
             <item>
              <property name="text">
-              <string>ms</string>
+              <string>min</string>
              </property>
             </item>
            </widget>
@@ -411,7 +421,7 @@
           <bool>true</bool>
          </property>
          <property name="checked">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <layout class="QGridLayout" name="gridLayout_4">
           <item row="1" column="2">
