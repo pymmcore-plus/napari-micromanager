@@ -379,6 +379,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
+        #TODO: clear combobox befor refresh
         cam_device = self._mmc.getCameraDevice()
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
@@ -396,10 +397,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
+        #TODO: clear combobox befor refresh
         if "Objective" in self._mmc.getLoadedDevices():
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self):
+        #TODO: clear combobox befor refresh
         if "Channel" in self._mmc.getAvailableConfigGroups():
             channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
