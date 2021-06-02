@@ -220,12 +220,18 @@ class MainWindow(QtW.QWidget, _MainUI):
                     """ save each position and channel in a separate file."""
 
                     for p in range(len(sequence.stage_positions)):
+                        
+                        pos_num = '{0:03}'.format(int(p))
+                        folder_path = Path(folder_name) / f'{fname}_Pos{pos_num}'
+
+                        try:
+                            Path(folder_path).mkdir(parents=True, exist_ok=False)
+                        except FileExistsError:
+                            pass
 
                         for i in self.viewer.layers:
 
                             if str(uid) in i.metadata.get('ch_id'):
-
-                                pos_num = '{0:03}'.format(int(p))
                             
                                 ch_id_info = i.metadata.get('ch_id')
 
@@ -239,7 +245,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                                 else:
                                     layer_p = i.data[p,:]
 
-                                save_path_ch = folder_name / f'{fname_pos}.tif'
+                                save_path_ch = folder_path / f'{fname_pos}.tif'
                 
                                 #TODO: astype 'uint_' dependimg on camera bit depth selected
                                 tifffile.tifffile.imsave(str(save_path_ch), layer_p.astype('uint16'), imagej=True)                    
@@ -277,6 +283,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if self.mda.checkBox_save_pos.isChecked():
                     """ save each position in a separate file """
 
+                    folder_name = f'{fname}_Pos'
+                    folder_path = Path(save_path) / folder_name
+
+                    try:
+                        Path(folder_path).mkdir(parents=True, exist_ok=False)
+                    except FileExistsError:
+                        pass
+
                     for p in range(len(sequence.stage_positions)):
                         pos_num = '{0:03}'.format(int(p))
                         fname_pos = f'{fname}_[p{pos_num}]'
@@ -288,7 +302,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                             layer_p = active_layer.data[p,:]
 
                         name = fname_pos + '.tif'
-                        save_path_pos = Path(save_path) / name
+                        save_path_pos = Path(folder_path) / name
                         #TODO: astype 'uint_' dependimg on camera bit depth selected
                         tifffile.tifffile.imsave(str(save_path_pos), layer_p.astype('uint16'), imagej=True)                    
 
