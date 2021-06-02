@@ -273,11 +273,13 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                     "z": float(self._mmc.getZPosition()),
                 }
             )
+            
         return state
 
     # function is executed when run_Button is clicked
     # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
+
         if len(self._mmc.getLoadedDevices()) < 2:
             print("Load a cfg file first.")
             return
@@ -293,7 +295,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                     not Path.is_dir(Path(self.dir_lineEdit.text()))
                     ):
                         raise ValueError ('select a filename and a valid directory.')
-                        print('select a filename and a valid directory.')
 
             else:
                 experiment = MDASequence(**self._get_state_dict())

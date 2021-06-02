@@ -127,9 +127,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.MDAStarted.connect(self._on_mda_started)
                 
         # connect explorer
-        self.explorer.new_frame.connect(self.add_frame_explorer)
-        self.explorer.delete_snaps.connect(self.delete_layer)
-        self.explorer.delete_previous_scan.connect(self.delete_layer)
+        # self.explorer.new_frame.connect(self.add_frame_explorer)
+        # self.explorer.delete_snaps.connect(self.delete_layer)
+        # self.explorer.delete_previous_scan.connect(self.delete_layer)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -249,7 +249,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 
                                 #TODO: astype 'uint_' dependimg on camera bit depth selected
                                 tifffile.tifffile.imsave(str(save_path_ch), layer_p.astype('uint16'), imagej=True)                    
-                
+               
                 else:
                     """ save each channel layer."""
                     for i in self.viewer.layers:
