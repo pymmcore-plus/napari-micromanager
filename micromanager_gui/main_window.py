@@ -20,7 +20,7 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 from tifffile.tifffile import sequence
 
-from ._util import extend_array_for_index
+from ._util import extend_array_for_index, get_filename, check_filename
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
@@ -189,78 +189,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.disable_gui()
 
 
-    def check_filename(self, fname, list_dir):
-        """
-        Ckeck the input filename and modify it to add _nnn in the end.
-        The get_filename(fname,list_dir) function check if the name 
-        is already present in the save_path and incremant the _nnn accordingly.
-
-        filename examples: user input -> output:
-            - mda       -> mda_000
-            - mda_3     -> mda_003
-            - mda_0001  -> mda_001
-            - mda1      -> mda_001
-            - mda011021 -> mda011021_000
-            - mda_011021 -> mda_011021_000
-
-            - mda (with split positions) -> mda_000_[p000], mda_000_[p001], mda_000_[p002]
-            - ...
-        """
-        try:
-            n = fname.split('_')[-1]
-            int_n = int(n)
-            
-            if len(n) == 3 and int_n >= 0:
-                fname = self.get_filename(fname,list_dir)
-            
-            elif len(n) != 3 and len(n) <=4 and int_n >= 0:
-                s = ''
-                for i in fname.split('_')[:-1]:
-                    s = s + i + '_'
-                    print(s)
-                print('s', s)
-                fname = s + '{0:03}'.format(int_n)
-                fname = self.get_filename(fname,list_dir)
-            
-            else:
-                fname = fname + '_000'
-                fname = self.get_filename(fname,list_dir)
-
-        except ValueError:
-            n = ''
-            for i in range(1,len(fname)+1):
-                try:
-                    n += str(int(fname[-i]))
-                except ValueError:
-                    break
-            if len(n) > 0 and len(n) <= 4:
-                n = n[::-1]
-                fname = fname.replace(n, '_' + '{0:03}'.format(int(n)))
-                fname = self.get_filename(fname,list_dir)
-            else:
-                fname = fname + '_000'
-                fname = self.get_filename(fname,list_dir)
-            
-        return fname
-    
-    def get_filename(self, fname, list_dir):
-        """
-            check if the filename_nnn used to save the layer exists
-            and increment _nnn accordingly.
-        """
-
-        val = int(fname.split('_')[-1])
-            
-        while True:
-            new_val = '{0:03}'.format(val)
-            fname = fname[:-3] + new_val
-            if not any(fname in f for f in list_dir):
-                break
-            else:
-                val += 1
-        return fname
-
-
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
 
@@ -273,10 +201,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             if self.mda.checkBox_split_channels.isChecked():
                 """Save individual channel layer(s)."""
 
-                list_dir = [f.name for f in save_path.iterdir() if f.is_dir()]
+                list_dir = [f.name for f in save_path.iterdir() \
+                    if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
 
                 """create folder to save individual channel layer(s)."""
-                fname = self.check_filename(fname, list_dir)
+                fname = check_filename(fname, list_dir)
                 
                 folder_name = Path(save_path) / fname
 
@@ -328,6 +257,11 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                             i.save(str(save_path_ch))
 
+                """update filename in mda.fname_lineEdit for the next aquisition."""
+                list_dir.append(fname)
+                fname = get_filename(fname,list_dir)
+                self.mda.fname_lineEdit.setText(fname)
+
             else:
                 try:
                     active_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
@@ -335,9 +269,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                     raise IndexError("could not find layer corresponding to sequence")
 
                 """Look into the saving directory (save_path) and get tif files names"""
-                list_dir = [f.name for f in save_path.glob("*.tif")]
+                list_dir = [f.name for f in save_path.iterdir() \
+                    if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
 
-                fname = self.check_filename(fname, list_dir)
+                fname = check_filename(fname, list_dir)
 
                 if self.mda.checkBox_save_pos.isChecked():
                     """ save each position in a separate file """
@@ -361,8 +296,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.viewer.layers[str(active_layer)].save(str(save_path / fname))
                 
                 """update filename in mda.fname_lineEdit for the next aquisition."""
-                list_dir.append(fname + '.tif')
-                fname = self.get_filename(fname,list_dir)
+                list_dir.append(fname)
+                fname = get_filename(fname,list_dir)
                 self.mda.fname_lineEdit.setText(fname)
 
         """reactivate gui when mda finishes."""

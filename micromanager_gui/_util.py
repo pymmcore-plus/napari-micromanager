@@ -48,3 +48,75 @@ def extend_array_for_index(array: np.ndarray, index: Tuple[int, ...]):
 
     # otherwise just return the incoming array
     return array
+
+
+def check_filename(fname, list_dir):
+    """
+    Ckeck the input filename and modify it to add _nnn in the end.
+    The get_filename(fname,list_dir) function check if the name 
+    is already present in the save_path and incremant the _nnn accordingly.
+
+    filename examples: user input -> output:
+        - mda       -> mda_000
+        - mda_3     -> mda_003
+        - mda_0001  -> mda_001
+        - mda1      -> mda_001
+        - mda011021 -> mda011021_000
+        - mda_011021 -> mda_011021_000
+
+        - mda (with split positions) -> mda_000_[p000], mda_000_[p001], mda_000_[p002]
+        - ...
+    """
+    try:
+        n = fname.split('_')[-1]
+        int_n = int(n)
+        
+        if len(n) == 3 and int_n >= 0:
+            fname = get_filename(fname,list_dir)
+        
+        elif len(n) != 3 and len(n) <=4 and int_n >= 0:
+            s = ''
+            for i in fname.split('_')[:-1]:
+                s = s + i + '_'
+                print(s)
+            print('s', s)
+            fname = s + '{0:03}'.format(int_n)
+            fname = get_filename(fname,list_dir)
+        
+        else:
+            fname = fname + '_000'
+            fname = get_filename(fname,list_dir)
+
+    except ValueError:
+        n = ''
+        for i in range(1,len(fname)+1):
+            try:
+                n += str(int(fname[-i]))
+            except ValueError:
+                break
+        if len(n) > 0 and len(n) <= 4:
+            n = n[::-1]
+            fname = fname.replace(n, '_' + '{0:03}'.format(int(n)))
+            fname = get_filename(fname,list_dir)
+        else:
+            fname = fname + '_000'
+            fname = get_filename(fname,list_dir)
+        
+    return fname
+    
+def get_filename(fname, list_dir):
+    """
+        check if the filename_nnn used to save the layer exists
+        and increment _nnn accordingly.
+    """
+
+    val = int(fname.split('_')[-1])
+        
+    while True:
+        new_val = '{0:03}'.format(val)
+        fname = fname[:-3] + new_val
+        if not any(fname in f for f in list_dir):
+            break
+        else:
+            val += 1
+    return fname
