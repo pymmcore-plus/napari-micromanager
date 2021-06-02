@@ -314,23 +314,28 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
 
         # get the index of the incoming image
-        im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
-
-        im_idx_c = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
+        if self.mda.checkBox_split_channels.isChecked():
+            im_idx = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
+        else:
+            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
         try:
             # see if we already have a layer with this sequence
-            layer = next(
-                x for x in self.viewer.layers if x.metadata.get("ch_id") == \
-                    (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
+            if self.mda.checkBox_split_channels.isChecked():
+                layer = next(
+                    x for x in self.viewer.layers if x.metadata.get("ch_id") == \
+                        (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
+            else:
+                layer = next(
+                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+                )
  
             # make sure array shape contains im_idx, or pad with zeros
-            # new_array = extend_array_for_index(layer.data, im_idx)
-            new_array = extend_array_for_index(layer.data, im_idx_c)
-            # add the incoming index at the appropriate index
-            # new_array[im_idx] = image
-            new_array[im_idx_c] = image
+            new_array = extend_array_for_index(layer.data, im_idx)
 
+            # add the incoming index at the appropriate index
+            new_array[im_idx] = image
+            
             # set layer data
             layer.data = new_array
 
@@ -338,7 +343,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.viewer.dims.set_point(a, v)
 
             #save each image in the temp folder, 
-            image_name = f'{im_idx}.tif'
+            if self.mda.checkBox_split_channels.isChecked():
+                image_name = f'{event.channel.confi}_idx{event.index["c"]}.tif'
+            else:
+                image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image)
             
@@ -346,10 +354,17 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             if self.mda.save_groupBox.isChecked():
                 file_name = self.mda.fname_lineEdit.text()
-                layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
-            else:
-                layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
 
+                    if self.mda.checkBox_split_channels.isChecked():
+                        layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                    else:
+
+
+            else:
+                if self.mda.checkBox_split_channels.isChecked():
+                    layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
