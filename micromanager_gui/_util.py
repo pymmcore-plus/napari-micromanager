@@ -40,6 +40,7 @@ def extend_array_for_index(array: np.ndarray, index: Tuple[int, ...]):
         newshape = list(array.shape)
         for i, (x, y) in enumerate(zip(index, array.shape)):
             newshape[i] = max(x + 1, y)
+
         new_array = np.zeros(newshape)
         # populate with existing data
         new_array[tuple(slice(s) for s in array.shape)] = array

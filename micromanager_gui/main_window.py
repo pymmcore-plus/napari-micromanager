@@ -18,6 +18,7 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
+from tifffile.tifffile import sequence
 
 from ._util import extend_array_for_index
 from .explore_sample import ExploreSample
@@ -300,36 +301,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
 
-
-        if self.mda.checkBox_split_channels.isChecked():
-
-            for a, _ in enumerate(self.viewer.dims.axis_labels):
-                self.viewer.dims.set_point(a, 0)
-            
-            layer_c = list(self.viewer.dims.axis_labels)
-            layer_c.remove('c')
-
-            layer_info = active_layer.metadata.get('useq_sequence')
-
-            for c in range(len(sequence.channels)):
-                
-                ch_layer_name = f'Channel_{layer_info.channels[c].config}_{fname}'
-
-                if len(sequence.time_plan) > 0 and len(sequence.z_plan) > 0:
-                    layer_c = active_layer.data[:,:,:,c]
-                elif (len(sequence.time_plan) > 0 and not len(sequence.z_plan) > 0) or \
-                    (not len(sequence.time_plan) > 0 and len(sequence.z_plan) > 0):
-                    layer_c = active_layer.data[:,:,c]                 
-                else:
-                    layer_c = active_layer.data[:,c]
-                self.viewer.add_image(layer_c, name = ch_layer_name)
-
-            self.viewer.layers.remove(active_layer)
-
-            #TODO: fix axis_labels
-            print(list(self.viewer.dims.axis_labels))
-            
-            # self.viewer.dims.axis_labels = layer_c
+            # if self.mda.checkBox_split_channels.isChecked():
 
         """reactivate gui when mda finishes."""
         self.mda.enable_mda_groupbox()
@@ -344,16 +316,20 @@ class MainWindow(QtW.QWidget, _MainUI):
         # get the index of the incoming image
         im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
+        im_idx_c = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
+
         try:
             # see if we already have a layer with this sequence
             layer = next(
-                x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
-            )
-
+                x for x in self.viewer.layers if x.metadata.get("ch_id") == \
+                    (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
+ 
             # make sure array shape contains im_idx, or pad with zeros
-            new_array = extend_array_for_index(layer.data, im_idx)
+            # new_array = extend_array_for_index(layer.data, im_idx)
+            new_array = extend_array_for_index(layer.data, im_idx_c)
             # add the incoming index at the appropriate index
-            new_array[im_idx] = image
+            # new_array[im_idx] = image
+            new_array[im_idx_c] = image
 
             # set layer data
             layer.data = new_array
@@ -370,17 +346,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             if self.mda.save_groupBox.isChecked():
                 file_name = self.mda.fname_lineEdit.text()
-                layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
+                layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
             else:
-                layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
+                layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
 
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+            # labels = [i for i in seq.axis_order if ((i in event.index) and (i != 'c'))] + ["y", "x"]
 
             self.viewer.dims.axis_labels = labels
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
+            layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
