@@ -342,9 +342,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
-            #save each image in the temp folder, 
+            #save each image in the temp folder 
             if self.mda.checkBox_split_channels.isChecked():
-                image_name = f'{event.channel.confi}_idx{event.index["c"]}.tif'
+                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
@@ -353,22 +353,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         except StopIteration:
 
             if self.mda.save_groupBox.isChecked():
+
                 file_name = self.mda.fname_lineEdit.text()
 
-                    if self.mda.checkBox_split_channels.isChecked():
-                        layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
-                    else:
-
-
+                if self.mda.checkBox_split_channels.isChecked():
+                    layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
+            
             else:
                 if self.mda.checkBox_split_channels.isChecked():
                     layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
                 else:
+                    layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
                     
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-            # labels = [i for i in seq.axis_order if ((i in event.index) and (i != 'c'))] + ["y", "x"]
 
             self.viewer.dims.axis_labels = labels
             layer.metadata["useq_sequence"] = seq
@@ -376,7 +377,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
             #save first image in the temp folder
-            image_name = f'{im_idx}.tif'
+            if self.mda.checkBox_split_channels.isChecked():
+                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+            else:
+                image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
