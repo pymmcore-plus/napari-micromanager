@@ -156,7 +156,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.XY_groupBox.setEnabled(True)
         self.Z_groupBox.setEnabled(True)
         self.snap_live_tab.setEnabled(True)
-        #TODO: add explorer tab when ready
+        self.snap_live_tab.setEnabled(True)
 
     def disable_gui(self):
         self.objective_groupBox.setEnabled(False)
@@ -164,7 +164,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.XY_groupBox.setEnabled(False)
         self.Z_groupBox.setEnabled(False)
         self.snap_live_tab.setEnabled(False)
-        #TODO: add explorer tab when ready
+        self.snap_live_tab.setEnabled(False)
+
 
     def delete_layer(self, name):
         layer_set = {str(layer) for layer in self.viewer.layers}
@@ -182,12 +183,15 @@ class MainWindow(QtW.QWidget, _MainUI):
 
 
     def _on_mda_started(self, sequence: useq.MDASequence):
-        """"create temp folder when mda starts."""
+        
+        self.viewer.grid.enabled = False
 
+        """"create temp folder when mda starts."""
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
         """blok gui when mda starts."""
         self.mda.disable_mda_groupbox()
+        self.explorer.disable_explorer_groupbox()
         self.disable_gui()
 
 
@@ -318,10 +322,12 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         """reactivate gui when mda finishes."""
         self.mda.enable_mda_groupbox()
+        self.explorer.enable_explorer_groupbox()
         self.enable_gui()
 
 
     def _on_mda_finished_1(self, sequence: useq.MDASequence):
+        """for sample explorer"""
 
         if sequence.extras == 'sample_explorer':
 

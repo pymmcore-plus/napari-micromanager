@@ -25,7 +25,6 @@ class ExploreSample(QtW.QWidget):
     scan_exp_spinBox: QtW.QSpinBox
     start_scan_Button: QtW.QPushButton
     stop_scan_Button: QtW.QPushButton
-    progressBar: QtW.QProgressBar
     move_to_Button: QtW.QPushButton
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
@@ -37,7 +36,21 @@ class ExploreSample(QtW.QWidget):
             uic.loadUi(UI_FILE, self)
 
             self.start_scan_Button.clicked.connect(self.start_scan)
-            
+    
+    def enable_explorer_groupbox(self):
+        self.scan_size_spinBox_r.setEnabled(True)
+        self.scan_size_spinBox_c.setEnabled(True)
+        self.scan_channel_comboBox.setEnabled(True)
+        self.scan_exp_spinBox.setEnabled(True)
+        self.move_to_Button.setEnabled(True)
+
+    def disable_explorer_groupbox(self):
+        self.scan_size_spinBox_r.setEnabled(False)
+        self.scan_size_spinBox_c.setEnabled(False)
+        self.scan_channel_comboBox.setEnabled(False)
+        self.scan_exp_spinBox.setEnabled(False)
+        self.move_to_Button.setEnabled(False)
+
     def _get_state_dict(self) -> dict:
         state = {
             "axis_order": 'tpzc',
