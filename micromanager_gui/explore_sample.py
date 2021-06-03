@@ -43,6 +43,7 @@ class ExploreSample(QtW.QWidget):
         self.scan_channel_comboBox.setEnabled(True)
         self.scan_exp_spinBox.setEnabled(True)
         self.move_to_Button.setEnabled(True)
+        self.start_scan_Button.setEnabled(True)
 
     def disable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(False)
@@ -50,6 +51,7 @@ class ExploreSample(QtW.QWidget):
         self.scan_channel_comboBox.setEnabled(False)
         self.scan_exp_spinBox.setEnabled(False)
         self.move_to_Button.setEnabled(False)
+        self.start_scan_Button.setEnabled(False)
 
     def _get_state_dict(self) -> dict:
         state = {
