@@ -343,6 +343,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.layers.remove(explorer_layer)
 
+            #TODO: change the order of the frames in the layer list
+            #      to correctly display the grid
+
             self.viewer.grid.shape = (
                 self.explorer.scan_size_spinBox_r.value(), 
                 self.explorer.scan_size_spinBox_c.value()
