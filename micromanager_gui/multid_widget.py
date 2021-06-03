@@ -229,6 +229,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             "stage_positions": [],
             "z_plan": None,
             "time_plan": None,
+            "extras": 'mda'
         }
         state["channels"] = [
             {
@@ -273,7 +274,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                     "z": float(self._mmc.getZPosition()),
                 }
             )
-            
+
         return state
 
     # function is executed when run_Button is clicked

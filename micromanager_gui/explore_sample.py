@@ -45,6 +45,7 @@ class ExploreSample(QtW.QWidget):
             "stage_positions": [],
             "z_plan": None,
             "time_plan": None,
+            "extras": 'sample_explorer'
         }
 
         # channel settings
@@ -130,7 +131,6 @@ class ExploreSample(QtW.QWidget):
         explore_sample = MDASequence(**self._get_state_dict())
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
-
 
 
 if __name__ == "__main__":

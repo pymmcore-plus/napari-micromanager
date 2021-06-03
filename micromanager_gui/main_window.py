@@ -5,6 +5,7 @@ from os import PRIO_PGRP
 from pathlib import Path
 from re import escape, split
 from typing import Sequence, TYPE_CHECKING
+from napari.components import layerlist
 from napari.layers.base.base import Layer
 
 import tifffile
@@ -123,8 +124,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
 
-        sig.MDAFinished.connect(self._on_mda_finished)
         sig.MDAStarted.connect(self._on_mda_started)
+        sig.MDAFinished.connect(self._on_mda_finished)
+        sig.MDAFinished.connect(self._on_mda_finished_1)
                 
         # connect explorer
         # self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -319,7 +321,30 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.enable_gui()
 
 
+    def _on_mda_finished_1(self, sequence: useq.MDASequence):
+
+        if sequence.extras == 'sample_explorer':
+
+            try:
+                explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
+            except StopIteration:
+                raise IndexError("could not find layer corresponding to sequence")
+
+            for f in range(len(explorer_layer.data)):
+                frame = self.viewer.add_image(explorer_layer.data[f], name = f"Pos{'{0:03}'.format(int(f))}")
+                frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
+                frame.metadata['stage_position'] = sequence.stage_positions[f]
+
+            self.viewer.layers.remove(explorer_layer)
+
+            self.viewer.grid.shape = (
+                self.explorer.scan_size_spinBox_r.value(), 
+                self.explorer.scan_size_spinBox_c.value()
+            )
+
+            self.viewer.grid.enabled = True
     
+
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence
@@ -388,7 +413,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             """add metadata to layer"""
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
-            layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
+
+            if self.mda.checkBox_split_channels.isChecked():
+                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
             """save first image in the temp folder"""
             if self.mda.checkBox_split_channels.isChecked():
