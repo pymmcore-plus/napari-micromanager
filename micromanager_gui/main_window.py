@@ -4,6 +4,7 @@ from datetime import datetime
 from os import PRIO_PGRP
 from pathlib import Path
 from re import escape, split
+import time
 from typing import Sequence, TYPE_CHECKING
 from napari.components import layerlist
 from napari.layers.base.base import Layer
@@ -24,6 +25,9 @@ from tifffile.tifffile import sequence
 from ._util import extend_array_for_index, get_filename, check_filename
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
+
+import cv2
+
 
 if TYPE_CHECKING:
     import useq
@@ -198,11 +202,11 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
 
-        fname =  self.mda.fname_lineEdit.text()
-
-        save_path = Path(self.mda.dir_lineEdit.text())
-
         if self.mda.save_groupBox.isChecked():
+
+            fname =  self.mda.fname_lineEdit.text()
+
+            save_path = Path(self.mda.dir_lineEdit.text())
 
             if self.mda.checkBox_split_channels.isChecked():
                 """Save individual channel layer(s)."""
@@ -328,31 +332,44 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_mda_finished_1(self, sequence: useq.MDASequence):
         """for sample explorer"""
-
+        
         if sequence.extras == 'sample_explorer':
+
+            # scan_size_r = self.explorer.scan_size_spinBox_r.value()
+            # scan_size_c = self.explorer.scan_size_spinBox_c.value() 
+
+            # width = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
+            # height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  
 
             try:
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence")
+                raise IndexError("could not find layer corresponding to sequence")                                 
 
             for f in range(len(explorer_layer.data)):
-                frame = self.viewer.add_image(explorer_layer.data[f], name = f"Pos{'{0:03}'.format(int(f))}")
+                x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
+                y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
+                z = 0
+                frame = self.viewer.add_image(explorer_layer.data[f], \
+                    name = f"Pos{'{0:03}'.format(int(f))}", \
+                        translate=(z,y,x))
                 frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
                 frame.metadata['stage_position'] = sequence.stage_positions[f]
+                frame.metadata['uid_p'] = str(sequence.uid) + f"_frame_pos{'{0:03}'.format(int(f))}"
 
             self.viewer.layers.remove(explorer_layer)
 
-            #TODO: change the order of the frames in the layer list
-            #      to correctly display the grid
+            self.viewer.reset_view()
 
-            self.viewer.grid.shape = (
-                self.explorer.scan_size_spinBox_r.value(), 
-                self.explorer.scan_size_spinBox_c.value()
-            )
+            
 
-            self.viewer.grid.enabled = True
-    
+
+        
+                
+
+
+
+
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
@@ -374,7 +391,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 layer = next(
                     x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
                 )
- 
+
             """make sure array shape contains im_idx, or pad with zeros"""
             new_array = extend_array_for_index(layer.data, im_idx)
 

@@ -91,12 +91,10 @@ class ExploreSample(QtW.QWidget):
     
     def set_grid(self):
 
+        #TODO: add % overlap 
+
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
-
-        self.scaling_factor = 3
-
-        self.total_size = self.scan_size_r * self.scan_size_c
 
         # get current position
         x_curr_pos_explorer = float(self._mmc.getXPosition())
@@ -106,6 +104,7 @@ class ExploreSample(QtW.QWidget):
         #calculate initial scan position
         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  # maybe they are inverted
         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  # maybe they are inverted
+
         move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
         move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
 
@@ -137,12 +136,11 @@ class ExploreSample(QtW.QWidget):
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x
 
+        print(list_pos_order)
         return list_pos_order
-
+        
         
     def start_scan(self):
-
-        self._get_state_dict()
         explore_sample = MDASequence(**self._get_state_dict())
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
