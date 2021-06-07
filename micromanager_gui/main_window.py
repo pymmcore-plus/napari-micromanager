@@ -346,6 +346,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             except StopIteration:
                 raise IndexError("could not find layer corresponding to sequence")                                 
 
+            """split stack and translate images depending on xy position (in pixel)"""
             for f in range(len(explorer_layer.data)):
                 x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
                 y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
@@ -361,7 +362,21 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.reset_view()
 
-            
+            @self.viewer.mouse_drag_callbacks.append
+            def get_event(viewer, event):
+
+                x = viewer.cursor.position[-1]
+                x1 = viewer.cursor.position[-1] / self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-1]
+                y1 = viewer.cursor.position[-1] / self._mmc.getPixelSizeUm() * (- 1)
+
+                val = (y,x)
+                val1 = (y1,x1)
+
+                self.explorer.x_lineEdit.setText(str(round(x)))
+                self.explorer.y_lineEdit.setText(str(round(y)))
+
+                print(val, val1)
 
 
         
