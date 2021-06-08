@@ -22,14 +22,7 @@
      <layout class="QGridLayout" name="gridLayout_6">
       <item row="0" column="0">
        <layout class="QGridLayout" name="gridLayout_5">
-        <item row="0" column="1">
-         <widget class="QLabel" name="x_label">
-          <property name="text">
-           <string>Pixel Coord xy:</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="3">
+        <item row="0" column="2">
          <widget class="QLineEdit" name="y_lineEdit">
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -57,11 +50,11 @@
            </size>
           </property>
           <property name="text">
-           <string>Move to image:</string>
+           <string>Move to Position</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
+        <item row="0" column="1">
          <widget class="QLineEdit" name="x_lineEdit">
           <property name="alignment">
            <set>Qt::AlignCenter</set>

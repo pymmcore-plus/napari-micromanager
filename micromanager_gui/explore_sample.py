@@ -36,6 +36,7 @@ class ExploreSample(QtW.QWidget):
             uic.loadUi(UI_FILE, self)
 
             self.start_scan_Button.clicked.connect(self.start_scan)
+            self.move_to_Button.clicked.connect(self.move_to)
     
     def enable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(True)
@@ -85,7 +86,6 @@ class ExploreSample(QtW.QWidget):
                 }
             )
 
-        print(state)
         return state
 
     
@@ -105,11 +105,21 @@ class ExploreSample(QtW.QWidget):
         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  # maybe they are inverted
         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  # maybe they are inverted
 
-        move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
-        move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+        if self.scan_size_r == 1 and self.scan_size_c > 1:
+            move_x = (width / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+            move_y = 0
+
+        elif self.scan_size_r > 1 and self.scan_size_c == 1:
+            move_x = 0
+            move_y = (height / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+
+        else:
+            move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+            move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
 
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
+
 
         """calculate position increments depending on pixle size"""
         increment_x = width * self._mmc.getPixelSizeUm()
@@ -136,14 +146,23 @@ class ExploreSample(QtW.QWidget):
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x
 
-        print(list_pos_order)
+        # print(list_pos_order)
         return list_pos_order
         
         
     def start_scan(self):
-        explore_sample = MDASequence(**self._get_state_dict())
-        self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
+        self.explore_sample = MDASequence(**self._get_state_dict())
+        self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
         return
+
+    def move_to(self):
+
+        move_to_x = float(self.x_lineEdit.text())
+        move_to_y = float(self.y_lineEdit.text())
+
+        if not move_to_x == None and not move_to_y == None:
+
+            self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
 if __name__ == "__main__":
@@ -153,6 +172,7 @@ if __name__ == "__main__":
     window = ExploreSample()
     window.show()
     app.exec_()
+
 
 
 

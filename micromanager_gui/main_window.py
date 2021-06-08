@@ -345,15 +345,20 @@ class MainWindow(QtW.QWidget, _MainUI):
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
                 raise IndexError("could not find layer corresponding to sequence")                                 
+            
+            # for l in self.viewer.layers:
+            #     l.visible = False
 
             """split stack and translate images depending on xy position (in pixel)"""
             for f in range(len(explorer_layer.data)):
                 x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
                 y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
                 z = 0
+                
                 frame = self.viewer.add_image(explorer_layer.data[f], \
                     name = f"Pos{'{0:03}'.format(int(f))}", \
                         translate=(z,y,x))
+
                 frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
                 frame.metadata['stage_position'] = sequence.stage_positions[f]
                 frame.metadata['uid_p'] = str(sequence.uid) + f"_frame_pos{'{0:03}'.format(int(f))}"
@@ -365,24 +370,17 @@ class MainWindow(QtW.QWidget, _MainUI):
             @self.viewer.mouse_drag_callbacks.append
             def get_event(viewer, event):
 
-                x = viewer.cursor.position[-1]
-                x1 = viewer.cursor.position[-1] / self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-1]
-                y1 = viewer.cursor.position[-1] / self._mmc.getPixelSizeUm() * (- 1)
-
-                val = (y,x)
-                val1 = (y1,x1)
-
-                self.explorer.x_lineEdit.setText(str(round(x)))
-                self.explorer.y_lineEdit.setText(str(round(y)))
-
-                print(val, val1)
-
-
-        
+                #world coord
+                # x1 = viewer.cursor.position[-1]
+                # y1 = viewer.cursor.position[-2] * (-1)
                 
+                #pos coord
+                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
 
 
+                self.explorer.x_lineEdit.setText(str(x))
+                self.explorer.y_lineEdit.setText(str(y))
 
 
 
