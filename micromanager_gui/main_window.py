@@ -449,6 +449,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name)
+            
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
 
             self.viewer.dims.axis_labels = labels
@@ -456,9 +457,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             """add metadata to layer"""
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
-
-            #TODO: translate to current xy position
-
+            
             if self.mda.checkBox_split_channels.isChecked():
                 layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
@@ -641,7 +640,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
-            print('PIXEL SIZE NOT SET, STORE OBJECTIVES NAME STARTING WITH e.g. 100X or 100x.')
+            print('PIXEL SIZE NOT SET.')
     
         self.viewer.reset_view()
 
