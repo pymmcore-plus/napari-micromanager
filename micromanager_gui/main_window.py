@@ -627,9 +627,13 @@ class MainWindow(QtW.QWidget, _MainUI):
                 # circular buffer empty
                 return
         try:
-            self.viewer.layers["preview"].data = data
+            preview_layer = self.viewer.layers["preview"]
+            preview_layer.data = data
         except KeyError:
-            self.viewer.add_image(data, name="preview")
+            preview_layer = self.viewer.add_image(data, name="preview")
+            
+        self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
+        self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
 
         if self._mmc.getPixelSizeUm() > 0:
             x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
@@ -648,6 +652,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def snap(self):
         self.stop_live()
         self._mmc.setExposure(int(self.exp_spinBox.value()))
+
+        ch_group = self._mmc.getChannelGroup() or "Channel"
+        self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+        
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
@@ -668,6 +676,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
+            
+            ch_group = self._mmc.getChannelGroup() or "Channel"
+            self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+
             self.start_live()
             self.live_Button.setIcon(CAM_STOP_ICON)
         else:
