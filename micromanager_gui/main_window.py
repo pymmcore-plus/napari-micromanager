@@ -74,6 +74,10 @@ class _MainUI:
     live_Button: QtW.QPushButton
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
+    move_to: QtW.QGroupBox
+    move_to_main_Button: QtW.QPushButton
+    x_lineEdit_main: QtW.QLineEdit
+    y_lineEdit_main: QtW.QLineEdit
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -119,7 +123,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # connect mmcore signals
         sig.MDAStarted.connect(self.mda._on_mda_started)
         sig.MDAFinished.connect(self.mda._on_mda_finished)
-        sig.MDAFinished.connect(self._on_system_configuration_loaded)
+        # sig.MDAFinished.connect(self._on_system_configuration_loaded)
         sig.MDAPauseToggled.connect(
             lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
         )
@@ -144,10 +148,36 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
+        self.move_to_main_Button.clicked.connect(self.move_to_position)
+        self.x_lineEdit_main.setText(str(None))
+        self.y_lineEdit_main.setText(str(None))
+        self.explorer.x_lineEdit.setText(str(None))
+        self.explorer.y_lineEdit.setText(str(None))
+
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
+
+
+        @self.viewer.mouse_drag_callbacks.append
+        def get_event(viewer, event):
+            
+            if self._mmc.getPixelSizeUm() > 0:
+            #pos coord
+                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
+            else:
+                print('PIXEL SIZE NOT SET')
+                x = None
+                y = None
+
+            self.x_lineEdit_main.setText(str(x))
+            self.y_lineEdit_main.setText(str(y))
+            self.explorer.x_lineEdit.setText(str(x))
+            self.explorer.y_lineEdit.setText(str(y))
+        
+
 
     def enable_gui(self):
         self.objective_groupBox.setEnabled(True)
@@ -164,6 +194,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(False)
         self.snap_live_tab.setEnabled(False)
         self.snap_live_tab.setEnabled(False)
+
+
+    def move_to_position(self):
+
+        move_to_x = float(self.x_lineEdit_main.text())
+        move_to_y = float(self.y_lineEdit_main.text())
+
+        if move_to_x != None and move_to_y != None:
+            self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
     def delete_layer(self, name):
@@ -348,22 +387,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.reset_view()
 
-            @self.viewer.mouse_drag_callbacks.append
-            def get_event(viewer, event):
-
-                #world coord
-                # x1 = viewer.cursor.position[-1]
-                # y1 = viewer.cursor.position[-2] * (-1)
-                
-                #pos coord
-                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
-
-
-                self.explorer.x_lineEdit.setText(str(x))
-                self.explorer.y_lineEdit.setText(str(y))
-
-
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
@@ -433,6 +456,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             """add metadata to layer"""
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
+
+            #TODO: translate to current xy position
 
             if self.mda.checkBox_split_channels.isChecked():
                 layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
@@ -522,6 +547,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
         self.y_lineEdit.setText(f"{y:.1f}")
+        self.x_lineEdit_main.setText(str(x))
+        self.y_lineEdit_main.setText(str(y))
+        self.explorer.x_lineEdit.setText(str(x))
+        self.explorer.y_lineEdit.setText(str(y))
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
@@ -602,6 +631,20 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.layers["preview"].data = data
         except KeyError:
             self.viewer.add_image(data, name="preview")
+
+        if self._mmc.getPixelSizeUm() > 0:
+            x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
+            y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
+            self.viewer.layers["preview"].translate = (y,x)
+        else:
+            self.x_lineEdit_main.setText(str(None))
+            self.y_lineEdit_main.setText(str(None))
+            self.explorer.x_lineEdit.setText(str(None))
+            self.explorer.y_lineEdit.setText(str(None))
+            print('PIXEL SIZE NOT SET, STORE OBJECTIVES NAME STARTING WITH e.g. 100X or 100x.')
+    
+        self.viewer.reset_view()
+
 
     def snap(self):
         self.stop_live()

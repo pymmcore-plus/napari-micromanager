@@ -50,7 +50,7 @@
            </size>
           </property>
           <property name="text">
-           <string>Move to Position</string>
+           <string>Move to </string>
           </property>
          </widget>
         </item>

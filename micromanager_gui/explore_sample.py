@@ -151,16 +151,20 @@ class ExploreSample(QtW.QWidget):
         
         
     def start_scan(self):
-        self.explore_sample = MDASequence(**self._get_state_dict())
-        self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
-        return
+
+        if self._mmc.getPixelSizeUm() > 0:
+            self.explore_sample = MDASequence(**self._get_state_dict())
+            self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
+            return
+        else:
+            raise print('PIXEL SIZE NOT SET, STORE OBJECTIVES NAME STARTING WITH e.g. 100X or 100x.')
 
     def move_to(self):
 
         move_to_x = float(self.x_lineEdit.text())
         move_to_y = float(self.y_lineEdit.text())
 
-        if not move_to_x == None and not move_to_y == None:
+        if move_to_x != None and move_to_y != None:
 
             self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
@@ -172,134 +176,4 @@ if __name__ == "__main__":
     window = ExploreSample()
     window.show()
     app.exec_()
-
-
-
-
-
-
-
-
-#     def move_to(self):
-
-#         string_coord_x = self.x_lineEdit.text()
-#         string_coord_y = self.y_lineEdit.text()
-
-#         if not string_coord_x == "None" and not string_coord_y == "None":
-
-#             coord_x = float(string_coord_x)
-#             coord_y = float(string_coord_y)
-#             # print(f'COORDS: {coord_x},{coord_y}')
-
-#             x_snap = self.shape_stitched_x / self.scan_size_c
-#             y_snap = self.shape_stitched_y / self.scan_size_r
-#             # print(x_snap, y_snap)
-
-#             x_snap_increment = x_snap
-#             y_snap_increment = y_snap
-
-#             done = False
-#             col = 0
-#             for _ in range(self.total_size):
-
-#                 if done:
-#                     break
-
-#                 if coord_x <= x_snap:
-#                     # for row in range(self.scan_size):
-#                     for row in range(self.scan_size_r):
-#                         if coord_y <= y_snap:
-#                             # print(f'coord_x = {coord_x}, coord_y = {coord_y}')
-#                             # print(f'row = {row}, col = {col}')
-#                             x_scan_pos = self.array_pos_x[row][col]
-#                             y_scan_pos = self.array_pos_y[row][col]
-#                             z_scan_pos = self.array_pos_z[row][col]
-#                             # print(f'moving to x: {x_scan_pos}')
-#                             # print(f'moving to y: {y_scan_pos}')
-#                             # print(f'moving to z: {z_scan_pos}')
-#                             # set position
-#                             self._mmc.setXYPosition(x_scan_pos, y_scan_pos)
-#                             self._mmc.setPosition("Z_Stage", z_scan_pos)
-
-#                             # snap image at position
-#                             self._mmc.setExposure(int(self.scan_exp_spinBox.value()))
-#                             self._mmc.setConfig(
-#                                 "Channel", self.scan_channel_comboBox.currentText()
-#                             )
-#                             self._mmc.snapImage()
-#                             image = self._mmc.getImage()
-#                             self.new_frame.emit("preview", image)
-#                             done = True
-#                             break
-
-#                         else:
-#                             y_snap = y_snap + y_snap_increment
-#                 else:
-#                     x_snap = x_snap + x_snap_increment
-#                     col += 1
-
-
-# # removed from main_window
-# # def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
-
-# #     # Get coordinates mouse_drag_callbacks
-# #     @self.viewer.mouse_drag_callbacks.append  # is it possible to double click?
-# #     def get_event_add(viewer, event):
-# #         try:
-# #             for i in self.viewer.layers:
-# #                 selected_layer = self.viewer.layers.selected
-# #                 if "stitched_" in str(i) and "stitched_" in str(selected_layer):
-# #                     layer = self.viewer.layers[str(i)]
-# #                     coord = layer.coordinates
-# #                     # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
-# #                     coord_x = coord[1]
-# #                     coord_y = coord[0]
-# #                     if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
-# #                         if coord_x > 0 and coord_y > 0:
-# #                             self.explorer.x_lineEdit.setText(str(round(coord_x)))
-# #                             self.explorer.y_lineEdit.setText(str(round(coord_y)))
-# #                             break
-
-# #                         else:
-# #                             self.explorer.x_lineEdit.setText("None")
-# #                             self.explorer.y_lineEdit.setText("None")
-# #                     else:
-# #                         self.explorer.x_lineEdit.setText("None")
-# #                         self.explorer.y_lineEdit.setText("None")
-# #         except KeyError:
-# #             pass
-
-
-# array(  [
-#             [0., 0.],[0., 0.]
-#         ]
-#     )
-
-
-# array(  [
-#             [
-#                 [0., 0., 0.], [0., 0., 0.]
-#             ],
-
-#             [
-#                 [0., 0., 0.],[0., 0., 0.]
-#             ]
-#         ]
-#     )
-
-# array(  [
-#             [
-#                 [0., 0.],[0., 0.]
-#             ],
-
-#             [
-#                 [0., 0.],[0., 0.]
-#             ],
-
-#             [
-#                 [0., 0.],[0., 0.]
-#             ]
-#         ]
-#       )
-
 
