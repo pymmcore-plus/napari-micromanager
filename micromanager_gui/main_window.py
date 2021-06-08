@@ -131,11 +131,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.MDAStarted.connect(self._on_mda_started)
         sig.MDAFinished.connect(self._on_mda_finished)
         sig.MDAFinished.connect(self._on_mda_finished_1)
-                
-        # connect explorer
-        # self.explorer.new_frame.connect(self.add_frame_explorer)
-        # self.explorer.delete_snaps.connect(self.delete_layer)
-        # self.explorer.delete_previous_scan.connect(self.delete_layer)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -176,14 +171,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         if name in layer_set:
             self.viewer.layers.remove(name)
         layer_set.clear()
-
-    def add_frame_explorer(self, name, array):
-        layer_name = name
-        try:
-            layer = self.viewer.layers[layer_name]
-            layer.data = array
-        except KeyError:
-            self.viewer.add_image(array, name=layer_name)
 
 
     def _on_mda_started(self, sequence: useq.MDASequence):
@@ -335,12 +322,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         
         if sequence.extras == 'sample_explorer':
 
-            # scan_size_r = self.explorer.scan_size_spinBox_r.value()
-            # scan_size_c = self.explorer.scan_size_spinBox_c.value() 
-
-            # width = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
-            # height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  
-
             try:
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
@@ -490,6 +471,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         cam_device = self._mmc.getCameraDevice()
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
+            self.bin_comboBox.clear()
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
             self.bin_comboBox.setCurrentText(
@@ -497,6 +479,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             )
 
         if "PixelType" in cam_props:
+            self.bit_comboBox.clear()
             px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
             self.bit_comboBox.addItems(px_t)
             if "16" in px_t:
@@ -505,10 +488,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
+            self.objective_comboBox.clear()
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self):
         if "Channel" in self._mmc.getAvailableConfigGroups():
+            self.snap_channel_comboBox.clear()
+            self.explorer.scan_channel_comboBox.clear()
+            self.mda.clear_channel()
             channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
