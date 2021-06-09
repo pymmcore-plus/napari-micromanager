@@ -170,9 +170,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                 x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
                 y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
             else:
-                print('PIXEL SIZE NOT SET')
                 x = None
                 y = None
+                raise ValueError ('PIXEL SIZE NOT SET.')
 
             self.x_lineEdit_main.setText(str(x))
             self.y_lineEdit_main.setText(str(y))
@@ -367,9 +367,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
                 raise IndexError("could not find layer corresponding to sequence")                                 
-            
-            # for l in self.viewer.layers:
-            #     l.visible = False
 
             """split stack and translate images depending on xy position (in pixel)"""
             for f in range(len(explorer_layer.data)):
@@ -609,7 +606,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
                 else:
-                    print(
+                    raise ValueError (
                         "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                         "STARTING WITH e.g. 100X or 100x."
                     )
@@ -648,7 +645,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
-            print('PIXEL SIZE NOT SET.')
+            raise ValueError ('PIXEL SIZE NOT SET.')
 
         if self.streaming_timer is None:
             self.viewer.reset_view()

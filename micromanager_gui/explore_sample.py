@@ -158,7 +158,7 @@ class ExploreSample(QtW.QWidget):
             self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
             return
         else:
-            print('PIXEL SIZE NOT SET.')
+            raise ValueError ('PIXEL SIZE NOT SET.')
 
     def move_to(self):
 
