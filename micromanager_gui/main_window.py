@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from os import PRIO_PGRP
+
 from pathlib import Path
 from re import escape, split
 import time
@@ -470,6 +472,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
 
+
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
@@ -489,6 +492,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def load_cfg(self):
         self.load_cfg_Button.setEnabled(False)
+        print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
