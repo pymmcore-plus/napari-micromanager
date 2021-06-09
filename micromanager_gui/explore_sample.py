@@ -28,6 +28,7 @@ class ExploreSample(QtW.QWidget):
     move_to_Button: QtW.QPushButton
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
+    ovelap_spinBox: QtW.QSpinBox
 
 
     def __init__(self, mmcore, parent=None):
