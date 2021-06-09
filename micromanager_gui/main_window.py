@@ -645,8 +645,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
             print('PIXEL SIZE NOT SET.')
-    
-        self.viewer.reset_view()
+
+        if self.streaming_timer is None:
+            self.viewer.reset_view()
 
 
     def snap(self):
