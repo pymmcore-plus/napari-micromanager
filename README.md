@@ -3,8 +3,8 @@
 [![License](https://img.shields.io/pypi/l/napari-micromanager.svg?color=green)](https://github.com/napari/napari-micromanager/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-micromanager.svg?color=green)](https://pypi.org/project/napari-micromanager)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-micromanager.svg?color=green)](https://python.org)
-[![tests](https://github.com/fdrgsp/napari-micromanager/workflows/tests/badge.svg)](https://github.com/fdrgsp/napari-micromanager/actions)
-[![codecov](https://codecov.io/gh/fdrgsp/napari-micromanager/branch/master/graph/badge.svg)](https://codecov.io/gh/fdrgsp/napari-micromanager)
+[![tests](https://github.com/tlambert03/napari-micromanager/workflows/tests/badge.svg)](https://github.com/tlambert03/napari-micromanager/actions)
+[![codecov](https://codecov.io/gh/tlambert03/napari-micromanager/branch/master/graph/badge.svg)](https://codecov.io/gh/tlambert03/napari-micromanager)
 
 GUI interface between napari and micromanager
 
@@ -52,7 +52,7 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
-[file an issue]: https://github.com/fdrgsp/napari-micromanager/issues
+[file an issue]: https://github.com/tlambert03/napari-micromanager/issues
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/

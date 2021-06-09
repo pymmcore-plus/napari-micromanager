@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+
 from os import PRIO_PGRP
+
 from pathlib import Path
 from re import escape, split
 from typing import Sequence, TYPE_CHECKING
@@ -350,12 +352,12 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.dims.axis_labels = labels
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
+
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
             savefile = Path(self.temp_folder.name) / image_name
             tifffile.tifffile.imsave(str(savefile), image, imagej=True)
-
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
@@ -376,6 +378,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def load_cfg(self):
         self.load_cfg_Button.setEnabled(False)
+        print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
