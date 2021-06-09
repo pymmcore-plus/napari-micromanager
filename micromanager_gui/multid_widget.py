@@ -282,12 +282,13 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     def _on_run_clicked(self):
 
         if len(self._mmc.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
-            return
+            raise ValueError ("Load a cfg file first.")
+            # return
 
         if not self.channel_tableWidget.rowCount() > 0:
-            print("Select at least one channel.")
-            return
+            raise ValueError ("Select at least one channel.")
+            # print("Select at least one channel.")
+            # return
 
         if self.save_groupBox.isChecked(): 
 
