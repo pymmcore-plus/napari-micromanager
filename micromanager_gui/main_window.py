@@ -269,7 +269,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
 
             #TODO: save also metadata
-            self.viewer.layers[str(active_layer)].save(str(save_path / fname))
+            active_layer.save(str(save_path / fname))
 
             """update filename in mda.fname_lineEdit for the next aquisition."""
             list_dir.append(fname + '.tif')
