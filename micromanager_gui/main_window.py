@@ -110,8 +110,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
-
-        self.temp_folder = None
         
         # create connection to mmcore server
         self._mmc = RemoteMMCore()
@@ -422,8 +420,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
-            savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image)
+            
+            if hasattr(self, 'temp_folder'): 
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image)
             
         except StopIteration:
             
@@ -461,8 +461,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
-            savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image, imagej=True)
+                
+            if hasattr(self, 'temp_folder'):  
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
 
 
