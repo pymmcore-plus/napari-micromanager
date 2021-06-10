@@ -275,23 +275,16 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if not self.channel_tableWidget.rowCount() > 0:
             raise ValueError ("Select at least one channel.")
 
-        if self.save_groupBox.isChecked(): 
-
-            if self.fname_lineEdit.text() == '' or \
+        if self.save_groupBox.isChecked() and \
+            (self.fname_lineEdit.text() == '' or \
                 (self.dir_lineEdit.text() == '' or \
                     not Path.is_dir(Path(self.dir_lineEdit.text()))
-                    ):
+                    )):
                         raise ValueError ('select a filename and a valid directory.')
 
-            experiment = MDASequence(**self._get_state_dict())
-            self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-            return
-
-        else:
-            experiment = MDASequence(**self._get_state_dict())
-            self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-            return
-
+        experiment = MDASequence(**self._get_state_dict())
+        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        return
 
 
 if __name__ == "__main__":
