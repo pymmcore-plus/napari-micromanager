@@ -177,11 +177,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
 
     def _on_mda_started(self, sequence: useq.MDASequence):
-        """"create temp folder when mda starts."""
+        """"create temp folder and block gui when mda starts."""
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
-        """block gui when mda starts."""
         self.mda.disable_mda_groupbox()
         self.disable_gui()
 
@@ -242,8 +241,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                     s = ''
                     for i in fname.split('_')[:-1]:
                         s = s + i + '_'
-                        print(s)
-                    print('s', s)
                     fname = s + '{0:03}'.format(int_n)
                     fname = self.get_filename(fname,list_dir)
                 
@@ -460,7 +457,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
                 else:
-                    print(
+                    raise ValueError (
                         "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                         "STARTING WITH e.g. 100X or 100x."
                     )
@@ -468,7 +465,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
             self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
-            # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
             self._mmc.setPixelSizeUm(
                 self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
