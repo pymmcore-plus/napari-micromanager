@@ -346,7 +346,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        # self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
         self.load_cfg_Button.setEnabled(True)
