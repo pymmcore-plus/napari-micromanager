@@ -215,23 +215,22 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             save_path = Path(self.mda.dir_lineEdit.text())
 
-            """Look into the saving directory (save_path) and get tif files names"""
+            #Look into the saving directory (save_path) and get tif files names
 
             list_dir = [f.name for f in save_path.glob("*.tif")]
 
-            """
-               Ckeck the input filename and modify it to add _nnn in the end.
-               The get_filename(fname,list_dir) function check if the name 
-               is already present in the save_path and incremant the _nnn accordingly.
+            # Ckeck the input filename and modify it to add _nnn in the end.
+            # The get_filename(fname,list_dir) function check if the name 
+            # is already present in the save_path and incremant the _nnn accordingly.
 
-               filename examples: user input -> output:
-                - mda       -> mda_000
-                - mda_3     -> mda_003
-                - mda_0001  -> mda_001
-                - mda1      -> mda_001
-                - mda011021 -> mda011021_000
-                - mda_011021 -> mda_011021_000
-            """
+            # filename examples: user input -> output:
+            # - mda       -> mda_000
+            # - mda_3     -> mda_003
+            # - mda_0001  -> mda_001
+            # - mda1      -> mda_001
+            # - mda011021 -> mda011021_000
+            # - mda_011021 -> mda_011021_000
+            
             try:
                 n = fname.split('_')[-1]
                 int_n = int(n)
@@ -271,14 +270,14 @@ class MainWindow(QtW.QWidget, _MainUI):
             #TODO: save also metadata
             active_layer.save(str(save_path / fname))
 
-            """update filename in mda.fname_lineEdit for the next aquisition."""
+            #update filename in mda.fname_lineEdit for the next aquisition.
             list_dir.append(fname + '.tif')
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
 
         self.temp_folder.cleanup()
 
-        """reactivate gui when mda finishes."""
+        #reactivate gui when mda finishes.
         self.mda.enable_mda_groupbox()
         self.enable_gui()
 
