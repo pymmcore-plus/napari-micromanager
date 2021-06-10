@@ -279,7 +279,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.enable_gui()
 
 
-    
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence

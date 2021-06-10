@@ -256,22 +256,18 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             print("Select at least one channel.")
             return
 
-        if self.save_groupBox.isChecked(): 
-
-            if self.fname_lineEdit.text() == '' or \
+        if self.save_groupBox.isChecked() and \
+            (self.fname_lineEdit.text() == '' or \
                 (self.dir_lineEdit.text() == '' or \
                     not Path.is_dir(Path(self.dir_lineEdit.text()))
-                    ):
+                    )):
                         raise ValueError ('select a filename and a valid directory.')
 
-            experiment = MDASequence(**self._get_state_dict())
-            self._mmc.run_mda(experiment)  
-            return
+        experiment = MDASequence(**self._get_state_dict())
+        self._mmc.run_mda(experiment)  
+        return
 
-        else:
-            experiment = MDASequence(**self._get_state_dict())
-            self._mmc.run_mda(experiment)  
-            return
+
 
 
 
