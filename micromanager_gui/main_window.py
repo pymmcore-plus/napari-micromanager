@@ -306,8 +306,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #save each image in the temp folder, 
             image_name = f'{im_idx}.tif'
-            savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image)
+
+            if hasattr(self, 'temp_folder'):
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image)
                 
         except StopIteration:
 
@@ -327,8 +329,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             #save first image in the temp folder
             image_name = f'{im_idx}.tif'
-            savefile = Path(self.temp_folder.name) / image_name
-            tifffile.tifffile.imsave(str(savefile), image)
+
+            if hasattr(self, 'temp_folder'):
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image)
 
 
     def browse_cfg(self):
