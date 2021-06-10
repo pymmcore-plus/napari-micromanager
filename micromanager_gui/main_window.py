@@ -455,7 +455,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             character = curr_obj_name[i]
             if character in ["X", "x"]:
                 if not i <= 3:
-                    raise ValueError (
+                    raise Warning (
                         "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                         "STARTING WITH e.g. 100X or 100x."
                     )
