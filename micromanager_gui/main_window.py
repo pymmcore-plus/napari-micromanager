@@ -181,7 +181,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
-        """blok gui when mda starts."""
+        """block gui when mda starts."""
         self.mda.disable_mda_groupbox()
         self.disable_gui()
 
@@ -275,6 +275,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             list_dir.append(fname + '.tif')
             fname = self.get_filename(fname,list_dir)
             self.mda.fname_lineEdit.setText(fname)
+
+        self.temp_folder.cleanup()
 
         """reactivate gui when mda finishes."""
         self.mda.enable_mda_groupbox()
