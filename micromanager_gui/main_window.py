@@ -110,6 +110,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
+
+        self.temp_folder = None
         
         # create connection to mmcore server
         self._mmc = RemoteMMCore()
