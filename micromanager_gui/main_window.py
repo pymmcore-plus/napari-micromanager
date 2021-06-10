@@ -168,7 +168,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if not self._mmc.getPixelSizeUm() > 0:
                 x = None
                 y = None
-                raise ValueError ('PIXEL SIZE NOT SET.')
+                raise Warning ('PIXEL SIZE NOT SET.')
 
             x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
             y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
@@ -638,7 +638,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
-            raise ValueError ('PIXEL SIZE NOT SET.')
+            raise Warning ('PIXEL SIZE NOT SET.')
 
         x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
         y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
