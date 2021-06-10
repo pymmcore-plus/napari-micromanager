@@ -265,37 +265,39 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                         for i in self.viewer.layers:
 
-                            if str(uid) in i.metadata.get('ch_id'):
+                            if 'ch_id' in i.metadata and \
+                                str(uid) in i.metadata.get('ch_id'):
                             
-                                ch_id_info = i.metadata.get('ch_id')
+                                    ch_id_info = i.metadata.get('ch_id')
 
-                                new_layer_name = ch_id_info.replace(str(uid), fname)
+                                    new_layer_name = ch_id_info.replace(str(uid), fname)
 
-                                fname_pos = f'{new_layer_name}_[p{pos_num}]'
-                                
-                                if len(sequence.time_plan) > 0 and \
-                                    sequence.axis_order[0] == 't':
-                                        layer_p = i.data[:,p]   
-                                else:
-                                    layer_p = i.data[p,:]
+                                    fname_pos = f'{new_layer_name}_[p{pos_num}]'
+                                    
+                                    if len(sequence.time_plan) > 0 and \
+                                        sequence.axis_order[0] == 't':
+                                            layer_p = i.data[:,p]   
+                                    else:
+                                        layer_p = i.data[p,:]
 
-                                save_path_ch = folder_path / f'{fname_pos}.tif'
-                
-                                #TODO: astype 'uint_' dependimg on camera bit depth selected
-                                tifffile.tifffile.imsave(str(save_path_ch), layer_p.astype('uint16'), imagej=True)                    
+                                    save_path_ch = folder_path / f'{fname_pos}.tif'
+                    
+                                    #TODO: astype 'uint_' dependimg on camera bit depth selected
+                                    tifffile.tifffile.imsave(str(save_path_ch), layer_p.astype('uint16'), imagej=True)                    
                
                 else:
                     #save each channel layer.
                     for i in self.viewer.layers:
-
-                        if str(uid) in i.metadata.get('ch_id'):
-                            
-                            ch_id_info = i.metadata.get('ch_id')
-                            new_layer_name = ch_id_info.replace(str(uid), fname)
                         
-                            save_path_ch = folder_name / f'{new_layer_name}.tif'
+                        if 'ch_id' in i.metadata and \
+                            str(uid) in i.metadata.get('ch_id'):
+                            
+                                ch_id_info = i.metadata.get('ch_id')
+                                new_layer_name = ch_id_info.replace(str(uid), fname)
+                            
+                                save_path_ch = folder_name / f'{new_layer_name}.tif'
 
-                            i.save(str(save_path_ch))
+                                i.save(str(save_path_ch))
 
                 #update filename in mda.fname_lineEdit for the next aquisition.
                 list_dir.append(fname)
