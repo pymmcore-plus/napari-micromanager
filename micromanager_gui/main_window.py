@@ -125,7 +125,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # connect mmcore signals
         sig.MDAStarted.connect(self.mda._on_mda_started)
         sig.MDAFinished.connect(self.mda._on_mda_finished)
-        # sig.MDAFinished.connect(self._on_system_configuration_loaded)
         sig.MDAPauseToggled.connect(
             lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
         )
@@ -165,22 +164,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
             
-            if self._mmc.getPixelSizeUm() > 0:
-            #pos coord
-                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
-            else:
+            if not self._mmc.getPixelSizeUm() > 0:
                 x = None
                 y = None
                 raise ValueError ('PIXEL SIZE NOT SET.')
+
+            x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+            y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
 
             self.x_lineEdit_main.setText(str(x))
             self.y_lineEdit_main.setText(str(y))
             self.explorer.x_lineEdit.setText(str(x))
             self.explorer.y_lineEdit.setText(str(y))
         
-
-
     def enable_gui(self):
         self.objective_groupBox.setEnabled(True)
         self.camera_groupBox.setEnabled(True)
@@ -215,13 +211,12 @@ class MainWindow(QtW.QWidget, _MainUI):
 
 
     def _on_mda_started(self, sequence: useq.MDASequence):
+        """"create temp folder and block gui when mda starts."""
         
         self.viewer.grid.enabled = False
 
-        """"create temp folder when mda starts."""
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
-        """blok gui when mda starts."""
         self.mda.disable_mda_groupbox()
         self.explorer.disable_explorer_groupbox()
         self.disable_gui()
@@ -237,12 +232,12 @@ class MainWindow(QtW.QWidget, _MainUI):
             save_path = Path(self.mda.dir_lineEdit.text())
 
             if self.mda.checkBox_split_channels.isChecked():
-                """Save individual channel layer(s)."""
+            #Save individual channel layer(s).
 
                 list_dir = [f.name for f in save_path.iterdir() \
                     if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
 
-                """create folder to save individual channel layer(s)."""
+                #create folder to save individual channel layer(s).
                 fname = check_filename(fname, list_dir)
                 
                 folder_name = Path(save_path) / fname
@@ -255,7 +250,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 uid = sequence.uid
 
                 if self.mda.checkBox_save_pos.isChecked():
-                    """ save each position and channel in a separate file."""
+                #save each position and channel in a separate file.
 
                     for p in range(len(sequence.stage_positions)):
                         
@@ -289,7 +284,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                                 tifffile.tifffile.imsave(str(save_path_ch), layer_p.astype('uint16'), imagej=True)                    
                
                 else:
-                    """ save each channel layer."""
+                    #save each channel layer.
                     for i in self.viewer.layers:
 
                         if str(uid) in i.metadata.get('ch_id'):
@@ -301,7 +296,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                             i.save(str(save_path_ch))
 
-                """update filename in mda.fname_lineEdit for the next aquisition."""
+                #update filename in mda.fname_lineEdit for the next aquisition.
                 list_dir.append(fname)
                 fname = get_filename(fname,list_dir)
                 self.mda.fname_lineEdit.setText(fname)
@@ -312,14 +307,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                 except StopIteration:
                     raise IndexError("could not find layer corresponding to sequence")
 
-                """Look into the saving directory (save_path) and get tif files names"""
+                #Look into the saving directory (save_path) and get tif files names
                 list_dir = [f.name for f in save_path.iterdir() \
                     if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
 
                 fname = check_filename(fname, list_dir)
 
                 if self.mda.checkBox_save_pos.isChecked():
-                    """ save each position in a separate file """
+                #save each position in a separate file
 
                     folder_name = f'{fname}_Pos'
                     folder_path = Path(save_path) / folder_name
@@ -347,12 +342,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 else:
                     self.viewer.layers[str(active_layer)].save(str(save_path / fname))
                 
-                """update filename in mda.fname_lineEdit for the next aquisition."""
+                #update filename in mda.fname_lineEdit for the next aquisition.
                 list_dir.append(fname)
                 fname = get_filename(fname,list_dir)
                 self.mda.fname_lineEdit.setText(fname)
 
-        """reactivate gui when mda finishes."""
+        #reactivate gui when mda finishes.
         self.mda.enable_mda_groupbox()
         self.explorer.enable_explorer_groupbox()
         self.enable_gui()
@@ -368,7 +363,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             except StopIteration:
                 raise IndexError("could not find layer corresponding to sequence")                                 
 
-            """split stack and translate images depending on xy position (in pixel)"""
+            #split stack and translate images depending on xy position (in pixel)
             for f in range(len(explorer_layer.data)):
                 x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
                 y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
@@ -391,14 +386,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         seq = event.sequence
 
-        """get the index of the incoming image"""
+        #get the index of the incoming image
         if self.mda.checkBox_split_channels.isChecked():
             im_idx = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
         else:
             im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
         try:
-            """see if we already have a layer with this sequence"""
+            #see if we already have a layer with this sequence
             if self.mda.checkBox_split_channels.isChecked():
                 layer = next(
                     x for x in self.viewer.layers if x.metadata.get("ch_id") == \
@@ -408,19 +403,19 @@ class MainWindow(QtW.QWidget, _MainUI):
                     x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
                 )
 
-            """make sure array shape contains im_idx, or pad with zeros"""
+            #make sure array shape contains im_idx, or pad with zeros
             new_array = extend_array_for_index(layer.data, im_idx)
 
-            """add the incoming index at the appropriate index"""
+            #add the incoming index at the appropriate index
             new_array[im_idx] = image
             
-            """set layer data"""
+            #set layer data
             layer.data = new_array
 
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
-            """save each image in the temp folder """
+            #save each image in the temp folder
             if self.mda.checkBox_split_channels.isChecked():
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
@@ -431,7 +426,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         except StopIteration:
             
             if self.mda.save_groupBox.isChecked():
-                """assign name to layer"""
 
                 file_name = self.mda.fname_lineEdit.text()
 
@@ -453,14 +447,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.dims.axis_labels = labels
 
-            """add metadata to layer"""
+            #add metadata to layer
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
             
             if self.mda.checkBox_split_channels.isChecked():
                 layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
-            """save first image in the temp folder"""
+            #save first image in the temp folder
             if self.mda.checkBox_split_channels.isChecked():
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
@@ -482,7 +476,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        # self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
         self.load_cfg_Button.setEnabled(True)
@@ -601,20 +594,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         for i in range(len(curr_obj_name)):
             character = curr_obj_name[i]
             if character in ["X", "x"]:
-                if i <= 3:
-                    magnification_string = curr_obj_name[:i]
-                    magnification = int(magnification_string)
-                    print(f"Current Magnification: {magnification}X")
-                else:
+                if not i <= 3:
                     raise ValueError (
                         "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                         "STARTING WITH e.g. 100X or 100x."
                     )
 
+                magnification_string = curr_obj_name[:i]
+                magnification = int(magnification_string)
+                print(f"Current Magnification: {magnification}X")
+
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
             self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
-            # print(f'IMAGE PIXEL SIZE xy = {self.image_pixel_size}')
             self._mmc.setPixelSizeUm(
                 self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
@@ -636,16 +628,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
         self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
 
-        if self._mmc.getPixelSizeUm() > 0:
-            x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
-            y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
-            self.viewer.layers["preview"].translate = (y,x)
-        else:
+        if not self._mmc.getPixelSizeUm() > 0:
             self.x_lineEdit_main.setText(str(None))
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
             raise ValueError ('PIXEL SIZE NOT SET.')
+
+        x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
+        y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
+        self.viewer.layers["preview"].translate = (y,x)
 
         if self.streaming_timer is None:
             self.viewer.reset_view()

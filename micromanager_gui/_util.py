@@ -78,8 +78,6 @@ def check_filename(fname, list_dir):
             s = ''
             for i in fname.split('_')[:-1]:
                 s = s + i + '_'
-                print(s)
-            print('s', s)
             fname = s + '{0:03}'.format(int_n)
             fname = get_filename(fname,list_dir)
         

@@ -97,12 +97,12 @@ class ExploreSample(QtW.QWidget):
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
 
-        """get current position"""
+        #get current position
         x_curr_pos_explorer = float(self._mmc.getXPosition())
         y_curr_pos_explorer = float(self._mmc.getYPosition())
         z_curr_pos_explorer = float(self._mmc.getZPosition())
 
-        """calculate initial scan position"""
+        #calculate initial scan position
         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  # maybe they are inverted
         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  # maybe they are inverted
 
@@ -122,13 +122,13 @@ class ExploreSample(QtW.QWidget):
         y_pos_explorer = y_curr_pos_explorer + move_y
 
 
-        """calculate position increments depending on pixle size"""
+        #calculate position increments depending on pixle size
         increment_x = width * self._mmc.getPixelSizeUm()
         increment_y = height * self._mmc.getPixelSizeUm()
 
         list_pos_order  = []
 
-        """create the xyz position matrix"""
+        #create the xyz position matrix
         for r in range(self.scan_size_r):
             if r == 0 or (r % 2) == 0:
                 for c in range(self.scan_size_c):# for even rows
@@ -147,18 +147,16 @@ class ExploreSample(QtW.QWidget):
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x
 
-        # print(list_pos_order)
         return list_pos_order
         
         
     def start_scan(self):
 
-        if self._mmc.getPixelSizeUm() > 0:
-            self.explore_sample = MDASequence(**self._get_state_dict())
-            self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
-            return
-        else:
+        if not self._mmc.getPixelSizeUm() > 0:
             raise ValueError ('PIXEL SIZE NOT SET.')
+        self.explore_sample = MDASequence(**self._get_state_dict())
+        self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
+        return
 
     def move_to(self):
 

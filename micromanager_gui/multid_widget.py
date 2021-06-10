@@ -63,8 +63,6 @@ class _MultiDUI:
 
 class MultiDWidget(QtW.QWidget, _MultiDUI):
 
-    # empty_stack_to_viewer = Signal(np.ndarray, str)
-
     # TODO: don't love passing `signals` here...
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
@@ -199,15 +197,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     def move_to_position(self):
         curr_row = self.stage_tableWidget.currentRow()
-        # print('---')
-        # print(f'curr_row: {curr_row}')
-        # if curr_row != -1:
         x_val = self.stage_tableWidget.item(curr_row, 0).text()
         y_val = self.stage_tableWidget.item(curr_row, 1).text()
         z_val = self.stage_tableWidget.item(curr_row, 2).text()
-        # print(f'x: {x_val}')
-        # print(f'y: {y_val}')
-        # print(f'z: {z_val}')
         self._mmc.setXYPosition(float(x_val), float(y_val))
         self._mmc.setPosition("Z_Stage", float(z_val))
         print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
@@ -219,8 +211,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.save_dir = QtW.QFileDialog.getExistingDirectory(self.dir)
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
-
-        # self.toggle_run_btn()
 
     def _get_state_dict(self) -> dict:
         state = {
@@ -277,8 +267,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
         return state
 
-    # function is executed when run_Button is clicked
-    # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
 
         if len(self._mmc.getLoadedDevices()) < 2:
@@ -295,10 +283,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                     ):
                         raise ValueError ('select a filename and a valid directory.')
 
-            else:
-                experiment = MDASequence(**self._get_state_dict())
-                self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-                return
+            experiment = MDASequence(**self._get_state_dict())
+            self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+            return
 
         else:
             experiment = MDASequence(**self._get_state_dict())
