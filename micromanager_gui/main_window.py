@@ -21,6 +21,8 @@ from ._util import extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
+import warnings
+
 if TYPE_CHECKING:
     import useq
 
@@ -455,15 +457,13 @@ class MainWindow(QtW.QWidget, _MainUI):
             character = curr_obj_name[i]
             if character in ["X", "x"]:
                 if not i <= 3:
-                    raise Warning (
-                        "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                        "STARTING WITH e.g. 100X or 100x."
-                    )
-                    
-                magnification_string = curr_obj_name[:i]
-                magnification = int(magnification_string)
-                print(f"Current Magnification: {magnification}X")
-
+                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                        "STARTING WITH e.g. 100X or 100x.")
+                        
+                else:
+                    magnification_string = curr_obj_name[:i]
+                    magnification = int(magnification_string)
+                    print(f"Current Magnification: {magnification}X")
 
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
