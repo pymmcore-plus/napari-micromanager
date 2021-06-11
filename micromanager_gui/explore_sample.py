@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+import warnings
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -162,11 +163,12 @@ class ExploreSample(QtW.QWidget):
 
     def move_to(self):
 
-        move_to_x = float(self.x_lineEdit.text())
-        move_to_y = float(self.y_lineEdit.text())
+        move_to_x = self.x_lineEdit.text()
+        move_to_y = self.y_lineEdit.text()
 
-        if move_to_x != None and move_to_y != None:
-
+        if move_to_x == "None" and move_to_y == "None":
+            warnings.warn('PIXEL SIZE NOT SET.')
+        else:
             self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 

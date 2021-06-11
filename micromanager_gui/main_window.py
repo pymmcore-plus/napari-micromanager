@@ -123,6 +123,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
+        self.x_lineEdit_main.setText(str(None))
+        self.y_lineEdit_main.setText(str(None))
+        self.explorer.x_lineEdit.setText(str(None))
+        self.explorer.y_lineEdit.setText(str(None))
+
         # connect mmcore signals
         sig.MDAStarted.connect(self.mda._on_mda_started)
         sig.MDAFinished.connect(self.mda._on_mda_finished)
