@@ -187,7 +187,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.disable_gui()
 
     
-    def get_filename(self, fname, list_dir):
+    def get_filename(self, fname, save_path):
         """
             check if the filename_nnn used to save the layer exists
             and increment _nnn accordingly.
@@ -196,8 +196,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         while True:
             new_val = '{0:03}'.format(val)
             fname = fname[:-3] + new_val
-            if not any(fname in f for f in list_dir):
-                break
+            if not Path(save_path / f'{fname}.tif').exists() and \
+                not Path(save_path / fname).exists():
+                    break
             else:
                 val += 1
         return fname
@@ -218,10 +219,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #Look into the saving directory (save_path) and get tif files names
 
-            list_dir = [f.name for f in save_path.glob("*.tif")]
-
             # Ckeck the input filename and modify it to add _nnn in the end.
-            # The get_filename(fname,list_dir) function check if the name 
+            # The get_filename(fname,save_path) function check if the name 
             # is already present in the save_path and incremant the _nnn accordingly.
 
             # filename examples: user input -> output:
@@ -231,24 +230,24 @@ class MainWindow(QtW.QWidget, _MainUI):
             # - mda1      -> mda_001
             # - mda011021 -> mda011021_000
             # - mda_011021 -> mda_011021_000
-            
+
             try:
                 n = fname.split('_')[-1]
                 int_n = int(n)
                 
                 if len(n) == 3 and int_n >= 0:
-                    fname = self.get_filename(fname,list_dir)
+                    fname = self.get_filename(fname,save_path)
                 
                 elif len(n) != 3 and len(n) <=4 and int_n >= 0:
                     s = ''
                     for i in fname.split('_')[:-1]:
                         s = s + i + '_'
                     fname = s + '{0:03}'.format(int_n)
-                    fname = self.get_filename(fname,list_dir)
+                    fname = self.get_filename(fname,save_path)
                 
                 else:
                     fname = fname + '_000'
-                    fname = self.get_filename(fname,list_dir)
+                    fname = self.get_filename(fname,save_path)
 
             except ValueError:
                 n = ''
@@ -260,18 +259,17 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if len(n) > 0 and len(n) <= 4:
                     n = n[::-1]
                     fname = fname.replace(n, '_' + '{0:03}'.format(int(n)))
-                    fname = self.get_filename(fname,list_dir)
+                    fname = self.get_filename(fname,save_path)
                 else:
                     fname = fname + '_000'
-                    fname = self.get_filename(fname,list_dir)
-
+                    fname = self.get_filename(fname,save_path)
+                    
 
             #TODO: save also metadata
             active_layer.save(str(save_path / fname))
 
             #update filename in mda.fname_lineEdit for the next aquisition.
-            list_dir.append(fname + '.tif')
-            fname = self.get_filename(fname,list_dir)
+            fname = self.get_filename(fname,save_path)
             self.mda.fname_lineEdit.setText(fname)
 
         self.temp_folder.cleanup()
