@@ -42,6 +42,7 @@ class ExploreSample(QtW.QWidget):
     def enable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(True)
         self.scan_size_spinBox_c.setEnabled(True)
+        self.ovelap_spinBox.setEnabled(True)
         self.scan_channel_comboBox.setEnabled(True)
         self.scan_exp_spinBox.setEnabled(True)
         self.move_to_Button.setEnabled(True)
@@ -50,6 +51,7 @@ class ExploreSample(QtW.QWidget):
     def disable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(False)
         self.scan_size_spinBox_c.setEnabled(False)
+        self.ovelap_spinBox.setEnabled(False)
         self.scan_channel_comboBox.setEnabled(False)
         self.scan_exp_spinBox.setEnabled(False)
         self.move_to_Button.setEnabled(False)
