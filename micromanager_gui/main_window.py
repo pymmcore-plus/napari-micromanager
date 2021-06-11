@@ -233,13 +233,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             save_path = Path(self.mda.dir_lineEdit.text())
 
             if self.mda.checkBox_split_channels.isChecked():
-            #Save individual channel layer(s).
-
-                list_dir = [f.name for f in save_path.iterdir() \
-                    if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
+                #Save individual channel layer(s).
 
                 #create folder to save individual channel layer(s).
-                # fname = check_filename(fname, list_dir)
                 fname = check_filename(fname, save_path)
                 
                 folder_name = Path(save_path) / fname
@@ -301,8 +297,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                                 i.save(str(save_path_ch))
 
                 #update filename in mda.fname_lineEdit for the next aquisition.
-                # list_dir.append(fname)
-                # fname = get_filename(fname,list_dir)
                 fname = get_filename(fname, save_path)
                 self.mda.fname_lineEdit.setText(fname)
 
@@ -312,11 +306,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 except StopIteration:
                     raise IndexError("could not find layer corresponding to sequence")
 
-                #Look into the saving directory (save_path) and get tif files names
-                list_dir = [f.name for f in save_path.iterdir() \
-                    if (f.name.endswith(('.tif', '.tiff')) or (f.is_dir()))]
-
-                # fname = check_filename(fname, list_dir)
                 fname = check_filename(fname, save_path)
 
                 if self.mda.checkBox_save_pos.isChecked():
@@ -349,8 +338,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.viewer.layers[str(active_layer)].save(str(save_path / fname))
                 
                 #update filename in mda.fname_lineEdit for the next aquisition.
-                # list_dir.append(fname)
-                # fname = get_filename(fname,list_dir)
                 fname = get_filename(fname, save_path)
                 self.mda.fname_lineEdit.setText(fname)
 
