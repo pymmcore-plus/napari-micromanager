@@ -165,13 +165,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
             
-            if not self._mmc.getPixelSizeUm() > 0:
+            if self._mmc.getPixelSizeUm() > 0:
+                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
+            else:
                 x = None
                 y = None
                 warnings.warn('PIXEL SIZE NOT SET.')
-
-            x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-            y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
 
             self.x_lineEdit_main.setText(str(x))
             self.y_lineEdit_main.setText(str(y))
@@ -592,15 +592,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         for i in range(len(curr_obj_name)):
             character = curr_obj_name[i]
             if character in ["X", "x"]:
-                if not i <= 3:
-
-                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                        "STARTING WITH e.g. 100X or 100x.")
-                        
-                else:
+                if i <= 3:
                     magnification_string = curr_obj_name[:i]
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
+                else:
+                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                        "STARTING WITH e.g. 100X or 100x.")
 
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
@@ -626,16 +624,17 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
         self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
 
-        if not self._mmc.getPixelSizeUm() > 0:
+        if self._mmc.getPixelSizeUm() > 0:
+            x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
+            y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
+            self.viewer.layers["preview"].translate = (y,x)
+        
+        else:
             self.x_lineEdit_main.setText(str(None))
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
             warnings.warn('PIXEL SIZE NOT SET.')
-
-        x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
-        y = self._mmc.getYPosition()/ self._mmc.getPixelSizeUm() * (- 1)
-        self.viewer.layers["preview"].translate = (y,x)
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
