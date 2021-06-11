@@ -454,14 +454,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         for i in range(len(curr_obj_name)):
             character = curr_obj_name[i]
             if character in ["X", "x"]:
-                if not i <= 3:
-                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                        "STARTING WITH e.g. 100X or 100x.")
-                        
-                else:
+                if i <= 3:
                     magnification_string = curr_obj_name[:i]
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
+                         
+                else:
+                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                        "STARTING WITH e.g. 100X or 100x.")
+                   
 
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
