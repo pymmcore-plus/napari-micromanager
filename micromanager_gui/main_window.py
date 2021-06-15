@@ -129,8 +129,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.explorer.y_lineEdit.setText(str(None))
 
         # connect mmcore signals
+            #mda
         sig.MDAStarted.connect(self.mda._on_mda_started)
         sig.MDAFinished.connect(self.mda._on_mda_finished)
+            #mainwindow
+        sig.MDAStarted.connect(self._on_mda_started)
+        sig.MDAFinished.connect(self._on_mda_finished)
+
         sig.MDAPauseToggled.connect(
             lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
         )
@@ -138,10 +143,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
-
-        sig.MDAStarted.connect(self._on_mda_started)
-        sig.MDAFinished.connect(self._on_mda_finished)
-        sig.MDAFinished.connect(self._on_mda_finished_1)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -202,10 +203,17 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def move_to_position(self):
 
-        move_to_x = float(self.x_lineEdit_main.text())
-        move_to_y = float(self.y_lineEdit_main.text())
+        move_to_x = self.x_lineEdit_main.text()
+        move_to_y = self.y_lineEdit_main.text()
 
-        if move_to_x != None and move_to_y != None:
+        w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
+        h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+        if move_to_x == "None" and move_to_y == "None":
+            warnings.warn('PIXEL SIZE NOT SET.')
+        else:
+            move_to_x = float(move_to_x) - ((w/2) * self._mmc.getPixelSizeUm())
+            move_to_y = float(move_to_y) - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
             self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
@@ -227,6 +235,89 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.explorer.disable_explorer_groupbox()
         self.disable_gui()
 
+    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
+
+        seq = event.sequence
+
+        #get the index of the incoming image
+        if self.mda.checkBox_split_channels.isChecked():
+            im_idx = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
+        else:
+            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
+
+        try:
+            #see if we already have a layer with this sequence
+            if self.mda.checkBox_split_channels.isChecked():
+                layer = next(
+                    x for x in self.viewer.layers if x.metadata.get("ch_id") == \
+                        (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
+            else:
+                layer = next(
+                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+                )
+
+            #make sure array shape contains im_idx, or pad with zeros
+            new_array = extend_array_for_index(layer.data, im_idx)
+
+            #add the incoming index at the appropriate index
+            new_array[im_idx] = image
+            
+            #set layer data
+            layer.data = new_array
+
+            for a, v in enumerate(im_idx):
+                self.viewer.dims.set_point(a, v)
+
+            #save each image in the temp folder
+            if self.mda.checkBox_split_channels.isChecked():
+                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+            else:
+                image_name = f'{im_idx}.tif'
+            
+            if hasattr(self, 'temp_folder'): 
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image)
+            
+        except StopIteration:
+            
+            if self.mda.save_groupBox.isChecked():
+
+                file_name = self.mda.fname_lineEdit.text()
+
+                if self.mda.checkBox_split_channels.isChecked():
+                    layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
+            
+            else:
+                if self.mda.checkBox_split_channels.isChecked():
+                    layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                else:
+                    layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
+                    
+            _image = image[(np.newaxis,) * len(seq.shape)]
+            layer = self.viewer.add_image(_image, name=layer_name)
+            
+            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+
+            self.viewer.dims.axis_labels = labels
+
+            #add metadata to layer
+            layer.metadata["useq_sequence"] = seq
+            layer.metadata["uid"] = seq.uid
+            
+            if self.mda.checkBox_split_channels.isChecked():
+                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
+            
+            #save first image in the temp folder
+            if self.mda.checkBox_split_channels.isChecked():
+                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+            else:
+                image_name = f'{im_idx}.tif'
+                
+            if hasattr(self, 'temp_folder'):  
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
@@ -346,15 +437,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                 fname = get_filename(fname, save_path)
                 self.mda.fname_lineEdit.setText(fname)
 
-        #reactivate gui when mda finishes.
-        self.mda.enable_mda_groupbox()
-        self.explorer.enable_explorer_groupbox()
-        self.enable_gui()
 
-
-    def _on_mda_finished_1(self, sequence: useq.MDASequence):
-        """for sample explorer"""
-        
+        #for sample explorer -> TODO: add the possibility to save it
         if sequence.extras == 'sample_explorer':
 
             try:
@@ -380,90 +464,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.reset_view()
 
-
-    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
-        seq = event.sequence
-
-        #get the index of the incoming image
-        if self.mda.checkBox_split_channels.isChecked():
-            im_idx = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
-        else:
-            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
-
-        try:
-            #see if we already have a layer with this sequence
-            if self.mda.checkBox_split_channels.isChecked():
-                layer = next(
-                    x for x in self.viewer.layers if x.metadata.get("ch_id") == \
-                        (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
-            else:
-                layer = next(
-                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
-                )
-
-            #make sure array shape contains im_idx, or pad with zeros
-            new_array = extend_array_for_index(layer.data, im_idx)
-
-            #add the incoming index at the appropriate index
-            new_array[im_idx] = image
-            
-            #set layer data
-            layer.data = new_array
-
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
-
-            #save each image in the temp folder
-            if self.mda.checkBox_split_channels.isChecked():
-                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
-            else:
-                image_name = f'{im_idx}.tif'
-            
-            if hasattr(self, 'temp_folder'): 
-                savefile = Path(self.temp_folder.name) / image_name
-                tifffile.tifffile.imsave(str(savefile), image)
-            
-        except StopIteration:
-            
-            if self.mda.save_groupBox.isChecked():
-
-                file_name = self.mda.fname_lineEdit.text()
-
-                if self.mda.checkBox_split_channels.isChecked():
-                    layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
-                else:
-                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
-            
-            else:
-                if self.mda.checkBox_split_channels.isChecked():
-                    layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
-                else:
-                    layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
-                    
-            _image = image[(np.newaxis,) * len(seq.shape)]
-            layer = self.viewer.add_image(_image, name=layer_name)
-            
-            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-
-            self.viewer.dims.axis_labels = labels
-
-            #add metadata to layer
-            layer.metadata["useq_sequence"] = seq
-            layer.metadata["uid"] = seq.uid
-            
-            if self.mda.checkBox_split_channels.isChecked():
-                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
-            
-            #save first image in the temp folder
-            if self.mda.checkBox_split_channels.isChecked():
-                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
-            else:
-                image_name = f'{im_idx}.tif'
-                
-            if hasattr(self, 'temp_folder'):  
-                savefile = Path(self.temp_folder.name) / image_name
-                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
+        #reactivate gui when mda finishes.
+        self.mda.enable_mda_groupbox()
+        self.explorer.enable_explorer_groupbox()
+        self.enable_gui()
 
 
 

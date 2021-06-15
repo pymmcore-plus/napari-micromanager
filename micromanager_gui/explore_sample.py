@@ -166,9 +166,14 @@ class ExploreSample(QtW.QWidget):
         move_to_x = self.x_lineEdit.text()
         move_to_y = self.y_lineEdit.text()
 
+        w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
+        h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
         if move_to_x == "None" and move_to_y == "None":
             warnings.warn('PIXEL SIZE NOT SET.')
         else:
+            move_to_x = float(move_to_x) - ((w/2) * self._mmc.getPixelSizeUm())
+            move_to_y = float(move_to_y) - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
             self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
