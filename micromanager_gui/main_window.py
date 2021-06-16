@@ -172,8 +172,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         def get_event(viewer, event):
             
             if self._mmc.getPixelSizeUm() > 0:
+
+                w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
+                h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
                 x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
                 y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
+
+                x = x - ((w/2) * self._mmc.getPixelSizeUm())
+                y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
+
             else:
                 x = None
                 y = None
@@ -206,14 +214,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         move_to_x = self.x_lineEdit_main.text()
         move_to_y = self.y_lineEdit_main.text()
 
-        w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
-        h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
         if move_to_x == "None" and move_to_y == "None":
             warnings.warn('PIXEL SIZE NOT SET.')
         else:
-            move_to_x = float(move_to_x) - ((w/2) * self._mmc.getPixelSizeUm())
-            move_to_y = float(move_to_y) - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
+            move_to_x = float(move_to_x) 
+            move_to_y = float(move_to_y)
             self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
@@ -441,6 +446,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         #for sample explorer -> TODO: add the possibility to save it
         if sequence.extras == 'sample_explorer':
 
+            w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
+            h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
             try:
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
@@ -448,8 +456,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             #split stack and translate images depending on xy position (in pixel)
             for f in range(len(explorer_layer.data)):
+
                 x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
                 y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
+
+                x = x - ((w/2) * self._mmc.getPixelSizeUm())
+                y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
+
                 z = 0
                 
                 frame = self.viewer.add_image(explorer_layer.data[f], \
