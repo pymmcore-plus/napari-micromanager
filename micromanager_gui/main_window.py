@@ -467,7 +467,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 
                 frame = self.viewer.add_image(explorer_layer.data[f], \
                     name = f"Pos{'{0:03}'.format(int(f))}", \
-                        translate=(z,y,x))
+                        translate=(z,y,x), opacity=0.5)
 
                 frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
                 frame.metadata['stage_position'] = sequence.stage_positions[f]
