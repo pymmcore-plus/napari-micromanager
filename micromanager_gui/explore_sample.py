@@ -95,8 +95,6 @@ class ExploreSample(QtW.QWidget):
     
     def set_grid(self):
 
-        #TODO: add % overlap 
-
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
 
@@ -114,18 +112,14 @@ class ExploreSample(QtW.QWidget):
         overlap_px_h = height - (height * overlap_percentage)/100
 
         if self.scan_size_r == 1 and self.scan_size_c > 1:
-            # move_x = (width / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = 0
 
         elif self.scan_size_r > 1 and self.scan_size_c == 1:
             move_x = 0
-            # move_y = (height / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
             move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
 
         else:
-            # move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
-            # move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
 
