@@ -113,10 +113,6 @@ class ExploreSample(QtW.QWidget):
         overlap_px_w = width - (width * overlap_percentage)/100
         overlap_px_h = height - (height * overlap_percentage)/100
 
-        print('**********************************')
-        print(overlap_percentage, overlap_px_w, overlap_px_h)
-        print('**********************************')
-
         if self.scan_size_r == 1 and self.scan_size_c > 1:
             # move_x = (width / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
