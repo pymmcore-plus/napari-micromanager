@@ -109,25 +109,41 @@ class ExploreSample(QtW.QWidget):
         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]  # maybe they are inverted
         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]  # maybe they are inverted
 
+        overlap_percentage = self.ovelap_spinBox.value()
+        overlap_px_w = width - (width * overlap_percentage)/100
+        overlap_px_h = height - (height * overlap_percentage)/100
+
+        print('**********************************')
+        print(overlap_percentage, overlap_px_w, overlap_px_h)
+        print('**********************************')
+
         if self.scan_size_r == 1 and self.scan_size_c > 1:
-            move_x = (width / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+            # move_x = (width / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+            move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = 0
 
         elif self.scan_size_r > 1 and self.scan_size_c == 1:
             move_x = 0
-            move_y = (height / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+            # move_y = (height / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+            move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
 
         else:
-            move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
-            move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+            # move_x = (width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
+            # move_y = (height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+            move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
+            move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
 
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
 
 
         #calculate position increments depending on pixle size
-        increment_x = width * self._mmc.getPixelSizeUm()
-        increment_y = height * self._mmc.getPixelSizeUm()
+        if overlap_percentage > 0:
+            increment_x = overlap_px_w * self._mmc.getPixelSizeUm()
+            increment_y = overlap_px_h * self._mmc.getPixelSizeUm()
+        else:
+            increment_x = width * self._mmc.getPixelSizeUm()
+            increment_y = height * self._mmc.getPixelSizeUm()
 
         list_pos_order  = []
 
