@@ -281,7 +281,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             
             if hasattr(self, 'temp_folder'): 
                 savefile = Path(self.temp_folder.name) / image_name
-                tifffile.tifffile.imsave(str(savefile), image)
+                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
             
         except StopIteration:
             
@@ -331,7 +331,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             fname =  self.mda.fname_lineEdit.text()
 
-            save_path = Path(self.mda.dir_lineEdit.text())
+            save_path = Path(self.dir_lineEdit.text())
 
             if self.mda.checkBox_split_channels.isChecked():
                 #Save individual channel layer(s).
@@ -395,6 +395,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                             
                                 save_path_ch = folder_name / f'{new_layer_name}.tif'
 
+                                #TODO: astype 'uint_' dependimg on camera bit depth selected
+                                i.data = i.data.astype('uint16')
                                 i.save(str(save_path_ch))
 
                 #update filename in mda.fname_lineEdit for the next aquisition.
@@ -436,14 +438,16 @@ class MainWindow(QtW.QWidget, _MainUI):
                         tifffile.tifffile.imsave(str(save_path_pos), layer_p.astype('uint16'), imagej=True)                    
 
                 else:
-                    self.viewer.layers[str(active_layer)].save(str(save_path / fname))
+                    #TODO: astype 'uint_' dependimg on camera bit depth selected
+                    active_layer.data = active_layer.data.astype('uint16')
+                    active_layer.save(str(save_path / fname))
                 
                 #update filename in mda.fname_lineEdit for the next aquisition.
                 fname = get_filename(fname, save_path)
                 self.mda.fname_lineEdit.setText(fname)
 
 
-        #for sample explorer -> TODO: add the possibility to save it
+        #for sample explorer
         if sequence.extras == 'sample_explorer':
 
             w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
@@ -452,7 +456,26 @@ class MainWindow(QtW.QWidget, _MainUI):
             try:
                 explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
             except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence")                                 
+                raise IndexError("could not find layer corresponding to sequence") 
+
+            if self.explorer.save_explorer_groupBox.isChecked():
+
+                fname =  self.explorer.fname_explorer_lineEdit.text()
+                save_path = Path(self.explorer.dir_explorer_lineEdit.text())
+
+                fname = check_filename(fname, save_path)
+
+                folder_name = Path(save_path) / fname
+
+                try:
+                    Path(folder_name).mkdir(parents=True, exist_ok=False)
+                    print('MAKE DIR')
+                except FileExistsError:
+                    pass
+
+                #update filename in mda.fname_lineEdit for the next aquisition.
+                fname = get_filename(fname, save_path)
+                self.explorer.fname_explorer_lineEdit.setText(fname)
 
             #split stack and translate images depending on xy position (in pixel)
             for f in range(len(explorer_layer.data)):
@@ -465,13 +488,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 z = 0
                 
+                framename = f"Pos{'{0:03}'.format(int(f))}"
+
                 frame = self.viewer.add_image(explorer_layer.data[f], \
-                    name = f"Pos{'{0:03}'.format(int(f))}", \
-                        translate=(z,y,x), opacity=0.5)
+                    name = framename, translate=(z,y,x), opacity=0.5)
 
                 frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
                 frame.metadata['stage_position'] = sequence.stage_positions[f]
                 frame.metadata['uid_p'] = str(sequence.uid) + f"_frame_pos{'{0:03}'.format(int(f))}"
+                
+                if self.explorer.save_explorer_groupBox.isChecked():
+                    #TODO: astype 'uint_' dependimg on camera bit depth selected
+                    frame.data = frame.data.astype('uint16')
+                    frame.save(str(folder_name / f'{framename}_{fname}'))
 
             self.viewer.layers.remove(explorer_layer)
 

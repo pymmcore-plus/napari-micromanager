@@ -30,6 +30,11 @@ class ExploreSample(QtW.QWidget):
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
+    save_explorer_groupBox: QtW.QGroupBox
+    dir_explorer_lineEdit: QtW.QLineEdit
+    fname_explorer_lineEdit: QtW.QLineEdit
+    browse_save_explorer_Button: QtW.QPushButton
+
 
 
     def __init__(self, mmcore, parent=None):
@@ -39,6 +44,7 @@ class ExploreSample(QtW.QWidget):
 
             self.start_scan_Button.clicked.connect(self.start_scan)
             self.move_to_Button.clicked.connect(self.move_to)
+            self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
     
     def enable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(True)
@@ -48,6 +54,7 @@ class ExploreSample(QtW.QWidget):
         self.scan_exp_spinBox.setEnabled(True)
         self.move_to_Button.setEnabled(True)
         self.start_scan_Button.setEnabled(True)
+        self.save_explorer_groupBox.setEnabled(True)
 
     def disable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(False)
@@ -57,6 +64,7 @@ class ExploreSample(QtW.QWidget):
         self.scan_exp_spinBox.setEnabled(False)
         self.move_to_Button.setEnabled(False)
         self.start_scan_Button.setEnabled(False)
+        self.save_explorer_groupBox.setEnabled(False)
 
     def _get_state_dict(self) -> dict:
         state = {
@@ -157,12 +165,27 @@ class ExploreSample(QtW.QWidget):
                         x_pos_explorer = x_pos_explorer - increment_x
 
         return list_pos_order
-        
+    
+    def set_explorer_dir(self):
+        # set the directory
+        self.dir = QtW.QFileDialog(self)
+        self.dir.setFileMode(QtW.QFileDialog.DirectoryOnly)
+        self.save_dir = QtW.QFileDialog.getExistingDirectory(self.dir)
+        self.dir_explorer_lineEdit.setText(self.save_dir)
+        self.parent_path = Path(self.save_dir)
         
     def start_scan(self):
 
         if not self._mmc.getPixelSizeUm() > 0:
             raise ValueError ('PIXEL SIZE NOT SET.')
+        
+        if self.save_explorer_groupBox.isChecked() and \
+            (self.fname_explorer_lineEdit.text() == '' or \
+                (self.dir_explorer_lineEdit.text() == '' or \
+                    not Path.is_dir(Path(self.dir_explorer_lineEdit.text()))
+                    )):
+                        raise ValueError ('select a filename and a valid directory.')
+
         self.explore_sample = MDASequence(**self._get_state_dict())
         self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
         return
