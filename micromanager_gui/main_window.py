@@ -685,7 +685,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
-            warnings.warn('PIXEL SIZE NOT SET.')
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
