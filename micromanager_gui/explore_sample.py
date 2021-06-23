@@ -8,9 +8,6 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
 
-import numpy as np
-from skimage.transform import resize
-
 if TYPE_CHECKING:
     from pymmcore_remote import RemoteMMCore
 
