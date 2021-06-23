@@ -300,7 +300,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                     layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
                     
             _image = image[(np.newaxis,) * len(seq.shape)]
-            layer = self.viewer.add_image(_image, name=layer_name)
+
+            if self.mda.checkBox_split_channels.isChecked():
+                layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
+            else:
+                layer = self.viewer.add_image(_image, name=layer_name)
             
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
 
