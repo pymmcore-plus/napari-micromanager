@@ -185,7 +185,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             else:
                 x = None
                 y = None
-                warnings.warn('PIXEL SIZE NOT SET.')
 
             self.x_lineEdit_main.setText(str(x))
             self.y_lineEdit_main.setText(str(y))
