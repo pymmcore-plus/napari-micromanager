@@ -272,7 +272,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             fname = self.get_filename(fname,save_path)
             self.mda.fname_lineEdit.setText(fname)
 
-        self.temp_folder.cleanup()
+        if hasattr(self, 'temp_folder'):
+            self.temp_folder.cleanup()
 
         #reactivate gui when mda finishes.
         self.mda.enable_mda_groupbox()
