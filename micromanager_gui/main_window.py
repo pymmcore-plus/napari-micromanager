@@ -506,6 +506,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self.viewer.reset_view()
 
+        if hasattr(self, 'temp_folder'):
+            self.temp_folder.cleanup()
+            
         #reactivate gui when mda finishes.
         self.mda.enable_mda_groupbox()
         self.explorer.enable_explorer_groupbox()
