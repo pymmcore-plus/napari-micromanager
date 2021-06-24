@@ -162,6 +162,9 @@ class ExploreSample(QtW.QWidget):
         overlap_px_w = width - (width * overlap_percentage)/100
         overlap_px_h = height - (height * overlap_percentage)/100
 
+        if self.scan_size_r == 1 and self.scan_size_c == 1:
+            raise Exception ('RxC -> 1x1. Use MDA')
+
         if self.scan_size_r == 1 and self.scan_size_c > 1:
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = 0
@@ -177,6 +180,8 @@ class ExploreSample(QtW.QWidget):
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
 
+        x_pos_explorer = x_pos_explorer - ((width) * self._mmc.getPixelSizeUm())
+        y_pos_explorer = y_pos_explorer - ((height) * self._mmc.getPixelSizeUm() * (-1))
 
         #calculate position increments depending on pixle size
         if overlap_percentage > 0:

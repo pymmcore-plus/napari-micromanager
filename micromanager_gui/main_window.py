@@ -504,8 +504,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                         x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
                         y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
 
-                        x = x - ((w/2) * self._mmc.getPixelSizeUm())
-                        y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
+                        # x = x - ((w/2) * self._mmc.getPixelSizeUm())
+                        # y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
 
                         z = 0
                             
