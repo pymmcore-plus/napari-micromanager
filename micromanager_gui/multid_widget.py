@@ -272,10 +272,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if len(self._mmc.getLoadedDevices()) < 2:
             raise ValueError ("Load a cfg file first.")
 
-        if not self.channel_groupBox.isChecked():
-            raise ValueError ("Check the 'Channels' groupbox and \
-                select at least one channel.")
-
         if not self.channel_tableWidget.rowCount() > 0:
             raise ValueError ("Select at least one channel.")
 
