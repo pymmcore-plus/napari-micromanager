@@ -43,6 +43,7 @@ def test_main_window(main_window: MainWindow):
         time_plan={"loops": 4, "interval": 0.1},
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
+        extras = 'mda',
     )
     for event in mda:
 
