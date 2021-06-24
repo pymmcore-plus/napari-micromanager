@@ -165,14 +165,6 @@ class ExploreSample(QtW.QWidget):
         if self.scan_size_r == 1 and self.scan_size_c == 1:
             raise Exception ('RxC -> 1x1. Use MDA')
 
-        if self.scan_size_r == 1 and self.scan_size_c > 1:
-            move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
-            move_y = 0
-
-        elif self.scan_size_r > 1 and self.scan_size_c == 1:
-            move_x = 0
-            move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
-
         else:
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = (((height / 2) * (self.scan_size_r - 1)) - overlap_px_h)  * self._mmc.getPixelSizeUm()
