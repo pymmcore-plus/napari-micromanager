@@ -5,6 +5,8 @@ except ImportError:
 
 from napari_plugin_engine import napari_hook_implementation
 
+from .add_LUT import napari_experimental_provide_function
+
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
