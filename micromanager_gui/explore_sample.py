@@ -16,13 +16,22 @@ UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
 
 class ExploreSample(QtW.QWidget):
     # The UI_FILE above contains these objects:
+    scan_explorer_groupBox: QtW.QGroupBox
     scan_size_label: QtW.QLabel
     scan_size_spinBox_r: QtW.QSpinBox
     scan_size_spinBox_c: QtW.QSpinBox
-    scan_channel_comboBox: QtW.QComboBox
-    scan_exp_spinBox: QtW.QSpinBox
+    channel_explorer_groupBox: QtW.QGroupBox
+    channel_explorer_tableWidget: QtW.QTableWidget
+    add_ch_explorer_Button: QtW.QPushButton
+    clear_ch_explorer_Button: QtW.QPushButton
+    remove_ch_explorer_Button: QtW.QPushButton
+    save_explorer_groupBox: QtW.QGroupBox
+    dir_explorer_lineEdit: QtW.QLineEdit
+    fname_explorer_lineEdit: QtW.QLineEdit
+    browse_save_explorer_Button: QtW.QPushButton
     start_scan_Button: QtW.QPushButton
     stop_scan_Button: QtW.QPushButton
+    move_to_position_groupBox: QtW.QGroupBox
     move_to_Button: QtW.QPushButton
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
@@ -39,6 +48,11 @@ class ExploreSample(QtW.QWidget):
             super().__init__(parent)  
             uic.loadUi(UI_FILE, self)
 
+            # connect buttons
+            self.add_ch_explorer_Button.clicked.connect(self.add_channel)
+            self.remove_ch_explorer_Button.clicked.connect(self.remove_channel)
+            self.clear_ch_explorer_Button.clicked.connect(self.clear_channel)
+
             self.start_scan_Button.clicked.connect(self.start_scan)
             self.move_to_Button.clicked.connect(self.move_to)
             self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
@@ -47,8 +61,7 @@ class ExploreSample(QtW.QWidget):
         self.scan_size_spinBox_r.setEnabled(True)
         self.scan_size_spinBox_c.setEnabled(True)
         self.ovelap_spinBox.setEnabled(True)
-        self.scan_channel_comboBox.setEnabled(True)
-        self.scan_exp_spinBox.setEnabled(True)
+        self.channel_explorer_groupBox.setEnabled(True)
         self.move_to_Button.setEnabled(True)
         self.start_scan_Button.setEnabled(True)
         self.save_explorer_groupBox.setEnabled(True)
@@ -57,11 +70,43 @@ class ExploreSample(QtW.QWidget):
         self.scan_size_spinBox_r.setEnabled(False)
         self.scan_size_spinBox_c.setEnabled(False)
         self.ovelap_spinBox.setEnabled(False)
-        self.scan_channel_comboBox.setEnabled(False)
-        self.scan_exp_spinBox.setEnabled(False)
+        self.channel_explorer_groupBox.setEnabled(True)
         self.move_to_Button.setEnabled(False)
         self.start_scan_Button.setEnabled(False)
         self.save_explorer_groupBox.setEnabled(False)
+
+    # add, remove, clear channel table
+    def add_channel(self):
+        dev_loaded = list(self._mmc.getLoadedDevices())
+        if len(dev_loaded) > 1:
+
+            idx = self.channel_explorer_tableWidget.rowCount()
+            self.channel_explorer_tableWidget.insertRow(idx)
+
+            # create a combo_box for channels in the table
+            self.channel_explorer_comboBox = QtW.QComboBox(self)
+            self.channel_explorer_exp_spinBox = QtW.QSpinBox(self)
+            self.channel_explorer_exp_spinBox.setRange(0, 10000)
+            self.channel_explorer_exp_spinBox.setValue(100)
+
+            if "Channel" not in self._mmc.getAvailableConfigGroups():
+                raise ValueError("Could not find 'Channel' in the ConfigGroups")
+            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
+            self.channel_explorer_comboBox.addItems(channel_list)
+
+            self.channel_explorer_tableWidget.setCellWidget(idx, 0, self.channel_explorer_comboBox)
+            self.channel_explorer_tableWidget.setCellWidget(idx, 1, self.channel_explorer_exp_spinBox)
+
+    def remove_channel(self):
+        # remove selected position
+        rows = {r.row() for r in self.channel_explorer_tableWidget.selectedIndexes()}
+        for idx in sorted(rows, reverse=True):
+            self.channel_explorer_tableWidget.removeRow(idx)
+
+    def clear_channel(self):
+        # clear all positions
+        self.channel_explorer_tableWidget.clearContents()
+        self.channel_explorer_tableWidget.setRowCount(0)
 
     def _get_state_dict(self) -> dict:
         state = {
@@ -76,10 +121,11 @@ class ExploreSample(QtW.QWidget):
         # channel settings
         state["channels"] = [
             {
-                "config": self.scan_channel_comboBox.currentText(),
+                "config": self.channel_explorer_tableWidget.cellWidget(c, 0).currentText(),
                 "group": self._mmc.getChannelGroup() or "Channel",
-                "exposure": self.scan_exp_spinBox.value(),
+                "exposure": self.channel_explorer_tableWidget.cellWidget(c, 1).value(),
             }
+            for c in range(self.channel_explorer_tableWidget.rowCount())
         ]
 
         # position settings
@@ -116,6 +162,9 @@ class ExploreSample(QtW.QWidget):
         overlap_px_w = width - (width * overlap_percentage)/100
         overlap_px_h = height - (height * overlap_percentage)/100
 
+        if self.scan_size_r == 1 and self.scan_size_c == 1:
+            raise Exception ('RxC -> 1x1. Use MDA')
+
         if self.scan_size_r == 1 and self.scan_size_c > 1:
             move_x = (((width / 2) * (self.scan_size_c - 1)) - overlap_px_w) * self._mmc.getPixelSizeUm()
             move_y = 0
@@ -131,6 +180,8 @@ class ExploreSample(QtW.QWidget):
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
 
+        x_pos_explorer = x_pos_explorer - ((width) * self._mmc.getPixelSizeUm())
+        y_pos_explorer = y_pos_explorer - ((height) * self._mmc.getPixelSizeUm() * (-1))
 
         #calculate position increments depending on pixle size
         if overlap_percentage > 0:
@@ -173,8 +224,14 @@ class ExploreSample(QtW.QWidget):
         
     def start_scan(self):
 
+        if len(self._mmc.getLoadedDevices()) < 2:
+            raise ValueError ("Load a cfg file first.")
+
         if not self._mmc.getPixelSizeUm() > 0:
             raise ValueError ('PIXEL SIZE NOT SET.')
+
+        if not self.channel_explorer_tableWidget.rowCount() > 0:
+            raise ValueError ("Select at least one channel.")
         
         if self.save_explorer_groupBox.isChecked() and \
             (self.fname_explorer_lineEdit.text() == '' or \

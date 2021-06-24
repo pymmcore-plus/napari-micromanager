@@ -244,14 +244,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
 
         #get the index of the incoming image
-        if self.mda.checkBox_split_channels.isChecked():
+        if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
             im_idx = tuple(event.index[k] for k in seq.axis_order if ((k in event.index) and (k != 'c')))
         else:
             im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
         try:
             #see if we already have a layer with this sequence
-            if self.mda.checkBox_split_channels.isChecked():
+            if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                 layer = next(
                     x for x in self.viewer.layers if x.metadata.get("ch_id") == \
                         (str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'))
@@ -273,7 +273,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.viewer.dims.set_point(a, v)
 
             #save each image in the temp folder
-            if self.mda.checkBox_split_channels.isChecked():
+            if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
@@ -294,14 +294,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                     layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
             
             else:
-                if self.mda.checkBox_split_channels.isChecked():
+                if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                     layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
                 else:
                     layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
                     
             _image = image[(np.newaxis,) * len(seq.shape)]
 
-            if self.mda.checkBox_split_channels.isChecked():
+            if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                 layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
             else:
                 layer = self.viewer.add_image(_image, name=layer_name)
@@ -314,11 +314,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
             
-            if self.mda.checkBox_split_channels.isChecked():
+            if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                 layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
             
             #save first image in the temp folder
-            if self.mda.checkBox_split_channels.isChecked():
+            if self.mda.checkBox_split_channels.isChecked() or seq.extras == 'sample_explorer':
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
@@ -453,13 +453,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         #for sample explorer
         if sequence.extras == 'sample_explorer':
 
+            uid = sequence.uid
+
             w = self._mmc.getROI(self._mmc.getCameraDevice())[2] 
             h = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
-            try:
-                explorer_layer = next(l for l in self.viewer.layers if l.metadata.get('uid') == sequence.uid)
-            except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence") 
 
             if self.explorer.save_explorer_groupBox.isChecked():
 
@@ -472,40 +469,59 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 try:
                     Path(folder_name).mkdir(parents=True, exist_ok=False)
-                    print('MAKE DIR')
                 except FileExistsError:
                     pass
+
+                for i in self.viewer.layers:
+                        
+                    if 'ch_id' in i.metadata and str(uid) in i.metadata.get('ch_id'):
+
+                        ch_id_info = i.metadata.get('ch_id')
+
+                        new_layer_name = ch_id_info.replace(str(uid), fname)
+
+                        save_path_exp_ch = folder_name / f'{new_layer_name}.tif'
+
+                        #TODO: astype 'uint_' dependimg on camera bit depth selected
+                        i.data = i.data.astype('uint16')
+                        i.save(str(save_path_exp_ch))
 
                 #update filename in mda.fname_lineEdit for the next aquisition.
                 fname = get_filename(fname, save_path)
                 self.explorer.fname_explorer_lineEdit.setText(fname)
+            
 
             #split stack and translate images depending on xy position (in pixel)
-            for f in range(len(explorer_layer.data)):
+            for explorer_layer in self.viewer.layers:
+                        
+                if 'ch_id' in explorer_layer.metadata and \
+                    str(uid) in explorer_layer.metadata.get('ch_id'):
 
-                x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
-                y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
+                    fname = 'explorer'
+      
+                    for f in range(len(explorer_layer.data)):
 
-                x = x - ((w/2) * self._mmc.getPixelSizeUm())
-                y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
+                        x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm() 
+                        y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
 
-                z = 0
-                
-                framename = f"Pos{'{0:03}'.format(int(f))}"
+                        # x = x - ((w/2) * self._mmc.getPixelSizeUm())
+                        # y = y - ((h/2) * self._mmc.getPixelSizeUm() * (- 1))
 
-                frame = self.viewer.add_image(explorer_layer.data[f], \
-                    name = framename, translate=(z,y,x), opacity=0.5)
+                        z = 0
+                            
+                        ch_id_info = explorer_layer.metadata.get('ch_id')
+                        new_layer_name = ch_id_info.replace(str(uid), fname)
+        
+                        framename = f"Pos{'{0:03}'.format(int(f))}_[{new_layer_name}]"
 
-                frame.metadata['frame'] = f"frame_pos{'{0:03}'.format(int(f))}"
-                frame.metadata['stage_position'] = sequence.stage_positions[f]
-                frame.metadata['uid_p'] = str(sequence.uid) + f"_frame_pos{'{0:03}'.format(int(f))}"
-                
-                if self.explorer.save_explorer_groupBox.isChecked():
-                    #TODO: astype 'uint_' dependimg on camera bit depth selected
-                    frame.data = frame.data.astype('uint16')
-                    frame.save(str(folder_name / f'{framename}_{fname}'))
+                        frame = self.viewer.add_image(explorer_layer.data[f], \
+                            name = framename, translate=(z,y,x), opacity=0.5)
 
-            self.viewer.layers.remove(explorer_layer)
+                        frame.metadata['frame'] = framename
+                        frame.metadata['stage_position'] = sequence.stage_positions[f]
+                        frame.metadata['uid_p'] = str(uid) + f"_{framename}"
+
+                    explorer_layer.visible = False
 
             self.viewer.reset_view()
 
@@ -567,11 +583,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _refresh_channel_list(self):
         if "Channel" in self._mmc.getAvailableConfigGroups():
             self.snap_channel_comboBox.clear()
-            self.explorer.scan_channel_comboBox.clear()
             self.mda.clear_channel()
+            self.explorer.clear_channel()
             channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
-            self.explorer.scan_channel_comboBox.addItems(channel_list)
 
     def _on_system_configuration_loaded(self):
         self._refresh_camera_options()
