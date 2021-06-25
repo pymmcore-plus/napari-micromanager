@@ -83,7 +83,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
         self.run_Button.clicked.connect(self._on_run_clicked)
 
-        #toggle connect
+        # toggle connect
         self.save_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
         self.stage_pos_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
 
@@ -97,7 +97,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.stack_groupBox.setEnabled(True)
         self.stage_pos_groupBox.setEnabled(True)
         self.acquisition_order_comboBox.setEnabled(True)
-    
+
     def disable_mda_groupbox(self):
         self.save_groupBox.setEnabled(False)
         self.channel_groupBox.setEnabled(False)
@@ -105,7 +105,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.stack_groupBox.setEnabled(False)
         self.stage_pos_groupBox.setEnabled(False)
         self.acquisition_order_comboBox.setEnabled(False)
-
 
     def _on_mda_started(self, sequence):
         self.pause_Button.show()
@@ -152,8 +151,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     def toggle_checkbox_save_pos(self):
         if self.stage_pos_groupBox.isChecked() and \
-            self.stage_tableWidget.rowCount() > 0:
-                self.checkBox_save_pos.setEnabled(True)
+           self.stage_tableWidget.rowCount() > 0:
+
+            self.checkBox_save_pos.setEnabled(True)
         else:
             self.checkBox_save_pos.setCheckState(False)
             self.checkBox_save_pos.setEnabled(False)
@@ -242,7 +242,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 "interval": {unit: self.interval_spinBox.value()},
                 "loops": self.timepoints_spinBox.value(),
             }
-
         # position settings
         if (
             self.stage_pos_groupBox.isChecked()
@@ -270,17 +269,17 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     def _on_run_clicked(self):
 
         if len(self._mmc.getLoadedDevices()) < 2:
-            raise ValueError ("Load a cfg file first.")
+            raise ValueError("Load a cfg file first.")
 
-        if not self.channel_tableWidget.rowCount() > 0:
-            raise ValueError ("Select at least one channel.")
+        if self.channel_tableWidget.rowCount() <= 0:
+            raise ValueError("Select at least one channel.")
 
-        if self.save_groupBox.isChecked() and \
-            (self.fname_lineEdit.text() == '' or \
-                (self.dir_lineEdit.text() == '' or \
-                    not Path.is_dir(Path(self.dir_lineEdit.text()))
-                    )):
-                        raise ValueError ('select a filename and a valid directory.')
+        if self.save_groupBox.isChecked() and (
+           self.fname_lineEdit.text() == '' or (
+               self.dir_lineEdit.text() == '' or not
+               Path.is_dir(Path(self.dir_lineEdit.text()))
+           )):
+            raise ValueError('select a filename and a valid directory.')
 
         experiment = MDASequence(**self._get_state_dict())
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
