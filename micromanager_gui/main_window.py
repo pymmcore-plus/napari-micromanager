@@ -291,8 +291,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 if self.mda.checkBox_split_channels.isChecked():
 
-                    layer_name = f"{file_name}_[{event.channel.config}\
-                        _idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                    layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
                 else:
                     layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S')}"
 
@@ -300,8 +299,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if self.mda.checkBox_split_channels.isChecked() or\
                    seq.extras == 'sample_explorer':
 
-                    layer_name = f"Experiment_[{event.channel.config}\
-                        -idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
+                    layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S')}"
                 else:
                     layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S')}"
 
@@ -325,8 +323,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if self.mda.checkBox_split_channels.isChecked() or\
                seq.extras == 'sample_explorer':
 
-                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}\
-                    _idx{event.index["c"]}'
+                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
 
             # save first image in the temp folder
             if self.mda.checkBox_split_channels.isChecked() or\
@@ -347,13 +344,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             fname = self.mda.fname_lineEdit.text()
 
-            save_path = Path(self.dir_lineEdit.text())
+            save_path = Path(self.mda.dir_lineEdit.text())
+
+            fname = check_filename(fname, save_path)
 
             if self.mda.checkBox_split_channels.isChecked():
                 # Save individual channel layer(s).
 
                 # create folder to save individual channel layer(s).
-                fname = check_filename(fname, save_path)
 
                 folder_name = Path(save_path) / fname
 
@@ -391,9 +389,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                                 if len(sequence.time_plan) > 0 and \
                                    sequence.axis_order[0] == 't':
 
-                                    layer_p = i.data[:, p]
+                                    layer_p = i.data[:, p, ...]
                                 else:
-                                    layer_p = i.data[p, :]
+                                    layer_p = i.data[p, ...]
 
                                 save_path_ch = folder_path / f'{fname_pos}.tif'
 
@@ -419,10 +417,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                             i.data = i.data.astype('uint16')
                             i.save(str(save_path_ch))
 
-                # update filename in mda.fname_lineEdit for the next aquisition.
-                fname = get_filename(fname, save_path)
-                self.mda.fname_lineEdit.setText(fname)
-
             else:
                 try:
                     active_layer = next(
@@ -431,8 +425,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                     )
                 except StopIteration:
                     raise IndexError("could not find layer corresponding to sequence")
-
-                fname = check_filename(fname, save_path)
 
                 if self.mda.checkBox_save_pos.isChecked():
                     # save each position in a separate file
@@ -452,9 +444,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                         if len(sequence.time_plan) > 0 and \
                            sequence.axis_order[0] == 't':
 
-                            layer_p = active_layer.data[:, p]
+                            layer_p = active_layer.data[:, p, ...]
                         else:
-                            layer_p = active_layer.data[p, :]
+                            layer_p = active_layer.data[p, ...]
 
                         name = fname_pos + '.tif'
                         save_path_pos = Path(folder_path) / name
@@ -469,9 +461,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                     active_layer.data = active_layer.data.astype('uint16')
                     active_layer.save(str(save_path / fname))
 
-                # update filename in mda.fname_lineEdit for the next aquisition.
-                fname = get_filename(fname, save_path)
-                self.mda.fname_lineEdit.setText(fname)\
+            # update filename in mda.fname_lineEdit for the next aquisition.
+            fname = get_filename(fname, save_path)
+            self.mda.fname_lineEdit.setText(fname)
 
         # or sample explorer
         if sequence.extras == 'sample_explorer':

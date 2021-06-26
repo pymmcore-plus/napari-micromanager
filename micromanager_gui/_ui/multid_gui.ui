@@ -58,13 +58,13 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>110</height>
+           <height>140</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>130</height>
+           <height>140</height>
           </size>
          </property>
          <property name="title">
@@ -97,7 +97,7 @@
              <widget class="QPushButton" name="browse_save_Button">
               <property name="minimumSize">
                <size>
-                <width>30</width>
+                <width>40</width>
                 <height>0</height>
                </size>
               </property>
