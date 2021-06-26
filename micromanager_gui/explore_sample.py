@@ -113,6 +113,7 @@ class ExploreSample(QtW.QWidget):
             "time_plan": None,
             "extras": 'sample_explorer'
         }
+
         state["channels"] = [
             {
                 "config": self.channel_explorer_tableWidget.cellWidget(c, 0).currentText(),
@@ -121,6 +122,7 @@ class ExploreSample(QtW.QWidget):
             }
             for c in range(self.channel_explorer_tableWidget.rowCount())
         ]
+
         # position settings
         postions_grid = self.set_grid()
 
@@ -154,7 +156,7 @@ class ExploreSample(QtW.QWidget):
         overlap_px_h = height - (height * overlap_percentage) / 100
 
         if self.scan_size_r == 1 and self.scan_size_c == 1:
-            raise Exception('RxC -> 1x1. Use MDA')
+            raise Exception('RxC -> 1x1. Use MDA to acquire a single position image.')
 
         move_x = (
             ((width / 2) * (self.scan_size_c - 1)) - overlap_px_w
@@ -167,6 +169,7 @@ class ExploreSample(QtW.QWidget):
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
 
+        # to match position coordinates with center of the image
         x_pos_explorer = x_pos_explorer - ((width) * self._mmc.getPixelSizeUm())
         y_pos_explorer = y_pos_explorer - ((height) * self._mmc.getPixelSizeUm() * (-1))
 
@@ -178,14 +181,32 @@ class ExploreSample(QtW.QWidget):
             increment_x = width * self._mmc.getPixelSizeUm()
             increment_y = height * self._mmc.getPixelSizeUm()
 
-        # create the xyz position matrix
+        return self.create_pos_grid_coordinates(
+            z_curr_pos_explorer,
+            x_pos_explorer,
+            y_pos_explorer,
+            increment_x,
+            increment_y,
+        )
+
+    def create_pos_grid_coordinates(
+        self, z_curr_pos_explorer,
+        x_pos_explorer,
+        y_pos_explorer,
+        increment_x,
+        increment_y
+    ):
         list_pos_order = []
         for r in range(self.scan_size_r):
             if r == 0 or (r % 2) == 0:
                 for c in range(self.scan_size_c):  # for even rows
                     if r > 0 and c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
-                    list_pos_order.append([x_pos_explorer, y_pos_explorer, z_curr_pos_explorer])
+                    list_pos_order.append(
+                        [x_pos_explorer,
+                         y_pos_explorer,
+                         z_curr_pos_explorer]
+                    )
                     if c < self.scan_size_c - 1:
                         x_pos_explorer = x_pos_explorer + increment_x
             else:  # for odd rows
@@ -193,7 +214,11 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size_c):
                     if c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
-                    list_pos_order.append([x_pos_explorer, y_pos_explorer, z_curr_pos_explorer])
+                    list_pos_order.append(
+                        [x_pos_explorer,
+                         y_pos_explorer,
+                         z_curr_pos_explorer]
+                    )
                     if col > 0:
                         col = col - 1
                         x_pos_explorer = x_pos_explorer - increment_x
