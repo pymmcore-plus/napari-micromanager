@@ -49,6 +49,8 @@ class ExploreSample(QtW.QWidget):
         self.move_to_Button.clicked.connect(self.move_to)
         self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
 
+        self.stop_scan_Button.released.connect(self._mmc.cancel)
+
     def enable_explorer_groupbox(self):
         self.scan_size_spinBox_r.setEnabled(True)
         self.scan_size_spinBox_c.setEnabled(True)
