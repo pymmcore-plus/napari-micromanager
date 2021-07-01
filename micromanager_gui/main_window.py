@@ -162,12 +162,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
-
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
-
             if self._mmc.getPixelSizeUm() > 0:
-
                 width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
                 height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
@@ -177,7 +174,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 # to match position coordinates with center of the image
                 x = x - ((width / 2) * self._mmc.getPixelSizeUm())
                 y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (- 1))
-
+                
             else:
                 x = None
                 y = None
@@ -279,7 +276,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             # save each image in the temp folder
             if meta.get("split_channels"):
-
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
                 image_name = f'{im_idx}.tif'
@@ -292,9 +288,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             _image = image[(np.newaxis,) * len(seq.shape)]
 
-            if meta.get("save_group_mda"):
+            if meta.get("save_group_mda") or meta.get("save_group_explorer"):
 
-                file_name = self.mda.fname_lineEdit.text()
+                file_name = meta.get("file_name")
 
                 if meta.get("split_channels"):
                     layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
@@ -333,6 +329,42 @@ class MainWindow(QtW.QWidget, _MainUI):
                 savefile = Path(self.temp_folder.name) / image_name
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
+    def _on_mda_finished(self, sequence: useq.MDASequence):
+        # sourcery skip: extract-method, hoist-statement-from-loop
+        """Save layer and add increment to save name."""
+
+        meta = SEQUENCE_META.get(sequence, {})
+
+        if meta.get("mode") == 'mda' and meta.get("save_group_mda"):
+
+            save_path, fname = self._save_mda_acq(sequence, meta)
+
+            # update filename in mda.fname_lineEdit for the next aquisition.
+            fname = get_filename(fname, save_path)
+            self.mda.fname_lineEdit.setText(fname)
+
+        if meta.get("mode") == 'explorer':
+
+            if meta.get("save_group_explorer"):
+
+                save_path, fname = self._save_explorer_scan(sequence, meta)
+
+                # update filename in mda.fname_lineEdit for the next aquisition.
+                fname = get_filename(fname, save_path)
+                self.explorer.fname_explorer_lineEdit.setText(fname)
+
+            # split stack and translate images depending on xy position (in pixel)
+            self._split_and_translate(sequence)
+
+        if hasattr(self, 'temp_folder'):
+            self.temp_folder.cleanup()
+
+        # reactivate gui when mda finishes.
+        self.mda.enable_mda_groupbox()
+        self.explorer.enable_explorer_groupbox()
+        self.enable_gui()
+        SEQUENCE_META.pop(sequence)
+
     def _save_pos_separately(self, sequence, folder_name, fname):
 
         for p in range(len(sequence.stage_positions)):
@@ -369,130 +401,98 @@ class MainWindow(QtW.QWidget, _MainUI):
                 imagej=True
             )
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
-        # sourcery skip: extract-method, hoist-statement-from-loop
-        """Save layer and add increment to save name."""
+    def _save_mda_acq(self, sequence, meta):
+        save_path = Path(meta.get("save_dir"))
+        fname = check_filename(meta.get("file_name"), save_path)
 
-        meta = SEQUENCE_META.get(sequence, {})
+        # if split_channels, then create a new layer for each channel
+        if meta.get("split_channels"):
+            folder_name = save_path / fname
+            folder_name.mkdir(parents=True, exist_ok=True)
 
-        if meta.get("mode") == 'mda' and meta.get("save_group_mda"):
+            # save each position/channels in a separate file.
+            if meta.get("save_pos"):
+                self._save_pos_separately(sequence, folder_name, fname)
+            else:
+                self._save_layer(sequence, folder_name, fname)
 
-            save_path = Path(meta.get("save_dir"))
-            fname = check_filename(meta.get("file_name"), save_path)
+        else:  # not splitting channels
+            try:
+                active_layer = next(
+                    lay for lay in self.viewer.layers
+                    if lay.metadata.get("uid") == sequence.uid
+                )
+            except StopIteration:
+                raise IndexError("could not find layer corresponding to sequence")
 
-            # if split_channels, then create a new layer for each channel
-            if meta.get("split_channels"):
+            if not meta.get("save_pos"):
+                # not saving each position in a separate file
+                tifffile.imsave(
+                    str(save_path / f'{fname}.tif'),
+                    active_layer.data.astype("uint16"),
+                    imagej=True,
+                )
+            else:  # save each position in a separate file
+                folder_path = save_path / f"{fname}_Pos"
+                folder_path.mkdir(parents=True, exist_ok=True)
 
-                folder_name = save_path / fname
-                folder_name.mkdir(parents=True, exist_ok=True)
+                pos_axis = sequence.axis_order.index("p")
 
-                # save each position/channels in a separate file.
-                if meta.get("save_pos"):
-                    self._save_pos_separately(sequence, folder_name, fname)
-                else:
-                    self._save_layer(sequence, folder_name, fname)
-
-            else:  # not splitting channels
-                try:
-                    active_layer = next(
-                        lay
-                        for lay in self.viewer.layers
-                        if lay.metadata.get("uid") == sequence.uid
-                    )
-                except StopIteration:
-                    raise IndexError("could not find layer corresponding to sequence")
-
-                if not meta.get("save_pos"):
-                    # not saving each position in a separate file
+                for p in range(active_layer.data.shape[pos_axis]):
                     tifffile.imsave(
-                        str(save_path / f'{fname}.tif'),
-                        active_layer.data.astype("uint16"),
+                        str(folder_path / f"{fname}_[p{p:03d}].tif"),
+                        active_layer.data.take(p, axis=pos_axis).astype("uint16"),
                         imagej=True,
                     )
-                else:  # save each position in a separate file
 
-                    folder_path = save_path / f"{fname}_Pos"
-                    folder_path.mkdir(parents=True, exist_ok=True)
+        return save_path, fname
 
-                    pos_axis = sequence.axis_order.index("p")
+    def _save_explorer_scan(self, sequence, meta):
+        save_path = Path(meta.get("save_dir"))
+        fname = check_filename(meta.get("file_name"), save_path)
 
-                    for p in range(active_layer.data.shape[pos_axis]):
-                        tifffile.imsave(
-                            str(folder_path / f"{fname}_[p{p:03d}].tif"),
-                            active_layer.data.take(p, axis=pos_axis).astype("uint16"),
-                            imagej=True,
-                        )
+        folder_name = Path(save_path) / fname
+        folder_name.mkdir(parents=True, exist_ok=True)
 
-            # update filename in mda.fname_lineEdit for the next aquisition.
-            fname = get_filename(fname, save_path)
-            self.mda.fname_lineEdit.setText(fname)
+        for i in self.viewer.layers:
+            if 'ch_id' in i.metadata and i.metadata.get("uid") == sequence.uid:
 
-        # or sample explorer
-        if meta.get("mode") == 'explorer':
+                tifffile.imsave(
+                    str(folder_name / f"{fname}_{i.metadata.get('ch_id')}.tif"),
+                    i.data.astype("uint16"),
+                    imagej=True,
+                )
 
-            if meta.get("save_group_explorer"):
+        return save_path, fname
 
-                save_path = Path(meta.get("save_dir"))
-                fname = check_filename(meta.get("file_name"), save_path)
+    def _split_and_translate(self, sequence):
+        for explorer_layer in self.viewer.layers:
+            if 'ch_id' in explorer_layer.metadata and \
+               explorer_layer.metadata.get("uid") == sequence.uid:
 
-                folder_name = Path(save_path) / fname
-                folder_name.mkdir(parents=True, exist_ok=True)
+                fname = 'exp'
+                z = 0
 
-                for i in self.viewer.layers:
+                for f in range(len(explorer_layer.data)):
+                    x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm()
+                    y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
 
-                    if 'ch_id' in i.metadata and str(sequence.uid) in i.metadata.get('ch_id'):
+                    ch_id_info = explorer_layer.metadata.get('ch_id')
+                    framename = f"Pos{f:03d}_[{fname}_{ch_id_info}]"
 
-                        ch_id_info = i.metadata.get('ch_id')
+                    frame = self.viewer.add_image(
+                        explorer_layer.data[f], name=framename,
+                        translate=(z, y, x), opacity=0.5
+                    )
 
-                        tifffile.imsave(
-                            str(folder_name / f"{fname}_{ch_id_info}.tif"),
-                            i.data.astype("uint16"),
-                            imagej=True,
-                        )
+                    frame.metadata['frame'] = framename
+                    frame.metadata['stage_position'] = sequence.stage_positions[f]
+                    frame.metadata['uid_p'] = str(sequence.uid)
 
-                # update filename in mda.fname_lineEdit for the next aquisition.
-                fname = get_filename(fname, save_path)
-                self.explorer.fname_explorer_lineEdit.setText(fname)
+                explorer_layer.visible = False
 
-            # split stack and translate images depending on xy position (in pixel)
-            for explorer_layer in self.viewer.layers:
-
-                if 'ch_id' in explorer_layer.metadata and \
-                   explorer_layer.metadata.get("uid") == sequence.uid:
-
-                    fname = 'exp'
-
-                    for f in range(len(explorer_layer.data)):
-
-                        x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm()
-                        y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
-                        z = 0
-
-                        ch_id_info = explorer_layer.metadata.get('ch_id')
-                        framename = f"Pos{f:03d}_[{fname}_{ch_id_info}]"
-
-                        frame = self.viewer.add_image(
-                            explorer_layer.data[f], name=framename,
-                            translate=(z, y, x), opacity=0.5
-                        )
-
-                        frame.metadata['frame'] = framename
-                        frame.metadata['stage_position'] = sequence.stage_positions[f]
-                        frame.metadata['uid_p'] = str(sequence.uid)
-
-                    explorer_layer.visible = False
-
-            self.viewer.reset_view()
-
-        if hasattr(self, 'temp_folder'):
-            self.temp_folder.cleanup()
-
-        # reactivate gui when mda finishes.
-        self.mda.enable_mda_groupbox()
-        self.explorer.enable_explorer_groupbox()
-        self.enable_gui()
-        SEQUENCE_META.pop(sequence)
-
+        self.viewer.reset_view()
+       
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
