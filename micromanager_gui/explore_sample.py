@@ -113,7 +113,6 @@ class ExploreSample(QtW.QWidget):
             "stage_positions": [],
             "z_plan": None,
             "time_plan": None,
-            "extras": 'sample_explorer'
         }
 
         state["channels"] = [
@@ -236,6 +235,7 @@ class ExploreSample(QtW.QWidget):
         self.parent_path = Path(self.save_dir)
 
     def start_scan(self):
+        from .main_window import SEQUENCE_META
 
         if len(self._mmc.getLoadedDevices()) < 2:
             raise ValueError("Load a cfg file first.")
@@ -253,8 +253,17 @@ class ExploreSample(QtW.QWidget):
              )):
             raise ValueError('select a filename and a valid directory.')
 
-        self.explore_sample = MDASequence(**self._get_state_dict())
-        self._mmc.run_mda(self.explore_sample)  # run the MDA experiment asynchronously
+        explore_sample = MDASequence(**self._get_state_dict())
+
+        SEQUENCE_META[explore_sample] = {
+            "mode": 'explorer',
+            "split_channels": True,
+            "save_group_explorer": self.save_explorer_groupBox.isChecked(),
+            "file_name": self.fname_explorer_lineEdit.text(),
+            "save_dir": self.dir_explorer_lineEdit.text(),
+        }
+
+        self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
 
     def move_to(self):
