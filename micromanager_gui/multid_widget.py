@@ -150,8 +150,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.channel_tableWidget.setRowCount(0)
 
     def toggle_checkbox_save_pos(self):
-        if self.stage_pos_groupBox.isChecked() and \
-           self.stage_tableWidget.rowCount() > 0:
+        if (
+            self.stage_pos_groupBox.isChecked()
+            and self.stage_tableWidget.rowCount() > 0
+        ):
 
             self.checkBox_save_pos.setEnabled(True)
         else:
@@ -219,7 +221,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             "stage_positions": [],
             "z_plan": None,
             "time_plan": None,
-            "extras": 'mda'
+            "extras": "mda",
         }
         state["channels"] = [
             {
@@ -267,6 +269,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         return state
 
     def _on_run_clicked(self):
+        from .main_window import SEQUENCE_META
 
         if len(self._mmc.getLoadedDevices()) < 2:
             raise ValueError("Load a cfg file first.")
@@ -275,13 +278,24 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             raise ValueError("Select at least one channel.")
 
         if self.save_groupBox.isChecked() and (
-           self.fname_lineEdit.text() == '' or (
-               self.dir_lineEdit.text() == '' or not
-               Path.is_dir(Path(self.dir_lineEdit.text()))
-           )):
-            raise ValueError('select a filename and a valid directory.')
+            self.fname_lineEdit.text() == ""
+            or (
+                self.dir_lineEdit.text() == ""
+                or not Path.is_dir(Path(self.dir_lineEdit.text()))
+            )
+        ):
+            raise ValueError("select a filename and a valid directory.")
 
         experiment = MDASequence(**self._get_state_dict())
+
+        SEQUENCE_META[experiment] = {
+            "split_channels": self.checkBox_split_channels.isChecked(),
+            "save_group": self.save_groupBox.isChecked(),
+            "file_name": self.fname_lineEdit(),
+            "save_dir": self.dir_lineEdit.text(),
+            "save_pos": self.checkBox_save_pos.isChecked(),
+        }
+
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
 

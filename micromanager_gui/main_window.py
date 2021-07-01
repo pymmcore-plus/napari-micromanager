@@ -28,6 +28,8 @@ ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
+SEQUENCE_META = {}
+
 
 class _MainUI:
     UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
@@ -323,7 +325,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             if self.mda.checkBox_split_channels.isChecked() or\
                seq.extras == 'sample_explorer':
 
-                layer.metadata["ch_id"] = str(seq.uid) + f'_{event.channel.config}_idx{event.index["c"]}'
+                # storing event.index in addition to channel.config because it's
+                # possible to have two of the same channel in one sequence.
+                layer.metadata["ch_id"] = f'{event.channel.config}_idx{event.index["c"]}'
+
 
             # save first image in the temp folder
             if self.mda.checkBox_split_channels.isChecked() or\
@@ -337,129 +342,110 @@ class MainWindow(QtW.QWidget, _MainUI):
                 savefile = Path(self.temp_folder.name) / image_name
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
+    def _save_pos_separately(self, sequence, folder_name, fname):
+
+        for p in range(len(sequence.stage_positions)):
+
+            pos_num = "{:03}".format(int(p))
+            folder_path = Path(folder_name) / f"{fname}_Pos{pos_num}"
+
+            try:
+                Path(folder_path).mkdir(parents=True, exist_ok=False)
+            except FileExistsError:
+                pass
+
+            for i in self.viewer.layers:
+                if "ch_id" in i.metadata and str(sequence.uid) in i.metadata.get(
+                    "ch_id"
+                ):
+                    ch_id_info = i.metadata.get("ch_id")
+                    new_layer_name = ch_id_info.replace(str(sequence.uid), fname)
+                    fname_pos = f"{new_layer_name}_[p{pos_num}]"
+
+                    if len(sequence.time_plan) > 0 and sequence.axis_order[0] == "t":
+                        layer_p = i.data[:, p, ...]
+                    else:
+                        layer_p = i.data[p, ...]
+
+                    save_path_ch = folder_path / f"{fname_pos}.tif"
+
+                    # TODO: astype 'uint_' dependimg on camera bit depth
+                    tifffile.imsave(
+                        str(save_path_ch), layer_p.astype("uint16"), imagej=True
+                    )
+
+    def _save_layer(self, sequence, folder_name, fname):
+        # save each channel layer.
+        for i in self.viewer.layers:
+            if i.metadata.get("useq_sequence") != sequence:
+                continue
+
+            path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
+            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=True)
+
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
 
-        if self.mda.save_groupBox.isChecked():
+        # "split_channels": self.checkBox_split_channels.isChecked(),
+        # "save_group": self.save_groupBox.isChecked(),
+        # "file_name": self.fname_lineEdit(),
+        # "save_dir": self.dir_lineEdit.text(),
+        # "save_pos": self.checkBox_save_pos.isChecked(),
 
-            fname = self.mda.fname_lineEdit.text()
+        meta = SEQUENCE_META.get(sequence, {})
 
-            save_path = Path(self.mda.dir_lineEdit.text())
+        if meta.get("save_group"):
 
-            fname = check_filename(fname, save_path)
+            save_path = Path(meta.get("save_dir"))
+            fname = check_filename(meta.get("file_name"), save_path)
 
-            if self.mda.checkBox_split_channels.isChecked():
-                # Save individual channel layer(s).
+            # if split_channels, then create a new layer for each channel
+            if meta.get("split_channels"):
 
-                # create folder to save individual channel layer(s).
+                folder_name = save_path / fname
+                folder_name.mkdir(parents=True, exist_ok=True)
 
-                folder_name = Path(save_path) / fname
-
-                try:
-                    Path(folder_name).mkdir(parents=True, exist_ok=False)
-                except FileExistsError:
-                    pass
-
-                uid = sequence.uid
-
-                if self.mda.checkBox_save_pos.isChecked():
-                    # save each position and channel in a separate file.
-
-                    for p in range(len(sequence.stage_positions)):
-
-                        pos_num = '{0:03}'.format(int(p))
-                        folder_path = Path(folder_name) / f'{fname}_Pos{pos_num}'
-
-                        try:
-                            Path(folder_path).mkdir(parents=True, exist_ok=False)
-                        except FileExistsError:
-                            pass
-
-                        for i in self.viewer.layers:
-
-                            if 'ch_id' in i.metadata and \
-                               str(uid) in i.metadata.get('ch_id'):
-
-                                ch_id_info = i.metadata.get('ch_id')
-
-                                new_layer_name = ch_id_info.replace(str(uid), fname)
-
-                                fname_pos = f'{new_layer_name}_[p{pos_num}]'
-
-                                if len(sequence.time_plan) > 0 and \
-                                   sequence.axis_order[0] == 't':
-
-                                    layer_p = i.data[:, p, ...]
-                                else:
-                                    layer_p = i.data[p, ...]
-
-                                save_path_ch = folder_path / f'{fname_pos}.tif'
-
-                                # TODO: astype 'uint_' dependimg on camera bit depth
-                                tifffile.tifffile.imsave(
-                                    str(save_path_ch), layer_p.astype('uint16'),
-                                    imagej=True
-                                )
-
+                # save each position and channel in a separate file.
+                # NOTE: current _save_pos_separately is using `tifffile`
+                # whereas _save_layer is using `layer.save()`
+                if meta.get("save_pos"):
+                    self._save_pos_separately(sequence, folder_name, fname)
                 else:
-                    # save each channel layer.
-                    for i in self.viewer.layers:
+                    self._save_layer(sequence, folder_name, fname)
 
-                        if 'ch_id' in i.metadata and \
-                           str(uid) in i.metadata.get('ch_id'):
-
-                            ch_id_info = i.metadata.get('ch_id')
-                            new_layer_name = ch_id_info.replace(str(uid), fname)
-
-                            save_path_ch = folder_name / f'{new_layer_name}.tif'
-
-                            # TODO: astype 'uint_' dependimg on camera bit depth
-                            i.data = i.data.astype('uint16')
-                            i.save(str(save_path_ch))
-
-            else:
+            else:  # not splitting channels
                 try:
                     active_layer = next(
-                        l for l in self.viewer.layers
-                        if l.metadata.get('uid') == sequence.uid
+                        lay
+                        for lay in self.viewer.layers
+                        if lay.metadata.get("uid") == sequence.uid
                     )
                 except StopIteration:
                     raise IndexError("could not find layer corresponding to sequence")
 
-                if self.mda.checkBox_save_pos.isChecked():
-                    # save each position in a separate file
+                if not meta.get("save_pos"):
+                    # not saving each position in a separate file
+                    tifffile.imsave(
+                        str(save_path / fname),
+                        active_layer.data.astype("uint16"),
+                        imagej=True,
+                    )
+                else:  # save each position in a separate file
 
-                    folder_name = f'{fname}_Pos'
-                    folder_path = Path(save_path) / folder_name
+                    folder_path = save_path / f"{fname}_Pos"
+                    folder_path.mkdir(parents=True, exist_ok=True)
 
                     try:
-                        Path(folder_path).mkdir(parents=True, exist_ok=False)
-                    except FileExistsError:
-                        pass
+                        time_axis = sequence.axis_order.index("t")
+                    except ValueError:
+                        time_axis = 0
 
-                    for p in range(len(sequence.stage_positions)):
-                        pos_num = '{0:03}'.format(int(p))
-                        fname_pos = f'{fname}_[p{pos_num}]'
-
-                        if len(sequence.time_plan) > 0 and \
-                           sequence.axis_order[0] == 't':
-
-                            layer_p = active_layer.data[:, p, ...]
-                        else:
-                            layer_p = active_layer.data[p, ...]
-
-                        name = fname_pos + '.tif'
-                        save_path_pos = Path(folder_path) / name
-                        # TODO: astype 'uint_' dependimg on camera bit depth selected
-                        tifffile.tifffile.imsave(
-                            str(save_path_pos), layer_p.astype('uint16'),
-                            imagej=True
+                    for p in range(active_layer.data.shape[time_axis]):
+                        tifffile.imsave(
+                            str(folder_path / f"{fname}_[p{p:03d}].tif"),
+                            active_layer.data.take(p, axis=time_axis).astype("uint16"),
+                            imagej=True,
                         )
-
-                else:
-                    # TODO: astype 'uint_' dependimg on camera bit depth selected
-                    active_layer.data = active_layer.data.astype('uint16')
-                    active_layer.save(str(save_path / fname))
 
             # update filename in mda.fname_lineEdit for the next aquisition.
             fname = get_filename(fname, save_path)
@@ -542,6 +528,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.mda.enable_mda_groupbox()
         self.explorer.enable_explorer_groupbox()
         self.enable_gui()
+        SEQUENCE_META.pop(sequence)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
@@ -677,8 +664,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
                 else:
-                    warnings.warn("MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                                  "STARTING WITH e.g. 100X or 100x.")
+                    warnings.warn(
+                        "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
+                        "STARTING WITH e.g. 100X or 100x."
+                    )
 
         # get and set image pixel sixe (x,y) for the current pixel size Config
         if magnification is not None:
@@ -706,7 +695,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         if self._mmc.getPixelSizeUm() > 0:
             x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
-            y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (- 1)
+            y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (-1)
             self.viewer.layers["preview"].translate = (y, x)
 
         else:
