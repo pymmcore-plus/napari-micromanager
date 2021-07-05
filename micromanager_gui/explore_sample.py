@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 import warnings
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
+
+if TYPE_CHECKING:
+    from pymmcore_plus import RemoteMMCore
 
 
 UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
@@ -34,7 +38,7 @@ class ExploreSample(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
 
-    def __init__(self, mmcore, parent=None):
+    def __init__(self, mmcore: RemoteMMCore, parent=None):
 
         self._mmc = mmcore
         super().__init__(parent)
@@ -262,7 +266,6 @@ class ExploreSample(QtW.QWidget):
             "file_name": self.fname_explorer_lineEdit.text(),
             "save_dir": self.dir_explorer_lineEdit.text(),
         }
-
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
 

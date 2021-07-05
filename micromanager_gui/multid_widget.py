@@ -10,7 +10,7 @@ from qtpy.QtGui import QIcon
 from useq import MDASequence
 
 if TYPE_CHECKING:
-    from pymmcore_remote import RemoteMMCore
+    from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
 
@@ -301,7 +301,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             "save_dir": self.dir_lineEdit.text(),
             "save_pos": self.checkBox_save_pos.isChecked(),
         }
-
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
 
