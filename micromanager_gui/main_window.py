@@ -639,6 +639,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             print(f"Current Pixel Size in µm: {self._mmc.getPixelSizeUm()}")
 
     def update_viewer(self, data=None):
+        # TODO: fix the fact that when you change the objective 
+        # the image translation is wrong
         if data is None:
             try:
                 data = self._mmc.popNextImage()
