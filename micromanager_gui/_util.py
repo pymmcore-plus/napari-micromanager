@@ -1,7 +1,7 @@
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-from pathlib import Path
 
 
 def get_devices_and_props(self):
@@ -55,7 +55,7 @@ def extend_array_for_index(array: np.ndarray, index: Tuple[int, ...]):
 def check_filename(fname, save_path):
     """
     Ckeck the input filename and modify it to add _nnn in the end.
-    The get_filename(fname,save_path) function check if the name 
+    The get_filename(fname,save_path) function check if the name
     is already present in the save_path and incremant the _nnn accordingly.
 
     filename examples: user input -> output:
@@ -70,53 +70,56 @@ def check_filename(fname, save_path):
         - ...
     """
     try:
-        n = fname.split('_')[-1]
+        n = fname.split("_")[-1]
         int_n = int(n)
-        
+
         if len(n) == 3 and int_n >= 0:
-            fname = get_filename(fname,save_path)
-        
-        elif len(n) != 3 and len(n) <=4 and int_n >= 0:
-            s = ''
-            for i in fname.split('_')[:-1]:
-                s = s + i + '_'
-            fname = s + '{0:03}'.format(int_n)
-            fname = get_filename(fname,save_path)
-        
+            fname = get_filename(fname, save_path)
+
+        elif len(n) != 3 and len(n) <= 4 and int_n >= 0:
+            s = ""
+            for i in fname.split("_")[:-1]:
+                s = s + i + "_"
+            fname = s + "{:03}".format(int_n)
+            fname = get_filename(fname, save_path)
+
         else:
-            fname = fname + '_000'
-            fname = get_filename(fname,save_path)
+            fname = fname + "_000"
+            fname = get_filename(fname, save_path)
 
     except ValueError:
-        n = ''
-        for i in range(1,len(fname)+1):
+        n = ""
+        for i in range(1, len(fname) + 1):
             try:
                 n += str(int(fname[-i]))
             except ValueError:
                 break
         if len(n) > 0 and len(n) <= 4:
             n = n[::-1]
-            fname = fname.replace(n, '_' + '{0:03}'.format(int(n)))
-            fname = get_filename(fname,save_path)
+            fname = fname.replace(n, "_" + "{:03}".format(int(n)))
+            fname = get_filename(fname, save_path)
         else:
-            fname = fname + '_000'
-            fname = get_filename(fname,save_path)
-        
+            fname = fname + "_000"
+            fname = get_filename(fname, save_path)
+
     return fname
-    
+
+
 def get_filename(fname, save_path):
     """
-        check if the filename_nnn used to save the layer exists
-        and increment _nnn accordingly.
+    check if the filename_nnn used to save the layer exists
+    and increment _nnn accordingly.
     """
-    val = int(fname.split('_')[-1])
+    val = int(fname.split("_")[-1])
 
     while True:
-        new_val = '{0:03}'.format(val)
+        new_val = "{:03}".format(val)
         fname = fname[:-3] + new_val
-        if not Path(save_path / f'{fname}.tif').exists() and \
-            not Path(save_path / fname).exists():
-                break
+        if (
+            not Path(save_path / f"{fname}.tif").exists()
+            and not Path(save_path / fname).exists()
+        ):
+            break
         else:
             val += 1
     return fname
