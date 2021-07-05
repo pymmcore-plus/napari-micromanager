@@ -2,14 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from re import I
 from typing import TYPE_CHECKING
 import tifffile
 import tempfile
 import napari
 import numpy as np
-from pymmcore_remote import RemoteMMCore
-from pymmcore_remote.qcallbacks import QCoreCallback
+from pymmcore_plus import RemoteMMCore
+from pymmcore_plus.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -174,7 +173,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 # to match position coordinates with center of the image
                 x = x - ((width / 2) * self._mmc.getPixelSizeUm())
                 y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (- 1))
-                
+
             else:
                 x = None
                 y = None
@@ -330,7 +329,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        # sourcery skip: extract-method, hoist-statement-from-loop
         """Save layer and add increment to save name."""
 
         meta = SEQUENCE_META.get(sequence, {})
