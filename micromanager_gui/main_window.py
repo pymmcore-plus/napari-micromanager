@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 import tifffile
+
 from pymmcore_plus import RemoteMMCore
 from pymmcore_plus.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
