@@ -217,7 +217,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         layer_set.clear()
 
     def _on_mda_started(self, sequence: useq.MDASequence):
-        """"create temp folder and block gui when mda starts."""
+        """ "create temp folder and block gui when mda starts."""
 
         self.viewer.grid.enabled = False
 
@@ -291,7 +291,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if meta.get("save_group_mda") or meta.get("save_group_explorer"):
                 file_name = meta.get("file_name")
             else:
-                file_name = 'Exp'
+                file_name = "Exp"
 
             if meta.get("split_channels"):
                 layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
@@ -372,8 +372,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                     ch_id_info = i.metadata.get("ch_id")
                     fname_pos = f"{fname}_{ch_id_info}_[p{p:03}]"
 
-                    pos_axis = sequence.axis_order.index("p") \
-                        if len(sequence.time_plan) > 0 else 0
+                    pos_axis = (
+                        sequence.axis_order.index("p")
+                        if len(sequence.time_plan) > 0
+                        else 0
+                    )
 
                     tifffile.imsave(
                         str(folder_path / f"{fname_pos}.tif"),
@@ -472,7 +475,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                         * (-1)
                     )
 
-                    ch_id_info = explorer_layer.metadata.get('ch_id')
+                    ch_id_info = explorer_layer.metadata.get("ch_id")
                     framename = f"Pos{f:03d}_[{ch_id_info}]"
 
                     frame = self.viewer.add_image(
