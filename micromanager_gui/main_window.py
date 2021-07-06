@@ -343,7 +343,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def snap(self):
         self.stop_live()
-        self._mmc.setExposure(int(self.exp_spinBox.value()))
+        self._mmc.setExposure(self.exp_spinBox.value())
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
