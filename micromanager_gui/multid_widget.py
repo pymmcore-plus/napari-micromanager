@@ -10,7 +10,7 @@ from qtpy.QtGui import QIcon
 from useq import MDASequence
 
 if TYPE_CHECKING:
-    from pymmcore_remote import RemoteMMCore
+    from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
 
