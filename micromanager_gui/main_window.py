@@ -348,7 +348,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
+        self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self.exp_spinBox.value()))
