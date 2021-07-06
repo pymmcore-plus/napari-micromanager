@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import tempfile
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
-import tifffile
-import tempfile
+
 import napari
 import numpy as np
+import tifffile
 from pymmcore_plus import RemoteMMCore
 from pymmcore_plus.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
@@ -14,12 +16,9 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from ._util import extend_array_for_index, get_filename, check_filename
+from ._util import check_filename, extend_array_for_index, get_filename
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
-
-import warnings
-
 
 if TYPE_CHECKING:
     import useq
@@ -168,11 +167,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
                 x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (- 1)
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
 
                 # to match position coordinates with center of the image
                 x = x - ((width / 2) * self._mmc.getPixelSizeUm())
-                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (- 1))
+                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
 
             else:
                 x = None
@@ -205,7 +204,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         move_to_y = self.y_lineEdit_main.text()
 
         if move_to_x == "None" and move_to_y == "None":
-            warnings.warn('PIXEL SIZE NOT SET.')
+            warnings.warn("PIXEL SIZE NOT SET.")
         else:
             move_to_x = float(move_to_x)
             move_to_y = float(move_to_y)
@@ -238,23 +237,25 @@ class MainWindow(QtW.QWidget, _MainUI):
         if meta.get("split_channels"):
 
             im_idx = tuple(
-                event.index[k] for k in seq.axis_order
-                if ((k in event.index) and (k != 'c'))
+                event.index[k]
+                for k in seq.axis_order
+                if ((k in event.index) and (k != "c"))
             )
         else:
-            im_idx = tuple(
-                event.index[k] for k in seq.axis_order if k in event.index
-            )
+            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
 
         try:
             # see if we already have a layer with this sequence
             if meta.get("split_channels"):
 
                 layer = next(
-                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
-                    and (x.metadata.get("ch_id")
-                         == f'{event.channel.config}_idx{event.index["c"]}'
-                         )
+                    x
+                    for x in self.viewer.layers
+                    if x.metadata.get("uid") == seq.uid
+                    and (
+                        x.metadata.get("ch_id")
+                        == f'{event.channel.config}_idx{event.index["c"]}'
+                    )
                 )
             else:
                 layer = next(
@@ -277,9 +278,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             if meta.get("split_channels"):
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
-                image_name = f'{im_idx}.tif'
+                image_name = f"{im_idx}.tif"
 
-            if hasattr(self, 'temp_folder'):
+            if hasattr(self, "temp_folder"):
                 savefile = Path(self.temp_folder.name) / image_name
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
@@ -299,26 +300,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
                 layer = self.viewer.add_image(_image, name=layer_name)
 
-            # if meta.get("save_group_mda") or meta.get("save_group_explorer"):
-
-            #     file_name = meta.get("file_name")
-
-            #     if meta.get("split_channels"):
-            #         layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-            #     else:
-            #         layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
-
-            # else:
-            #     if meta.get("split_channels"):
-            #         layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-            #     else:
-            #         layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S:%f')}"
-
-            # if meta.get("split_channels"):
-            #     layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
-            # else:
-            #     layer = self.viewer.add_image(_image, name=layer_name)
-
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
 
             self.viewer.dims.axis_labels = labels
@@ -330,13 +311,15 @@ class MainWindow(QtW.QWidget, _MainUI):
             if meta.get("split_channels"):
                 # storing event.index in addition to channel.config because it's
                 # possible to have two of the same channel in one sequence.
-                layer.metadata["ch_id"] = f'{event.channel.config}_idx{event.index["c"]}'
+                layer.metadata[
+                    "ch_id"
+                ] = f'{event.channel.config}_idx{event.index["c"]}'
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
             else:
-                image_name = f'{im_idx}.tif'
+                image_name = f"{im_idx}.tif"
 
             # save first image in the temp folder
-            if hasattr(self, 'temp_folder'):
+            if hasattr(self, "temp_folder"):
                 savefile = Path(self.temp_folder.name) / image_name
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
 
@@ -345,7 +328,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         meta = SEQUENCE_META.get(sequence, {})
 
-        if meta.get("mode") == 'mda' and meta.get("save_group_mda"):
+        if meta.get("mode") == "mda" and meta.get("save_group_mda"):
 
             save_path, fname = self._save_mda_acq(sequence, meta)
 
@@ -353,7 +336,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             fname = get_filename(fname, save_path)
             self.mda.fname_lineEdit.setText(fname)
 
-        if meta.get("mode") == 'explorer':
+        if meta.get("mode") == "explorer":
 
             if meta.get("save_group_explorer"):
 
@@ -366,7 +349,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             # split stack and translate images depending on xy position (in pixel)
             self._split_and_translate(sequence)
 
-        if hasattr(self, 'temp_folder'):
+        if hasattr(self, "temp_folder"):
             self.temp_folder.cleanup()
 
         # reactivate gui when mda finishes.
@@ -384,8 +367,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             folder_path.mkdir(parents=True, exist_ok=True)
 
             for i in self.viewer.layers:
-                if "ch_id" in i.metadata and \
-                   i.metadata.get("uid") == sequence.uid:
+                if "ch_id" in i.metadata and i.metadata.get("uid") == sequence.uid:
 
                     ch_id_info = i.metadata.get("ch_id")
                     fname_pos = f"{fname}_{ch_id_info}_[p{p:03}]"
@@ -406,11 +388,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 continue
 
             path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
-            tifffile.imsave(
-                str(path),
-                i.data.astype("uint16"),
-                imagej=True
-            )
+            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=True)
 
     def _save_mda_acq(self, sequence, meta):
         save_path = Path(meta.get("save_dir"))
@@ -430,7 +408,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         else:  # not splitting channels
             try:
                 active_layer = next(
-                    lay for lay in self.viewer.layers
+                    lay
+                    for lay in self.viewer.layers
                     if lay.metadata.get("uid") == sequence.uid
                 )
             except StopIteration:
@@ -439,7 +418,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if not meta.get("save_pos"):
                 # not saving each position in a separate file
                 tifffile.imsave(
-                    str(save_path / f'{fname}.tif'),
+                    str(save_path / f"{fname}.tif"),
                     active_layer.data.astype("uint16"),
                     imagej=True,
                 )
@@ -466,7 +445,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         folder_name.mkdir(parents=True, exist_ok=True)
 
         for i in self.viewer.layers:
-            if 'ch_id' in i.metadata and i.metadata.get("uid") == sequence.uid:
+            if "ch_id" in i.metadata and i.metadata.get("uid") == sequence.uid:
 
                 tifffile.imsave(
                     str(folder_name / f"{fname}_{i.metadata.get('ch_id')}.tif"),
@@ -478,28 +457,34 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _split_and_translate(self, sequence):
         for explorer_layer in self.viewer.layers:
-            if 'ch_id' in explorer_layer.metadata and \
-               explorer_layer.metadata.get("uid") == sequence.uid:
+            if (
+                "ch_id" in explorer_layer.metadata
+                and explorer_layer.metadata.get("uid") == sequence.uid
+            ):
 
-                # fname = 'Exp'
                 z = 0
 
                 for f in range(len(explorer_layer.data)):
                     x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm()
-                    y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
+                    y = (
+                        sequence.stage_positions[f].y
+                        / self._mmc.getPixelSizeUm()
+                        * (-1)
+                    )
 
                     ch_id_info = explorer_layer.metadata.get('ch_id')
-                    # framename = f"Pos{f:03d}_[{fname}_{ch_id_info}]"
                     framename = f"Pos{f:03d}_[{ch_id_info}]"
 
                     frame = self.viewer.add_image(
-                        explorer_layer.data[f], name=framename,
-                        translate=(z, y, x), opacity=0.5
+                        explorer_layer.data[f],
+                        name=framename,
+                        translate=(z, y, x),
+                        opacity=0.5,
                     )
 
-                    frame.metadata['frame'] = framename
-                    frame.metadata['stage_position'] = sequence.stage_positions[f]
-                    frame.metadata['uid_p'] = str(sequence.uid)
+                    frame.metadata["frame"] = framename
+                    frame.metadata["stage_position"] = sequence.stage_positions[f]
+                    frame.metadata["uid_p"] = str(sequence.uid)
 
                 explorer_layer.visible = False
 
