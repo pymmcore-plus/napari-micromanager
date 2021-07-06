@@ -57,7 +57,7 @@ class _MainUI:
     multid_tab: QtW.QWidget
     snap_channel_groupBox: QtW.QGroupBox
     snap_channel_comboBox: QtW.QComboBox
-    exp_spinBox: QtW.QSpinBox
+    exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
     max_val_lineEdit: QtW.QLineEdit
