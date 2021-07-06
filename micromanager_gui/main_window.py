@@ -104,7 +104,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.streaming_timer = None
 
         # create connection to mmcore server
-        self._mmc = RemoteMMCore()
+        self._mmc = RemoteMMCore(verbose=True)
         sig = QCoreCallback()
         self._mmc.register_callback(sig)
 
@@ -288,24 +288,36 @@ class MainWindow(QtW.QWidget, _MainUI):
             _image = image[(np.newaxis,) * len(seq.shape)]
 
             if meta.get("save_group_mda") or meta.get("save_group_explorer"):
-
                 file_name = meta.get("file_name")
-
-                if meta.get("split_channels"):
-                    layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-                else:
-                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
-
             else:
-                if meta.get("split_channels"):
-                    layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-                else:
-                    layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S:%f')}"
+                file_name = 'Exp'
 
             if meta.get("split_channels"):
+                layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
                 layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
             else:
+                layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
                 layer = self.viewer.add_image(_image, name=layer_name)
+
+            # if meta.get("save_group_mda") or meta.get("save_group_explorer"):
+
+            #     file_name = meta.get("file_name")
+
+            #     if meta.get("split_channels"):
+            #         layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
+            #     else:
+            #         layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
+
+            # else:
+            #     if meta.get("split_channels"):
+            #         layer_name = f"Experiment_[{event.channel.config}-idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
+            #     else:
+            #         layer_name = f"Experiment_{datetime.now().strftime('%H:%M:%S:%f')}"
+
+            # if meta.get("split_channels"):
+            #     layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
+            # else:
+            #     layer = self.viewer.add_image(_image, name=layer_name)
 
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
 
@@ -378,7 +390,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     ch_id_info = i.metadata.get("ch_id")
                     fname_pos = f"{fname}_{ch_id_info}_[p{p:03}]"
 
-                    pos_axis = sequence.axis_order.index("p")
+                    pos_axis = sequence.axis_order.index("p") \
+                        if len(sequence.time_plan) > 0 else 0
 
                     tifffile.imsave(
                         str(folder_path / f"{fname_pos}.tif"),
@@ -468,7 +481,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if 'ch_id' in explorer_layer.metadata and \
                explorer_layer.metadata.get("uid") == sequence.uid:
 
-                fname = 'exp'
+                # fname = 'Exp'
                 z = 0
 
                 for f in range(len(explorer_layer.data)):
@@ -476,7 +489,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     y = sequence.stage_positions[f].y / self._mmc.getPixelSizeUm() * (- 1)
 
                     ch_id_info = explorer_layer.metadata.get('ch_id')
-                    framename = f"Pos{f:03d}_[{fname}_{ch_id_info}]"
+                    # framename = f"Pos{f:03d}_[{fname}_{ch_id_info}]"
+                    framename = f"Pos{f:03d}_[{ch_id_info}]"
 
                     frame = self.viewer.add_image(
                         explorer_layer.data[f], name=framename,
@@ -490,7 +504,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 explorer_layer.visible = False
 
         self.viewer.reset_view()
-       
+
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
@@ -639,7 +653,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             print(f"Current Pixel Size in µm: {self._mmc.getPixelSizeUm()}")
 
     def update_viewer(self, data=None):
-        # TODO: fix the fact that when you change the objective 
+        # TODO: fix the fact that when you change the objective
         # the image translation is wrong
         if data is None:
             try:
