@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from pymmcore_remote import RemoteMMCore
-from pymmcore_remote.qcallbacks import QCoreCallback
+from pymmcore_plus import RemoteMMCore
+from pymmcore_plus.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
