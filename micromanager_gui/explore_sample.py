@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
-import warnings
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -112,7 +112,7 @@ class ExploreSample(QtW.QWidget):
 
     def _get_state_dict(self) -> dict:
         state = {
-            "axis_order": 'tpzc',
+            "axis_order": "tpzc",
             "channels": [],
             "stage_positions": [],
             "z_plan": None,
@@ -121,7 +121,9 @@ class ExploreSample(QtW.QWidget):
 
         state["channels"] = [
             {
-                "config": self.channel_explorer_tableWidget.cellWidget(c, 0).currentText(),
+                "config": self.channel_explorer_tableWidget.cellWidget(
+                    c, 0
+                ).currentText(),
                 "group": self._mmc.getChannelGroup() or "Channel",
                 "exposure": self.channel_explorer_tableWidget.cellWidget(c, 1).value(),
             }
@@ -161,7 +163,7 @@ class ExploreSample(QtW.QWidget):
         overlap_px_h = height - (height * overlap_percentage) / 100
 
         if self.scan_size_r == 1 and self.scan_size_c == 1:
-            raise Exception('RxC -> 1x1. Use MDA to acquire a single position image.')
+            raise Exception("RxC -> 1x1. Use MDA to acquire a single position image.")
 
         move_x = (
             ((width / 2) * (self.scan_size_c - 1)) - overlap_px_w
@@ -195,11 +197,12 @@ class ExploreSample(QtW.QWidget):
         )
 
     def create_pos_grid_coordinates(
-        self, z_curr_pos_explorer,
+        self,
+        z_curr_pos_explorer,
         x_pos_explorer,
         y_pos_explorer,
         increment_x,
-        increment_y
+        increment_y,
     ):
         list_pos_order = []
         for r in range(self.scan_size_r):
@@ -208,9 +211,7 @@ class ExploreSample(QtW.QWidget):
                     if r > 0 and c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
                     list_pos_order.append(
-                        [x_pos_explorer,
-                         y_pos_explorer,
-                         z_curr_pos_explorer]
+                        [x_pos_explorer, y_pos_explorer, z_curr_pos_explorer]
                     )
                     if c < self.scan_size_c - 1:
                         x_pos_explorer = x_pos_explorer + increment_x
@@ -220,9 +221,7 @@ class ExploreSample(QtW.QWidget):
                     if c == 0:
                         y_pos_explorer = y_pos_explorer - increment_y
                     list_pos_order.append(
-                        [x_pos_explorer,
-                         y_pos_explorer,
-                         z_curr_pos_explorer]
+                        [x_pos_explorer, y_pos_explorer, z_curr_pos_explorer]
                     )
                     if col > 0:
                         col = col - 1
@@ -245,22 +244,24 @@ class ExploreSample(QtW.QWidget):
             raise ValueError("Load a cfg file first.")
 
         if self._mmc.getPixelSizeUm() <= 0:
-            raise ValueError('PIXEL SIZE NOT SET.')
+            raise ValueError("PIXEL SIZE NOT SET.")
 
         if self.channel_explorer_tableWidget.rowCount() <= 0:
             raise ValueError("Select at least one channel.")
 
-        if self.save_explorer_groupBox.isChecked() and \
-            (self.fname_explorer_lineEdit.text() == '' or (
-             self.dir_explorer_lineEdit.text() == '' or not
-             Path.is_dir(Path(self.dir_explorer_lineEdit.text()))
-             )):
-            raise ValueError('select a filename and a valid directory.')
+        if self.save_explorer_groupBox.isChecked() and (
+            self.fname_explorer_lineEdit.text() == ""
+            or (
+                self.dir_explorer_lineEdit.text() == ""
+                or not Path.is_dir(Path(self.dir_explorer_lineEdit.text()))
+            )
+        ):
+            raise ValueError("select a filename and a valid directory.")
 
         explore_sample = MDASequence(**self._get_state_dict())
 
         SEQUENCE_META[explore_sample] = {
-            "mode": 'explorer',
+            "mode": "explorer",
             "split_channels": True,
             "save_group_explorer": self.save_explorer_groupBox.isChecked(),
             "file_name": self.fname_explorer_lineEdit.text(),
@@ -275,7 +276,7 @@ class ExploreSample(QtW.QWidget):
         move_to_y = self.y_lineEdit.text()
 
         if move_to_x == "None" and move_to_y == "None":
-            warnings.warn('PIXEL SIZE NOT SET.')
+            warnings.warn("PIXEL SIZE NOT SET.")
         else:
             move_to_x = float(move_to_x)
             move_to_y = float(move_to_y)
