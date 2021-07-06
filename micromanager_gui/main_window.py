@@ -115,6 +115,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
+        sig.exposureChanged.connect(lambda name, exp: self.exp_spinBox.setValue(exp))
 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
