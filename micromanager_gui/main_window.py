@@ -241,16 +241,18 @@ class MainWindow(QtW.QWidget, _MainUI):
                 for k in seq.axis_order
                 if ((k in event.index) and (k != "c"))
             )
+
+            image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+
         else:
             im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
+            image_name = f"{im_idx}.tif"
 
         try:
             # see if we already have a layer with this sequence
             if meta.get("split_channels"):
                 layer = next(
-                    x
-                    for x in self.viewer.layers
-                    if x.metadata.get("uid") == seq.uid
+                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
                     and (
                         x.metadata.get("ch_id")
                         == f'{event.channel.config}_idx{event.index["c"]}'
@@ -274,11 +276,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.viewer.dims.set_point(a, v)
 
             # save each image in the temp folder
-            if meta.get("split_channels"):
-                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
-            else:
-                image_name = f"{im_idx}.tif"
-
             if hasattr(self, "temp_folder"):
                 savefile = Path(self.temp_folder.name) / image_name
                 tifffile.tifffile.imsave(str(savefile), image, imagej=True)
