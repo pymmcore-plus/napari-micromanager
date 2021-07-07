@@ -226,9 +226,9 @@ class PropBrowser(Container):
 
 
 if __name__ == "__main__":
-    from micromanager_gui._core._mmcore_plus import MMCorePlus
+    from pymmcore_plus import CMMCorePlus
 
-    mmcore = MMCorePlus()
+    mmcore = CMMCorePlus()
     mmcore.loadSystemConfiguration()
     pb = PropBrowser(mmcore)
 
