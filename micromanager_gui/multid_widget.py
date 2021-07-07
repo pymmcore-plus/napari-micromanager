@@ -279,9 +279,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if self.stage_pos_groupBox.isChecked() and (
             self.stage_tableWidget.rowCount() <= 0
         ):
-            raise ValueError(
-                "Select at least one position" "or deselect the position groupbox."
-            )
+            raise ValueError("Select at least one position"
+                             "or deselect the position groupbox.")
 
         if self.save_groupBox.isChecked() and (
             self.fname_lineEdit.text() == ""
@@ -295,7 +294,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         experiment = MDASequence(**self._get_state_dict())
 
         SEQUENCE_META[experiment] = {
-            "mode": "mda",
+            "mode": 'mda',
             "split_channels": self.checkBox_split_channels.isChecked(),
             "save_group_mda": self.save_groupBox.isChecked(),
             "file_name": self.fname_lineEdit.text(),
