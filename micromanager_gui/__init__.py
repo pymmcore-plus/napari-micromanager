@@ -11,3 +11,10 @@ def napari_experimental_provide_dock_widget():
     from .main_window import MainWindow
 
     return MainWindow
+
+
+@napari_hook_implementation
+def napari_experimental_provide_function():
+    from _plugins import add_lut, hide_show, prop
+
+    return [add_lut, hide_show, prop]

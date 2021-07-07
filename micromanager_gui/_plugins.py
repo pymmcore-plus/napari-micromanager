@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from napari_plugin_engine import napari_hook_implementation
+# from napari_plugin_engine import napari_hook_implementation
 
 if TYPE_CHECKING:
     import napari
@@ -8,28 +8,12 @@ if TYPE_CHECKING:
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from prop_browser import PropBrowser
-from pymmcore_plus import CMMCorePlus
 
 """
 This module is an example of a barebones function plugin for napari
 It implements the ``napari_experimental_provide_function`` hook specification.
 see: https://napari.org/docs/dev/plugins/hook_specifications.html
 """
-
-
-@napari_hook_implementation
-def napari_experimental_provide_function():
-    return [add_lut, hide_show, prop]
-
-
-def prop():
-    mmcore = CMMCorePlus()
-    mmcore.loadSystemConfiguration()
-    pb = PropBrowser(mmcore)
-
-    return pb.show(run=True)
-
 
 class Color(Enum):
     gray = "gray"
