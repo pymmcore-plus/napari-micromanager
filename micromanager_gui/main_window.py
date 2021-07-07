@@ -252,7 +252,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             # see if we already have a layer with this sequence
             if meta.get("split_channels"):
                 layer = next(
-                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+                    x
+                    for x in self.viewer.layers
+                    if x.metadata.get("uid") == seq.uid
                     and (
                         x.metadata.get("ch_id")
                         == f'{event.channel.config}_idx{event.index["c"]}'
