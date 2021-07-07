@@ -247,10 +247,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         try:
             # see if we already have a layer with this sequence
             if meta.get("split_channels"):
-
                 layer = next(
-                    x
-                    for x in self.viewer.layers
+                    x for x in self.viewer.layers
                     if x.metadata.get("uid") == seq.uid
                     and (
                         x.metadata.get("ch_id")
@@ -294,7 +292,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                 file_name = "Exp"
 
             if meta.get("split_channels"):
-                layer_name = f"{file_name}_[{event.channel.config}_idx{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
+                layer_name = f"{file_name}_[{event.channel.config}_idx"\
+                    f"{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
                 layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
             else:
                 layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
