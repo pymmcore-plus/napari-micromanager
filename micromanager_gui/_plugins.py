@@ -8,8 +8,8 @@ if TYPE_CHECKING:
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pymmcore_plus import CMMCorePlus
 from prop_browser import PropBrowser
+from pymmcore_plus import CMMCorePlus
 
 """
 This module is an example of a barebones function plugin for napari
