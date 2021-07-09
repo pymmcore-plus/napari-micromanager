@@ -228,7 +228,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.disable_gui()
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        # sourcery skip: merge-else-if-into-elif
 
         seq = event.sequence
         meta = SEQUENCE_META.get(seq, {})
