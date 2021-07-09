@@ -104,7 +104,7 @@
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
-           <widget class="QSpinBox" name="exp_spinBox">
+           <widget class="QDoubleSpinBox" name="exp_spinBox">
             <property name="enabled">
              <bool>true</bool>
             </property>

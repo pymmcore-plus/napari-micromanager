@@ -62,7 +62,7 @@ class _MainUI:
     multid_tab: QtW.QWidget
     snap_channel_groupBox: QtW.QGroupBox
     snap_channel_comboBox: QtW.QComboBox
-    exp_spinBox: QtW.QSpinBox
+    exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
     max_val_lineEdit: QtW.QLineEdit
@@ -133,6 +133,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.MDAFrameReady.connect(self._on_mda_frame)
+        sig.exposureChanged.connect(lambda name, exp: self.exp_spinBox.setValue(exp))
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -674,16 +675,18 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def snap(self):
         self.stop_live()
-        self._mmc.setExposure(int(self.exp_spinBox.value()))
+
+        self._mmc.setExposure(self.exp_spinBox.value())
 
         ch_group = self._mmc.getChannelGroup() or "Channel"
         self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+
 
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(int(self.exp_spinBox.value()))
+        self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self.exp_spinBox.value()))
