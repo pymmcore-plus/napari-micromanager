@@ -1,19 +1,17 @@
 from typing import TYPE_CHECKING
 
-# from napari_plugin_engine import napari_hook_implementation
-
 if TYPE_CHECKING:
     import napari
 
 from enum import Enum
 from typing import TYPE_CHECKING
 
-
 """
 This module is an example of a barebones function plugin for napari
 It implements the ``napari_experimental_provide_function`` hook specification.
 see: https://napari.org/docs/dev/plugins/hook_specifications.html
 """
+
 
 class Color(Enum):
     gray = "gray"
