@@ -15,6 +15,6 @@ def napari_experimental_provide_dock_widget():
 
 @napari_hook_implementation
 def napari_experimental_provide_function():
-    from _plugins import add_lut, hide_show
+    from ._plugins import add_lut, hide_show
 
     return [add_lut, hide_show]
