@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import tempfile
-import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -67,10 +66,6 @@ class _MainUI:
     live_Button: QtW.QPushButton
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
-    move_to: QtW.QGroupBox
-    move_to_main_Button: QtW.QPushButton
-    x_lineEdit_main: QtW.QLineEdit
-    y_lineEdit_main: QtW.QLineEdit
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -113,8 +108,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        self.x_lineEdit_main.setText(str(None))
-        self.y_lineEdit_main.setText(str(None))
         self.explorer.x_lineEdit.setText(str(None))
         self.explorer.y_lineEdit.setText(str(None))
 
@@ -150,9 +143,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
-        self.move_to_main_Button.clicked.connect(self.move_to_position)
-        self.x_lineEdit_main.setText(str(None))
-        self.y_lineEdit_main.setText(str(None))
         self.explorer.x_lineEdit.setText(str(None))
         self.explorer.y_lineEdit.setText(str(None))
 
@@ -178,8 +168,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 x = None
                 y = None
 
-            self.x_lineEdit_main.setText(str(x))
-            self.y_lineEdit_main.setText(str(y))
             self.explorer.x_lineEdit.setText(str(x))
             self.explorer.y_lineEdit.setText(str(y))
 
@@ -198,24 +186,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(False)
         self.snap_live_tab.setEnabled(False)
         self.snap_live_tab.setEnabled(False)
-
-    def move_to_position(self):
-
-        move_to_x = self.x_lineEdit_main.text()
-        move_to_y = self.y_lineEdit_main.text()
-
-        if move_to_x == "None" and move_to_y == "None":
-            warnings.warn("PIXEL SIZE NOT SET.")
-        else:
-            move_to_x = float(move_to_x)
-            move_to_y = float(move_to_y)
-            self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
-
-    def delete_layer(self, name):
-        layer_set = {str(layer) for layer in self.viewer.layers}
-        if name in layer_set:
-            self.viewer.layers.remove(name)
-        layer_set.clear()
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -569,8 +539,6 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
         self.y_lineEdit.setText(f"{y:.1f}")
-        self.x_lineEdit_main.setText(str(x))
-        self.y_lineEdit_main.setText(str(y))
         self.explorer.x_lineEdit.setText(str(x))
         self.explorer.y_lineEdit.setText(str(y))
 
@@ -628,7 +596,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     magnification = int(magnification_string)
                     print(f"Current Magnification: {magnification}X")
                 else:
-                    warnings.warn(
+                    print(
                         "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
                         "STARTING WITH e.g. 100X or 100x."
                     )
@@ -665,8 +633,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.layers["preview"].translate = (y, x)
 
         else:
-            self.x_lineEdit_main.setText(str(None))
-            self.y_lineEdit_main.setText(str(None))
             self.explorer.x_lineEdit.setText(str(None))
             self.explorer.y_lineEdit.setText(str(None))
 
@@ -680,7 +646,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         ch_group = self._mmc.getChannelGroup() or "Channel"
         self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
-
 
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
