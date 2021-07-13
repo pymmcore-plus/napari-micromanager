@@ -15,7 +15,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from ._util import check_filename, extend_array_for_index, get_filename
+from ._util import ensure_unique, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
@@ -301,21 +301,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         if meta.get("mode") == "mda" and meta.get("save_group_mda"):
 
-            save_path, fname = self._save_mda_acq(sequence, meta)
-
-            # update filename in mda.fname_lineEdit for the next aquisition.
-            fname = get_filename(fname, save_path)
-            self.mda.fname_lineEdit.setText(fname)
+            self._save_mda_acq(sequence, meta)
 
         if meta.get("mode") == "explorer":
 
             if meta.get("save_group_explorer"):
 
-                save_path, fname = self._save_explorer_scan(sequence, meta)
-
-                # update filename in mda.fname_lineEdit for the next aquisition.
-                fname = get_filename(fname, save_path)
-                self.explorer.fname_explorer_lineEdit.setText(fname)
+                self._save_explorer_scan(sequence, meta)
 
             # split stack and translate images depending on xy position (in pixel)
             self._split_and_translate(sequence)
@@ -328,6 +320,53 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.explorer.enable_explorer_groupbox()
         self.enable_gui()
         SEQUENCE_META.pop(sequence)
+
+    def _save_mda_acq(self, sequence, meta):
+        path = Path(meta.get("save_dir"))
+        file_name = meta.get("file_name")
+
+        # if split_channels, then create a new layer for each channel
+        if meta.get("split_channels"):
+            folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
+            folder_name.mkdir(parents=True, exist_ok=True)
+
+            # save each position/channels in a separate file.
+            if meta.get("save_pos"):
+                self._save_pos_separately(sequence, folder_name, folder_name.stem)
+            else:
+                self._save_layer(sequence, folder_name, folder_name.stem)
+
+        else:  # not splitting channels
+            try:
+                active_layer = next(
+                    lay
+                    for lay in self.viewer.layers
+                    if lay.metadata.get("uid") == sequence.uid
+                )
+            except StopIteration:
+                raise IndexError("could not find layer corresponding to sequence")
+
+            if not meta.get("save_pos"):
+                # not saving each position in a separate file
+                save_path = ensure_unique(path / file_name, extension=".tif", ndigits=3)
+                tifffile.imsave(
+                    str(save_path),
+                    active_layer.data.astype("uint16"),
+                    imagej=True,
+                )
+            else:  # save each position in a separate file
+                folder_path = ensure_unique(path / file_name, extension="", ndigits=3)
+                folder_path.parent / f"{folder_path.stem}_Pos"
+                folder_path.mkdir(parents=True, exist_ok=True)
+
+                pos_axis = sequence.axis_order.index("p")
+
+                for p in range(active_layer.data.shape[pos_axis]):
+                    tifffile.imsave(
+                        str(folder_path / f"{folder_path.stem}_[p{p:03d}].tif"),
+                        active_layer.data.take(p, axis=pos_axis).astype("uint16"),
+                        imagej=True,
+                    )
 
     def _save_pos_separately(self, sequence, folder_name, fname):
 
@@ -364,70 +403,23 @@ class MainWindow(QtW.QWidget, _MainUI):
             path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
             tifffile.imsave(str(path), i.data.astype("uint16"), imagej=True)
 
-    def _save_mda_acq(self, sequence, meta):
-        save_path = Path(meta.get("save_dir"))
-        fname = check_filename(meta.get("file_name"), save_path)
-
-        # if split_channels, then create a new layer for each channel
-        if meta.get("split_channels"):
-            folder_name = save_path / fname
-            folder_name.mkdir(parents=True, exist_ok=True)
-
-            # save each position/channels in a separate file.
-            if meta.get("save_pos"):
-                self._save_pos_separately(sequence, folder_name, fname)
-            else:
-                self._save_layer(sequence, folder_name, fname)
-
-        else:  # not splitting channels
-            try:
-                active_layer = next(
-                    lay
-                    for lay in self.viewer.layers
-                    if lay.metadata.get("uid") == sequence.uid
-                )
-            except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence")
-
-            if not meta.get("save_pos"):
-                # not saving each position in a separate file
-                tifffile.imsave(
-                    str(save_path / f"{fname}.tif"),
-                    active_layer.data.astype("uint16"),
-                    imagej=True,
-                )
-            else:  # save each position in a separate file
-                folder_path = save_path / f"{fname}_Pos"
-                folder_path.mkdir(parents=True, exist_ok=True)
-
-                pos_axis = sequence.axis_order.index("p")
-
-                for p in range(active_layer.data.shape[pos_axis]):
-                    tifffile.imsave(
-                        str(folder_path / f"{fname}_[p{p:03d}].tif"),
-                        active_layer.data.take(p, axis=pos_axis).astype("uint16"),
-                        imagej=True,
-                    )
-
-        return save_path, fname
-
     def _save_explorer_scan(self, sequence, meta):
-        save_path = Path(meta.get("save_dir"))
-        fname = check_filename(meta.get("file_name"), save_path)
+        path = Path(meta.get("save_dir"))
+        file_name = meta.get("file_name")
 
-        folder_name = Path(save_path) / fname
+        folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
         folder_name.mkdir(parents=True, exist_ok=True)
 
         for i in self.viewer.layers:
             if "ch_id" in i.metadata and i.metadata.get("uid") == sequence.uid:
-
                 tifffile.imsave(
-                    str(folder_name / f"{fname}_{i.metadata.get('ch_id')}.tif"),
+                    str(
+                        folder_name / f"{folder_name.stem}_"
+                        f"{i.metadata.get('ch_id')}.tif"
+                    ),
                     i.data.astype("uint16"),
                     imagej=True,
                 )
-
-        return save_path, fname
 
     def _split_and_translate(self, sequence):
         for explorer_layer in self.viewer.layers:

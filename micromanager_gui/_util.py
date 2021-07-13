@@ -51,75 +51,41 @@ def extend_array_for_index(array: np.ndarray, index: Tuple[int, ...]):
     return array
 
 
-# def check_filename(fname, list_dir):
-def check_filename(fname, save_path):
+def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3):
     """
-    Ckeck the input filename and modify it to add _nnn in the end.
-    The get_filename(fname,save_path) function check if the name
-    is already present in the save_path and incremant the _nnn accordingly.
-
-    filename examples: user input -> output:
-        - mda       -> mda_000
-        - mda_3     -> mda_003
-        - mda_0001  -> mda_001
-        - mda1      -> mda_001
-        - mda011021 -> mda011021_000
-        - mda_011021 -> mda_011021_000
-
-        - mda (with split positions) -> mda_000_[p000], mda_000_[p001], mda_000_[p002]
-        - ...
+    Get next suitable filepath (extension = ".tif") or
+    folderpath (extension = ""), appended with a counter of ndigits.
     """
-    try:
-        n = fname.split("_")[-1]
-        int_n = int(n)
+    p = path
+    stem = p.stem
+    # check if provided path already has an ndigit number in it
+    cur_num = stem.rsplit("_")[-1]
+    if cur_num.isdigit() and len(cur_num) == ndigits:
+        stem = stem[: -ndigits - 1]
+        current_max = int(cur_num) - 1
+    else:
+        current_max = -1
 
-        if len(n) == 3 and int_n >= 0:
-            fname = get_filename(fname, save_path)
-
-        elif len(n) != 3 and len(n) <= 4 and int_n >= 0:
-            s = ""
-            for i in fname.split("_")[:-1]:
-                s = s + i + "_"
-            fname = s + "{:03}".format(int_n)
-            fname = get_filename(fname, save_path)
-
-        else:
-            fname = fname + "_000"
-            fname = get_filename(fname, save_path)
-
-    except ValueError:
-        n = ""
-        for i in range(1, len(fname) + 1):
+    # # find the highest existing path (if dir)
+    if extension == "":
+        for fn in p.parent.glob("*"):
+            if fn.is_dir():
+                try:
+                    current_max = max(current_max, int(fn.stem.rsplit("_")[-1]))
+                except ValueError:
+                    continue
+    # # find the highest existing path (if e.g. .tif)
+    else:
+        for fn in p.parent.glob(f"*{extension}"):
             try:
-                n += str(int(fname[-i]))
+                current_max = max(current_max, int(fn.stem.rsplit("_")[-1]))
             except ValueError:
-                break
-        if len(n) > 0 and len(n) <= 4:
-            n = n[::-1]
-            fname = fname.replace(n, "_" + "{:03}".format(int(n)))
-            fname = get_filename(fname, save_path)
-        else:
-            fname = fname + "_000"
-            fname = get_filename(fname, save_path)
+                continue
 
-    return fname
+    # build new path name
+    number = f"_{current_max+1:0{ndigits}d}"
 
-
-def get_filename(fname, save_path):
-    """
-    check if the filename_nnn used to save the layer exists
-    and increment _nnn accordingly.
-    """
-    val = int(fname.split("_")[-1])
-
-    while True:
-        new_val = "{:03}".format(val)
-        fname = fname[:-3] + new_val
-        if (
-            not Path(save_path / f"{fname}.tif").exists()
-            and not Path(save_path / fname).exists()
-        ):
-            break
-        else:
-            val += 1
-    return fname
+    if extension:
+        return path.parent / f"{stem}{number}{extension}"
+    else:
+        return path.parent / f"{stem}{number}"
