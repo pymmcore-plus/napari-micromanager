@@ -90,6 +90,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
+        # events
+        mmcore.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
+
     def enable_mda_groupbox(self):
         self.save_groupBox.setEnabled(True)
         self.channel_groupBox.setEnabled(True)

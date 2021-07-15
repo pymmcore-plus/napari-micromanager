@@ -9,7 +9,6 @@ import napari
 import numpy as np
 import tifffile
 from pymmcore_plus import RemoteMMCore
-from pymmcore_plus.qcallbacks import QCoreCallback
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -98,9 +97,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.streaming_timer = None
 
         # create connection to mmcore server
-        self._mmc = RemoteMMCore(verbose=True)
-        sig = QCoreCallback()
-        self._mmc.register_callback(sig)
+        self._mmc = RemoteMMCore()
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
@@ -112,21 +109,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.explorer.y_lineEdit.setText(str(None))
 
         # connect mmcore signals
-        # mda
-        sig.MDAStarted.connect(self.mda._on_mda_started)
-        sig.MDAFinished.connect(self.mda._on_mda_finished)
-        # mainwindow
-        sig.MDAStarted.connect(self._on_mda_started)
-        sig.MDAFinished.connect(self._on_mda_finished)
+        sig = self._mmc.events
+        sig.sequenceStarted.connect(self._on_mda_started)
+        sig.sequenceFinished.connect(self._on_mda_finished)
 
-        sig.MDAPauseToggled.connect(
+        sig.sequencePauseToggled.connect(
             lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
         )
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
-        sig.MDAFrameReady.connect(self._on_mda_frame)
-        sig.exposureChanged.connect(lambda name, exp: self.exp_spinBox.setValue(exp))
+        sig.frameReady.connect(self._on_mda_frame)
+        sig.exposureChanged.connect(lambda _, exp: self.exp_spinBox.setValue(exp))
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -171,21 +165,13 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.explorer.x_lineEdit.setText(str(x))
             self.explorer.y_lineEdit.setText(str(y))
 
-    def enable_gui(self):
-        self.objective_groupBox.setEnabled(True)
-        self.camera_groupBox.setEnabled(True)
-        self.XY_groupBox.setEnabled(True)
-        self.Z_groupBox.setEnabled(True)
-        self.snap_live_tab.setEnabled(True)
-        self.snap_live_tab.setEnabled(True)
-
-    def disable_gui(self):
-        self.objective_groupBox.setEnabled(False)
-        self.camera_groupBox.setEnabled(False)
-        self.XY_groupBox.setEnabled(False)
-        self.Z_groupBox.setEnabled(False)
-        self.snap_live_tab.setEnabled(False)
-        self.snap_live_tab.setEnabled(False)
+    def _set_enabled(self, enabled):
+        self.objective_groupBox.setEnabled(enabled)
+        self.camera_groupBox.setEnabled(enabled)
+        self.XY_groupBox.setEnabled(enabled)
+        self.Z_groupBox.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -196,7 +182,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.mda.disable_mda_groupbox()
         self.explorer.disable_explorer_groupbox()
-        self.disable_gui()
+        self._set_enabled(False)
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
@@ -318,7 +304,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # reactivate gui when mda finishes.
         self.mda.enable_mda_groupbox()
         self.explorer.enable_explorer_groupbox()
-        self.enable_gui()
+        self._set_enabled(True)
         SEQUENCE_META.pop(sequence)
 
     def _save_mda_acq(self, sequence, meta):
