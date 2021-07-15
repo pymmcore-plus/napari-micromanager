@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -63,6 +63,9 @@ class _MultiDUI:
 
 class MultiDWidget(QtW.QWidget, _MultiDUI):
 
+    # metadata associated with a given experiment
+    SEQUENCE_META: dict[MDASequence, dict[str, Any]] = {}
+
     # TODO: don't love passing `signals` here...
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
@@ -94,28 +97,22 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         mmcore.events.sequenceStarted.connect(self._on_mda_started)
         mmcore.events.sequenceFinished.connect(self._on_mda_finished)
 
-    def enable_mda_groupbox(self):
-        self.save_groupBox.setEnabled(True)
-        self.channel_groupBox.setEnabled(True)
-        self.time_groupBox.setEnabled(True)
-        self.stack_groupBox.setEnabled(True)
-        self.stage_pos_groupBox.setEnabled(True)
-        self.acquisition_order_comboBox.setEnabled(True)
-
-    def disable_mda_groupbox(self):
-        self.save_groupBox.setEnabled(False)
-        self.channel_groupBox.setEnabled(False)
-        self.time_groupBox.setEnabled(False)
-        self.stack_groupBox.setEnabled(False)
-        self.stage_pos_groupBox.setEnabled(False)
-        self.acquisition_order_comboBox.setEnabled(False)
+    def _set_enabled(self, enabled: bool):
+        self.save_groupBox.setEnabled(enabled)
+        self.channel_groupBox.setEnabled(enabled)
+        self.time_groupBox.setEnabled(enabled)
+        self.stack_groupBox.setEnabled(enabled)
+        self.stage_pos_groupBox.setEnabled(enabled)
+        self.acquisition_order_comboBox.setEnabled(enabled)
 
     def _on_mda_started(self, sequence):
+        self._set_enabled(False)
         self.pause_Button.show()
         self.cancel_Button.show()
         self.run_Button.hide()
 
     def _on_mda_finished(self):
+        self._set_enabled(True)
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
@@ -272,7 +269,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         return state
 
     def _on_run_clicked(self):
-        from .main_window import SEQUENCE_META
 
         if len(self._mmc.getLoadedDevices()) < 2:
             raise ValueError("Load a cfg file first.")
@@ -298,7 +294,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
         experiment = MDASequence(**self._get_state_dict())
 
-        SEQUENCE_META[experiment] = {
+        self.SEQUENCE_META[experiment] = {
             "mode": "mda",
             "split_channels": self.checkBox_split_channels.isChecked(),
             "save_group_mda": self.save_groupBox.isChecked(),

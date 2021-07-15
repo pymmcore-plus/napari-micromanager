@@ -25,8 +25,6 @@ ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
-SEQUENCE_META = {}
-
 
 class _MainUI:
     UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
@@ -180,14 +178,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
 
-        self.mda.disable_mda_groupbox()
         self.explorer.disable_explorer_groupbox()
         self._set_enabled(False)
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
         seq = event.sequence
-        meta = SEQUENCE_META.get(seq, {})
+        meta = self.mda.SEQUENCE_META.get(seq, {})
 
         # get the index of the incoming image
         if meta.get("split_channels"):
@@ -283,7 +280,7 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
 
-        meta = SEQUENCE_META.get(sequence, {})
+        meta = self.mda.SEQUENCE_META.get(sequence, {})
 
         if meta.get("mode") == "mda" and meta.get("save_group_mda"):
 
@@ -302,10 +299,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.temp_folder.cleanup()
 
         # reactivate gui when mda finishes.
-        self.mda.enable_mda_groupbox()
         self.explorer.enable_explorer_groupbox()
         self._set_enabled(True)
-        SEQUENCE_META.pop(sequence)
+        self.mda.SEQUENCE_META.pop(sequence)
 
     def _save_mda_acq(self, sequence, meta):
         path = Path(meta.get("save_dir"))
