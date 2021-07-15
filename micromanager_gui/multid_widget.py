@@ -283,14 +283,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 "Select at least one position" "or deselect the position groupbox."
             )
 
-        if self.save_groupBox.isChecked() and (
-            self.fname_lineEdit.text() == ""
-            or (
-                self.dir_lineEdit.text() == ""
-                or not Path.is_dir(Path(self.dir_lineEdit.text()))
-            )
+        if self.save_groupBox.isChecked() and not (
+            self.fname_lineEdit.text() and Path(self.dir_lineEdit.text()).is_dir()
         ):
-            raise ValueError("select a filename and a valid directory.")
+            raise ValueError("Select a filename and a valid directory.")
 
         experiment = MDASequence(**self._get_state_dict())
 
