@@ -60,10 +60,6 @@ class _MultiDUI:
 
 
 class MultiDWidget(QtW.QWidget, _MultiDUI):
-
-    # empty_stack_to_viewer = Signal(np.ndarray, str)
-
-    # TODO: don't love passing `signals` here...
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
@@ -86,7 +82,11 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
-    def _on_mda_started(self, sequence):
+        mmcore.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.events.sequencePauseToggled.connect(self._on_mda_paused)
+
+    def _on_mda_started(self):
         self.pause_Button.show()
         self.cancel_Button.show()
         self.run_Button.hide()
@@ -95,6 +95,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
+
+    def _on_mda_paused(self, paused):
+        self.pause_Button.setText("GO" if paused else "PAUSE")
 
     # add, remove, clear channel table
     def add_channel(self):
