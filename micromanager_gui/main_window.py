@@ -328,10 +328,12 @@ class MainWindow(QtW.QWidget, _MainUI):
             if not meta.get("save_pos"):
                 # not saving each position in a separate file
                 save_path = ensure_unique(path / file_name, extension=".tif", ndigits=3)
+                data = active_layer.data
+                data = data.squeeze()  # remove any dim if 1
                 tifffile.imsave(
                     str(save_path),
-                    active_layer.data.astype("uint16"),
-                    imagej=True,
+                    data.astype("uint16"),
+                    imagej=data.ndim <= 5,
                 )
             else:  # save each position in a separate file
                 folder_path = ensure_unique(path / file_name, extension="", ndigits=3)
@@ -378,9 +380,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         for i in self.viewer.layers:
             if i.metadata.get("uid") != sequence.uid:
                 continue
-
             path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
-            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=True)
+            i.data = i.data.squeeze()  # remove any dim if 1
+            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=i.data.ndim <= 5)
 
     def _save_explorer_scan(self, sequence, meta):
         path = Path(meta.get("save_dir"))

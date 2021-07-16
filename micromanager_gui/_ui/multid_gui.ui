@@ -135,7 +135,7 @@
             </property>
             <property name="maximumSize">
              <size>
-              <width>230</width>
+              <width>400</width>
               <height>16777215</height>
              </size>
             </property>
@@ -164,7 +164,7 @@
              <string notr="true">QCheckBox::indicator {width : 12px;height : 12px;}</string>
             </property>
             <property name="text">
-             <string>Save XY Positions in separate files</string>
+             <string>Save XY Positions in separate files (ImageJ compatibility)</string>
             </property>
             <property name="tristate">
              <bool>false</bool>
