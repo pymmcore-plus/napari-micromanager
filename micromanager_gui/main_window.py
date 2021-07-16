@@ -518,22 +518,32 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        self._mmc.setRelPosition(dx=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
 
     def stage_x_right(self):
-        self._mmc.setRelPosition(dx=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
 
     def stage_y_up(self):
-        self._mmc.setRelPosition(dy=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(
+            0.0,
+            float(self.xy_step_size_SpinBox.value()),
+        )
 
     def stage_y_down(self):
-        self._mmc.setRelPosition(dy=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(
+            0.0,
+            -float(self.xy_step_size_SpinBox.value()),
+        )
 
     def stage_z_up(self):
-        self._mmc.setRelPosition(dz=float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelativeXYZPosition(
+            0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
+        )
 
     def stage_z_down(self):
-        self._mmc.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelativeXYZPosition(
+            0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
+        )
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
@@ -568,8 +578,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             )
 
     def update_viewer(self, data=None):
-        # TODO: fix the fact that when you change the objective
-        # the image translation is wrong
+        # TODO: - fix the fact that when you change the objective
+        #         the image translation is wrong
+        #       - are max and min_val_lineEdit updating in live mode?
         if data is None:
             try:
                 data = self._mmc.popNextImage()
