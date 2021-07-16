@@ -55,23 +55,26 @@ class ExploreSample(QtW.QWidget):
 
         self.stop_scan_Button.clicked.connect(lambda e: self._mmc.cancel())
 
-    def enable_explorer_groupbox(self):
-        self.scan_size_spinBox_r.setEnabled(True)
-        self.scan_size_spinBox_c.setEnabled(True)
-        self.ovelap_spinBox.setEnabled(True)
-        self.channel_explorer_groupBox.setEnabled(True)
-        self.move_to_Button.setEnabled(True)
-        self.start_scan_Button.setEnabled(True)
-        self.save_explorer_groupBox.setEnabled(True)
+        self.x_lineEdit.setText(str(None))
+        self.y_lineEdit.setText(str(None))
 
-    def disable_explorer_groupbox(self):
-        self.scan_size_spinBox_r.setEnabled(False)
-        self.scan_size_spinBox_c.setEnabled(False)
-        self.ovelap_spinBox.setEnabled(False)
-        self.channel_explorer_groupBox.setEnabled(True)
-        self.move_to_Button.setEnabled(False)
-        self.start_scan_Button.setEnabled(False)
-        self.save_explorer_groupBox.setEnabled(False)
+        mmcore.events.sequenceStarted.connect(self._disable)
+        mmcore.events.sequenceFinished.connect(self._enable)
+
+    def _enable(self):
+        self._set_enabled(True)
+
+    def _disable(self):
+        self._set_enabled(False)
+
+    def _set_enabled(self, enabled):
+        self.scan_size_spinBox_r.setEnabled(enabled)
+        self.scan_size_spinBox_c.setEnabled(enabled)
+        self.ovelap_spinBox.setEnabled(enabled)
+        self.channel_explorer_groupBox.setEnabled(enabled)
+        self.move_to_Button.setEnabled(enabled)
+        self.start_scan_Button.setEnabled(enabled)
+        self.save_explorer_groupBox.setEnabled(enabled)
 
     # add, remove, clear channel table
     def add_channel(self):

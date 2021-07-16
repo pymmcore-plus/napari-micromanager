@@ -66,7 +66,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # metadata associated with a given experiment
     SEQUENCE_META: dict[MDASequence, dict[str, Any]] = {}
 
-    # TODO: don't love passing `signals` here...
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
@@ -96,6 +95,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # events
         mmcore.events.sequenceStarted.connect(self._on_mda_started)
         mmcore.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.events.sequencePauseToggled.connect(self._on_mda_paused)
 
     def _set_enabled(self, enabled: bool):
         self.save_groupBox.setEnabled(enabled)
@@ -116,6 +116,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
+
+    def _on_mda_paused(self, paused):
+        self.pause_Button.setText("GO" if paused else "PAUSE")
 
     # add, remove, clear channel table
     def add_channel(self):

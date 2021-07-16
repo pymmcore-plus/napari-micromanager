@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import napari
 import numpy as np
 import tifffile
-from pymmcore_plus import RemoteMMCore
+from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -19,7 +19,10 @@ from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
 if TYPE_CHECKING:
+    import napari.layers
+    import napari.viewer
     import useq
+
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
@@ -63,6 +66,7 @@ class _MainUI:
     live_Button: QtW.QPushButton
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
+    px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -87,15 +91,15 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: napari.viewer.Viewer):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
         self.setup_ui()
 
         self.viewer = viewer
         self.streaming_timer = None
 
-        # create connection to mmcore server
-        self._mmc = RemoteMMCore()
+        # create connection to mmcore server or process-local variant
+        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
@@ -103,22 +107,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        self.explorer.x_lineEdit.setText(str(None))
-        self.explorer.y_lineEdit.setText(str(None))
-
-        # connect mmcore signals
+        # # connect mmcore signals
         sig = self._mmc.events
+
+        # note: don't use lambdas with closures on `self`, since the connection
+        # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-
-        sig.sequencePauseToggled.connect(
-            lambda p: self.mda.pause_Button.setText("GO" if p else "PAUSE")
-        )
+        sig.sequenceFinished.connect(self._on_system_configuration_loaded)
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
+        sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-        sig.exposureChanged.connect(lambda _, exp: self.exp_spinBox.setValue(exp))
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -134,9 +135,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
-
-        self.explorer.x_lineEdit.setText(str(None))
-        self.explorer.y_lineEdit.setText(str(None))
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -171,18 +169,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
 
+    def _on_exp_change(self, camera: str, exposure: float):
+        self.exp_spinBox.setValue(exposure)
+
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
-
         self.viewer.grid.enabled = False
-
         self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
-
-        self.explorer.disable_explorer_groupbox()
         self._set_enabled(False)
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
         seq = event.sequence
         meta = self.mda.SEQUENCE_META.get(seq, {})
 
@@ -299,7 +295,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.temp_folder.cleanup()
 
         # reactivate gui when mda finishes.
-        self.explorer.enable_explorer_groupbox()
         self._set_enabled(True)
         self.mda.SEQUENCE_META.pop(sequence)
 
@@ -440,7 +435,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devicies: {self._mmc.getLoadedDevices()}")
+        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
         # clear spinbox/combobox
         self.objective_comboBox.clear()
@@ -560,28 +555,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 
-        magnification = None
-        # get magnification info from the objective
-        for i in range(len(curr_obj_name)):
-            character = curr_obj_name[i]
-            if character in ["X", "x"]:
-                if i <= 3:
-                    magnification_string = curr_obj_name[:i]
-                    magnification = int(magnification_string)
-                    print(f"Current Magnification: {magnification}X")
-                else:
-                    print(
-                        "MAGNIFICATION NOT SET, STORE OBJECTIVES NAME "
-                        "STARTING WITH e.g. 100X or 100x."
-                    )
-
-        # get and set image pixel sixe (x,y) for the current pixel size Config
-        if magnification is not None:
-            self.image_pixel_size = self.px_size_doubleSpinBox.value() / magnification
+        # get magnification info from the objective name
+        # and set image pixel sixe (x,y) for the current pixel size Config
+        match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
+        if match:
+            mag = int(match.groups()[0])
+            self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
             self._mmc.setPixelSizeUm(
                 self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
-            print(f"Current Pixel Size in µm: {self._mmc.getPixelSizeUm()}")
 
     def update_viewer(self, data=None):
         # TODO: fix the fact that when you change the objective
