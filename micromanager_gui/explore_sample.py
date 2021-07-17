@@ -9,6 +9,7 @@ from qtpy import uic
 from useq import MDASequence
 
 if TYPE_CHECKING:
+    import napari.viewer
     from pymmcore_plus import RemoteMMCore
 
 
@@ -38,9 +39,10 @@ class ExploreSample(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
 
-    def __init__(self, mmcore: RemoteMMCore, parent=None):
+    def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
 
         self._mmc = mmcore
+        self.viewer = viewer
         super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
@@ -60,6 +62,26 @@ class ExploreSample(QtW.QWidget):
 
         mmcore.events.sequenceStarted.connect(self._disable)
         mmcore.events.sequenceFinished.connect(self._enable)
+
+        @self.viewer.mouse_drag_callbacks.append
+        def get_event(viewer, event):
+            if self._mmc.getPixelSizeUm() > 0:
+                width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+                height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+
+                # to match position coordinates with center of the image
+                x = x - ((width / 2) * self._mmc.getPixelSizeUm())
+                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
+
+            else:
+                x = None
+                y = None
+
+            self.x_lineEdit.setText(str(x))
+            self.y_lineEdit.setText(str(y))
 
     def _enable(self):
         self._set_enabled(True)

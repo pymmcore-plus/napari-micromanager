@@ -105,7 +105,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
-        self.explorer = ExploreSample(self._mmc)
+        self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
@@ -142,26 +142,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
-
-        @self.viewer.mouse_drag_callbacks.append
-        def get_event(viewer, event):
-            if self._mmc.getPixelSizeUm() > 0:
-                width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-                height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
-                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
-
-                # to match position coordinates with center of the image
-                x = x - ((width / 2) * self._mmc.getPixelSizeUm())
-                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
-
-            else:
-                x = None
-                y = None
-
-            self.explorer.x_lineEdit.setText(str(x))
-            self.explorer.y_lineEdit.setText(str(y))
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
