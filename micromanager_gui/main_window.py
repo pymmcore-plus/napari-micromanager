@@ -109,14 +109,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        # # connect mmcore signals
+        # connect mmcore signals
         sig = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(self._on_system_configuration_loaded)
+        sig.sequenceFinished.connect(
+            self._on_system_configuration_loaded
+        )  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
@@ -361,8 +363,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             if i.metadata.get("uid") != sequence.uid:
                 continue
             path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
-            i.data = i.data.squeeze()  # remove any dim if 1
-            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=i.data.ndim <= 5)
+            data = i.data
+            data = data.squeeze()  # remove any dim if 1
+            tifffile.imsave(str(path), data.astype("uint16"), imagej=data.ndim <= 5)
 
     def _save_explorer_scan(self, sequence, meta):
         path = Path(meta.get("save_dir"))
@@ -466,7 +469,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         if "Channel" in self._mmc.getAvailableConfigGroups():
             self.snap_channel_comboBox.clear()
             self.mda.clear_channel()
-            self.explorer.clear_channel()
             channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
 
@@ -474,6 +476,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
+        self._refresh_positions()
+
+    def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
@@ -492,8 +497,6 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
         self.y_lineEdit.setText(f"{y:.1f}")
-        self.explorer.x_lineEdit.setText(str(x))
-        self.explorer.y_lineEdit.setText(str(y))
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
@@ -582,10 +585,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
             y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (-1)
             self.viewer.layers["preview"].translate = (y, x)
-
-        else:
-            self.explorer.x_lineEdit.setText(str(None))
-            self.explorer.y_lineEdit.setText(str(None))
 
         if self.streaming_timer is None:
             self.viewer.reset_view()

@@ -60,8 +60,11 @@ class ExploreSample(QtW.QWidget):
         self.x_lineEdit.setText(str(None))
         self.y_lineEdit.setText(str(None))
 
+        # connect mmcore signals
         mmcore.events.sequenceStarted.connect(self._disable)
         mmcore.events.sequenceFinished.connect(self._enable)
+        mmcore.events.sequenceFinished.connect(self._refresh_positions)
+        mmcore.events.systemConfigurationLoaded.connect(self._refresh_channel_list)
 
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
@@ -77,11 +80,10 @@ class ExploreSample(QtW.QWidget):
                 y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
 
             else:
-                x = None
-                y = None
+                x, y = None, None
 
-            self.x_lineEdit.setText(str(x))
-            self.y_lineEdit.setText(str(y))
+            self.x_lineEdit.setText(f"{x:.1f}")
+            self.y_lineEdit.setText(f"{y:.1f}")
 
     def _enable(self):
         self._set_enabled(True)
@@ -97,6 +99,18 @@ class ExploreSample(QtW.QWidget):
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
         self.save_explorer_groupBox.setEnabled(enabled)
+
+    def _refresh_channel_list(self):
+        self.clear_channel()
+
+    def _refresh_positions(self):
+        if self._mmc.getXYStageDevice():
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+        else:
+            x, y = None, None
+
+        self.x_lineEdit.setText(f"{x:.1f}")
+        self.y_lineEdit.setText(f"{y:.1f}")
 
     # add, remove, clear channel table
     def add_channel(self):
