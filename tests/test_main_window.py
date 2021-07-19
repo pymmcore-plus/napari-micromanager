@@ -45,6 +45,15 @@ def main_window(qtbot, request):
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
     win._mmc.loadSystemConfiguration("demo")
 
+    win.mda.SEQUENCE_META = {
+        "mode": "mda",
+        "split_channels": False,
+        "save_group_mda": False,
+        "file_name": "",
+        "save_dir": "",
+        "save_pos": False,
+    }
+
     try:
         yield win
     finally:
@@ -60,6 +69,16 @@ def test_main_window(main_window: MainWindow):
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
     )
+
+    main_window.mda.SEQUENCE_META[mda] = {
+        "mode": "mda",
+        "split_channels": False,
+        "save_group_mda": False,
+        "file_name": "",
+        "save_dir": "",
+        "save_pos": False,
+    }
+
     for event in mda:
 
         frame = np.random.rand(128, 128)
