@@ -164,8 +164,6 @@ class ExploreSample(QtW.QWidget):
 
     def _save_explorer_scan(self, sequence, meta):
 
-        print(len(sequence.channels))
-
         path = Path(meta.get("save_dir"))
         file_name = f'scan_{meta.get("file_name")}'
 
