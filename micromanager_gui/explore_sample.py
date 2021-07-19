@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import tempfile
 import warnings
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import numpy as np
+import tifffile
+import useq
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
 
+from ._util import ensure_unique
+
 if TYPE_CHECKING:
+    import napari.viewer
     from pymmcore_plus import RemoteMMCore
 
 
@@ -38,11 +46,17 @@ class ExploreSample(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
 
-    def __init__(self, mmcore: RemoteMMCore, parent=None):
+    # metadata associated with a given experiment
+    SEQUENCE_META: dict[MDASequence, dict[str, Any]] = {}
+
+    def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
 
         self._mmc = mmcore
+        self.viewer = viewer
         super().__init__(parent)
         uic.loadUi(UI_FILE, self)
+
+        self.pixel_size = 0
 
         # connect buttons
         self.add_ch_explorer_Button.clicked.connect(self.add_channel)
@@ -58,14 +72,133 @@ class ExploreSample(QtW.QWidget):
         self.x_lineEdit.setText(str(None))
         self.y_lineEdit.setText(str(None))
 
-        mmcore.events.sequenceStarted.connect(self._disable)
-        mmcore.events.sequenceFinished.connect(self._enable)
+        # connect mmcore signals
+        mmcore.events.systemConfigurationLoaded.connect(self._refresh_channel_list)
 
-    def _enable(self):
+        mmcore.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.events.frameReady.connect(self._on_explorer_frame)
+        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.events.sequenceFinished.connect(self._refresh_positions)
+
+        @self.viewer.mouse_drag_callbacks.append
+        def get_event(viewer, event):
+            if self._mmc.getPixelSizeUm() > 0:
+                width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+                height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+
+                # to match position coordinates with center of the image
+                x = x - ((width / 2) * self._mmc.getPixelSizeUm())
+                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
+
+            else:
+                x, y = None, None
+
+            self.x_lineEdit.setText(f"{x:.1f}")
+            self.y_lineEdit.setText(f"{y:.1f}")
+
+    def _on_mda_started(self, sequence: useq.MDASequence):
+        """ "create temp folder and block gui when mda starts."""
+        self.viewer.grid.enabled = False
+        self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
+        self._set_enabled(False)
+
+    def _on_explorer_frame(self, image: np.ndarray, event: useq.MDAEvent):
+        seq = event.sequence
+        meta = self.SEQUENCE_META.get(seq, {})
+
+        if meta.get("mode") == "explorer":
+
+            pos_idx = event.index["p"]
+
+            image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+
+            x = event.x_pos / self.pixel_size
+            y = event.y_pos / self.pixel_size * (-1)
+
+            file_name = meta.get("file_name") if meta.get("save_group") else "Exp"
+
+            layer_name = (
+                f"Pos{pos_idx:03d}_{file_name}_[{event.channel.config}_idx"
+                f"{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
+            )
+
+            layer = self.viewer.add_image(
+                image, name=layer_name, opacity=0.5, translate=(y, x)
+            )
+
+            self.viewer.reset_view()
+
+            # add metadata to layer
+            layer.metadata["useq_sequence"] = seq
+            layer.metadata["uid"] = seq.uid
+            layer.metadata["scan_coord"] = (y, x)
+            layer.metadata["scan_position"] = f"Pos{pos_idx:03d}"
+            layer.metadata["ch_name"] = f"{event.channel.config}"
+            layer.metadata["ch_id"] = f'{event.index["c"]}'
+
+            image_name = (
+                f'Pos{pos_idx:03d}_{event.channel.config}_idx{event.index["c"]}.tif'
+            )
+
+            # save first image in the temp folder
+            if hasattr(self, "temp_folder"):
+                savefile = Path(self.temp_folder.name) / image_name
+                tifffile.imsave(str(savefile), image, imagej=True)
+
+    def _on_mda_finished(self, sequence: useq.MDASequence):
+        meta = self.SEQUENCE_META.get(sequence, {})
+
+        if meta.get("mode") == "explorer":
+
+            if meta.get("save_group"):
+                self._save_explorer_scan(sequence, meta)
+
+            if hasattr(self, "temp_folder"):
+                self.temp_folder.cleanup()
+
+            self.SEQUENCE_META.pop(sequence)
         self._set_enabled(True)
 
-    def _disable(self):
-        self._set_enabled(False)
+    def _save_explorer_scan(self, sequence, meta):
+
+        path = Path(meta.get("save_dir"))
+        file_name = f'scan_{meta.get("file_name")}'
+
+        folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
+        folder_name.mkdir(parents=True, exist_ok=True)
+
+        width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+        height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+        for cn in range(len(sequence.channels)):
+
+            scan_stack = np.empty((1, height, width))
+
+            for i in self.viewer.layers:
+
+                if i.metadata.get("uid") == sequence.uid and int(cn) == int(
+                    i.metadata.get("ch_id")
+                ):
+
+                    ch_name = i.metadata.get("ch_name")
+
+                    i.data = i.data[np.newaxis, ...]
+
+                    if i.metadata.get("scan_position") == "Pos000":
+                        scan_stack = i.data
+                    else:
+                        scan_stack = np.concatenate((scan_stack, i.data))
+
+            if scan_stack.shape[0] > 1:
+
+                tifffile.imsave(
+                    str(folder_name / f"{folder_name.stem}_" f"{ch_name}.tif"),
+                    scan_stack.astype("uint16"),
+                    imagej=True,
+                )
 
     def _set_enabled(self, enabled):
         self.scan_size_spinBox_r.setEnabled(enabled)
@@ -75,6 +208,18 @@ class ExploreSample(QtW.QWidget):
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
         self.save_explorer_groupBox.setEnabled(enabled)
+
+    def _refresh_channel_list(self):
+        self.clear_channel()
+
+    def _refresh_positions(self):
+        if self._mmc.getXYStageDevice():
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+        else:
+            x, y = None, None
+
+        self.x_lineEdit.setText(f"{x:.1f}")
+        self.y_lineEdit.setText(f"{y:.1f}")
 
     # add, remove, clear channel table
     def add_channel(self):
@@ -168,26 +313,26 @@ class ExploreSample(QtW.QWidget):
 
         move_x = (
             ((width / 2) * (self.scan_size_c - 1)) - overlap_px_w
-        ) * self._mmc.getPixelSizeUm()
+        ) * self.pixel_size
 
         move_y = (
             ((height / 2) * (self.scan_size_r - 1)) - overlap_px_h
-        ) * self._mmc.getPixelSizeUm()
+        ) * self.pixel_size
 
         x_pos_explorer = x_curr_pos_explorer - move_x
         y_pos_explorer = y_curr_pos_explorer + move_y
 
         # to match position coordinates with center of the image
-        x_pos_explorer = x_pos_explorer - ((width) * self._mmc.getPixelSizeUm())
-        y_pos_explorer = y_pos_explorer - ((height) * self._mmc.getPixelSizeUm() * (-1))
+        x_pos_explorer = x_pos_explorer - ((width) * self.pixel_size)
+        y_pos_explorer = y_pos_explorer - ((height) * self.pixel_size * (-1))
 
         # calculate position increments depending on pixle size
         if overlap_percentage > 0:
-            increment_x = overlap_px_w * self._mmc.getPixelSizeUm()
-            increment_y = overlap_px_h * self._mmc.getPixelSizeUm()
+            increment_x = overlap_px_w * self.pixel_size
+            increment_y = overlap_px_h * self.pixel_size
         else:
-            increment_x = width * self._mmc.getPixelSizeUm()
-            increment_y = height * self._mmc.getPixelSizeUm()
+            increment_x = width * self.pixel_size
+            increment_y = height * self.pixel_size
 
         return self.create_pos_grid_coordinates(
             z_curr_pos_explorer,
@@ -239,12 +384,13 @@ class ExploreSample(QtW.QWidget):
         self.parent_path = Path(self.save_dir)
 
     def start_scan(self):
-        from .main_window import SEQUENCE_META
+
+        self.pixel_size = self._mmc.getPixelSizeUm()
 
         if len(self._mmc.getLoadedDevices()) < 2:
             raise ValueError("Load a cfg file first.")
 
-        if self._mmc.getPixelSizeUm() <= 0:
+        if self.pixel_size <= 0:
             raise ValueError("PIXEL SIZE NOT SET.")
 
         if self.channel_explorer_tableWidget.rowCount() <= 0:
@@ -261,10 +407,10 @@ class ExploreSample(QtW.QWidget):
 
         explore_sample = MDASequence(**self._get_state_dict())
 
-        SEQUENCE_META[explore_sample] = {
+        self.SEQUENCE_META[explore_sample] = {
             "mode": "explorer",
             "split_channels": True,
-            "save_group_explorer": self.save_explorer_groupBox.isChecked(),
+            "save_group": self.save_explorer_groupBox.isChecked(),
             "file_name": self.fname_explorer_lineEdit.text(),
             "save_dir": self.dir_explorer_lineEdit.text(),
         }

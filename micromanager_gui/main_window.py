@@ -28,8 +28,6 @@ ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
-SEQUENCE_META = {}
-
 
 class _MainUI:
     UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
@@ -105,18 +103,20 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
-        self.explorer = ExploreSample(self._mmc)
+        self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        # # connect mmcore signals
+        # connect mmcore signals
         sig = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(self._on_system_configuration_loaded)
+        sig.sequenceFinished.connect(
+            self._on_system_configuration_loaded
+        )  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
@@ -143,26 +143,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
 
-        @self.viewer.mouse_drag_callbacks.append
-        def get_event(viewer, event):
-            if self._mmc.getPixelSizeUm() > 0:
-                width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-                height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
-                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
-
-                # to match position coordinates with center of the image
-                x = x - ((width / 2) * self._mmc.getPixelSizeUm())
-                y = y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1))
-
-            else:
-                x = None
-                y = None
-
-            self.explorer.x_lineEdit.setText(str(x))
-            self.explorer.y_lineEdit.setText(str(y))
-
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
         self.camera_groupBox.setEnabled(enabled)
@@ -184,121 +164,120 @@ class MainWindow(QtW.QWidget, _MainUI):
         seq = event.sequence
         meta = self.mda.SEQUENCE_META.get(seq, {})
 
-        # get the index of the incoming image
-        if meta.get("split_channels"):
+        if meta.get("mode") == "mda":
 
-            im_idx = tuple(
-                event.index[k]
-                for k in seq.axis_order
-                if ((k in event.index) and (k != "c"))
-            )
-
-            image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
-
-        else:
-            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
-            image_name = f"{im_idx}.tif"
-
-        try:
-            # see if we already have a layer with this sequence
+            # get the index of the incoming image
             if meta.get("split_channels"):
-                layer = next(
-                    x
-                    for x in self.viewer.layers
-                    if x.metadata.get("uid") == seq.uid
-                    and (
-                        x.metadata.get("ch_id")
-                        == f'{event.channel.config}_idx{event.index["c"]}'
-                    )
-                )
-            else:
-                layer = next(
-                    x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+
+                im_idx = tuple(
+                    event.index[k]
+                    for k in seq.axis_order
+                    if ((k in event.index) and (k != "c"))
                 )
 
-            # make sure array shape contains im_idx, or pad with zeros
-            new_array = extend_array_for_index(layer.data, im_idx)
-
-            # add the incoming index at the appropriate index
-            new_array[im_idx] = image
-
-            # set layer data
-            layer.data = new_array
-
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
-
-            # save each image in the temp folder
-            if hasattr(self, "temp_folder"):
-                savefile = Path(self.temp_folder.name) / image_name
-                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
-
-        except StopIteration:
-
-            _image = image[(np.newaxis,) * len(seq.shape)]
-
-            if meta.get("save_group_mda") or meta.get("save_group_explorer"):
-                file_name = meta.get("file_name")
-            else:
-                file_name = "Exp"
-
-            if meta.get("split_channels"):
-                layer_name = (
-                    f"{file_name}_[{event.channel.config}_idx"
-                    f"{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-                )
-                layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
-            else:
-                layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
-                layer = self.viewer.add_image(_image, name=layer_name)
-
-            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-
-            self.viewer.dims.axis_labels = labels
-
-            # add metadata to layer
-            layer.metadata["useq_sequence"] = seq
-            layer.metadata["uid"] = seq.uid
-
-            if meta.get("split_channels"):
-                # storing event.index in addition to channel.config because it's
-                # possible to have two of the same channel in one sequence.
-                layer.metadata[
-                    "ch_id"
-                ] = f'{event.channel.config}_idx{event.index["c"]}'
                 image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+
             else:
+                im_idx = tuple(
+                    event.index[k] for k in seq.axis_order if k in event.index
+                )
                 image_name = f"{im_idx}.tif"
 
-            # save first image in the temp folder
-            if hasattr(self, "temp_folder"):
-                savefile = Path(self.temp_folder.name) / image_name
-                tifffile.tifffile.imsave(str(savefile), image, imagej=True)
+            try:
+                # see if we already have a layer with this sequence
+                if meta.get("split_channels"):
+                    layer = next(
+                        x
+                        for x in self.viewer.layers
+                        if x.metadata.get("uid") == seq.uid
+                        and (
+                            x.metadata.get("ch_id")
+                            == f'{event.channel.config}_idx{event.index["c"]}'
+                        )
+                    )
+                else:
+                    layer = next(
+                        x
+                        for x in self.viewer.layers
+                        if x.metadata.get("uid") == seq.uid
+                    )
+
+                # make sure array shape contains im_idx, or pad with zeros
+                new_array = extend_array_for_index(layer.data, im_idx)
+
+                # add the incoming index at the appropriate index
+                new_array[im_idx] = image
+
+                # set layer data
+                layer.data = new_array
+
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
+
+                # save each image in the temp folder
+                if hasattr(self, "temp_folder"):
+                    savefile = Path(self.temp_folder.name) / image_name
+                    tifffile.imsave(str(savefile), image, imagej=True)
+
+            except StopIteration:
+
+                _image = image[(np.newaxis,) * len(seq.shape)]
+
+                if meta.get("save_group_mda"):
+                    file_name = meta.get("file_name")
+                else:
+                    file_name = "Exp"
+
+                if meta.get("split_channels"):
+                    layer_name = (
+                        f"{file_name}_[{event.channel.config}_idx"
+                        f"{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
+                    )
+                    layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
+                else:
+                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
+                    layer = self.viewer.add_image(_image, name=layer_name)
+
+                labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+
+                self.viewer.dims.axis_labels = labels
+
+                # add metadata to layer
+                layer.metadata["useq_sequence"] = seq
+                layer.metadata["uid"] = seq.uid
+
+                if meta.get("split_channels"):
+                    # storing event.index in addition to channel.config because it's
+                    # possible to have two of the same channel in one sequence.
+                    layer.metadata[
+                        "ch_id"
+                    ] = f'{event.channel.config}_idx{event.index["c"]}'
+                    image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+                else:
+                    image_name = f"{im_idx}.tif"
+
+                # save first image in the temp folder
+                if hasattr(self, "temp_folder"):
+                    savefile = Path(self.temp_folder.name) / image_name
+                    tifffile.imsave(str(savefile), image, imagej=True)
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
 
         meta = self.mda.SEQUENCE_META.get(sequence, {})
 
-        if meta.get("mode") == "mda" and meta.get("save_group_mda"):
+        if meta.get("mode") == "mda":
 
-            self._save_mda_acq(sequence, meta)
+            if meta.get("save_group_mda"):
 
-        if meta.get("mode") == "explorer":
+                self._save_mda_acq(sequence, meta)
 
-            if meta.get("save_group_explorer"):
+            if hasattr(self, "temp_folder"):
+                self.temp_folder.cleanup()
 
-                self._save_explorer_scan(sequence, meta)
-
-            # split stack and translate images depending on xy position (in pixel)
-            self._split_and_translate(sequence)
-
-        if hasattr(self, "temp_folder"):
-            self.temp_folder.cleanup()
-
-        # reactivate gui when mda finishes.
+            # reactivate gui when mda finishes.
+            self.mda.SEQUENCE_META.pop(sequence)
         self._set_enabled(True)
-        self.mda.SEQUENCE_META.pop(sequence)
 
     def _save_mda_acq(self, sequence, meta):
         path = Path(meta.get("save_dir"))
@@ -381,61 +360,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             if i.metadata.get("uid") != sequence.uid:
                 continue
             path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
-            i.data = i.data.squeeze()  # remove any dim if 1
-            tifffile.imsave(str(path), i.data.astype("uint16"), imagej=i.data.ndim <= 5)
-
-    def _save_explorer_scan(self, sequence, meta):
-        path = Path(meta.get("save_dir"))
-        file_name = meta.get("file_name")
-
-        folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
-        folder_name.mkdir(parents=True, exist_ok=True)
-
-        for i in self.viewer.layers:
-            if "ch_id" in i.metadata and i.metadata.get("uid") == sequence.uid:
-                tifffile.imsave(
-                    str(
-                        folder_name / f"{folder_name.stem}_"
-                        f"{i.metadata.get('ch_id')}.tif"
-                    ),
-                    i.data.astype("uint16"),
-                    imagej=True,
-                )
-
-    def _split_and_translate(self, sequence):
-        for explorer_layer in self.viewer.layers:
-            if (
-                "ch_id" in explorer_layer.metadata
-                and explorer_layer.metadata.get("uid") == sequence.uid
-            ):
-
-                z = 0
-
-                for f in range(len(explorer_layer.data)):
-                    x = sequence.stage_positions[f].x / self._mmc.getPixelSizeUm()
-                    y = (
-                        sequence.stage_positions[f].y
-                        / self._mmc.getPixelSizeUm()
-                        * (-1)
-                    )
-
-                    ch_id_info = explorer_layer.metadata.get("ch_id")
-                    framename = f"Pos{f:03d}_[{ch_id_info}]"
-
-                    frame = self.viewer.add_image(
-                        explorer_layer.data[f],
-                        name=framename,
-                        translate=(z, y, x),
-                        opacity=0.5,
-                    )
-
-                    frame.metadata["frame"] = framename
-                    frame.metadata["stage_position"] = sequence.stage_positions[f]
-                    frame.metadata["uid_p"] = str(sequence.uid)
-
-                explorer_layer.visible = False
-
-        self.viewer.reset_view()
+            data = i.data
+            data = data.squeeze()  # remove any dim if 1
+            tifffile.imsave(str(path), data.astype("uint16"), imagej=data.ndim <= 5)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
@@ -486,7 +413,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         if "Channel" in self._mmc.getAvailableConfigGroups():
             self.snap_channel_comboBox.clear()
             self.mda.clear_channel()
-            self.explorer.clear_channel()
             channel_list = list(self._mmc.getAvailableConfigs("Channel"))
             self.snap_channel_comboBox.addItems(channel_list)
 
@@ -494,6 +420,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
+        self._refresh_positions()
+
+    def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
@@ -512,8 +441,6 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
         self.y_lineEdit.setText(f"{y:.1f}")
-        self.explorer.x_lineEdit.setText(str(x))
-        self.explorer.y_lineEdit.setText(str(y))
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
@@ -602,10 +529,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
             y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (-1)
             self.viewer.layers["preview"].translate = (y, x)
-
-        else:
-            self.explorer.x_lineEdit.setText(str(None))
-            self.explorer.y_lineEdit.setText(str(None))
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
