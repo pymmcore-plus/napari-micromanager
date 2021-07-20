@@ -223,10 +223,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 _image = image[(np.newaxis,) * len(seq.shape)]
 
-                if meta.get("save_group_mda"):
-                    file_name = meta.get("file_name")
-                else:
-                    file_name = "Exp"
+                file_name = (
+                    meta.get("file_name") if meta.get("save_group_mda") else "Exp"
+                )
 
                 if meta.get("split_channels"):
                     layer_name = (
