@@ -45,15 +45,6 @@ def main_window(qtbot, request):
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
     win._mmc.loadSystemConfiguration("demo")
 
-    win.mda.SEQUENCE_META = {
-        "mode": "mda",
-        "split_channels": False,
-        "save_group_mda": False,
-        "file_name": "",
-        "save_dir": "",
-        "save_pos": False,
-    }
-
     try:
         yield win
     finally:
