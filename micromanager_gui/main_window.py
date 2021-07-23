@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 import re
-import tempfile
-from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import tifffile
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from ._util import ensure_unique, extend_array_for_index
+from ._saving import save_sequence
+from ._util import event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
-from .multid_widget import MultiDWidget
+from .multid_widget import MultiDWidget, SequenceMeta
 
 if TYPE_CHECKING:
     import napari.layers
@@ -156,212 +154,64 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
-        self.viewer.grid.enabled = False
-        self.temp_folder = tempfile.TemporaryDirectory(None, str(sequence.uid))
         self._set_enabled(False)
 
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        seq = event.sequence
-        meta = self.mda.SEQUENCE_META.get(seq, {})
+        meta = self.mda.SEQUENCE_META.get(event.sequence) or SequenceMeta()
 
-        if meta.get("mode") == "mda":
+        if meta.mode != "mda":
+            return
 
-            # get the index of the incoming image
-            if meta.get("split_channels"):
+        # pick layer name
+        file_name = meta.file_name if meta.should_save else "Exp"
+        channelstr = (
+            f"[{event.channel.config}_idx{event.index['c']}]_"
+            if meta.split_channels
+            else ""
+        )
+        layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
 
-                im_idx = tuple(
-                    event.index[k]
-                    for k in seq.axis_order
-                    if ((k in event.index) and (k != "c"))
-                )
+        try:  # see if we already have a layer with this sequence
+            layer = self.viewer.layers[layer_name]
 
-                image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
+            # get indices of new image
+            im_idx = tuple(
+                event.index[k]
+                for k in event_indices(event)
+                if not (meta.split_channels and k == "c")
+            )
 
-            else:
-                im_idx = tuple(
-                    event.index[k] for k in seq.axis_order if k in event.index
-                )
-                image_name = f"{im_idx}.tif"
+            # make sure array shape contains im_idx, or pad with zeros
+            new_array = extend_array_for_index(layer.data, im_idx)
+            # add the incoming index at the appropriate index
+            new_array[im_idx] = image
+            # set layer data
+            layer.data = new_array
+            for a, v in enumerate(im_idx):
+                self.viewer.dims.set_point(a, v)
 
-            try:
-                # see if we already have a layer with this sequence
-                if meta.get("split_channels"):
-                    layer = next(
-                        x
-                        for x in self.viewer.layers
-                        if x.metadata.get("uid") == seq.uid
-                        and (
-                            x.metadata.get("ch_id")
-                            == f'{event.channel.config}_idx{event.index["c"]}'
-                        )
-                    )
-                else:
-                    layer = next(
-                        x
-                        for x in self.viewer.layers
-                        if x.metadata.get("uid") == seq.uid
-                    )
+        except KeyError:  # add the new layer to the viewer
+            seq = event.sequence
+            _image = image[(np.newaxis,) * len(seq.shape)]
+            layer = self.viewer.add_image(_image, name=layer_name, blending="additive")
 
-                # make sure array shape contains im_idx, or pad with zeros
-                new_array = extend_array_for_index(layer.data, im_idx)
+            # dimensions labels
+            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+            self.viewer.dims.axis_labels = labels
 
-                # add the incoming index at the appropriate index
-                new_array[im_idx] = image
-
-                # set layer data
-                layer.data = new_array
-
-                for a, v in enumerate(im_idx):
-                    self.viewer.dims.set_point(a, v)
-
-                # save each image in the temp folder
-                if hasattr(self, "temp_folder"):
-                    savefile = Path(self.temp_folder.name) / image_name
-                    tifffile.imsave(str(savefile), image, imagej=True)
-
-            except StopIteration:
-
-                _image = image[(np.newaxis,) * len(seq.shape)]
-
-                file_name = (
-                    meta.get("file_name") if meta.get("save_group_mda") else "Exp"
-                )
-
-                if meta.get("split_channels"):
-                    layer_name = (
-                        f"{file_name}_[{event.channel.config}_idx"
-                        f"{event.index['c']}]_{datetime.now().strftime('%H:%M:%S:%f')}"
-                    )
-                    layer = self.viewer.add_image(_image, name=layer_name, opacity=0.5)
-                else:
-                    layer_name = f"{file_name}_{datetime.now().strftime('%H:%M:%S:%f')}"
-                    layer = self.viewer.add_image(_image, name=layer_name)
-
-                labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-
-                self.viewer.dims.axis_labels = labels
-
-                # add metadata to layer
-                layer.metadata["useq_sequence"] = seq
-                layer.metadata["uid"] = seq.uid
-
-                if meta.get("split_channels"):
-                    # storing event.index in addition to channel.config because it's
-                    # possible to have two of the same channel in one sequence.
-                    layer.metadata[
-                        "ch_id"
-                    ] = f'{event.channel.config}_idx{event.index["c"]}'
-                    image_name = f'{event.channel.config}_idx{event.index["c"]}.tif'
-                else:
-                    image_name = f"{im_idx}.tif"
-
-                # save first image in the temp folder
-                if hasattr(self, "temp_folder"):
-                    savefile = Path(self.temp_folder.name) / image_name
-                    tifffile.imsave(str(savefile), image, imagej=True)
+            # add metadata to layer
+            layer.metadata["useq_sequence"] = seq
+            layer.metadata["uid"] = seq.uid
+            # storing event.index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
+            layer.metadata["ch_id"] = f'{event.channel.config}_idx{event.index["c"]}'
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-
-        meta = self.mda.SEQUENCE_META.get(sequence, {})
-
-        if meta.get("mode") == "mda":
-
-            if meta.get("save_group_mda"):
-
-                self._save_mda_acq(sequence, meta)
-
-            if hasattr(self, "temp_folder"):
-                self.temp_folder.cleanup()
-
-            # reactivate gui when mda finishes.
-            self.mda.SEQUENCE_META.pop(sequence)
+        meta = self.mda.SEQUENCE_META.get(sequence) or SequenceMeta()
+        save_sequence(sequence, self.viewer.layers, meta)
+        # reactivate gui when mda finishes.
         self._set_enabled(True)
-
-    def _save_mda_acq(self, sequence, meta):
-        path = Path(meta.get("save_dir"))
-        file_name = meta.get("file_name")
-
-        # if split_channels, then create a new layer for each channel
-        if meta.get("split_channels"):
-            folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
-            folder_name.mkdir(parents=True, exist_ok=True)
-
-            # save each position/channels in a separate file.
-            if meta.get("save_pos"):
-                self._save_pos_separately(sequence, folder_name, folder_name.stem)
-            else:
-                self._save_layer(sequence, folder_name, folder_name.stem)
-
-        else:  # not splitting channels
-            try:
-                active_layer = next(
-                    lay
-                    for lay in self.viewer.layers
-                    if lay.metadata.get("uid") == sequence.uid
-                )
-            except StopIteration:
-                raise IndexError("could not find layer corresponding to sequence")
-
-            if not meta.get("save_pos"):
-                # not saving each position in a separate file
-                save_path = ensure_unique(path / file_name, extension=".tif", ndigits=3)
-                data = active_layer.data
-                data = data.squeeze()  # remove any dim if 1
-                tifffile.imsave(
-                    str(save_path),
-                    data.astype("uint16"),
-                    imagej=data.ndim <= 5,
-                )
-            else:  # save each position in a separate file
-                folder_path = ensure_unique(path / file_name, extension="", ndigits=3)
-                folder_path.parent / f"{folder_path.stem}_Pos"
-                folder_path.mkdir(parents=True, exist_ok=True)
-
-                pos_axis = sequence.axis_order.index("p")
-
-                for p in range(active_layer.data.shape[pos_axis]):
-                    tifffile.imsave(
-                        str(folder_path / f"{folder_path.stem}_[p{p:03d}].tif"),
-                        active_layer.data.take(p, axis=pos_axis).astype("uint16"),
-                        imagej=True,
-                    )
-
-    def _save_pos_separately(self, sequence, folder_name, fname):
-
-        for p in range(len(sequence.stage_positions)):
-
-            folder_path = Path(folder_name) / f"{fname}_Pos{p:03d}"
-
-            folder_path.mkdir(parents=True, exist_ok=True)
-
-            for i in self.viewer.layers:
-                if "ch_id" in i.metadata and i.metadata.get("uid") == sequence.uid:
-
-                    ch_id_info = i.metadata.get("ch_id")
-                    fname_pos = f"{fname}_{ch_id_info}_[p{p:03}]"
-
-                    pos_axis = (
-                        sequence.axis_order.index("p")
-                        if len(sequence.time_plan) > 0
-                        else 0
-                    )
-
-                    tifffile.imsave(
-                        str(folder_path / f"{fname_pos}.tif"),
-                        i.data.take(p, axis=pos_axis).astype("uint16"),
-                        imagej=True,
-                    )
-
-    def _save_layer(self, sequence, folder_name, fname):
-        # save each channel layer.
-        for i in self.viewer.layers:
-            if i.metadata.get("uid") != sequence.uid:
-                continue
-            path = folder_name / f'{fname}_{i.metadata.get("ch_id")}.tif'
-            data = i.data
-            data = data.squeeze()  # remove any dim if 1
-            tifffile.imsave(str(path), data.astype("uint16"), imagej=data.ndim <= 5)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies

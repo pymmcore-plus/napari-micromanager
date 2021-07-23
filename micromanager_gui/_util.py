@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    import useq
 
 
 def get_devices_and_props(self):
@@ -32,7 +37,7 @@ def get_groups_list(self):
         print("*********")
 
 
-def extend_array_for_index(array: np.ndarray, index: Tuple[int, ...]):
+def extend_array_for_index(array: np.ndarray, index: tuple[int, ...]):
     """Return `array` padded with zeros if necessary to contain `index`."""
 
     # if the incoming index is outside of the bounds of the current layer.data
@@ -67,25 +72,24 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3):
         current_max = -1
 
     # # find the highest existing path (if dir)
-    if extension == "":
-        for fn in p.parent.glob("*"):
-            if fn.is_dir():
-                try:
-                    current_max = max(current_max, int(fn.stem.rsplit("_")[-1]))
-                except ValueError:
-                    continue
-    # # find the highest existing path (if e.g. .tif)
-    else:
-        for fn in p.parent.glob(f"*{extension}"):
-            try:
-                current_max = max(current_max, int(fn.stem.rsplit("_")[-1]))
-            except ValueError:
-                continue
+    paths = (
+        p.parent.glob(f"*{extension}")
+        if extension
+        else (f for f in p.parent.iterdir() if f.is_dir())
+    )
+    for fn in paths:
+        try:
+            current_max = max(current_max, int(fn.stem.rsplit("_")[-1]))
+        except ValueError:
+            continue
 
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
+    return path.parent / f"{stem}{number}{extension}"
 
-    if extension:
-        return path.parent / f"{stem}{number}{extension}"
-    else:
-        return path.parent / f"{stem}{number}"
+
+# move these to useq:
+def event_indices(event: useq.MDAEvent):
+    for k in event.sequence.axis_order if event.sequence else []:
+        if k in event.index:
+            yield k

@@ -1,18 +1,30 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
+from typing_extensions import Literal
 from useq import MDASequence
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
+
+
+@dataclass
+class SequenceMeta:
+    mode: Literal["mda"] | Literal["explorer"] = "mda"
+    split_channels: bool = False
+    should_save: bool = False
+    file_name: str = ""
+    save_dir: str = ""
+    save_pos: bool = False
 
 
 class _MultiDUI:
@@ -64,7 +76,7 @@ class _MultiDUI:
 class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     # metadata associated with a given experiment
-    SEQUENCE_META: dict[MDASequence, dict[str, Any]] = {}
+    SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
@@ -111,11 +123,12 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.cancel_Button.show()
         self.run_Button.hide()
 
-    def _on_mda_finished(self):
+    def _on_mda_finished(self, sequence):
         self._set_enabled(True)
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
+        self.SEQUENCE_META.pop(sequence, None)
 
     def _on_mda_paused(self, paused):
         self.pause_Button.setText("GO" if paused else "PAUSE")
@@ -293,14 +306,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
         experiment = MDASequence(**self._get_state_dict())
 
-        self.SEQUENCE_META[experiment] = {
-            "mode": "mda",
-            "split_channels": self.checkBox_split_channels.isChecked(),
-            "save_group_mda": self.save_groupBox.isChecked(),
-            "file_name": self.fname_lineEdit.text(),
-            "save_dir": self.dir_lineEdit.text(),
-            "save_pos": self.checkBox_save_pos.isChecked(),
-        }
+        self.SEQUENCE_META[experiment] = SequenceMeta(
+            mode="mda",
+            split_channels=self.checkBox_split_channels.isChecked(),
+            should_save=self.save_groupBox.isChecked(),
+            file_name=self.fname_lineEdit.text(),
+            save_dir=self.dir_lineEdit.text(),
+            save_pos=self.checkBox_save_pos.isChecked(),
+        )
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
 
