@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import numpy as np
 from tifffile import imsave
 
 from ._util import ensure_unique
 
 if TYPE_CHECKING:
-    import numpy as np
     from napari.components import LayerList
     from useq import MDASequence
 

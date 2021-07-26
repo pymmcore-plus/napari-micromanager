@@ -130,7 +130,7 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
+        meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
 

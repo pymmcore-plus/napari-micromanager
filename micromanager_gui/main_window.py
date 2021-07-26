@@ -208,7 +208,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-        meta = self.mda.SEQUENCE_META.get(sequence) or SequenceMeta()
+        meta = self.mda.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)

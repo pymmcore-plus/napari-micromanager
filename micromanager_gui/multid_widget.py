@@ -128,7 +128,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
-        self.SEQUENCE_META.pop(sequence, None)
 
     def _on_mda_paused(self, paused):
         self.pause_Button.setText("GO" if paused else "PAUSE")
