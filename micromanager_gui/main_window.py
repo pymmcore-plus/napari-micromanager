@@ -116,6 +116,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
+        sig.channelGroupChanged.connect(self._refresh_channel_list)
 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -234,8 +235,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self):
-        if "Channel" in self._mmc.getAvailableConfigGroups():
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
+        channel_group = self._mmc.getChannelGroup()
+        channel_group = "Channel" if channel_group=="" else channel_group
+        if channel_group in self._mmc.getAvailableConfigGroups():
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
 
