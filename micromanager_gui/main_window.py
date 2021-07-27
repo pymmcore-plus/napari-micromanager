@@ -105,6 +105,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
+        self._channel_group = ""
+
         # # connect mmcore signals
         sig = self._mmc.events
 
@@ -116,7 +118,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-        sig.channelGroupChanged.connect(self._refresh_channel_list)
+        sig.channelGroupChanged.connect(self._on_channel_group_changed)
 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -139,6 +141,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
+
+    def _on_channel_group_changed(self, groupName: str):
+        self._channel_group = groupName
+        self._refresh_channel_list()
+
 
     def _on_exp_change(self, camera: str, exposure: float):
         self.exp_spinBox.setValue(exposure)
@@ -235,8 +242,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self):
-        channel_group = self._mmc.getChannelGroup()
-        channel_group = "Channel" if channel_group=="" else channel_group
+        channel_group = "Channel" if self._channel_group=="" else self._channel_group
         if channel_group in self._mmc.getAvailableConfigGroups():
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             self.snap_channel_comboBox.addItems(channel_list)
