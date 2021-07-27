@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
@@ -16,7 +16,6 @@ from ._util import extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget
 
-from loguru import logger
 if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
@@ -143,7 +142,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
-
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
             self.snap_channel_comboBox.blockSignals(True)
@@ -244,7 +242,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if "Objective" in self._mmc.getLoadedDevices():
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
-    def _refresh_channel_list(self, channel_group: str=None):
+    def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
             channel_group = self._get_channel_group()
         if channel_group:
@@ -271,7 +269,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
-    def _get_channel_group(self) -> Union[str, None]:
+    def _get_channel_group(self) -> str | None:
         """
         Get channelGroup falling back to Channel if not set, also
         check that this is an availableConfigGroup.
