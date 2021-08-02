@@ -116,6 +116,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
+        sig.channelGroupChanged.connect(self._refresh_channel_list)
+        sig.configSet.connect(self._on_config_set)
 
         # connect explorer
         self.explorer.new_frame.connect(self.add_frame_explorer)
@@ -138,6 +140,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
+        self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+    def _on_config_set(self, groupName: str, configName: str):
+        if groupName == self._get_channel_group():
+            self.snap_channel_comboBox.blockSignals(True)
+            self.snap_channel_comboBox.setCurrentText(configName)
+            self.snap_channel_comboBox.blockSignals(False)
 
     def _on_exp_change(self, camera: str, exposure: float):
         self.exp_spinBox.setValue(exposure)
@@ -233,9 +242,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         if "Objective" in self._mmc.getLoadedDevices():
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
-    def _refresh_channel_list(self):
-        if "Channel" in self._mmc.getAvailableConfigGroups():
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
+    def _refresh_channel_list(self, channel_group: str = None):
+        if channel_group is None:
+            channel_group = self._get_channel_group()
+        if channel_group:
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             self.snap_channel_comboBox.addItems(channel_list)
             self.explorer.scan_channel_comboBox.addItems(channel_list)
 
@@ -257,6 +268,21 @@ class MainWindow(QtW.QWidget, _MainUI):
             bins = self.bin_comboBox.currentText()
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
+
+    def _get_channel_group(self) -> str | None:
+        """
+        Get channelGroup falling back to Channel if not set, also
+        check that this is an availableConfigGroup.
+        """
+        chan_group = self._mmc.getChannelGroup()
+        if chan_group == "":
+            # not set in core. Try "Channel" as a fallback
+            chan_group = "Channel"
+        if chan_group in self._mmc.getAvailableConfigGroups():
+            return chan_group
+
+    def _channel_changed(self, newChannel: str):
+        self._mmc.setConfig(self._get_channel_group(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
