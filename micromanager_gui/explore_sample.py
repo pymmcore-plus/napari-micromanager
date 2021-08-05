@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 import useq
@@ -45,7 +45,7 @@ class ExploreSample(QtW.QWidget):
     ovelap_spinBox: QtW.QSpinBox
 
     # metadata associated with a given experiment
-    SEQUENCE_META: dict[MDASequence, dict[str, Any]] = {}
+    SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
     def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
 
