@@ -19,7 +19,7 @@ ICONS = Path(__file__).parent / "icons"
 
 @dataclass
 class SequenceMeta:
-    mode: Literal["mda"] | Literal["explorer"] = "mda"
+    mode: Literal["mda"] | Literal["explorer"] = ""
     split_channels: bool = False
     should_save: bool = False
     file_name: str = ""
