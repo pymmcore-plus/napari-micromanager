@@ -33,6 +33,19 @@ You can install `napari-micromanager` via [pip]:
 Contributions are very welcome. Tests can be run with [tox], please ensure
 the coverage at least stays the same before you submit a pull request.
 
+### Launching napari with plugin
+You can launch napari and automatically load this plugin using the `launch-dev.py` script:
+
+```bash
+python launch-dev.py
+```
+
+Alternatively you can run:
+
+```bash
+napari -w micromanager
+```
+
 ## License
 
 Distributed under the terms of the [BSD-3] license,
