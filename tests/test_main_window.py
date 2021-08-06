@@ -6,6 +6,7 @@ import micromanager_gui
 import numpy as np
 import pytest
 from micromanager_gui.main_window import MainWindow
+from micromanager_gui.multid_widget import SequenceMeta
 from napari import Viewer
 from pymmcore_plus import server
 from pymmcore_plus.client._client import _get_remote_pid
@@ -51,7 +52,7 @@ def main_window(qtbot, request):
         viewer.close()
 
 
-def test_main_window(main_window: MainWindow):
+def test_main_window_mda(main_window: MainWindow):
 
     assert not main_window.viewer.layers
 
@@ -61,8 +62,9 @@ def test_main_window(main_window: MainWindow):
         channels=["DAPI", "FITC"],
     )
 
-    for event in mda:
+    main_window.mda.SEQUENCE_META[mda] = SequenceMeta(mode="mda")
 
+    for event in mda:
         frame = np.random.rand(128, 128)
         main_window._on_mda_frame(frame, event)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 128, 128)
@@ -72,7 +74,7 @@ def test_main_window(main_window: MainWindow):
 @pytest.mark.parametrize("splitC", ["", "splitC"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
-def test_saving(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
+def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
     import tempfile
 
     do_save = True
