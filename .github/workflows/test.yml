@@ -75,7 +75,8 @@ jobs:
         run: |
           git tag
           pip install --upgrade pip
-          pip install -U setuptools setuptools_scm wheel twine
+          pip install -U setuptools setuptools_scm wheel twine check-manifest
+          check-manifest
           python setup.py sdist bdist_wheel
 
       - name: twine check
