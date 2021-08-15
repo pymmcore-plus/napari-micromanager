@@ -1,7 +1,8 @@
 include LICENSE
 include README.md
 include requirements.txt
-recursive-include micromanager_gui *.ui *.png *.jpeg *.jpg *.svg
+recursive-include micromanager_gui *.ui *.png *.jpeg *.jpg *.svg *.cfg
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude examples *
