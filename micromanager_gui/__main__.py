@@ -1,4 +1,5 @@
 import napari
+
 from micromanager_gui.main_window import MainWindow
 
 viewer = napari.Viewer()

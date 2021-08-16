@@ -2,15 +2,16 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import micromanager_gui
 import numpy as np
 import pytest
-from micromanager_gui.main_window import MainWindow
-from micromanager_gui.multid_widget import SequenceMeta
 from napari import Viewer
 from pymmcore_plus import server
 from pymmcore_plus.client._client import _get_remote_pid
 from useq import MDASequence
+
+import micromanager_gui
+from micromanager_gui.main_window import MainWindow
+from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
