@@ -1,338 +1,328 @@
-import time
+from __future__ import annotations
+
+import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+import useq
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import Signal
-from skimage.transform import resize
+from useq import MDASequence
+
+from ._saving import save_sequence
+from .multid_widget import SequenceMeta
+
+if TYPE_CHECKING:
+    import napari.viewer
+    from pymmcore_plus import RemoteMMCore
+
 
 UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
 
 
 class ExploreSample(QtW.QWidget):
     # The UI_FILE above contains these objects:
+    scan_explorer_groupBox: QtW.QGroupBox
     scan_size_label: QtW.QLabel
     scan_size_spinBox_r: QtW.QSpinBox
     scan_size_spinBox_c: QtW.QSpinBox
-    scan_channel_comboBox: QtW.QComboBox
-    scan_exp_spinBox: QtW.QSpinBox
+    channel_explorer_groupBox: QtW.QGroupBox
+    channel_explorer_tableWidget: QtW.QTableWidget
+    add_ch_explorer_Button: QtW.QPushButton
+    clear_ch_explorer_Button: QtW.QPushButton
+    remove_ch_explorer_Button: QtW.QPushButton
+    save_explorer_groupBox: QtW.QGroupBox
+    dir_explorer_lineEdit: QtW.QLineEdit
+    fname_explorer_lineEdit: QtW.QLineEdit
+    browse_save_explorer_Button: QtW.QPushButton
     start_scan_Button: QtW.QPushButton
     stop_scan_Button: QtW.QPushButton
-    progressBar: QtW.QProgressBar
+    move_to_position_groupBox: QtW.QGroupBox
     move_to_Button: QtW.QPushButton
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
+    ovelap_spinBox: QtW.QSpinBox
 
-    # ________________________________________________________________________
-    new_frame = Signal(str, np.ndarray)
-    send_explorer_info = Signal(int, int)
-    delete_snaps = Signal(str)
-    delete_previous_scan = Signal(str)
-    # ________________________________________________________________________
+    # metadata associated with a given experiment
+    SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
-    def __init__(self, mmcore, parent=None):
+    def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
+
         self._mmc = mmcore
+        self.viewer = viewer
         super().__init__(parent)
         uic.loadUi(UI_FILE, self)
 
-        self.scan_position_list = []
-        self.stitched_image_array_list = []
-        self.x_lineEdit.setText("None")
-        self.y_lineEdit.setText("None")
-        self.scan_size_r = "None"
-        self.scan_size_c = "None"
+        self.pixel_size = 0
+
+        # connect buttons
+        self.add_ch_explorer_Button.clicked.connect(self.add_channel)
+        self.remove_ch_explorer_Button.clicked.connect(self.remove_channel)
+        self.clear_ch_explorer_Button.clicked.connect(self.clear_channel)
 
         self.start_scan_Button.clicked.connect(self.start_scan)
-        self.stop_scan_Button.clicked.connect(self.stop_scan)
         self.move_to_Button.clicked.connect(self.move_to)
+        self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
 
-    def stop_scan(self):
-        pass
+        self.stop_scan_Button.clicked.connect(lambda e: self._mmc.cancel())
 
-    def start_scan(self):
+        self.x_lineEdit.setText(str(None))
+        self.y_lineEdit.setText(str(None))
 
-        name = f"stitched_{self.scan_size_r}x{self.scan_size_c}"
-        self.delete_previous_scan.emit(name)  # emot signal to MainWindow
+        # connect mmcore signals
+        mmcore.events.systemConfigurationLoaded.connect(self.clear_channel)
 
-        self.x_lineEdit.setText("None")
-        self.y_lineEdit.setText("None")
+        mmcore.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.events.frameReady.connect(self._on_explorer_frame)
+        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.events.sequenceFinished.connect(self._refresh_positions)
+
+        @self.viewer.mouse_drag_callbacks.append
+        def get_event(viewer, event):
+            if mmcore.getPixelSizeUm() > 0:
+                width = mmcore.getROI(mmcore.getCameraDevice())[2]
+                height = mmcore.getROI(mmcore.getCameraDevice())[3]
+
+                x = viewer.cursor.position[-1] * mmcore.getPixelSizeUm()
+                y = viewer.cursor.position[-2] * mmcore.getPixelSizeUm() * (-1)
+
+                # to match position coordinates with center of the image
+                x = x - ((width / 2) * mmcore.getPixelSizeUm())
+                y = y - ((height / 2) * mmcore.getPixelSizeUm() * (-1))
+
+            else:
+                x, y = None, None
+
+            self.x_lineEdit.setText(f"{x:.1f}")
+            self.y_lineEdit.setText(f"{y:.1f}")
+
+    def _on_mda_started(self, sequence: useq.MDASequence):
+        """Block gui when mda starts."""
+        self._set_enabled(False)
+
+    def _on_explorer_frame(self, image: np.ndarray, event: useq.MDAEvent):
+        seq = event.sequence
+        meta = self.SEQUENCE_META.get(event.sequence) or SequenceMeta()
+        if meta.mode != "explorer":
+            return
+
+        x = event.x_pos / self.pixel_size
+        y = event.y_pos / self.pixel_size * (-1)
+
+        pos_idx = event.index["p"]
+        file_name = meta.file_name if meta.should_save else "Exp"
+        ch_name = event.channel.config
+        cidx = event.index["c"]
+        layer_name = f"Pos{pos_idx:03d}_{file_name}_[{ch_name}_idx{cidx}]"
+
+        meta = dict(
+            useq_sequence=seq,
+            uid=seq.uid,
+            scan_coord=(y, x),
+            scan_position=f"Pos{pos_idx:03d}",
+            ch_name=f"{event.channel.config}",
+            ch_id=f'{event.index["c"]}',
+        )
+        self.viewer.add_image(
+            image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
+        )
+        self.viewer.reset_view()
+
+    def _on_mda_finished(self, sequence: useq.MDASequence):
+        meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
+        save_sequence(sequence, self.viewer.layers, meta)
+        self._set_enabled(True)
+
+    def _set_enabled(self, enabled):
+        self.scan_size_spinBox_r.setEnabled(enabled)
+        self.scan_size_spinBox_c.setEnabled(enabled)
+        self.ovelap_spinBox.setEnabled(enabled)
+        self.channel_explorer_groupBox.setEnabled(enabled)
+        self.move_to_Button.setEnabled(enabled)
+        self.start_scan_Button.setEnabled(enabled)
+        self.save_explorer_groupBox.setEnabled(enabled)
+
+    def _refresh_positions(self):
+        if self._mmc.getXYStageDevice():
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+        else:
+            x, y = None, None
+
+        self.x_lineEdit.setText(f"{x:.1f}")
+        self.y_lineEdit.setText(f"{y:.1f}")
+
+    # add, remove, clear channel table
+    def add_channel(self):
+        dev_loaded = list(self._mmc.getLoadedDevices())
+        if len(dev_loaded) > 1:
+
+            idx = self.channel_explorer_tableWidget.rowCount()
+            self.channel_explorer_tableWidget.insertRow(idx)
+
+            # create a combo_box for channels in the table
+            self.channel_explorer_comboBox = QtW.QComboBox(self)
+            self.channel_explorer_exp_spinBox = QtW.QSpinBox(self)
+            self.channel_explorer_exp_spinBox.setRange(0, 10000)
+            self.channel_explorer_exp_spinBox.setValue(100)
+
+            if "Channel" not in self._mmc.getAvailableConfigGroups():
+                raise ValueError("Could not find 'Channel' in the ConfigGroups")
+            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
+            self.channel_explorer_comboBox.addItems(channel_list)
+
+            self.channel_explorer_tableWidget.setCellWidget(
+                idx, 0, self.channel_explorer_comboBox
+            )
+            self.channel_explorer_tableWidget.setCellWidget(
+                idx, 1, self.channel_explorer_exp_spinBox
+            )
+
+    def remove_channel(self):
+        # remove selected position
+        rows = {r.row() for r in self.channel_explorer_tableWidget.selectedIndexes()}
+        for idx in sorted(rows, reverse=True):
+            self.channel_explorer_tableWidget.removeRow(idx)
+
+    def clear_channel(self):
+        # clear all positions
+        self.channel_explorer_tableWidget.clearContents()
+        self.channel_explorer_tableWidget.setRowCount(0)
+
+    def _get_state_dict(self) -> dict:
+        # position settings
+        table = self.channel_explorer_tableWidget
+        return {
+            "axis_order": "tpzc",
+            "stage_positions": [dict(zip("xyz", g)) for g in self.set_grid()],
+            "z_plan": None,
+            "time_plan": None,
+            "channels": [
+                {
+                    "config": table.cellWidget(c, 0).currentText(),
+                    "group": self._mmc.getChannelGroup() or "Channel",
+                    "exposure": table.cellWidget(c, 1).value(),
+                }
+                for c in range(table.rowCount())
+            ],
+        }
+
+    def set_grid(self) -> list[tuple[float, float, float]]:
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
 
-        self.scan_position_list.clear()
-        self.stitched_image_array_list.clear()
-
-        self.scaling_factor = 3
-
-        self.total_size = self.scan_size_r * self.scan_size_c
-
-        # create positions storage arrays
-        self.array_pos_x = np.empty((self.scan_size_r, self.scan_size_c))
-        self.array_pos_y = np.empty((self.scan_size_r, self.scan_size_c))
-        self.array_pos_z = np.empty((self.scan_size_r, self.scan_size_c))
-
-        # for progress bar
-        prigress_values = np.linspace(1, 90, self.total_size)
-        prigress_values = np.round(prigress_values, 0)
-        prigress_values = prigress_values.astype(int)
-
-        # set acquisition parameters
-        self._mmc.setExposure(int(self.scan_exp_spinBox.value()))
-        self._mmc.setConfig("Channel", self.scan_channel_comboBox.currentText())
-
         # get current position
-        x_curr_pos_explorer = int(self._mmc.getXPosition())
-        y_curr_pos_explorer = int(self._mmc.getYPosition())
-        z_curr_pos_explorer = int(self._mmc.getPosition("Z_Stage"))
-        # print(f'curr_pos:{x_curr_pos_explorer},{y_curr_pos_explorer},{z_curr_pos_explorer}')
+        x_pos = float(self._mmc.getXPosition())
+        y_pos = float(self._mmc.getYPosition())
+        z_pos = float(self._mmc.getZPosition())
 
         # calculate initial scan position
-        self.width = self._mmc.getROI(self._mmc.getCameraDevice())[
-            2
-        ]  # maybe they are inverted
-        self.height = self._mmc.getROI(self._mmc.getCameraDevice())[
-            3
-        ]  # maybe they are inverted
-        move_x = (self.width / 2) * (self.scan_size_r - 1) * self._mmc.getPixelSizeUm()
-        move_y = (self.height / 2) * (self.scan_size_c - 1) * self._mmc.getPixelSizeUm()
+        _, _, width, height = self._mmc.getROI(self._mmc.getCameraDevice())
 
-        x_pos_explorer = x_curr_pos_explorer - move_x
-        y_pos_explorer = y_curr_pos_explorer + move_y
-        # print(f'start pos: {x_pos_explorer},{y_pos_explorer}')
+        overlap_percentage = self.ovelap_spinBox.value()
+        overlap_px_w = width - (width * overlap_percentage) / 100
+        overlap_px_h = height - (height * overlap_percentage) / 100
+
+        if self.scan_size_r == 1 and self.scan_size_c == 1:
+            raise Exception("RxC -> 1x1. Use MDA to acquire a single position image.")
+
+        move_x = (width / 2) * (self.scan_size_c - 1) - overlap_px_w
+        move_y = (height / 2) * (self.scan_size_r - 1) - overlap_px_h
+
+        # to match position coordinates with center of the image
+        x_pos -= self.pixel_size * (move_x + width)
+        y_pos += self.pixel_size * (move_y + height)
 
         # calculate position increments depending on pixle size
-        increment_x = self.width * self._mmc.getPixelSizeUm()
-        increment_y = self.height * self._mmc.getPixelSizeUm()
-        # print(f'increments: {increment_x},{increment_y}')
+        if overlap_percentage > 0:
+            increment_x = overlap_px_w * self.pixel_size
+            increment_y = overlap_px_h * self.pixel_size
+        else:
+            increment_x = width * self.pixel_size
+            increment_y = height * self.pixel_size
 
-        # create the xyz position matrix
+        list_pos_order = []
         for r in range(self.scan_size_r):
-            if r == 0 or (r % 2) == 0:
-                for c in range(self.scan_size_c):  # for even rows
-                    if r > 0 and c == 0:
-                        y_pos_explorer = y_pos_explorer - increment_y
-                    self.array_pos_x[r][c] = x_pos_explorer
-                    self.array_pos_y[r][c] = y_pos_explorer
-                    self.array_pos_z[r][c] = z_curr_pos_explorer
-                    if c < self.scan_size_c - 1:
-                        x_pos_explorer = x_pos_explorer + increment_x
-            else:  # for odd rows
+            if r % 2:  # for odd rows
                 col = self.scan_size_c - 1
                 for c in range(self.scan_size_c):
                     if c == 0:
-                        y_pos_explorer = y_pos_explorer - increment_y
-                    self.array_pos_x[r][col] = x_pos_explorer
-                    self.array_pos_y[r][col] = y_pos_explorer
-                    self.array_pos_z[r][col] = z_curr_pos_explorer
+                        y_pos -= increment_y
+                    list_pos_order.append([x_pos, y_pos, z_pos])
                     if col > 0:
-                        col = col - 1
-                        x_pos_explorer = x_pos_explorer - increment_x
+                        col -= 1
+                        x_pos -= increment_x
+            else:  # for even rows
+                for c in range(self.scan_size_c):
+                    if r > 0 and c == 0:
+                        y_pos -= increment_y
+                    list_pos_order.append([x_pos, y_pos, z_pos])
+                    if c < self.scan_size_c - 1:
+                        x_pos += increment_x
 
-        # print(f'\n{self.array_pos_x}\n\n{self.array_pos_y}\n\n{self.array_pos_z}\n')
+        return list_pos_order
 
-        # move to the correct position and acquire an image
-        progress = 0
-        for row in range(self.scan_size_r):
-            if row == 0 or (row % 2) == 0:  # for even rows
-                # print(f'row {row} is even')
-                for s in range(self.scan_size_c):
-                    # move to position
-                    vx = self.array_pos_x[row][s]
-                    vy = self.array_pos_y[row][s]
-                    vz = self.array_pos_z[row][s]
-                    # print(f'even row: {vx},{vy},{vz}')
-                    self._mmc.setXYPosition(vx, vy)
-                    self._mmc.setPosition("Z_Stage", vz)
-                    # print(self._mmc.getXPosition(),self._mmc.getYPosition(),self._mmc.getPosition("Z_Stage"))
+    def set_explorer_dir(self):
+        # set the directory
+        self.dir = QtW.QFileDialog(self)
+        self.dir.setFileMode(QtW.QFileDialog.DirectoryOnly)
+        self.save_dir = QtW.QFileDialog.getExistingDirectory(self.dir)
+        self.dir_explorer_lineEdit.setText(self.save_dir)
+        self.parent_path = Path(self.save_dir)
 
-                    # snap image
-                    self._mmc.snapImage()
-                    snap = self._mmc.getImage()
-                    # print(f'    temp_snap_{row}_{s}')
+    def start_scan(self):
 
-                    # scale down image
-                    snap_scaled = resize(
-                        snap,
-                        (
-                            round(self.height / self.scaling_factor),
-                            round(self.width / self.scaling_factor),
-                        ),
-                    )
-                    self.new_frame.emit("temp_snap", snap_scaled)
+        self.pixel_size = self._mmc.getPixelSizeUm()
 
-                    # concatenate image in a row (to the right)
-                    if s == 0:
-                        stitched_image_array = snap_scaled
-                    else:
-                        stitched_image_array = np.concatenate(
-                            (stitched_image_array, snap_scaled), axis=1
-                        )
+        if len(self._mmc.getLoadedDevices()) < 2:
+            raise ValueError("Load a cfg file first.")
 
-                    self.progressBar.setValue(prigress_values[progress])
-                    progress += 1
+        if self.pixel_size <= 0:
+            raise ValueError("PIXEL SIZE NOT SET.")
 
-                    time.sleep(0.1)
+        if self.channel_explorer_tableWidget.rowCount() <= 0:
+            raise ValueError("Select at least one channel.")
 
-                # append array in a list
-                self.stitched_image_array_list.append(stitched_image_array)
+        if self.save_explorer_groupBox.isChecked() and (
+            self.fname_explorer_lineEdit.text() == ""
+            or (
+                self.dir_explorer_lineEdit.text() == ""
+                or not Path.is_dir(Path(self.dir_explorer_lineEdit.text()))
+            )
+        ):
+            raise ValueError("select a filename and a valid directory.")
 
-            else:  # for odd rows
-                # print(f'row {row} is odd')
-                col = self.scan_size_c - 1
-                for s in range(self.scan_size_c):
-                    # print(f'col = {col}')
+        explore_sample = MDASequence(**self._get_state_dict())
 
-                    # move to position
-                    vx = self.array_pos_x[row][col]
-                    vy = self.array_pos_y[row][col]
-                    vz = self.array_pos_z[row][col]
-                    # print(f'odd row: {vx},{vy},{vz}')
-                    self._mmc.setXYPosition(vx, vy)
-                    self._mmc.setPosition("Z_Stage", vz)
-                    # print(
-                    #     self._mmc.getXPosition(),
-                    #     self._mmc.getYPosition(),
-                    #     self._mmc.getPosition("Z_Stage"),
-                    # )
-
-                    # snap image
-                    self._mmc.snapImage()
-                    snap = self._mmc.getImage()
-                    # print(f'    temp_snap_{row}_{s}')
-
-                    # scale down image
-                    snap_scaled = resize(
-                        snap,
-                        (
-                            round(self.height / self.scaling_factor),
-                            round(self.width / self.scaling_factor),
-                        ),
-                    )
-                    self.new_frame.emit("temp_snap", snap_scaled)
-
-                    # concatenate image in a row (to the left)
-                    if s == 0:
-                        stitched_image_array = snap_scaled
-                    else:
-                        stitched_image_array = np.concatenate(
-                            (snap_scaled, stitched_image_array), axis=1
-                        )
-
-                    self.progressBar.setValue(prigress_values[progress])
-                    progress += 1
-                    if col > 0:
-                        col = col - 1
-
-                    time.sleep(0.1)
-
-                # append array in a list
-                self.stitched_image_array_list.append(stitched_image_array)
-
-        # stitch all rows
-        stitched_image_final = self.stitched_image_array_list[0]
-        for row in range(1, len(self.stitched_image_array_list)):
-            st = self.stitched_image_array_list[row]
-            stitched_image_final = np.concatenate((stitched_image_final, st), axis=0)
-        # print(f'stitched_image_final.shape = {stitched_image_final.shape}')
-        self.new_frame.emit(
-            f"stitched_{self.scan_size_r}x{self.scan_size_c}", stitched_image_final
+        self.SEQUENCE_META[explore_sample] = SequenceMeta(
+            mode="explorer",
+            split_channels=True,
+            should_save=self.save_explorer_groupBox.isChecked(),
+            file_name=self.fname_explorer_lineEdit.text(),
+            save_dir=self.dir_explorer_lineEdit.text(),
         )
-        self.progressBar.setValue(100)
-        self.shape_stitched_x = stitched_image_final.shape[1]
-        self.shape_stitched_y = stitched_image_final.shape[0]
 
-        self.send_explorer_info.emit(
-            self.shape_stitched_x, self.shape_stitched_y
-        )  # emit signal to MainWindow
-        self.delete_snaps.emit("temp_snap")  # emit signal to MainWindow
+        self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
+        return
 
     def move_to(self):
 
-        string_coord_x = self.x_lineEdit.text()
-        string_coord_y = self.y_lineEdit.text()
+        move_to_x = self.x_lineEdit.text()
+        move_to_y = self.y_lineEdit.text()
 
-        if not string_coord_x == "None" and not string_coord_y == "None":
-
-            coord_x = float(string_coord_x)
-            coord_y = float(string_coord_y)
-            # print(f'COORDS: {coord_x},{coord_y}')
-
-            x_snap = self.shape_stitched_x / self.scan_size_c
-            y_snap = self.shape_stitched_y / self.scan_size_r
-            # print(x_snap, y_snap)
-
-            x_snap_increment = x_snap
-            y_snap_increment = y_snap
-
-            done = False
-            col = 0
-            for _ in range(self.total_size):
-
-                if done:
-                    break
-
-                if coord_x <= x_snap:
-                    # for row in range(self.scan_size):
-                    for row in range(self.scan_size_r):
-                        if coord_y <= y_snap:
-                            # print(f'coord_x = {coord_x}, coord_y = {coord_y}')
-                            # print(f'row = {row}, col = {col}')
-                            x_scan_pos = self.array_pos_x[row][col]
-                            y_scan_pos = self.array_pos_y[row][col]
-                            z_scan_pos = self.array_pos_z[row][col]
-                            # print(f'moving to x: {x_scan_pos}')
-                            # print(f'moving to y: {y_scan_pos}')
-                            # print(f'moving to z: {z_scan_pos}')
-                            # set position
-                            self._mmc.setXYPosition(x_scan_pos, y_scan_pos)
-                            self._mmc.setPosition("Z_Stage", z_scan_pos)
-
-                            # snap image at position
-                            self._mmc.setExposure(int(self.scan_exp_spinBox.value()))
-                            self._mmc.setConfig(
-                                "Channel", self.scan_channel_comboBox.currentText()
-                            )
-                            self._mmc.snapImage()
-                            image = self._mmc.getImage()
-                            self.new_frame.emit("preview", image)
-                            done = True
-                            break
-
-                        else:
-                            y_snap = y_snap + y_snap_increment
-                else:
-                    x_snap = x_snap + x_snap_increment
-                    col += 1
+        if move_to_x == "None" and move_to_y == "None":
+            warnings.warn("PIXEL SIZE NOT SET.")
+        else:
+            move_to_x = float(move_to_x)
+            move_to_y = float(move_to_y)
+            self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
 
 
-# removed from main_window
-# def get_explorer_info(self, shape_stitched_x, shape_stitched_y):
+if __name__ == "__main__":
+    from qtpy.QtWidgets import QApplication
 
-#     # Get coordinates mouse_drag_callbacks
-#     @self.viewer.mouse_drag_callbacks.append  # is it possible to double click?
-#     def get_event_add(viewer, event):
-#         try:
-#             for i in self.viewer.layers:
-#                 selected_layer = self.viewer.layers.selected
-#                 if "stitched_" in str(i) and "stitched_" in str(selected_layer):
-#                     layer = self.viewer.layers[str(i)]
-#                     coord = layer.coordinates
-#                     # print(f'\ncoordinates: x={coord[1]}, y={coord[0]}')
-#                     coord_x = coord[1]
-#                     coord_y = coord[0]
-#                     if coord_x <= shape_stitched_x and coord_y < shape_stitched_y:
-#                         if coord_x > 0 and coord_y > 0:
-#                             self.explorer.x_lineEdit.setText(str(round(coord_x)))
-#                             self.explorer.y_lineEdit.setText(str(round(coord_y)))
-#                             break
-
-#                         else:
-#                             self.explorer.x_lineEdit.setText("None")
-#                             self.explorer.y_lineEdit.setText("None")
-#                     else:
-#                         self.explorer.x_lineEdit.setText("None")
-#                         self.explorer.y_lineEdit.setText("None")
-#         except KeyError:
-#             pass
+    app = QApplication([])
+    window = ExploreSample()
+    window.show()
+    app.exec_()

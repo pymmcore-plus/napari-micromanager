@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,9 +11,10 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from ._util import extend_array_for_index
+from ._saving import save_sequence
+from ._util import event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
-from .multid_widget import MultiDWidget
+from .multid_widget import MultiDWidget, SequenceMeta
 
 if TYPE_CHECKING:
     import napari.layers
@@ -101,16 +101,20 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
-        self.explorer = ExploreSample(self._mmc)
+        self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        # # connect mmcore signals
+        # connect mmcore signals
         sig = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.sequenceFinished.connect(self._on_system_configuration_loaded)
+        sig.sequenceStarted.connect(self._on_mda_started)
+        sig.sequenceFinished.connect(self._on_mda_finished)
+        sig.sequenceFinished.connect(
+            self._on_system_configuration_loaded
+        )  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
@@ -118,11 +122,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
-
-        # connect explorer
-        self.explorer.new_frame.connect(self.add_frame_explorer)
-        self.explorer.delete_snaps.connect(self.delete_layer)
-        self.explorer.delete_previous_scan.connect(self.delete_layer)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -133,6 +132,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
+        self.up_Button.clicked.connect(self.snap)
+        self.down_Button.clicked.connect(self.snap)
+
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
@@ -148,56 +150,77 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap_channel_comboBox.setCurrentText(configName)
             self.snap_channel_comboBox.blockSignals(False)
 
+    def _set_enabled(self, enabled):
+        self.objective_groupBox.setEnabled(enabled)
+        self.camera_groupBox.setEnabled(enabled)
+        self.XY_groupBox.setEnabled(enabled)
+        self.Z_groupBox.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
+
     def _on_exp_change(self, camera: str, exposure: float):
         self.exp_spinBox.setValue(exposure)
 
-    def delete_layer(self, name):
-        layer_set = {str(layer) for layer in self.viewer.layers}
-        if name in layer_set:
-            self.viewer.layers.remove(name)
-        layer_set.clear()
+    def _on_mda_started(self, sequence: useq.MDASequence):
+        """ "create temp folder and block gui when mda starts."""
+        self._set_enabled(False)
 
-    def add_frame_explorer(self, name, array):
-        layer_name = name
-        try:
-            layer = self.viewer.layers[layer_name]
-            layer.data = array
-        except KeyError:
-            self.viewer.add_image(array, name=layer_name)
-
-    # TO DO: add the file name form the save box
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        seq = event.sequence
-        try:
-            # see if we already have a layer with this sequence
-            layer: napari.layers.Image = next(
-                x for x in self.viewer.layers if x.metadata.get("uid") == seq.uid
+        meta = self.mda.SEQUENCE_META.get(event.sequence) or SequenceMeta()
+
+        if meta.mode != "mda":
+            return
+
+        # pick layer name
+        file_name = meta.file_name if meta.should_save else "Exp"
+        channelstr = (
+            f"[{event.channel.config}_idx{event.index['c']}]_"
+            if meta.split_channels
+            else ""
+        )
+        layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
+
+        try:  # see if we already have a layer with this sequence
+            layer = self.viewer.layers[layer_name]
+
+            # get indices of new image
+            im_idx = tuple(
+                event.index[k]
+                for k in event_indices(event)
+                if not (meta.split_channels and k == "c")
             )
 
-            # get the index of the incoming image
-            im_idx = tuple(event.index[k] for k in seq.axis_order if k in event.index)
             # make sure array shape contains im_idx, or pad with zeros
             new_array = extend_array_for_index(layer.data, im_idx)
             # add the incoming index at the appropriate index
             new_array[im_idx] = image
-
             # set layer data
             layer.data = new_array
-
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
-        except StopIteration:
-            layer_name = f"mda_{datetime.now().strftime('%H:%M:%S')}"
+        except KeyError:  # add the new layer to the viewer
+            seq = event.sequence
             _image = image[(np.newaxis,) * len(seq.shape)]
-            layer = self.viewer.add_image(_image, name=layer_name)
-            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+            layer = self.viewer.add_image(_image, name=layer_name, blending="additive")
 
+            # dimensions labels
+            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
             self.viewer.dims.axis_labels = labels
+
+            # add metadata to layer
             layer.metadata["useq_sequence"] = seq
             layer.metadata["uid"] = seq.uid
+            # storing event.index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
+            layer.metadata["ch_id"] = f'{event.channel.config}_idx{event.index["c"]}'
 
-            layer = self.viewer.layers[layer_name]
+    def _on_mda_finished(self, sequence: useq.MDASequence):
+        """Save layer and add increment to save name."""
+        meta = self.mda.SEQUENCE_META.pop(sequence, SequenceMeta())
+        save_sequence(sequence, self.viewer.layers, meta)
+        # reactivate gui when mda finishes.
+        self._set_enabled(True)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
@@ -211,7 +234,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        # self.setEnabled(False)
         self.max_val_lineEdit.setText("None")
         self.min_val_lineEdit.setText("None")
         self.load_cfg_Button.setEnabled(True)
@@ -225,6 +247,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         cam_device = self._mmc.getCameraDevice()
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
+            self.bin_comboBox.clear()
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
             self.bin_comboBox.addItems(bin_opts)
             self.bin_comboBox.setCurrentText(
@@ -232,6 +255,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             )
 
         if "PixelType" in cam_props:
+            self.bit_comboBox.clear()
             px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
             self.bit_comboBox.addItems(px_t)
             if "16" in px_t:
@@ -240,6 +264,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
+            self.objective_comboBox.clear()
             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
 
     def _refresh_channel_list(self, channel_group: str = None):
@@ -248,12 +273,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         if channel_group:
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             self.snap_channel_comboBox.addItems(channel_list)
-            self.explorer.scan_channel_comboBox.addItems(channel_list)
 
     def _on_system_configuration_loaded(self):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
+        self._refresh_positions()
+
+    def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
@@ -293,22 +320,32 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        self._mmc.setRelPosition(dx=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
 
     def stage_x_right(self):
-        self._mmc.setRelPosition(dx=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
 
     def stage_y_up(self):
-        self._mmc.setRelPosition(dy=float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(
+            0.0,
+            float(self.xy_step_size_SpinBox.value()),
+        )
 
     def stage_y_down(self):
-        self._mmc.setRelPosition(dy=-float(self.xy_step_size_SpinBox.value()))
+        self._mmc.setRelativeXYPosition(
+            0.0,
+            -float(self.xy_step_size_SpinBox.value()),
+        )
 
     def stage_z_up(self):
-        self._mmc.setRelPosition(dz=float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelativeXYZPosition(
+            0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
+        )
 
     def stage_z_down(self):
-        self._mmc.setRelPosition(dz=-float(self.z_step_size_doubleSpinBox.value()))
+        self._mmc.setRelativeXYZPosition(
+            0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
+        )
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
@@ -343,6 +380,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             )
 
     def update_viewer(self, data=None):
+        # TODO: - fix the fact that when you change the objective
+        #         the image translation is wrong
+        #       - are max and min_val_lineEdit updating in live mode?
         if data is None:
             try:
                 data = self._mmc.popNextImage()
@@ -350,13 +390,30 @@ class MainWindow(QtW.QWidget, _MainUI):
                 # circular buffer empty
                 return
         try:
-            self.viewer.layers["preview"].data = data
+            preview_layer = self.viewer.layers["preview"]
+            preview_layer.data = data
         except KeyError:
-            self.viewer.add_image(data, name="preview")
+            preview_layer = self.viewer.add_image(data, name="preview")
+
+        self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
+        self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
+
+        if self._mmc.getPixelSizeUm() > 0:
+            x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
+            y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (-1)
+            self.viewer.layers["preview"].translate = (y, x)
+
+        if self.streaming_timer is None:
+            self.viewer.reset_view()
 
     def snap(self):
         self.stop_live()
+
         self._mmc.setExposure(self.exp_spinBox.value())
+
+        ch_group = self._mmc.getChannelGroup() or "Channel"
+        self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
@@ -377,6 +434,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
+
+            ch_group = self._mmc.getChannelGroup() or "Channel"
+            self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+
             self.start_live()
             self.live_Button.setIcon(CAM_STOP_ICON)
         else:

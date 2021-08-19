@@ -2,14 +2,16 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import micromanager_gui
 import numpy as np
 import pytest
-from micromanager_gui.main_window import MainWindow
 from napari import Viewer
 from pymmcore_plus import server
 from pymmcore_plus.client._client import _get_remote_pid
 from useq import MDASequence
+
+import micromanager_gui
+from micromanager_gui.main_window import MainWindow
+from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -51,7 +53,7 @@ def main_window(qtbot, request):
         viewer.close()
 
 
-def test_main_window(main_window: MainWindow):
+def test_main_window_mda(main_window: MainWindow):
 
     assert not main_window.viewer.layers
 
@@ -60,6 +62,9 @@ def test_main_window(main_window: MainWindow):
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
     )
+
+    main_window.mda.SEQUENCE_META[mda] = SequenceMeta(mode="mda")
+
     for event in mda:
         frame = np.random.rand(128, 128)
         main_window._on_mda_frame(frame, event)
@@ -67,40 +72,61 @@ def test_main_window(main_window: MainWindow):
 
 
 @pytest.mark.parametrize("Z", ["", "withZ"])
+@pytest.mark.parametrize("splitC", ["", "splitC"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
-def test_saving(qtbot: "QtBot", main_window: MainWindow, tmp_path, T, C, Z):
-    _mda = main_window.mda
-    _mda.save_groupBox.setChecked(True)
-    _mda.dir_lineEdit.setText(str(tmp_path))
-    _mda.fname_lineEdit.setText("test_mda")
+def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
+    import tempfile
 
-    _mda.time_groupBox.setChecked(bool(T))
-    _mda.time_comboBox.setCurrentText("ms")
-    _mda.timepoints_spinBox.setValue(3)
-    _mda.interval_spinBox.setValue(1)
+    do_save = True
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+        NAME = "test_mda"
+        _mda = main_window.mda
+        _mda.save_groupBox.setChecked(do_save)
+        _mda.dir_lineEdit.setText(str(tmp_path))
+        _mda.fname_lineEdit.setText(NAME)
 
-    _mda.stack_groupBox.setChecked(bool(Z))
-    _mda.zrange_spinBox.setValue(3)
-    _mda.step_size_doubleSpinBox.setValue(1)
+        _mda.time_groupBox.setChecked(bool(T))
+        _mda.time_comboBox.setCurrentText("ms")
+        _mda.timepoints_spinBox.setValue(3)
+        _mda.interval_spinBox.setValue(1)
 
-    # 2 Channels
-    _mda.add_ch_Button.click()
-    _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-    _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
-    if bool(C):
+        _mda.stack_groupBox.setChecked(bool(Z))
+        _mda.zrange_spinBox.setValue(3)
+        _mda.step_size_doubleSpinBox.setValue(1)
+
+        # 2 Channels
         _mda.add_ch_Button.click()
-        _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
+        _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
+        _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
+        if C:
+            _mda.add_ch_Button.click()
+            _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
+        if splitC:
+            _mda.checkBox_split_channels.setChecked(True)
 
-    mda = None
+        mda = None
 
-    @main_window._mmc.events.sequenceStarted.connect
-    def _store_mda(_mda):
-        nonlocal mda
-        mda = _mda
+        @main_window._mmc.events.sequenceStarted.connect
+        def _store_mda(_mda):
+            nonlocal mda
+            mda = _mda
 
-    with qtbot.waitSignal(main_window._mmc.events.sequenceFinished, timeout=2000):
-        _mda._on_run_clicked()
+        with qtbot.waitSignal(main_window._mmc.events.sequenceFinished, timeout=2000):
+            _mda._on_run_clicked()
 
-    assert mda is not None
-    assert main_window.viewer.layers[-1].data.shape == mda.shape + (512, 512)
+        assert mda is not None
+        data_shape = main_window.viewer.layers[-1].data.shape
+        if splitC:
+            expected = list(mda.shape) + [512, 512]
+            expected[main_window.viewer.dims.axis_labels.index("c")] = 1
+            assert data_shape == tuple(expected)
+
+        if do_save:
+            if splitC:
+                nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
+                assert nfiles == 2 if C else 1
+            else:
+                assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
+                assert data_shape == mda.shape + (512, 512)

@@ -1,9 +1,10 @@
 import sys
 
 import Pyro5
-from micromanager_gui._core._client import detatched_mmcore
 from qtpy.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget
 from useq import MDASequence
+
+from micromanager_gui._core._client import detatched_mmcore
 
 sys.excepthook = Pyro5.errors.excepthook
 

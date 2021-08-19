@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -7,12 +8,23 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QIcon
+from typing_extensions import Literal
 from useq import MDASequence
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
+
+
+@dataclass
+class SequenceMeta:
+    mode: Literal["mda"] | Literal["explorer"] = ""
+    split_channels: bool = False
+    should_save: bool = False
+    file_name: str = ""
+    save_dir: str = ""
+    save_pos: bool = False
 
 
 class _MultiDUI:
@@ -23,6 +35,8 @@ class _MultiDUI:
     fname_lineEdit: QtW.QLineEdit
     dir_lineEdit: QtW.QLineEdit
     browse_save_Button: QtW.QPushButton
+    checkBox_save_pos: QtW.QCheckBox
+    checkBox_split_channels: QtW.QCheckBox
 
     channel_groupBox: QtW.QGroupBox
     channel_tableWidget: QtW.QTableWidget  # TODO: extract
@@ -60,6 +74,10 @@ class _MultiDUI:
 
 
 class MultiDWidget(QtW.QWidget, _MultiDUI):
+
+    # metadata associated with a given experiment
+    SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
+
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         self._mmc = mmcore
         super().__init__(parent)
@@ -79,19 +97,34 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
         self.run_Button.clicked.connect(self._on_run_clicked)
 
+        # toggle connect
+        self.save_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
+        self.stage_pos_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
+
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
+        # events
         mmcore.events.sequenceStarted.connect(self._on_mda_started)
         mmcore.events.sequenceFinished.connect(self._on_mda_finished)
         mmcore.events.sequencePauseToggled.connect(self._on_mda_paused)
 
-    def _on_mda_started(self):
+    def _set_enabled(self, enabled: bool):
+        self.save_groupBox.setEnabled(enabled)
+        self.channel_groupBox.setEnabled(enabled)
+        self.time_groupBox.setEnabled(enabled)
+        self.stack_groupBox.setEnabled(enabled)
+        self.stage_pos_groupBox.setEnabled(enabled)
+        self.acquisition_order_comboBox.setEnabled(enabled)
+
+    def _on_mda_started(self, sequence):
+        self._set_enabled(False)
         self.pause_Button.show()
         self.cancel_Button.show()
         self.run_Button.hide()
 
-    def _on_mda_finished(self):
+    def _on_mda_finished(self, sequence):
+        self._set_enabled(True)
         self.pause_Button.hide()
         self.cancel_Button.hide()
         self.run_Button.show()
@@ -132,6 +165,17 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.channel_tableWidget.clearContents()
         self.channel_tableWidget.setRowCount(0)
 
+    def toggle_checkbox_save_pos(self):
+        if (
+            self.stage_pos_groupBox.isChecked()
+            and self.stage_tableWidget.rowCount() > 0
+        ):
+            self.checkBox_save_pos.setEnabled(True)
+
+        else:
+            self.checkBox_save_pos.setCheckState(False)
+            self.checkBox_save_pos.setEnabled(False)
+
     # add, remove, clear, move_to positions table
     def add_position(self):
         dev_loaded = list(self._mmc.getLoadedDevices())
@@ -154,28 +198,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 1, QtW.QTableWidgetItem(y_txt))
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
+            self.toggle_checkbox_save_pos()
+
     def remove_position(self):
         # remove selected position
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
+        self.toggle_checkbox_save_pos()
 
     def clear_positions(self):
         # clear all positions
         self.stage_tableWidget.clearContents()
         self.stage_tableWidget.setRowCount(0)
+        self.toggle_checkbox_save_pos()
 
     def move_to_position(self):
         curr_row = self.stage_tableWidget.currentRow()
-        # print('---')
-        # print(f'curr_row: {curr_row}')
-        # if curr_row != -1:
         x_val = self.stage_tableWidget.item(curr_row, 0).text()
         y_val = self.stage_tableWidget.item(curr_row, 1).text()
         z_val = self.stage_tableWidget.item(curr_row, 2).text()
-        # print(f'x: {x_val}')
-        # print(f'y: {y_val}')
-        # print(f'z: {z_val}')
         self._mmc.setXYPosition(float(x_val), float(y_val))
         self._mmc.setPosition("Z_Stage", float(z_val))
         print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
@@ -217,7 +259,6 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 "interval": {unit: self.interval_spinBox.value()},
                 "loops": self.timepoints_spinBox.value(),
             }
-
         # position settings
         if (
             self.stage_pos_groupBox.isChecked()
@@ -239,20 +280,39 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                     "z": float(self._mmc.getZPosition()),
                 }
             )
+
         return state
 
-    # function is executed when run_Button is clicked
-    # (self.run_Button.clicked.connect(self.run))
     def _on_run_clicked(self):
-        if len(self._mmc.getLoadedDevices()) < 2:
-            print("Load a cfg file first.")
-            return
 
-        if not self.channel_tableWidget.rowCount() > 0:
-            print("Select at least one channel.")
-            return
+        if len(self._mmc.getLoadedDevices()) < 2:
+            raise ValueError("Load a cfg file first.")
+
+        if self.channel_tableWidget.rowCount() <= 0:
+            raise ValueError("Select at least one channel.")
+
+        if self.stage_pos_groupBox.isChecked() and (
+            self.stage_tableWidget.rowCount() <= 0
+        ):
+            raise ValueError(
+                "Select at least one position" "or deselect the position groupbox."
+            )
+
+        if self.save_groupBox.isChecked() and not (
+            self.fname_lineEdit.text() and Path(self.dir_lineEdit.text()).is_dir()
+        ):
+            raise ValueError("Select a filename and a valid directory.")
 
         experiment = MDASequence(**self._get_state_dict())
+
+        self.SEQUENCE_META[experiment] = SequenceMeta(
+            mode="mda",
+            split_channels=self.checkBox_split_channels.isChecked(),
+            should_save=self.save_groupBox.isChecked(),
+            file_name=self.fname_lineEdit.text(),
+            save_dir=self.dir_lineEdit.text(),
+            save_pos=self.checkBox_save_pos.isChecked(),
+        )
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
 
