@@ -130,3 +130,22 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
             else:
                 assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
                 assert data_shape == mda.shape + (512, 512)
+
+
+def test_refresh_safety(main_window: MainWindow):
+    mmc = main_window._mmc
+
+    # change properties from their default values
+    mmc.setConfig("Channel", "DAPI")
+    mmc.setStateLabel("Objective", "60X 1.2 Oil")
+    mmc.setProperty("Camera", "Binning", 4)
+    mmc.setProperty("Camera", "PixelType", "16bit")
+
+    main_window._refresh_options()
+
+    # check that nothing was changed
+
+    assert "DAPI" == mmc.getCurrentConfig("Channel")
+    assert "60X 1.2 Oil" == mmc.getStateLabel("Objective")
+    assert 4 == mmc.getProperty("Camera", "Binning")
+    assert "16bit" == mmc.getProperty("Camera", "PixelType")
