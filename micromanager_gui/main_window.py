@@ -113,9 +113,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
         sig.sequenceFinished.connect(
-            self._on_system_configuration_loaded
+            self._refresh_options
         )  # why when acq is finished?
-        sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
+        sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
@@ -143,6 +143,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+        # refresh options in case a config is already loaded by another remote
+        self._refresh_options()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -284,12 +287,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
 
-    def _on_system_configuration_loaded(self):
+    def _refresh_options(self):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
-
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
