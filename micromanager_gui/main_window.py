@@ -12,7 +12,7 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
 from ._saving import save_sequence
-from ._util import event_indices, extend_array_for_index
+from ._util import event_indices, extend_array_for_index, blockSignals
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 
@@ -146,9 +146,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
-            self.snap_channel_comboBox.blockSignals(True)
-            self.snap_channel_comboBox.setCurrentText(configName)
-            self.snap_channel_comboBox.blockSignals(False)
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.setCurrentText(configName)
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
@@ -247,32 +246,41 @@ class MainWindow(QtW.QWidget, _MainUI):
         cam_device = self._mmc.getCameraDevice()
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
-            self.bin_comboBox.clear()
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(
-                self._mmc.getProperty(cam_device, "Binning")
-            )
+            with blockSignals(self.bin_comboBox):
+                self.bin_comboBox.clear()
+                self.bin_comboBox.addItems(bin_opts)
+                self.bin_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "Binning")
+                )
 
         if "PixelType" in cam_props:
-            self.bit_comboBox.clear()
             px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            self.bit_comboBox.addItems(px_t)
-            if "16" in px_t:
-                self.bit_comboBox.setCurrentText("16bit")
-                self._mmc.setProperty(cam_device, "PixelType", "16bit")
+            with blockSignals(self.bit_comboBox):
+                self.bit_comboBox.clear()
+                self.bit_comboBox.addItems(px_t)
+                self.bit_comboBox.setCurrentText(self._mmc.getProperty(cam_device, "PixelType"))
+                if "16" in px_t:
+                    self.bit_comboBox.setCurrentText("16bit")
+                    self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
-            self.objective_comboBox.clear()
-            self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+            with blockSignals(self.objective_comboBox):
+                self.objective_comboBox.clear()
+                self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+                self.objective_comboBox.setCurrentText(
+                    self._mmc.getStateLabel("Objective")
+                )
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
             channel_group = self._get_channel_group()
         if channel_group:
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-            self.snap_channel_comboBox.addItems(channel_list)
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.addItems(channel_list)
+                self.snap_channel_comboBox.setCurrentText(self._mmc.getCurrentConfig('Channel'))
 
     def _on_system_configuration_loaded(self):
         self._refresh_camera_options()
