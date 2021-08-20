@@ -260,9 +260,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.bit_comboBox.clear()
                 self.bit_comboBox.addItems(px_t)
                 self.bit_comboBox.setCurrentText(self._mmc.getProperty(cam_device, "PixelType"))
-                if "16" in px_t:
-                    self.bit_comboBox.setCurrentText("16bit")
-                    self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
