@@ -112,9 +112,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(
-            self._refresh_options
-        )  # why when acq is finished?
+        sig.sequenceFinished.connect(self._refresh_options)  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
@@ -264,7 +262,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             with blockSignals(self.bit_comboBox):
                 self.bit_comboBox.clear()
                 self.bit_comboBox.addItems(px_t)
-                self.bit_comboBox.setCurrentText(self._mmc.getProperty(cam_device, "PixelType"))
+                self.bit_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "PixelType")
+                )
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
@@ -282,7 +282,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.addItems(channel_list)
-                self.snap_channel_comboBox.setCurrentText(self._mmc.getCurrentConfig('Channel'))
+                self.snap_channel_comboBox.setCurrentText(
+                    self._mmc.getCurrentConfig("Channel")
+                )
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
