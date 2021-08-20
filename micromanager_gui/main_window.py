@@ -398,11 +398,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
         self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
 
-        if self._mmc.getPixelSizeUm() > 0:
-            x = self._mmc.getXPosition() / self._mmc.getPixelSizeUm()
-            y = self._mmc.getYPosition() / self._mmc.getPixelSizeUm() * (-1)
-            self.viewer.layers["preview"].translate = (y, x)
-
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
