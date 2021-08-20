@@ -282,16 +282,17 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.snap_channel_comboBox.addItems(channel_list)
                 self.snap_channel_comboBox.setCurrentText(self._mmc.getCurrentConfig('Channel'))
 
+    def _refresh_positions(self):
+        if self._mmc.getXYStageDevice():
+            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+            self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+
     def _on_system_configuration_loaded(self):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
 
-    def _refresh_positions(self):
-        if self._mmc.getXYStageDevice():
-            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
-            self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
