@@ -247,6 +247,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
+        if not cam_device:
+            return
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
