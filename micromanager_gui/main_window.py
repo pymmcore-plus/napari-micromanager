@@ -12,7 +12,7 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
 from ._saving import save_sequence
-from ._util import event_indices, extend_array_for_index, blockSignals
+from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
-from contextlib import contextmanager
 
 import numpy as np
+from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     import useq
@@ -94,7 +95,7 @@ def event_indices(event: useq.MDAEvent):
     for k in event.sequence.axis_order if event.sequence else []:
         if k in event.index:
             yield k
-from qtpy.QtWidgets import QWidget
+
 
 @contextmanager
 def blockSignals(widget: QWidget):
