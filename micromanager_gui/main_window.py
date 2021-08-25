@@ -96,6 +96,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
+        self.objective_dev_name = "TINosePiece"
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -263,9 +265,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
-        if "Objective" in self._mmc.getLoadedDevices():
+        if self.objective_dev_name in self._mmc.getLoadedDevices():
             self.objective_comboBox.clear()
-            self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+            self.objective_comboBox.addItems(self._mmc.getStateLabels(self.objective_dev_name))
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
@@ -357,15 +359,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
         self._mmc.setProperty(
-            "Objective", "Label", self.objective_comboBox.currentText()
+            self.objective_dev_name, "Label", self.objective_comboBox.currentText()
         )
-        self._mmc.waitForDevice("Objective")
+        self._mmc.waitForDevice(self.objective_dev_name)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty("Objective", "Label")
+        curr_obj_name = self._mmc.getProperty(self.objective_dev_name, "Label")
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 
