@@ -45,7 +45,8 @@ def main_window(qtbot, request):
 
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
-    win._mmc.loadSystemConfiguration("demo")
+    config_path = os.path.dirname(os.path.abspath(__file__)) +"/test_config.cfg"
+    win._mmc.loadSystemConfiguration(config_path)
 
     try:
         yield win
@@ -137,15 +138,15 @@ def test_refresh_safety(main_window: MainWindow):
 
     # change properties from their default values
     mmc.setConfig("Channel", "DAPI")
-    mmc.setStateLabel("Objective", "60X 1.2 Oil")
+    mmc.setStateLabel("Objective", "Nikon 10X S Fluor")
     mmc.setProperty("Camera", "Binning", 4)
-    mmc.setProperty("Camera", "PixelType", "16bit")
+    mmc.setProperty("Camera", "BitDepth", "12")
 
     main_window._refresh_options()
 
     # check that nothing was changed
 
     assert "DAPI" == mmc.getCurrentConfig("Channel")
-    assert "60X 1.2 Oil" == mmc.getStateLabel("Objective")
-    assert 4 == mmc.getProperty("Camera", "Binning")
-    assert "16bit" == mmc.getProperty("Camera", "PixelType")
+    assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
+    assert "4" == mmc.getProperty("Camera", "Binning")
+    assert "12" == mmc.getProperty("Camera", "BitDepth")
