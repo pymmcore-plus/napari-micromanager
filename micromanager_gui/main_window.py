@@ -281,6 +281,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if channel_group:
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.clear()
                 self.snap_channel_comboBox.addItems(channel_list)
                 self.snap_channel_comboBox.setCurrentText(
                     self._mmc.getCurrentConfig("Channel")
