@@ -112,9 +112,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(
-            self._on_system_configuration_loaded
-        )  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
