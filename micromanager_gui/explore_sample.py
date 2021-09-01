@@ -56,8 +56,8 @@ class ExploreSample(QtW.QWidget):
 
         self.pixel_size = 0
 
-        self.return_position_x = None
-        self.return_position_y = None
+        self.return_to_position_x = None
+        self.return_to_position_y = None
 
         # connect buttons
         self.add_ch_explorer_Button.clicked.connect(self.add_channel)
@@ -133,8 +133,15 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        if self.return_position_x is not None and self.return_position_y is not None:
-            self._mmc.setXYPosition(self.return_position_x, self.return_position_y)
+        if (
+            self.return_to_position_x is not None
+            and self.return_to_position_y is not None
+        ):
+            self._mmc.setXYPosition(
+                self.return_to_position_x, self.return_to_position_y
+            )
+            self.return_to_position_x = None
+            self.return_to_position_y = None
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
@@ -222,8 +229,8 @@ class ExploreSample(QtW.QWidget):
         y_pos = float(self._mmc.getYPosition())
         z_pos = float(self._mmc.getZPosition())
 
-        self.return_position_x = x_pos
-        self.return_position_y = y_pos
+        self.return_to_position_x = x_pos
+        self.return_to_position_y = y_pos
 
         # calculate initial scan position
         _, _, width, height = self._mmc.getROI(self._mmc.getCameraDevice())
