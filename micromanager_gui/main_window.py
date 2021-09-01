@@ -385,7 +385,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         #       - are max and min_val_lineEdit updating in live mode?
         if data is None:
             try:
-                data = self._mmc.popNextImage()
+                data = self._mmc.getLastImage()
             except (RuntimeError, IndexError):
                 # circular buffer empty
                 return
