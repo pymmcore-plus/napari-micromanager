@@ -88,14 +88,14 @@ class ExploreSample(QtW.QWidget):
                 y = viewer.cursor.position[-2] * mmcore.getPixelSizeUm() * (-1)
 
                 # to match position coordinates with center of the image
-                x = x - ((width / 2) * mmcore.getPixelSizeUm())
-                y = y - ((height / 2) * mmcore.getPixelSizeUm() * (-1))
+                x = f"{x - ((width / 2) * mmcore.getPixelSizeUm()):.1f}"
+                y = f"{y - ((height / 2) * mmcore.getPixelSizeUm() * (-1)):.1f}"
 
             else:
-                x, y = None, None
+                x, y = "None", "None"
 
-            self.x_lineEdit.setText(f"{x:.1f}")
-            self.y_lineEdit.setText(f"{y:.1f}")
+            self.x_lineEdit.setText(x)
+            self.y_lineEdit.setText(y)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Block gui when mda starts."""
@@ -145,12 +145,12 @@ class ExploreSample(QtW.QWidget):
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
-            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+            x, y = f"{self._mmc.getXPosition():.1f}", f"{self._mmc.getYPosition():.1f}"
         else:
-            x, y = None, None
+            x, y = "None", "None"
 
-        self.x_lineEdit.setText(f"{x:.1f}")
-        self.y_lineEdit.setText(f"{y:.1f}")
+        self.x_lineEdit.setText(x)
+        self.y_lineEdit.setText(y)
 
     # add, remove, clear channel table
     def add_channel(self):
