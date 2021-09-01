@@ -80,6 +80,8 @@ class ExploreSample(QtW.QWidget):
 
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
+            if not self.isVisible():
+                return
             if mmcore.getPixelSizeUm() > 0:
                 width = mmcore.getROI(mmcore.getCameraDevice())[2]
                 height = mmcore.getROI(mmcore.getCameraDevice())[3]
