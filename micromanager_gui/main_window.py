@@ -267,7 +267,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             if cfg == "Objectives":
                 self.objective_comboBox.clear()
                 cfg_options = self._mmc.getAvailableConfigs(cfg)
-                print(cfg_options)
                 self.objective_comboBox.addItems(cfg_options)
 
     def _refresh_channel_list(self, channel_group: str = None):
