@@ -45,7 +45,8 @@ def main_window(qtbot, request):
 
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
-    win._mmc.loadSystemConfiguration("demo")
+    config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
+    win._mmc.loadSystemConfiguration(config_path)
 
     try:
         yield win
@@ -130,3 +131,22 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
             else:
                 assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
                 assert data_shape == mda.shape + (512, 512)
+
+
+def test_refresh_safety(main_window: MainWindow):
+    mmc = main_window._mmc
+
+    # change properties from their default values
+    mmc.setConfig("Channel", "DAPI")
+    mmc.setStateLabel("Objective", "Nikon 10X S Fluor")
+    mmc.setProperty("Camera", "Binning", 4)
+    mmc.setProperty("Camera", "BitDepth", "12")
+
+    main_window._refresh_options()
+
+    # check that nothing was changed
+
+    assert "DAPI" == mmc.getCurrentConfig("Channel")
+    assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
+    assert "4" == mmc.getProperty("Camera", "Binning")
+    assert "12" == mmc.getProperty("Camera", "BitDepth")
