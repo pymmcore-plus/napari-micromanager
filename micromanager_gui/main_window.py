@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -253,10 +254,28 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def camera_roi(self):
-        cam_dev = self._mmc.getCameraDevice()
-        self._mmc.setROI(cam_dev, 0, 0, 100, 100)
+        try:
+            roi_layer = self.viewer.layers["Shapes"]
 
-        print(self._mmc.getROI(cam_dev))
+            if len(roi_layer.data) == 0 or len(roi_layer.data) > 1:
+                warnings.warn("select one ROI")
+                return
+
+            x = int(roi_layer.data[0][0][1])
+            y = int(roi_layer.data[0][0][0])
+            xsize = int(roi_layer.data[0][1][1] - x)
+            ysize = int(roi_layer.data[0][2][0] - y)
+
+            cam_dev = self._mmc.getCameraDevice()
+            self._mmc.setROI(cam_dev, x, y, xsize, ysize)
+
+            print(self._mmc.getROI(cam_dev))
+            self.viewer.layers.remove(roi_layer)
+
+            self.viewer.reset_view()
+
+        except KeyError:
+            warnings.warn('create a "Shapes" layer and select one ROI')
 
     def camera_full_chip(self):
         cam_dev = self._mmc.getCameraDevice()
