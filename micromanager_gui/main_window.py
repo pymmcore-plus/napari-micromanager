@@ -66,6 +66,9 @@ class _MainUI:
     min_val_lineEdit: QtW.QLineEdit
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
+    ROI_Button: QtW.QPushButton
+    full_chip_Button: QtW.QPushButton
+
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
@@ -138,6 +141,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
+        self.ROI_Button.clicked.connect(self.camera_roi)
+        self.full_chip_Button.clicked.connect(self.camera_full_chip)
+
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
@@ -157,6 +163,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
+
+        self.ROI_Button.setEnabled(enabled)
+        self.full_chip_Button.setEnabled(enabled)
 
     def _on_exp_change(self, camera: str, exposure: float):
         self.exp_spinBox.setValue(exposure)
@@ -242,6 +251,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+
+    def camera_roi(self):
+        cam_dev = self._mmc.getCameraDevice()
+        self._mmc.setROI(cam_dev, 0, 0, 100, 100)
+
+        print(self._mmc.getROI(cam_dev))
+
+    def camera_full_chip(self):
+        cam_dev = self._mmc.getCameraDevice()
+        self._mmc.clearROI()
+
+        print(self._mmc.getROI(cam_dev))
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
