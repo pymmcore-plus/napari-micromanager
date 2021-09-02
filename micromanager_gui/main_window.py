@@ -263,9 +263,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.setProperty(cam_device, "PixelType", "16bit")
 
     def _refresh_objective_options(self):
-        if "Objective" in self._mmc.getLoadedDevices():
-            self.objective_comboBox.clear()
-            self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+        for cfg in self._mmc.getAvailableConfigGroups():
+            if cfg == "Objectives":
+                self.objective_comboBox.clear()
+                cfg_options = self._mmc.getAvailableConfigs(cfg)
+                print(cfg_options)
+                self.objective_comboBox.addItems(cfg_options)
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
