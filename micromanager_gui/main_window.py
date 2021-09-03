@@ -130,8 +130,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
-        self.up_Button.clicked.connect(self.snap)
-        self.down_Button.clicked.connect(self.snap)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
