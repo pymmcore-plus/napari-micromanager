@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
+OBJ_PTRN = re.compile("(Nosepiece|Objective|obj)s?", re.IGNORECASE)
 
 
 class _MainUI:
@@ -264,10 +265,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_objective_options(self):
         for cfg in self._mmc.getAvailableConfigGroups():
-            if cfg == "Objectives":
+            if OBJ_PTRN.match(cfg):
                 self.objective_comboBox.clear()
-                cfg_options = self._mmc.getAvailableConfigs(cfg)
-                self.objective_comboBox.addItems(cfg_options)
+                self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(cfg))
+                return
+        for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
+            if OBJ_PTRN.match(cfg):
+                self.objective_comboBox.clear()
+                self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(device))
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
