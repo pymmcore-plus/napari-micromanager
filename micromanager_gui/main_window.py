@@ -416,12 +416,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def snap(self):
         self.stop_live()
-
-        self._mmc.setExposure(self.exp_spinBox.value())
-
-        ch_group = self._mmc.getChannelGroup() or "Channel"
-        self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
-
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
