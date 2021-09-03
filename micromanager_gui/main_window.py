@@ -144,6 +144,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
