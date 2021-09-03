@@ -266,7 +266,19 @@ class MainWindow(QtW.QWidget, _MainUI):
             xsize = int(roi_layer.data[0][1][1] - x)
             ysize = int(roi_layer.data[0][2][0] - y)
 
+            if any(v < 0 for v in [x, y, xsize, ysize]):
+                warnings.warn("select a single ROI within the image size")
+                return
+
             cam_dev = self._mmc.getCameraDevice()
+
+            max_width = self._mmc.getROI(cam_dev)[2]
+            max_height = self._mmc.getROI(cam_dev)[3]
+
+            if (x + xsize) > max_width or (y + ysize) > max_height:
+                warnings.warn("select a single ROI within the image size")
+                return
+
             self._mmc.setROI(cam_dev, x, y, xsize, ysize)
 
             print(self._mmc.getROI(cam_dev))
