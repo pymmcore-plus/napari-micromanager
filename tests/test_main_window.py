@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from napari import Viewer
 from pymmcore_plus import server
-from pymmcore_plus.client._client import _get_remote_pid
 from useq import MDASequence
 
 import micromanager_gui
@@ -30,18 +29,12 @@ if not os.getenv("MICROMANAGER_PATH"):
         )
 
 
-def _cleanup_existing_server():
-    proc = _get_remote_pid(server.DEFAULT_HOST, server.DEFAULT_PORT)
-    if proc is not None:
-        print("killing existing process")
-        proc.kill()
-
 
 # https://docs.pytest.org/en/stable/fixture.html
 @pytest.fixture(params=["local", "remote"])
 def main_window(qtbot, request):
     if request.param == "remote":
-        _cleanup_existing_server()
+        server.try_kill_server()
 
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
