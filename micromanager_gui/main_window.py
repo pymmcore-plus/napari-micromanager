@@ -259,7 +259,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
     def camera_roi(self):
-        if len(self.viewer.layers) == 0:
+        if not self.viewer.layers:
             return
 
         cam_dev = self._mmc.getCameraDevice()
@@ -315,7 +315,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         ]
 
     def center_camera_roi(self):
-        if len(self.viewer.layers) == 0:
+        if not self.viewer.layers:
             return
 
         c1 = Container(labels=False, layout="horizontal")
@@ -365,6 +365,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     )
 
                 c = Container(labels=False, layout="horizontal")
+                c.width = 495
+                c.height = 85
 
                 @magicgui(
                     auto_call=True,
@@ -420,6 +422,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     c.hide()
 
                 c.append(btn)
+                c.width = 495
+                c.height = 85
                 c1.hide()
                 c.show(run=True)
 
@@ -464,7 +468,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                         c1.hide()
 
                     c1.append(btn)
-
                 c1.show(run=True)
 
         c1.append(cbox)
