@@ -268,12 +268,21 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _refresh_objective_options(self):
         for cfg in self._mmc.getAvailableConfigGroups():
             if OBJ_PTRN.match(cfg):
+                cfg_groups_options = self._mmc.getAvailableConfigs(cfg)
+                cfg_groups_options_keys = (
+                    self._mmc.getConfigData(cfg, cfg_groups_options[0])
+                ).dict()
+                dev_name = [
+                    k
+                    for idx, k in enumerate(cfg_groups_options_keys.keys())
+                    if idx == 0
+                ][0]
+                self.objectives_device = dev_name
                 self.objective_comboBox.clear()
                 self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(cfg))
                 return
         for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
-            if OBJ_PTRN.match(cfg):
-                self.objectives_device = cfg
+            if OBJ_PTRN.match(device):
                 self.objective_comboBox.clear()
                 self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(device))
 
@@ -361,15 +370,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.objective_comboBox.count() <= 0:
             return
 
+        if self.objectives_device == "":
+            return
+
         zdev = self._mmc.getFocusDevice()
 
         currentZ = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
         self._mmc.setProperty(
-            "Objective", "Label", self.objective_comboBox.currentText()
+            self.objectives_device, "Label", self.objective_comboBox.currentText()
         )
-        self._mmc.waitForDevice("Objective")
+        self._mmc.waitForDevice(self.objectives_device)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
