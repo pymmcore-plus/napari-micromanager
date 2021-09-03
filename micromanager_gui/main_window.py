@@ -142,6 +142,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
+        # connect spinboxes
+        self.exp_spinBox.valueChanged.connect(self._update_exp)
+
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
 
@@ -158,8 +161,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
 
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
     def _on_exp_change(self, camera: str, exposure: float):
-        self.exp_spinBox.setValue(exposure)
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
