@@ -291,6 +291,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+        if self._mmc.getFocusDevice():
+            self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_options(self):
         self._refresh_camera_options()
