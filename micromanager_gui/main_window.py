@@ -66,9 +66,9 @@ class _MainUI:
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
-
     ROI_Button: QtW.QPushButton
     full_chip_Button: QtW.QPushButton
+    center_roi_Button: QtW.QPushButton
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -138,12 +138,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.down_Button.clicked.connect(self.stage_z_down)
         self.up_Button.clicked.connect(self.snap)
         self.down_Button.clicked.connect(self.snap)
+        self.full_chip_Button.clicked.connect(self.camera_full_chip)
+        self.center_roi_Button.clicked.connect(self.center_camera_roi)
+        self.ROI_Button.clicked.connect(self.camera_roi)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
-
-        self.ROI_Button.clicked.connect(self.camera_roi)
-        self.full_chip_Button.clicked.connect(self.camera_full_chip)
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -281,13 +281,15 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             self._mmc.setROI(cam_dev, x, y, xsize, ysize)
 
-            print(self._mmc.getROI(cam_dev))
             self.viewer.layers.remove(roi_layer)
 
             self.viewer.reset_view()
 
         except KeyError:
             warnings.warn('create a "Shapes" layer and select one ROI')
+
+    def center_camera_roi(self):
+        pass
 
     def camera_full_chip(self):
         cam_dev = self._mmc.getCameraDevice()
