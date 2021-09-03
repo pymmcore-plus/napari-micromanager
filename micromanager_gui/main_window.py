@@ -1,20 +1,17 @@
 from __future__ import annotations
 
 import re
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from magicgui import magicgui
-from magicgui.widgets import Container
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
-from qtpy.QtWidgets import QMessageBox
 
+from ._camera_roi import CameraROI
 from ._saving import save_sequence
 from ._util import event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
@@ -103,9 +100,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
-        self.w = 10  # for self.center_camera_roi
-        self.h = 10  # for self.center_camera_roi
-
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -144,9 +138,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.down_Button.clicked.connect(self.stage_z_down)
         self.up_Button.clicked.connect(self.snap)
         self.down_Button.clicked.connect(self.snap)
-        self.full_chip_Button.clicked.connect(self.camera_full_chip)
-        self.center_roi_Button.clicked.connect(self.center_camera_roi)
-        self.ROI_Button.clicked.connect(self.camera_roi)
+
+        self.cam_roi = CameraROI(self.viewer, self._mmc)
+        self.full_chip_Button.clicked.connect(self.cam_roi.camera_full_chip)
+        self.center_roi_Button.clicked.connect(self.cam_roi.center_camera_roi)
+        self.ROI_Button.clicked.connect(self.cam_roi.camera_roi)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
@@ -156,16 +152,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
-
-    def general_msg(self, message_1: str, message_2: str):
-        msg = QMessageBox()
-        msg.setStyleSheet("QLabel {min-width: 280; min-height: 30px;}")
-        msg_info_1 = f'<p style="font-size:18pt; color: #4e9a06;">{message_1}</p>'
-        msg.setText(msg_info_1)
-        msg_info_2 = f'<p style="font-size:15pt; color: #000000;">{message_2}</p>'
-        msg.setInformativeText(msg_info_2)
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -268,228 +254,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
-
-    def camera_roi(self):
-        if not self.viewer.layers:
-            return
-
-        cam_dev = self._mmc.getCameraDevice()
-
-        max_width = self._mmc.getROI(cam_dev)[2]
-        max_height = self._mmc.getROI(cam_dev)[3]
-
-        try:
-            shape_layer = self.viewer.layers["Shapes"]
-
-            if len(shape_layer.data) == 0 or len(shape_layer.data) > 1:
-                warnings.warn("select one ROI")
-                return
-
-            x = int(shape_layer.data[0][0][1])
-            y = int(shape_layer.data[0][0][0])
-            xsize = int(shape_layer.data[0][1][1] - x)
-            ysize = int(shape_layer.data[0][2][0] - y)
-
-            if any(v < 0 for v in [x, y, xsize, ysize]):
-                warnings.warn("select a single ROI within the image size")
-                return
-
-            cam_dev = self._mmc.getCameraDevice()
-
-            max_width = self._mmc.getROI(cam_dev)[2]
-            max_height = self._mmc.getROI(cam_dev)[3]
-
-            if (x + xsize) > max_width or (y + ysize) > max_height:
-                warnings.warn("select a single ROI within the image size")
-                return
-
-            self._mmc.setROI(cam_dev, x, y, xsize, ysize)
-
-            self.viewer.layers.remove(shape_layer)
-
-            self.snap()
-
-            self.viewer.reset_view()
-
-        except KeyError:
-            message_1 = "Camera ROI"
-            message_2 = (
-                "Before clicking on the ROI button, "
-                'create a "Shapes" layer and draw one ROI'
-            )
-            self.general_msg(message_1, message_2)
-
-    def crop_roi_size(self, max_height, max_width, w, h):
-        return [
-            [round(max_height / 2) - round(h / 2), round(max_width / 2) - round(w / 2)],
-            [round(max_height / 2) - round(h / 2), round(max_width / 2) + round(w / 2)],
-            [round(max_height / 2) + round(h / 2), round(max_width / 2) + round(w / 2)],
-            [round(max_height / 2) + round(h / 2), round(max_width / 2) - round(w / 2)],
-        ]
-
-    def center_camera_roi(self):
-        if not self.viewer.layers:
-            return
-
-        c1 = Container(labels=False, layout="horizontal")
-
-        cam_dev = self._mmc.getCameraDevice()
-
-        max_width = self._mmc.getROI(cam_dev)[2]
-        max_height = self._mmc.getROI(cam_dev)[3]
-
-        combobox_choices = [
-            "Select",
-            f"{round(max_width/2)}x{round(max_height/2)}",
-            f"{round(max_width/4)}x{round(max_height/4)}",
-            f"{round(max_width/6)}x{round(max_height/6)}",
-            "Custom",
-        ]
-
-        @magicgui(
-            auto_call=True,
-            layout="horizontal",
-            size={"bind": combobox_choices},
-            combobox={
-                "label": "ComboBox",
-                "widget_type": "ComboBox",
-                "choices": combobox_choices,
-            },
-        )
-        def cbox(size, combobox):
-
-            if combobox == "Custom":
-
-                try:
-                    shape_layer = self.viewer.layers["Shapes"]
-                except KeyError:
-                    crop_size = self.crop_roi_size(
-                        max_height,
-                        max_width,
-                        round(max_width / 2),
-                        round(max_height / 2),
-                    )
-                    shape_layer = self.viewer.add_shapes(
-                        crop_size,
-                        name="Shapes",
-                        shape_type="rectangle",
-                        edge_color="green",
-                        opacity=0.5,
-                    )
-
-                c = Container(labels=False, layout="horizontal")
-                c.width = 495
-                c.height = 85
-
-                @magicgui(
-                    auto_call=True,
-                    layout="horizontal",
-                    spinbox_1={
-                        "label": "Width",
-                        "widget_type": "SpinBox",
-                        "max": max_width,
-                    },
-                )
-                def spin_1(spinbox_1=round(max_width / 2)):
-                    self.w = spinbox_1
-                    crop_size = self.crop_roi_size(
-                        max_height, max_width, self.w, self.h
-                    )
-                    shape_layer.data = crop_size
-
-                c.append(spin_1)
-
-                @magicgui(
-                    auto_call=True,
-                    layout="horizontal",
-                    spinbox_2={
-                        "label": "Height",
-                        "widget_type": "SpinBox",
-                        "max": max_height,
-                    },
-                )
-                def spin_2(spinbox_2=round(max_height / 2)):
-                    self.h = spinbox_2
-                    crop_size = self.crop_roi_size(
-                        max_height, max_width, self.w, self.h
-                    )
-                    shape_layer.data = crop_size
-
-                c.append(spin_2)
-
-                @magicgui(call_button="OK")
-                def btn():
-                    x = int(shape_layer.data[0][0][1])
-                    y = int(shape_layer.data[0][0][0])
-                    xsize = int(shape_layer.data[0][1][1] - x)
-                    ysize = int(shape_layer.data[0][2][0] - y)
-
-                    self._mmc.setROI(cam_dev, x, y, xsize, ysize)
-
-                    self.viewer.layers.remove(shape_layer)
-
-                    self.snap()
-
-                    self.viewer.reset_view()
-
-                    c.hide()
-
-                c.append(btn)
-                c.width = 495
-                c.height = 85
-                c1.hide()
-                c.show(run=True)
-
-            else:
-
-                central_max_width = int(combobox.partition("x")[0])
-                central_max_height = int(combobox.partition("x")[-1])
-
-                crop_size = self.crop_roi_size(
-                    max_height, max_width, central_max_width, central_max_height
-                )
-
-                try:
-                    shape_layer = self.viewer.layers["Shapes"]
-                    shape_layer.data = crop_size
-                except KeyError:
-                    shape_layer = self.viewer.add_shapes(
-                        crop_size,
-                        name="Shapes",
-                        shape_type="rectangle",
-                        edge_color="green",
-                        opacity=0.5,
-                    )
-
-                if len(c1) == 1:
-
-                    @magicgui(call_button="OK")
-                    def btn():
-                        x = int(shape_layer.data[0][0][1])
-                        y = int(shape_layer.data[0][0][0])
-                        xsize = int(shape_layer.data[0][1][1] - x)
-                        ysize = int(shape_layer.data[0][2][0] - y)
-
-                        self._mmc.setROI(cam_dev, x, y, xsize, ysize)
-
-                        self.viewer.layers.remove(shape_layer)
-
-                        self.snap()
-
-                        self.viewer.reset_view()
-
-                        c1.hide()
-
-                    c1.append(btn)
-                c1.show(run=True)
-
-        c1.append(cbox)
-        c1.show(run=True)
-
-    def camera_full_chip(self):
-        self._mmc.clearROI()
-        self.snap()
-        self.viewer.reset_view()
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
