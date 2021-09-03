@@ -96,8 +96,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
-        self.objective_dev_name = "TINosePiece"
-
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -372,15 +370,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
         self._mmc.setProperty(
-            self.objective_dev_name, "Label", self.objective_comboBox.currentText()
+            "Objective", "Label", self.objective_comboBox.currentText()
         )
-        self._mmc.waitForDevice(self.objective_dev_name)
+        self._mmc.waitForDevice("Objective")
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty(self.objective_dev_name, "Label")
+        curr_obj_name = self._mmc.getProperty("Objective", "Label")
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 
