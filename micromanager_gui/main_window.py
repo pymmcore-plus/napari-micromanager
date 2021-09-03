@@ -97,6 +97,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
+        self.objectives_device = ""
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -271,6 +273,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 return
         for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
             if OBJ_PTRN.match(cfg):
+                self.objectives_device = cfg
                 self.objective_comboBox.clear()
                 self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(device))
 
