@@ -29,7 +29,6 @@ if not os.getenv("MICROMANAGER_PATH"):
         )
 
 
-
 # https://docs.pytest.org/en/stable/fixture.html
 @pytest.fixture(params=["local", "remote"])
 def main_window(qtbot, request):
