@@ -13,6 +13,7 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
+from qtpy.QtWidgets import QMessageBox
 
 from ._saving import save_sequence
 from ._util import event_indices, extend_array_for_index
@@ -155,6 +156,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+    def general_msg(self, message_1: str, message_2: str):
+        msg = QMessageBox()
+        msg.setStyleSheet("QLabel {min-width: 280; min-height: 30px;}")
+        msg_info_1 = f'<p style="font-size:18pt; color: #4e9a06;">{message_1}</p>'
+        msg.setText(msg_info_1)
+        msg_info_2 = f'<p style="font-size:15pt; color: #000000;">{message_2}</p>'
+        msg.setInformativeText(msg_info_2)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -301,10 +312,12 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.reset_view()
 
         except KeyError:
-            warnings.warn(
-                "Before clicking on the ROI button,"
+            message_1 = "Camera ROI"
+            message_2 = (
+                "Before clicking on the ROI button, "
                 'create a "Shapes" layer and draw one ROI'
             )
+            self.general_msg(message_1, message_2)
 
     def crop_roi_size(self, max_height, max_width, w, h):
         return [
