@@ -98,6 +98,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.streaming_timer = None
 
         self.objectives_device = ""
+        self.px_size_in_cfg = False
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
@@ -245,6 +246,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -388,6 +390,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         )
 
     def set_pixel_size(self):
+        if self.px_size_in_cfg:
+            return
+
         self._mmc.setConfig(
             self.objectives_device, self.objective_comboBox.currentText()
         )
@@ -406,6 +411,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeUm(
                 self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
+        else:
+            self._mmc.setPixelSizeUm(self._mmc.getCurrentPixelSizeConfig(), 0.0)
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
