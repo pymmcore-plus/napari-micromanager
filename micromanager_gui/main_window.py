@@ -296,11 +296,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.objectives_device = dev_name
                 print("dev", self.objectives_device)
 
-                self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(
-                    self._mmc.getAvailableConfigs(self.objectives_device)
-                )
-                return
+                with blockSignals(self.objective_comboBox):
+                    self.objective_comboBox.clear()
+                    self.objective_comboBox.addItems(
+                        self._mmc.getAvailableConfigs(self.objectives_device)
+                    )
+                    return
 
         for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
             if OBJ_PTRN.match(device):
@@ -405,7 +406,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         currentZ = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
-        print(self._mmc.getProperty(self.objectives_device, "Label"))
         self._mmc.setProperty(
             self.objectives_device, "Label", self.objective_comboBox.currentText()
         )
