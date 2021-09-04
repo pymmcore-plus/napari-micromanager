@@ -430,22 +430,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.set_pixel_size()
 
-        # # define and set pixel size Config
-        # self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        # curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
-        # self._mmc.definePixelSizeConfig(curr_obj_name)
-        # self._mmc.setPixelSizeConfig(curr_obj_name)
-
-        # # get magnification info from the objective name
-        # # and set image pixel sixe (x,y) for the current pixel size Config
-        # match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
-        # if match:
-        #     mag = int(match.groups()[0])
-        #     self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-        #     self._mmc.setPixelSizeUm(
-        #         self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
-        #     )
-
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
         #         the image translation is wrong
