@@ -285,7 +285,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 ][0]
 
                 self.objectives_device = dev_name
-                print("dev", self.objectives_device)
 
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
@@ -399,9 +398,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
 
-        cfg_dev_state_label = self._mmc.getStateLabel(self.objectives_device)
-
-        self._mmc.setProperty(self.objectives_device, "Label", cfg_dev_state_label)
+        self._mmc.setConfig(
+            self.objectives_device, self.objective_comboBox.currentText()
+        )
 
         self._mmc.waitForDevice(self.objectives_device)
         self._mmc.setPosition(zdev, currentZ)
@@ -422,6 +421,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeUm(
                 self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
             )
+        print("pixel: ", self._mmc.getCurrentPixelSizeConfig())
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
