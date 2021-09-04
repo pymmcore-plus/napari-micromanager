@@ -12,7 +12,7 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
 from ._saving import save_sequence
-from ._util import event_indices, extend_array_for_index
+from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 
@@ -115,10 +115,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(
-            self._on_system_configuration_loaded
-        )  # why when acq is finished?
-        sig.systemConfigurationLoaded.connect(self._on_system_configuration_loaded)
+        sig.sequenceFinished.connect(self._refresh_options)  # why when acq is finished?
+        sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
@@ -147,11 +145,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
+        # refresh options in case a config is already loaded by another remote
+        self._refresh_options()
+
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
-            self.snap_channel_comboBox.blockSignals(True)
-            self.snap_channel_comboBox.setCurrentText(configName)
-            self.snap_channel_comboBox.blockSignals(False)
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.setCurrentText(configName)
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
@@ -248,22 +248,35 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
+        if not cam_device:
+            return
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
-            self.bin_comboBox.clear()
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            self.bin_comboBox.addItems(bin_opts)
-            self.bin_comboBox.setCurrentText(
-                self._mmc.getProperty(cam_device, "Binning")
-            )
+            with blockSignals(self.bin_comboBox):
+                self.bin_comboBox.clear()
+                self.bin_comboBox.addItems(bin_opts)
+                self.bin_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "Binning")
+                )
 
         if "PixelType" in cam_props:
-            self.bit_comboBox.clear()
             px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            self.bit_comboBox.addItems(px_t)
-            if "16" in px_t:
-                self.bit_comboBox.setCurrentText("16bit")
-                self._mmc.setProperty(cam_device, "PixelType", "16bit")
+            with blockSignals(self.bit_comboBox):
+                self.bit_comboBox.clear()
+                self.bit_comboBox.addItems(px_t)
+                self.bit_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "PixelType")
+                )
+
+    # def _refresh_objective_options(self):
+    #     if "Objective" in self._mmc.getLoadedDevices():
+    #         with blockSignals(self.objective_comboBox):
+    #             self.objective_comboBox.clear()
+    #             self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+    #             self.objective_comboBox.setCurrentText(
+    #                 self._mmc.getStateLabel("Objective")
+    #             )
 
     def _refresh_objective_options(self):
         for cfg in self._mmc.getAvailableConfigGroups():
@@ -281,9 +294,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                 ][0]
 
                 self.objectives_device = dev_name
-                self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(self._mmc.getAvailableConfigs(cfg))
-                return
+                print("dev", self.objectives_device)
+
+                with blockSignals(self.objective_comboBox):
+                    self.objective_comboBox.clear()
+                    self.objective_comboBox.addItems(
+                        self._mmc.getAvailableConfigs(self.objectives_device)
+                    )
+                    return
 
         for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
             if OBJ_PTRN.match(device):
@@ -296,18 +314,23 @@ class MainWindow(QtW.QWidget, _MainUI):
             channel_group = self._get_channel_group()
         if channel_group:
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-            self.snap_channel_comboBox.addItems(channel_list)
-
-    def _on_system_configuration_loaded(self):
-        self._refresh_camera_options()
-        self._refresh_objective_options()
-        self._refresh_channel_list()
-        self._refresh_positions()
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.clear()
+                self.snap_channel_comboBox.addItems(channel_list)
+                self.snap_channel_comboBox.setCurrentText(
+                    self._mmc.getCurrentConfig("Channel")
+                )
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+
+    def _refresh_options(self):
+        self._refresh_camera_options()
+        self._refresh_objective_options()
+        self._refresh_channel_list()
+        self._refresh_positions()
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -392,7 +415,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty("Objective", "Label")
+        curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 
