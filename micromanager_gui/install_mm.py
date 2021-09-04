@@ -5,8 +5,8 @@ import urllib.request
 from pathlib import Path
 from subprocess import run
 
-MAC_RELEASE = 20210527
-WIN_RELEASE = 20210518
+MAC_RELEASE = 20210713
+WIN_RELEASE = 20210712
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
