@@ -398,9 +398,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         currentZ = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
-        self._mmc.setProperty(
-            self.objectives_device, "Label", self.objective_comboBox.currentText()
-        )
+
+        cfg_dev_state_label = self._mmc.getStateLabel(self.objectives_device)
+
+        self._mmc.setProperty(self.objectives_device, "Label", cfg_dev_state_label)
+
         self._mmc.waitForDevice(self.objectives_device)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
