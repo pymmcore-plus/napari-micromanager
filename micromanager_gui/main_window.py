@@ -291,6 +291,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.objective_comboBox.addItems(
                         self._mmc.getAvailableConfigs(self.objectives_device)
                     )
+                    self.set_pixel_size()
                     return
 
         for device in self._mmc.getLoadedDevicesOfType(DeviceType.StateDevice):
@@ -299,6 +300,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
                     self.objective_comboBox.addItems(self._mmc.getStateLabels(device))
+                    self.set_pixel_size()
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
@@ -385,6 +387,26 @@ class MainWindow(QtW.QWidget, _MainUI):
             0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
         )
 
+    def set_pixel_size(self):
+        self._mmc.setConfig(
+            self.objectives_device, self.objective_comboBox.currentText()
+        )
+        # define and set pixel size Config
+        self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
+        curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
+        self._mmc.definePixelSizeConfig(curr_obj_name)
+        self._mmc.setPixelSizeConfig(curr_obj_name)
+
+        # get magnification info from the objective name
+        # and set image pixel sixe (x,y) for the current pixel size Config
+        match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
+        if match:
+            mag = int(match.groups()[0])
+            self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            self._mmc.setPixelSizeUm(
+                self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
+            )
+
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
             return
@@ -406,22 +428,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
-        # define and set pixel size Config
-        self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
-        self._mmc.definePixelSizeConfig(curr_obj_name)
-        self._mmc.setPixelSizeConfig(curr_obj_name)
+        self.set_pixel_size()
 
-        # get magnification info from the objective name
-        # and set image pixel sixe (x,y) for the current pixel size Config
-        match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
-        if match:
-            mag = int(match.groups()[0])
-            self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-            self._mmc.setPixelSizeUm(
-                self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
-            )
-        print("pixel: ", self._mmc.getCurrentPixelSizeConfig())
+        # # define and set pixel size Config
+        # self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
+        # curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
+        # self._mmc.definePixelSizeConfig(curr_obj_name)
+        # self._mmc.setPixelSizeConfig(curr_obj_name)
+
+        # # get magnification info from the objective name
+        # # and set image pixel sixe (x,y) for the current pixel size Config
+        # match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
+        # if match:
+        #     mag = int(match.groups()[0])
+        #     self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+        #     self._mmc.setPixelSizeUm(
+        #         self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
+        #     )
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
