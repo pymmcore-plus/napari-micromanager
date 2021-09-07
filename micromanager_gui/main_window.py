@@ -4,7 +4,10 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import napari
 import numpy as np
+from matplotlib.backends.backend_qt5agg import FigureCanvas
+from matplotlib.figure import Figure
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -65,6 +68,8 @@ class _MainUI:
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
+
+    histogram_widget: QtW.QWidget
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -144,6 +149,32 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
+
+        # histogram widget
+        self.layout_histogram = QtW.QVBoxLayout(self.histogram_widget)
+        self.canvas_histogram = FigureCanvas(Figure(constrained_layout=True))
+        self.ax = self.canvas_histogram.figure.subplots()
+        self.layout_histogram.addWidget(self.canvas_histogram)
+
+    def histogram(self):
+        if not self.viewer.layers or not self.viewer.layers.selection:
+            return
+
+        for layer in self.viewer.layers:
+            if (
+                isinstance(layer, napari.layers.Image)
+                and layer in self.viewer.layers.selection
+                and layer.visible != 0
+            ):
+                current_layer = layer
+                print(current_layer)
+
+        # self.ax.
+        self.canvas_histogram.draw_idle()
+
+        # self.ax.plot(x,mean_normalised)
+        # self.ax.plot(peaks_x, peaks_y, ms=5, color='g', marker='o', ls='')
+        # self.canvas_histogram.draw_idle()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -424,6 +455,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
+
+        self.histogram()
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
