@@ -194,9 +194,15 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
 
                 if self.autoscale_checkBox.isChecked():
-                    max_v = np.max(current_layer.data)
-                    min_v = np.min(current_layer.data)
-                    self.ax.set_xlim(left=min_v, right=max_v)
+                    max_v_layer = np.max(current_layer.data)
+                    min_v_layer = np.min(current_layer.data)
+
+                    max_v = min(max_v_layer, 2 ** int(bit_depth_number))
+
+                    if min_v_layer == max_v:
+                        min_v_layer = 0
+
+                    self.ax.set_xlim(left=min_v_layer, right=max_v)
 
         self.canvas_histogram.draw_idle()
 
