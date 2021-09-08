@@ -147,6 +147,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
+        # connect spinboxes
+        self.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.exp_spinBox.setKeyboardTracking(False)
+
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
 
@@ -174,19 +178,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 self.ax.clear()
 
-                # x, _ = np.histogram(current_layer.data, bins=2**int(bit_depth))
-                # self.ax.plot(x)
+                bin_range = list(range(2 ** int(bit_depth)))
                 self.ax.hist(
                     current_layer.data.flatten(),
-                    bins=2 ** int(bit_depth),
+                    bins=bin_range,
                     histtype="step",
                 )
 
         self.canvas_histogram.draw_idle()
-
-        # self.ax.plot(x,mean_normalised)
-        # self.ax.plot(peaks_x, peaks_y, ms=5, color='g', marker='o', ls='')
-        # self.canvas_histogram.draw_idle()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -201,8 +200,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
 
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
     def _on_exp_change(self, camera: str, exposure: float):
-        self.exp_spinBox.setValue(exposure)
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -448,8 +457,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         try:
             preview_layer = self.viewer.layers["preview"]
             preview_layer.data = data
+            self.histogram()
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
+            self.histogram()
 
         self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
         self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
@@ -467,8 +478,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
-
-        self.histogram()
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
