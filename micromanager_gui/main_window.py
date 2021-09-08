@@ -154,6 +154,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
+
         # histogram widget
         self.layout_histogram = QtW.QVBoxLayout(self.histogram_widget)
         self.canvas_histogram = FigureCanvas(
@@ -161,6 +162,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         )
         self.ax = self.canvas_histogram.figure.subplots()
         self.ax.set_facecolor("#2B2E37")
+        self.ax.tick_params(axis="x", colors="white")
+        self.ax.tick_params(axis="y", colors="white")
         self.layout_histogram.addWidget(self.canvas_histogram)
 
     def histogram(self):
@@ -258,6 +261,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             new_array[im_idx] = image
             # set layer data
             layer.data = new_array
+            self.histogram()
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
@@ -265,6 +269,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             seq = event.sequence
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name, blending="additive")
+
+            self.histogram()
 
             # dimensions labels
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
