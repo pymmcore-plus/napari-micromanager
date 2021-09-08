@@ -70,6 +70,7 @@ class _MainUI:
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     histogram_widget: QtW.QWidget
+    autoscale_checkBox: QtW.QCheckBox
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -153,11 +154,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
-
         # histogram widget
         self.layout_histogram = QtW.QVBoxLayout(self.histogram_widget)
-        self.canvas_histogram = FigureCanvas(Figure(constrained_layout=True))
+        self.canvas_histogram = FigureCanvas(
+            Figure(facecolor="#2B2E37", constrained_layout=True)
+        )
         self.ax = self.canvas_histogram.figure.subplots()
+        self.ax.set_facecolor("#2B2E37")
         self.layout_histogram.addWidget(self.canvas_histogram)
 
     def histogram(self):
@@ -172,18 +175,25 @@ class MainWindow(QtW.QWidget, _MainUI):
             ):
                 current_layer = layer
 
-                bit_depth = (
-                    self._mmc.getProperty(self._mmc.getCameraDevice(), "PixelType")
-                )[:2]
+                bit_depth = self._mmc.getProperty(
+                    self._mmc.getCameraDevice(), "PixelType"
+                )
+                bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
 
                 self.ax.clear()
 
-                bin_range = list(range(2 ** int(bit_depth)))
+                bin_range = list(range(2 ** int(bit_depth_number)))
                 self.ax.hist(
                     current_layer.data.flatten(),
                     bins=bin_range,
                     histtype="step",
+                    color="green",
                 )
+
+                if self.autoscale_checkBox.isChecked():
+                    max_v = np.max(current_layer.data)
+                    min_v = np.min(current_layer.data)
+                    self.ax.set_xlim(left=min_v, right=max_v)
 
         self.canvas_histogram.draw_idle()
 
