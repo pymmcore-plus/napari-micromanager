@@ -167,9 +167,21 @@ class MainWindow(QtW.QWidget, _MainUI):
                 and layer.visible != 0
             ):
                 current_layer = layer
-                print(current_layer)
 
-        # self.ax.
+                bit_depth = (
+                    self._mmc.getProperty(self._mmc.getCameraDevice(), "PixelType")
+                )[:2]
+
+                self.ax.clear()
+
+                # x, _ = np.histogram(current_layer.data, bins=2**int(bit_depth))
+                # self.ax.plot(x)
+                self.ax.hist(
+                    current_layer.data.flatten(),
+                    bins=2 ** int(bit_depth),
+                    histtype="step",
+                )
+
         self.canvas_histogram.draw_idle()
 
         # self.ax.plot(x,mean_normalised)
