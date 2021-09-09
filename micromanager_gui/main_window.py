@@ -65,8 +65,7 @@ class _MainUI:
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
-    max_val_lineEdit: QtW.QLineEdit
-    min_val_lineEdit: QtW.QLineEdit
+    max_min_val_lineEdit: QtW.QLineEdit
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     histogram_widget: QtW.QWidget
@@ -169,37 +168,41 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.histogram_callback)
         self.viewer.dims.events.current_step.connect(self.histogram_callback)
         self.autoscale_checkBox.toggled.connect(self.histogram_callback)
+        self.viewer.layers.events.connect(self.histogram_callback)
 
     def histogram_callback(self, event):
         self.histogram()
+        self.update_max_min()
 
     def histogram(self):
-        for layer in self.viewer.layers:
-            if (
-                isinstance(layer, napari.layers.Image)
-                and layer in self.viewer.layers.selection
-                and layer.visible != 0
-            ):
+        self.ax.clear()
+        max_all_selected_layers = []
+        min_all_selected_layers = []
 
-                current_layer_raw = layer
+        for layer in self.viewer.layers.selection:
+            if isinstance(layer, napari.layers.Image) and layer.visible != 0:
+
+                current_layer_raw = self.viewer.layers[f"{layer}"]
+                current_layer_raw_color = current_layer_raw.colormap.name
 
                 layer_dims = self.viewer.dims.current_step[:-2]
 
-                current_layer = current_layer_raw.data[layer_dims]
+                if len(layer_dims) > 2:
+                    current_layer = current_layer_raw.data[layer_dims]
+                else:
+                    current_layer = current_layer_raw.data
 
                 bit_depth = self._mmc.getProperty(
                     self._mmc.getCameraDevice(), "PixelType"
                 )
                 bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
 
-                self.ax.clear()
-
                 bin_range = list(range(2 ** int(bit_depth_number)))
                 self.ax.hist(
                     current_layer.flatten(),
                     bins=bin_range,
                     histtype="step",
-                    color="green",
+                    color=current_layer_raw_color,
                 )
 
                 if self.autoscale_checkBox.isChecked():
@@ -211,9 +214,57 @@ class MainWindow(QtW.QWidget, _MainUI):
                     if min_v_layer == max_v:
                         min_v_layer = 0
 
-                    self.ax.set_xlim(left=min_v_layer, right=max_v)
+                    max_all_selected_layers.append(max_v)
+                    min_all_selected_layers.append(min_v_layer)
+
+                    self.ax.set_xlim(
+                        left=np.min(min_all_selected_layers),
+                        right=np.max(max_all_selected_layers),
+                    )
 
         self.canvas_histogram.draw_idle()
+
+    # def histogram(self):
+    #     for layer in self.viewer.layers:
+    #         if (
+    #             isinstance(layer, napari.layers.Image)
+    #             and layer in self.viewer.layers.selection
+    #             and layer.visible != 0
+    #         ):
+
+    #             current_layer_raw = layer
+
+    #             layer_dims = self.viewer.dims.current_step[:-2]
+
+    #             current_layer = current_layer_raw.data[layer_dims]
+
+    #             bit_depth = self._mmc.getProperty(
+    #                 self._mmc.getCameraDevice(), "PixelType"
+    #             )
+    #             bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
+
+    #             self.ax.clear()
+
+    #             bin_range = list(range(2 ** int(bit_depth_number)))
+    #             self.ax.hist(
+    #                 current_layer.flatten(),
+    #                 bins=bin_range,
+    #                 histtype="step",
+    #                 color="green",
+    #             )
+
+    #             if self.autoscale_checkBox.isChecked():
+    #                 max_v_layer = np.max(current_layer)
+    #                 min_v_layer = np.min(current_layer)
+
+    #                 max_v = min(max_v_layer, 2 ** int(bit_depth_number))
+
+    #                 if min_v_layer == max_v:
+    #                     min_v_layer = 0
+
+    #                 self.ax.set_xlim(left=min_v_layer, right=max_v)
+
+    #     self.canvas_histogram.draw_idle()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -313,8 +364,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_val_lineEdit.setText("None")
-        self.min_val_lineEdit.setText("None")
+        self.max_min_val_lineEdit.setText("None")
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
@@ -474,7 +524,6 @@ class MainWindow(QtW.QWidget, _MainUI):
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
         #         the image translation is wrong
-        #       - are max and min_val_lineEdit updating in live mode?
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -487,12 +536,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
 
-        self.histogram()
-        self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
-        self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
+        self.update_max_min()
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
+
+    def update_max_min(self):
+        min_max_list = [
+            (np.min(layer.data), np.max(layer.data))
+            for layer in self.viewer.layers.selection
+        ]
+
+        min_max_show = str(min_max_list).replace("[", "")
+        min_max_show = min_max_show.replace("]", "")
+
+        self.max_min_val_lineEdit.setText(min_max_show)
 
     def snap(self):
         self.stop_live()
