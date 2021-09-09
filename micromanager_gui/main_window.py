@@ -109,7 +109,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
-
         # connect mmcore signals
         sig = self._mmc.events
 
@@ -165,16 +164,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.ax.tick_params(axis="y", colors="white")
         self.layout_histogram.addWidget(self.canvas_histogram)
 
-        self.viewer.layers.selection.events.active.connect(self.histogram_callback)
-        self.viewer.dims.events.current_step.connect(self.histogram_callback)
-        self.autoscale_checkBox.toggled.connect(self.histogram_callback)
-        self.viewer.layers.events.connect(self.histogram_callback)
+        if self.tabWidget.currentIndex() == 0:
+            self.viewer.layers.selection.events.active.connect(self.histogram_callback)
+            self.viewer.dims.events.current_step.connect(self.histogram_callback)
+            self.autoscale_checkBox.toggled.connect(self.histogram_callback)
+            self.viewer.layers.events.connect(self.histogram_callback)
 
     def histogram_callback(self, event):
         self.histogram()
         self.update_max_min()
 
     def histogram(self):
+
+        if self.tabWidget.currentIndex() != 0:
+            return
+
         self.ax.clear()
         max_all_selected_layers = []
         min_all_selected_layers = []
@@ -185,10 +189,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 current_layer_raw = self.viewer.layers[f"{layer}"]
                 current_layer_raw_color = current_layer_raw.colormap.name
 
-                layer_dims = self.viewer.dims.current_step[:-2]
+                # layer_dims = self.viewer.dims.current_step
+                layer_dims = current_layer_raw.ndim
 
-                if len(layer_dims) > 2:
-                    current_layer = current_layer_raw.data[layer_dims]
+                if layer_dims > 2:
+                    dims_idx = self.viewer.dims.current_step
+                    current_layer = current_layer_raw.data[dims_idx[:-2]]
                 else:
                     current_layer = current_layer_raw.data
 
