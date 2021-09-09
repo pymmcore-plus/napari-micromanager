@@ -166,17 +166,26 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.ax.tick_params(axis="y", colors="white")
         self.layout_histogram.addWidget(self.canvas_histogram)
 
-    def histogram(self):
-        if not self.viewer.layers or not self.viewer.layers.selection:
-            return
+        self.viewer.layers.selection.events.active.connect(self.histogram_callback)
+        self.viewer.dims.events.current_step.connect(self.histogram_callback)
+        self.autoscale_checkBox.toggled.connect(self.histogram_callback)
 
+    def histogram_callback(self, event):
+        self.histogram()
+
+    def histogram(self):
         for layer in self.viewer.layers:
             if (
                 isinstance(layer, napari.layers.Image)
                 and layer in self.viewer.layers.selection
                 and layer.visible != 0
             ):
-                current_layer = layer
+
+                current_layer_raw = layer
+
+                layer_dims = self.viewer.dims.current_step[:-2]
+
+                current_layer = current_layer_raw.data[layer_dims]
 
                 bit_depth = self._mmc.getProperty(
                     self._mmc.getCameraDevice(), "PixelType"
@@ -187,15 +196,15 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 bin_range = list(range(2 ** int(bit_depth_number)))
                 self.ax.hist(
-                    current_layer.data.flatten(),
+                    current_layer.flatten(),
                     bins=bin_range,
                     histtype="step",
                     color="green",
                 )
 
                 if self.autoscale_checkBox.isChecked():
-                    max_v_layer = np.max(current_layer.data)
-                    min_v_layer = np.min(current_layer.data)
+                    max_v_layer = np.max(current_layer)
+                    min_v_layer = np.min(current_layer)
 
                     max_v = min(max_v_layer, 2 ** int(bit_depth_number))
 
@@ -267,7 +276,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             new_array[im_idx] = image
             # set layer data
             layer.data = new_array
-            self.histogram()
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
@@ -275,9 +283,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             seq = event.sequence
             _image = image[(np.newaxis,) * len(seq.shape)]
             layer = self.viewer.add_image(_image, name=layer_name, blending="additive")
-
-            self.histogram()
-
             # dimensions labels
             labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
             self.viewer.dims.axis_labels = labels
@@ -479,11 +484,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         try:
             preview_layer = self.viewer.layers["preview"]
             preview_layer.data = data
-            self.histogram()
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
-            self.histogram()
 
+        self.histogram()
         self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
         self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
 
