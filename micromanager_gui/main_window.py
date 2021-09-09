@@ -65,7 +65,7 @@ class _MainUI:
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
-    max_min_val_lineEdit: QtW.QLineEdit
+    max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     histogram_widget: QtW.QWidget
@@ -322,7 +322,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_min_val_lineEdit.setText("None")
+        self.max_min_val_label.setText("None")
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
@@ -500,21 +500,19 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.reset_view()
 
     def update_max_min(self):
-        min_max_list = [
-            (np.min(layer.data), np.max(layer.data))
-            for layer in self.viewer.layers.selection
-        ]
 
-        min_max_show = str(min_max_list).replace("[", "")
-        min_max_show = min_max_show.replace("]", "")
+        min_max_txt = ""
 
-        self.max_min_val_lineEdit.setText(min_max_show)
+        for layer in self.viewer.layers.selection:
 
-        # if len(self.viewer.layers.selection) == 1:
-        #     for layer in self.viewer.layers.selection:
-        #         self.max_min_val_lineEdit.setText(str(np.max(layer.data)))
-        # else:
-        #     self.max_min_val_lineEdit.setText(" ")
+            curr_layer = self.viewer.layers[f"{layer}"]
+            col = curr_layer.colormap.name
+
+            min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
+            txt = f'<font color="{col}">{min_max_show}</font>'
+            min_max_txt += txt
+
+        self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
