@@ -224,48 +224,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.canvas_histogram.draw_idle()
 
-    # def histogram(self):
-    #     for layer in self.viewer.layers:
-    #         if (
-    #             isinstance(layer, napari.layers.Image)
-    #             and layer in self.viewer.layers.selection
-    #             and layer.visible != 0
-    #         ):
-
-    #             current_layer_raw = layer
-
-    #             layer_dims = self.viewer.dims.current_step[:-2]
-
-    #             current_layer = current_layer_raw.data[layer_dims]
-
-    #             bit_depth = self._mmc.getProperty(
-    #                 self._mmc.getCameraDevice(), "PixelType"
-    #             )
-    #             bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
-
-    #             self.ax.clear()
-
-    #             bin_range = list(range(2 ** int(bit_depth_number)))
-    #             self.ax.hist(
-    #                 current_layer.flatten(),
-    #                 bins=bin_range,
-    #                 histtype="step",
-    #                 color="green",
-    #             )
-
-    #             if self.autoscale_checkBox.isChecked():
-    #                 max_v_layer = np.max(current_layer)
-    #                 min_v_layer = np.min(current_layer)
-
-    #                 max_v = min(max_v_layer, 2 ** int(bit_depth_number))
-
-    #                 if min_v_layer == max_v:
-    #                     min_v_layer = 0
-
-    #                 self.ax.set_xlim(left=min_v_layer, right=max_v)
-
-    #     self.canvas_histogram.draw_idle()
-
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
             with blockSignals(self.snap_channel_comboBox):
@@ -551,6 +509,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         min_max_show = min_max_show.replace("]", "")
 
         self.max_min_val_lineEdit.setText(min_max_show)
+
+        # if len(self.viewer.layers.selection) == 1:
+        #     for layer in self.viewer.layers.selection:
+        #         self.max_min_val_lineEdit.setText(str(np.max(layer.data)))
+        # else:
+        #     self.max_min_val_lineEdit.setText(" ")
 
     def snap(self):
         self.stop_live()
