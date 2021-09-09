@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import matplotlib
 import napari
 import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvas
@@ -12,7 +13,7 @@ from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
-from qtpy.QtGui import QIcon
+from qtpy.QtGui import QColor, QIcon
 
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
@@ -189,44 +190,50 @@ class MainWindow(QtW.QWidget, _MainUI):
                 current_layer_raw = self.viewer.layers[f"{layer}"]
                 current_layer_raw_color = current_layer_raw.colormap.name
 
+                if current_layer_raw_color not in matplotlib.colors.CSS4_COLORS:
+                    current_layer_raw_color = "gray"
+
                 # layer_dims = self.viewer.dims.current_step
                 layer_dims = current_layer_raw.ndim
 
-                if layer_dims > 2:
-                    dims_idx = self.viewer.dims.current_step
-                    current_layer = current_layer_raw.data[dims_idx[:-2]]
-                else:
-                    current_layer = current_layer_raw.data
+                try:
+                    if layer_dims > 2:
+                        dims_idx = self.viewer.dims.current_step
+                        current_layer = current_layer_raw.data[dims_idx[:-2]]
+                    else:
+                        current_layer = current_layer_raw.data
 
-                bit_depth = self._mmc.getProperty(
-                    self._mmc.getCameraDevice(), "PixelType"
-                )
-                bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
-
-                bin_range = list(range(2 ** int(bit_depth_number)))
-                self.ax.hist(
-                    current_layer.flatten(),
-                    bins=bin_range,
-                    histtype="step",
-                    color=current_layer_raw_color,
-                )
-
-                if self.autoscale_checkBox.isChecked():
-                    max_v_layer = np.max(current_layer)
-                    min_v_layer = np.min(current_layer)
-
-                    max_v = min(max_v_layer, 2 ** int(bit_depth_number))
-
-                    if min_v_layer == max_v:
-                        min_v_layer = 0
-
-                    max_all_selected_layers.append(max_v)
-                    min_all_selected_layers.append(min_v_layer)
-
-                    self.ax.set_xlim(
-                        left=np.min(min_all_selected_layers),
-                        right=np.max(max_all_selected_layers),
+                    bit_depth = self._mmc.getProperty(
+                        self._mmc.getCameraDevice(), "PixelType"
                     )
+                    bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
+
+                    bin_range = list(range(2 ** int(bit_depth_number)))
+                    self.ax.hist(
+                        current_layer.flatten(),
+                        bins=bin_range,
+                        histtype="step",
+                        color=current_layer_raw_color,
+                    )
+
+                    if self.autoscale_checkBox.isChecked():
+                        max_v_layer = np.max(current_layer)
+                        min_v_layer = np.min(current_layer)
+
+                        max_v = min(max_v_layer, 2 ** int(bit_depth_number))
+
+                        if min_v_layer == max_v:
+                            min_v_layer = 0
+
+                        max_all_selected_layers.append(max_v)
+                        min_all_selected_layers.append(min_v_layer)
+
+                        self.ax.set_xlim(
+                            left=np.min(min_all_selected_layers),
+                            right=np.max(max_all_selected_layers),
+                        )
+                except IndexError:
+                    pass
 
         self.canvas_histogram.draw_idle()
 
@@ -513,6 +520,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             curr_layer = self.viewer.layers[f"{layer}"]
             col = curr_layer.colormap.name
+
+            if col not in QColor.colorNames():
+                col = "gray"
 
             min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
             txt = f'<font color="{col}">{min_max_show}</font>'
