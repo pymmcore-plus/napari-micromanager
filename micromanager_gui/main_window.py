@@ -70,7 +70,6 @@ class _MainUI:
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     histogram_widget: QtW.QWidget
-    autoscale_checkBox: QtW.QCheckBox
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -168,7 +167,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.tabWidget.currentIndex() == 0:
             self.viewer.layers.selection.events.active.connect(self.histogram_callback)
             self.viewer.dims.events.current_step.connect(self.histogram_callback)
-            self.autoscale_checkBox.toggled.connect(self.histogram_callback)
             self.viewer.layers.events.connect(self.histogram_callback)
 
     def histogram_callback(self, event):
@@ -193,7 +191,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if current_layer_raw_color not in matplotlib.colors.CSS4_COLORS:
                     current_layer_raw_color = "gray"
 
-                # layer_dims = self.viewer.dims.current_step
                 layer_dims = current_layer_raw.ndim
 
                 try:
@@ -216,22 +213,16 @@ class MainWindow(QtW.QWidget, _MainUI):
                         color=current_layer_raw_color,
                     )
 
-                    if self.autoscale_checkBox.isChecked():
-                        max_v_layer = np.max(current_layer)
-                        min_v_layer = np.min(current_layer)
+                    min_v_layer = current_layer_raw.contrast_limits[0]
+                    max_v_layer = current_layer_raw.contrast_limits[1]
 
-                        max_v = min(max_v_layer, 2 ** int(bit_depth_number))
+                    min_all_selected_layers.append(min_v_layer)
+                    max_all_selected_layers.append(max_v_layer)
 
-                        if min_v_layer == max_v:
-                            min_v_layer = 0
-
-                        max_all_selected_layers.append(max_v)
-                        min_all_selected_layers.append(min_v_layer)
-
-                        self.ax.set_xlim(
-                            left=np.min(min_all_selected_layers),
-                            right=np.max(max_all_selected_layers),
-                        )
+                    self.ax.set_xlim(
+                        left=np.min(min_all_selected_layers),
+                        right=np.max(max_all_selected_layers),
+                    )
                 except IndexError:
                     pass
 
