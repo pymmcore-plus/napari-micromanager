@@ -1,10 +1,8 @@
 import re
-import sys
 
 from magicgui import magicgui
 from magicgui.widgets import Container
 from pymmcore_plus import RemoteMMCore
-from qtpy.QtWidgets import QApplication
 
 # LIGHT_LIST = re.compile("(Intensity|Power)s?", re.IGNORECASE)
 # LIGHT_LIST = re.compile("(Binning|Exposure)s?", re.IGNORECASE)
@@ -63,10 +61,10 @@ class Illumination(Container):
         c.show()
 
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    mmcore = RemoteMMCore()
-    mmcore.loadSystemConfiguration("tests/test_config.cfg")
-    cls = Illumination(mmcore)
-    cls.make_illumination_magicgui()
-    sys.exit(app.exec_())
+# if __name__ == "__main__":
+#     app = QApplication(sys.argv)
+#     mmcore = RemoteMMCore()
+#     mmcore.loadSystemConfiguration("tests/test_config.cfg")
+#     cls = Illumination(mmcore)
+#     cls.make_illumination_magicgui()
+#     sys.exit(app.exec_())
