@@ -275,7 +275,7 @@
         <item row="0" column="0">
          <widget class="QPushButton" name="illumination_Button">
           <property name="text">
-           <string>Illimination(s)</string>
+           <string>Illumination(s)</string>
           </property>
          </widget>
         </item>
