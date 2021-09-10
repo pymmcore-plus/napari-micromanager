@@ -251,7 +251,7 @@
              </size>
             </property>
             <property name="text">
-             <string>[min, max]</string>
+             <string>(min, max)</string>
             </property>
            </widget>
           </item>
