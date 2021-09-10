@@ -4,7 +4,6 @@ from magicgui import magicgui
 from magicgui.widgets import Container
 from pymmcore_plus import RemoteMMCore
 
-# LIGHT_LIST = re.compile("(Intensity|Power)s?", re.IGNORECASE)
 LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # for testing
 
 
