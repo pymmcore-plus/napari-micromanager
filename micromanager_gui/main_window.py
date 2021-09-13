@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, List, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
