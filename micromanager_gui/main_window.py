@@ -164,8 +164,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
 
-        self.ROI_Button.setEnabled(enabled)
-        self.full_chip_Button.setEnabled(enabled)
+        self.crop_Button.setEnabled(enabled)
 
     def _on_exp_change(self, camera: str, exposure: float):
         self.exp_spinBox.setValue(exposure)
