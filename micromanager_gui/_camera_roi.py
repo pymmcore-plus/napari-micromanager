@@ -22,6 +22,8 @@ class CameraROI:
         super().__init__()
 
         self.camera_roi_cbox = combobox
+        self.camera_roi_cbox.addItems(["Full", "ROI", "1/4", "1/8", "1/16"])
+
         self.crop_button = push_btn
 
         self.crop_button.clicked.connect(self.crop_camera)
@@ -41,6 +43,11 @@ class CameraROI:
 
         self.viewer.reset_view()
 
+    def clear_roi_and_snap(self):
+        self._mmc.clearROI()
+        self._mmc.snapImage()
+        self.update_viewer(self._mmc.getImage())
+
     def get_camera_and_size(self):
         cam_dev = self._mmc.getCameraDevice()
         max_width = self._mmc.getROI(cam_dev)[2]
@@ -58,39 +65,29 @@ class CameraROI:
     def roi_action(self):
 
         if self.camera_roi_cbox.currentText() == "Full":
-            print(self.camera_roi_cbox.currentText())
             self.crop_button.setEnabled(False)
             self.camera_full_chip()
 
-        if self.camera_roi_cbox.currentText() == "Custom":
-            print(self.camera_roi_cbox.currentText())
+        if self.camera_roi_cbox.currentText() == "ROI":
             self.crop_button.setEnabled(True)
+            self.camera_custom_crop()
 
-            try:
-                cam_roi_layer = self.viewer.layers["Camera_ROI"]
-                cam_roi_layer.mode = "select"
+        if self.camera_roi_cbox.currentIndex() > 1:
+            self.crop_button.setEnabled(True)
+            self.camera_centered_crop(self.camera_roi_cbox.currentText())
 
-                if not cam_roi_layer.data:
+    def camera_full_chip(self):
+        for lay in self.viewer.layers:
+            if lay.name == "Camera_ROI":
+                self.viewer.layers.remove(lay)
+        self.clear_roi_and_snap()
 
-                    max_width, max_height = self.get_camera_and_size()
+    def camera_custom_crop(self):
+        try:
+            cam_roi_layer = self.viewer.layers["Camera_ROI"]
+            cam_roi_layer.mode = "select"
 
-                    crop_size = self.center_crop_roi_size(
-                        max_height,
-                        max_width,
-                        max_height // 2,
-                        max_width // 2,
-                    )
-
-                    self.viewer.add_shapes(
-                        crop_size,
-                        name="Camera_ROI",
-                        shape_type="rectangle",
-                        edge_color="green",
-                        opacity=0.5,
-                    )
-                    cam_roi_layer.mode = "select"
-
-            except Exception:
+            if not cam_roi_layer.data:
 
                 max_width, max_height = self.get_camera_and_size()
 
@@ -101,7 +98,7 @@ class CameraROI:
                     max_width // 2,
                 )
 
-                self.viewer.add_shapes(
+                cam_roi_layer = self.viewer.add_shapes(
                     crop_size,
                     name="Camera_ROI",
                     shape_type="rectangle",
@@ -110,51 +107,50 @@ class CameraROI:
                 )
                 cam_roi_layer.mode = "select"
 
-        if self.camera_roi_cbox.currentIndex() > 1:
-            print(self.camera_roi_cbox.currentText())
-            self.crop_button.setEnabled(True)
-
-            self.clear_roi_and_snap()
-            central_max_width = int(
-                self.camera_roi_cbox.currentText().partition("x")[0]
-            )
-            central_max_height = int(
-                self.camera_roi_cbox.currentText().partition("x")[-1]
-            )
+        except Exception:
 
             max_width, max_height = self.get_camera_and_size()
 
             crop_size = self.center_crop_roi_size(
                 max_height,
                 max_width,
-                central_max_width,
-                central_max_height,
+                max_height // 2,
+                max_width // 2,
             )
 
-            try:
-                cam_roi_layer = self.viewer.layers["Camera_ROI"]
-                cam_roi_layer.data = crop_size
-                cam_roi_layer.mode = "select"
-            except Exception:
-                self.viewer.add_shapes(
-                    crop_size,
-                    name="Camera_ROI",
-                    shape_type="rectangle",
-                    edge_color="green",
-                    opacity=0.5,
-                )
-                cam_roi_layer.mode = "select"
+            cam_roi_layer = self.viewer.add_shapes(
+                crop_size,
+                name="Camera_ROI",
+                shape_type="rectangle",
+                edge_color="green",
+                opacity=0.5,
+            )
+            cam_roi_layer.mode = "select"
 
-    def camera_full_chip(self):
-        for lay in self.viewer.layers:
-            if lay.name == "Camera_ROI":
-                self.viewer.layers.remove(lay)
+    def camera_centered_crop(self, choice):
         self.clear_roi_and_snap()
 
-    def clear_roi_and_snap(self):
-        self._mmc.clearROI()
-        self._mmc.snapImage()
-        self.update_viewer(self._mmc.getImage())
+        max_width, max_height = self.get_camera_and_size()
+
+        _size = int(choice[-1])
+
+        crop_size = self.center_crop_roi_size(
+            max_height, max_width, max_height // _size, max_height // _size
+        )
+
+        try:
+            cam_roi_layer = self.viewer.layers["Camera_ROI"]
+            cam_roi_layer.data = crop_size
+            cam_roi_layer.mode = "select"
+        except Exception:
+            cam_roi_layer = self.viewer.add_shapes(
+                crop_size,
+                name="Camera_ROI",
+                shape_type="rectangle",
+                edge_color="green",
+                opacity=0.5,
+            )
+            cam_roi_layer.mode = "select"
 
     def crop_camera(self):
         try:

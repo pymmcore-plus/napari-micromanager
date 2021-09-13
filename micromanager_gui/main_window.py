@@ -150,10 +150,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
         )
         self.cam_roi_comboBox.currentIndexChanged.connect(self.cam_roi.roi_action)
-        # self.viewer.layers.events.connect(self.cam_roi.update_camera_roi_shape)
-        # self.viewer.layers.selection.events.active.connect(
-        #     self.cam_roi.update_camera_roi_shape
-        # )
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -278,17 +274,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.bit_comboBox.setCurrentText(
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
-
-        max_width = self._mmc.getROI(cam_device)[2]
-        max_height = self._mmc.getROI(cam_device)[3]
-        self.cam_roi_comboBox.addItems(
-            [
-                "Full",
-                "Custom",
-                f"{round(max_width/2)}x{round(max_height/2)}",
-                f"{round(max_width/4)}x{round(max_height/4)}",
-            ]
-        )
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
