@@ -100,7 +100,7 @@ class CameraROI:
             cam_roi_layer = self.viewer.layers["Camera_ROI"]
             cam_roi_layer.data = crop_size
             cam_roi_layer.mode = "select"
-        except Exception:
+        except KeyError:
             cam_roi_layer = self.viewer.add_shapes(
                 crop_size,
                 name="Camera_ROI",
@@ -117,7 +117,7 @@ class CameraROI:
                 cam_roi_layer.mode = "ADD_RECTANGLE"
             else:
                 cam_roi_layer.mode = "select"
-        except Exception:
+        except KeyError:
             cam_roi_layer = self.viewer.add_shapes(
                 name="Camera_ROI",
                 shape_type="rectangle",
