@@ -134,8 +134,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
-        self.up_Button.clicked.connect(self.snap)
-        self.down_Button.clicked.connect(self.snap)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
@@ -299,6 +297,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+        if self._mmc.getFocusDevice():
+            self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_options(self):
         self._refresh_camera_options()
@@ -424,12 +424,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def snap(self):
         self.stop_live()
-
-        self._mmc.setExposure(self.exp_spinBox.value())
-
-        ch_group = self._mmc.getChannelGroup() or "Channel"
-        self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
-
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
