@@ -26,6 +26,7 @@ class CameraROI:
         self.camera_roi_cbox.addItems(["Full", "ROI", "1/4", "1/16", "1/64"])
 
         self.crop_button = push_btn
+        self.crop_button.setEnabled(False)
         self.crop_button.clicked.connect(self.crop_camera)
 
     def update_viewer(self, data=None):
@@ -81,6 +82,7 @@ class CameraROI:
             if lay.name == "Camera_ROI":
                 self.viewer.layers.remove(lay)
         self.clear_roi_and_snap()
+        self.crop_button.setEnabled(False)
 
     def camera_centered_crop(self, choice):
         self.clear_roi_and_snap()
