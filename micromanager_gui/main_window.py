@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, List, Tuple
 
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
@@ -100,7 +100,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         # tab widgets
-        self.mda = MultiDWidget(self._mmc)
+        self.mda = MultiDWidget(self._mmc, self)
         self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
