@@ -12,7 +12,12 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import (
+    blockSignals,
+    event_indices,
+    extend_array_for_index,
+    robustConfigGetter,
+)
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 
@@ -99,8 +104,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
+        # create an object to be flexible about what users have named things
+        # and share it with subwidgets
+        self._robustGetter = robustConfigGetter(self._mmc)
+
         # tab widgets
-        self.mda = MultiDWidget(self._mmc)
+        self.mda = MultiDWidget(self._mmc, self._robustGetter)
         self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
@@ -146,7 +155,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_options()
 
     def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._get_channel_group():
+        if groupName == self._robustGetter.get_channel_group():
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.setCurrentText(configName)
 
@@ -277,7 +286,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
-            channel_group = self._get_channel_group()
+            channel_group = self._robustGetter.get_channel_group()
         if channel_group:
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             with blockSignals(self.snap_channel_comboBox):
@@ -309,20 +318,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
-    def _get_channel_group(self) -> str | None:
-        """
-        Get channelGroup falling back to Channel if not set, also
-        check that this is an availableConfigGroup.
-        """
-        chan_group = self._mmc.getChannelGroup()
-        if chan_group == "":
-            # not set in core. Try "Channel" as a fallback
-            chan_group = "Channel"
-        if chan_group in self._mmc.getAvailableConfigGroups():
-            return chan_group
-
     def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._get_channel_group(), newChannel)
+        self._mmc.setConfig(self._robustGetter.get_channel_group(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")

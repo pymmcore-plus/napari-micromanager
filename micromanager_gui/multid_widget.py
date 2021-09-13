@@ -14,6 +14,8 @@ from useq import MDASequence
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
+    from ._util import robustConfigGetter
+
 ICONS = Path(__file__).parent / "icons"
 
 
@@ -78,8 +80,11 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # metadata associated with a given experiment
     SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
-    def __init__(self, mmcore: RemoteMMCore, parent=None):
+    def __init__(
+        self, mmcore: RemoteMMCore, robustGetter: robustConfigGetter, parent=None
+    ):
         self._mmc = mmcore
+        self._robustGetter = robustGetter
         super().__init__(parent)
         self.setup_ui()
 
@@ -146,10 +151,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in self._mmc.getAvailableConfigGroups():
-                raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
-            self.channel_comboBox.addItems(channel_list)
+            channel_group = self._robustGetter.get_channel_group()
+            if channel_group:
+                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+                self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)

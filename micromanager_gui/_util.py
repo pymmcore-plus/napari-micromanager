@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -9,6 +10,7 @@ from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     import useq
+    from pymmcore_plus import CMMCorePlus, RemoteMMCore
 
 
 def get_devices_and_props(self):
@@ -103,3 +105,24 @@ def blockSignals(widget: QWidget):
     widget.blockSignals(True)
     yield
     widget.blockSignals(orig_state)
+
+
+class robustConfigGetter:
+    def __init__(self, mmc: RemoteMMCore | CMMCorePlus) -> None:
+        self._mmc = mmc
+
+    def get_channel_group(self) -> str | None:
+        """
+        Get the channelGroup falling back to the firt available config
+        group with a name that matches the regex:
+            reg = re.compile("(chan{1,2}|channel|filt|filter)s?", re.IGNORECASE)
+        """
+        chan_group = self._mmc.getChannelGroup()
+        if chan_group == "":
+            # not set in core. Try "Channel" and other variations as fallbacks
+            reg = re.compile("(chan{1,2}|channel|filt|filter)s?", re.IGNORECASE)
+            for group in self._mmc.getAvailableConfigGroups():
+                if reg.match(group):
+                    return group
+        elif chan_group in self._mmc.getAvailableConfigGroups():
+            return chan_group
