@@ -66,9 +66,9 @@ class _MainUI:
     max_val_lineEdit: QtW.QLineEdit
     min_val_lineEdit: QtW.QLineEdit
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    ROI_Button: QtW.QPushButton
-    full_chip_Button: QtW.QPushButton
-    center_roi_Button: QtW.QPushButton
+
+    cam_roi_comboBox: QtW.QComboBox
+    crop_Button: QtW.QPushButton
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -139,11 +139,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.up_Button.clicked.connect(self.snap)
         self.down_Button.clicked.connect(self.snap)
 
-        self.cam_roi = CameraROI(self.viewer, self._mmc)
-        self.full_chip_Button.clicked.connect(self.cam_roi.camera_full_chip)
-        self.center_roi_Button.clicked.connect(self.cam_roi.center_camera_roi)
-        self.ROI_Button.clicked.connect(self.cam_roi.camera_roi)
-
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
@@ -152,6 +147,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+        self.cam_roi = CameraROI(
+            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+        )
+        self.cam_roi_comboBox.currentIndexChanged.connect(self.cam_roi.roi_action)
+        # self.viewer.layers.events.connect(self.cam_roi.update_camera_roi_shape)
+        # self.viewer.layers.selection.events.active.connect(
+        #     self.cam_roi.update_camera_roi_shape
+        # )
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -273,6 +277,17 @@ class MainWindow(QtW.QWidget, _MainUI):
             if "16" in px_t:
                 self.bit_comboBox.setCurrentText("16bit")
                 self._mmc.setProperty(cam_device, "PixelType", "16bit")
+
+        max_width = self._mmc.getROI(cam_device)[2]
+        max_height = self._mmc.getROI(cam_device)[3]
+        self.cam_roi_comboBox.addItems(
+            [
+                "Full",
+                "Custom",
+                f"{round(max_width/2)}x{round(max_height/2)}",
+                f"{round(max_width/4)}x{round(max_height/4)}",
+            ]
+        )
 
     def _refresh_objective_options(self):
         if "Objective" in self._mmc.getLoadedDevices():
