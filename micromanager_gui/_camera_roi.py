@@ -133,7 +133,7 @@ class CameraROI:
             shape_selected_list = list(cam_roi_layer.selected_data)
 
             shape_selected_idx = (
-                -1 if not shape_selected_list else shape_selected_list[0]
+                0 if not shape_selected_list else shape_selected_list[0]
             )
 
             x = int(cam_roi_layer.data[shape_selected_idx][0][1])
