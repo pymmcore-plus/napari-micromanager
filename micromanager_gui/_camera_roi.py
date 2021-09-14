@@ -130,18 +130,24 @@ class CameraROI:
         try:
             cam_roi_layer = self.viewer.layers["Camera_ROI"]
 
-            x = int(cam_roi_layer.data[0][0][1])
-            y = int(cam_roi_layer.data[0][0][0])
-            xsize = int(cam_roi_layer.data[0][1][1] - x)
-            ysize = int(cam_roi_layer.data[0][2][0] - y)
+            shape_selected_list = list(cam_roi_layer.selected_data)
+
+            shape_selected_idx = (
+                -1 if not shape_selected_list else shape_selected_list[0]
+            )
+
+            x = int(cam_roi_layer.data[shape_selected_idx][0][1])
+            y = int(cam_roi_layer.data[shape_selected_idx][0][0])
+            xsize = int(cam_roi_layer.data[shape_selected_idx][1][1] - x)
+            ysize = int(cam_roi_layer.data[shape_selected_idx][2][0] - y)
 
             if any(v < 0 for v in [x, y, xsize, ysize]):
-                warnings.warn("select a single ROI within the image size")
+                warnings.warn("select a ROI within the image size")
                 return
 
             max_width, max_height = self.get_camera_and_size()
             if (x + xsize) > max_width or (y + ysize) > max_height:
-                warnings.warn("select a single ROI within the image size")
+                warnings.warn("select a ROI within the image size")
                 return
 
             self._mmc.setROI(x, y, xsize, ysize)
@@ -161,4 +167,4 @@ class CameraROI:
             cam_roi_layer.mode = "ADD_RECTANGLE"
 
         except IndexError:
-            warnings.warn("select a single ROI within the image size")
+            warnings.warn("select a ROI within the image size")
