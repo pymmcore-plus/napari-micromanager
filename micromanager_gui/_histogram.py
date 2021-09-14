@@ -77,7 +77,6 @@ class Histogram:
                     min_all_selected_layers.append(min_v_layer)
                     max_all_selected_layers.append(max_v_layer)
 
-                    print(min_all_selected_layers, max_all_selected_layers)
                     self.ax.set_xlim(
                         left=np.min(min_all_selected_layers),
                         right=np.max(max_all_selected_layers),
