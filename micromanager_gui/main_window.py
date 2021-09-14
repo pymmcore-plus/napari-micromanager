@@ -164,10 +164,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.ax.tick_params(axis="y", colors="white")
         self.layout_histogram.addWidget(self.canvas_histogram)
 
-        if self.tabWidget.currentIndex() == 0:
-            self.viewer.layers.selection.events.active.connect(self.histogram_callback)
-            self.viewer.dims.events.current_step.connect(self.histogram_callback)
-            self.viewer.layers.events.connect(self.histogram_callback)
+        self.viewer.layers.selection.events.active.connect(self.histogram_callback)
+        self.viewer.dims.events.current_step.connect(self.histogram_callback)
+        self.viewer.layers.events.connect(self.histogram_callback)
 
     def histogram_callback(self, event):
         self.histogram()
