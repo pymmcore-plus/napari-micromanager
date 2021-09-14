@@ -4,17 +4,15 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import matplotlib
 import napari
 import numpy as np
-from matplotlib.backends.backend_qt5agg import FigureCanvas
-from matplotlib.figure import Figure
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
+from ._histogram import Histogram
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
@@ -154,78 +152,17 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_options()
 
         # histogram widget
-        self.layout_histogram = QtW.QVBoxLayout(self.histogram_widget)
-        self.canvas_histogram = FigureCanvas(
-            Figure(facecolor="#2B2E37", constrained_layout=True)
-        )
-        self.ax = self.canvas_histogram.figure.subplots()
-        self.ax.set_facecolor("#2B2E37")
-        self.ax.tick_params(axis="x", colors="white")
-        self.ax.tick_params(axis="y", colors="white")
-        self.layout_histogram.addWidget(self.canvas_histogram)
+        self.histogram = Histogram(self.viewer, self._mmc, self.histogram_widget)
 
-        self.viewer.layers.selection.events.active.connect(self.histogram_callback)
-        self.viewer.dims.events.current_step.connect(self.histogram_callback)
-        self.viewer.layers.events.connect(self.histogram_callback)
+        self.viewer.layers.selection.events.active.connect(self.histogram_callbacks)
+        self.viewer.dims.events.current_step.connect(self.histogram_callbacks)
+        self.viewer.layers.events.connect(self.histogram_callbacks)
 
-    def histogram_callback(self, event):
-        self.histogram()
-        self.update_max_min()
-
-    def histogram(self):
-
+    def histogram_callbacks(self, event):
         if self.tabWidget.currentIndex() != 0:
             return
-
-        self.ax.clear()
-        max_all_selected_layers = []
-        min_all_selected_layers = []
-
-        for layer in self.viewer.layers.selection:
-            if isinstance(layer, napari.layers.Image) and layer.visible != 0:
-
-                current_layer_raw = self.viewer.layers[f"{layer}"]
-                current_layer_raw_color = current_layer_raw.colormap.name
-
-                if current_layer_raw_color not in matplotlib.colors.CSS4_COLORS:
-                    current_layer_raw_color = "gray"
-
-                layer_dims = current_layer_raw.ndim
-
-                try:
-                    if layer_dims > 2:
-                        dims_idx = self.viewer.dims.current_step
-                        current_layer = current_layer_raw.data[dims_idx[:-2]]
-                    else:
-                        current_layer = current_layer_raw.data
-
-                    bit_depth = self._mmc.getProperty(
-                        self._mmc.getCameraDevice(), "PixelType"
-                    )
-                    bit_depth_number = (re.findall("[0-9]+", bit_depth))[0]
-
-                    bin_range = list(range(2 ** int(bit_depth_number)))
-                    self.ax.hist(
-                        current_layer.flatten(),
-                        bins=bin_range,
-                        histtype="step",
-                        color=current_layer_raw_color,
-                    )
-
-                    min_v_layer = current_layer_raw.contrast_limits[0]
-                    max_v_layer = current_layer_raw.contrast_limits[1]
-
-                    min_all_selected_layers.append(min_v_layer)
-                    max_all_selected_layers.append(max_v_layer)
-
-                    self.ax.set_xlim(
-                        left=np.min(min_all_selected_layers),
-                        right=np.max(max_all_selected_layers),
-                    )
-                except IndexError:
-                    pass
-
-        self.canvas_histogram.draw_idle()
+        self.histogram.histogram()
+        self.update_max_min()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
