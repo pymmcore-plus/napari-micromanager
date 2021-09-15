@@ -11,12 +11,11 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QIcon
 
-from prop_browser import PropBrowser
-
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
+from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
     import napari.layers
