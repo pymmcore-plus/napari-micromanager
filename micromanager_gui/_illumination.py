@@ -23,7 +23,7 @@ class Illumination(Container):
             for p in range(len(properties)):
                 prop = properties[p]
                 has_range = self._mmc.hasPropertyLimits(device, prop)
-                if LIGHT_LIST.match(prop) and has_range:
+                if LIGHT_LIST.search(prop) and has_range:
 
                     lower_lim = self._mmc.getPropertyLowerLimit(device, prop)
                     upper_lim = self._mmc.getPropertyUpperLimit(device, prop)
