@@ -393,9 +393,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.px_size_in_cfg:
             return
 
-        self._mmc.setConfig(
-            self.objectives_device, self.objective_comboBox.currentText()
-        )
+        try:
+            self._mmc.setConfig(
+                self.objectives_device, self.objective_comboBox.currentText()
+            )
+        except ValueError:
+            self._mmc.setProperty(
+                self.objectives_device, "Label", self.objective_comboBox.currentText()
+            )
+
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
         curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
@@ -427,9 +433,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
 
-        self._mmc.setConfig(
-            self.objectives_device, self.objective_comboBox.currentText()
-        )
+        try:
+            self._mmc.setConfig(
+                self.objectives_device, self.objective_comboBox.currentText()
+            )
+        except ValueError:
+            self._mmc.setProperty(
+                self.objectives_device, "Label", self.objective_comboBox.currentText()
+            )
 
         self._mmc.waitForDevice(self.objectives_device)
         self._mmc.setPosition(zdev, currentZ)
