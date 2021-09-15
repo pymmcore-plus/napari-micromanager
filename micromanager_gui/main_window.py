@@ -445,17 +445,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         for layer in self.viewer.layers.selection:
 
-            curr_layer = self.viewer.layers[f"{layer}"]
-            col = curr_layer.colormap.name
+            if isinstance(layer, napari.layers.Image) and layer.visible != 0:
 
-            if col not in QColor.colorNames():
-                col = "gray"
+                curr_layer = self.viewer.layers[f"{layer}"]
+                col = curr_layer.colormap.name
 
-            min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
-            txt = f'<font color="{col}">{min_max_show}</font>'
-            min_max_txt += txt
+                if col not in QColor.colorNames():
+                    col = "gray"
 
-        self.max_min_val_label.setText(min_max_txt)
+                min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
+                txt = f'<font color="{col}">{min_max_show}</font>'
+                min_max_txt += txt
+
+            self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
