@@ -17,11 +17,9 @@ class Illumination(Container):
         c = Container(labels=False)
 
         devices = self._mmc.getLoadedDevices()
-        for i in range(len(devices)):
-            device = devices[i]
+        for device in devices:
             properties = self._mmc.getDevicePropertyNames(device)
-            for p in range(len(properties)):
-                prop = properties[p]
+            for prop in properties:
                 has_range = self._mmc.hasPropertyLimits(device, prop)
                 if LIGHT_LIST.search(prop) and has_range:
 
