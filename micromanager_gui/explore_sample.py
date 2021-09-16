@@ -133,26 +133,30 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
+        meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
 
-        ch_and_id = []
-        for layer in self.viewer.layers:
+        if meta.mode == "explorer":
+            ch_and_id = []
+            for layer in self.viewer.layers:
 
-            try:
-                ch_name = layer.metadata["ch_name"]
-                cidx = layer.metadata["ch_id"]
-            except KeyError:
-                continue
+                try:
+                    ch_name = layer.metadata["ch_name"]
+                    cidx = layer.metadata["ch_id"]
+                except KeyError:
+                    continue
 
-            if (
-                layer.metadata["uid"] == sequence.uid
-                and (f"[{ch_name}_idx{cidx}]") not in ch_and_id
-            ):
-                ch_and_id.append(f"[{ch_name}_idx{cidx}]")
+                if (
+                    layer.metadata["uid"] == sequence.uid
+                    and (f"[{ch_name}_idx{cidx}]") not in ch_and_id
+                ):
+                    ch_and_id.append(f"[{ch_name}_idx{cidx}]")
 
-        for name in ch_and_id:
-            layer_list = [layer for layer in self.viewer.layers if name in layer.name]
-            link_layers(layer_list)
-            layer_list.clear()
+            for name in ch_and_id:
+                layer_list = [
+                    layer for layer in self.viewer.layers if name in layer.name
+                ]
+                link_layers(layer_list)
+                layer_list.clear()
 
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
