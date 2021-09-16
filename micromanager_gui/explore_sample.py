@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import useq
+from napari.layers.utils._link_layers import link_layers
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
@@ -132,6 +133,27 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
+
+        ch_and_id = []
+        for layer in self.viewer.layers:
+
+            try:
+                ch_name = layer.metadata["ch_name"]
+                cidx = layer.metadata["ch_id"]
+            except KeyError:
+                continue
+
+            if (
+                layer.metadata["uid"] == sequence.uid
+                and (f"[{ch_name}_idx{cidx}]") not in ch_and_id
+            ):
+                ch_and_id.append(f"[{ch_name}_idx{cidx}]")
+
+        for name in ch_and_id:
+            layer_list = [layer for layer in self.viewer.layers if name in layer.name]
+            link_layers(layer_list)
+            layer_list.clear()
+
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
