@@ -236,6 +236,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
 
+        self.objectives_device = ""
+        self.px_size_in_cfg = False
+
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
         self.max_val_lineEdit.setText("None")
