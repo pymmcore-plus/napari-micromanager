@@ -287,14 +287,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                 objective_comboBox_index = cfg_groups_options.index(current_cfg)
 
                 cfg_groups_options_keys = (
-                        self._mmc.getConfigData(cfg, current_cfg)
-                    ).dict()
+                    self._mmc.getConfigData(cfg, current_cfg)
+                ).dict()
 
                 self.objectives_device = [
-                        k
-                        for idx, k in enumerate(cfg_groups_options_keys.keys())
-                        if idx == 0
-                    ][0]
+                    k
+                    for idx, k in enumerate(cfg_groups_options_keys.keys())
+                    if idx == 0
+                ][0]
 
                 self.objectives_cfg = cfg
 
