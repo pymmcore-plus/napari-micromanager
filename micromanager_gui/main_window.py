@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
-OBJ_PTRN = re.compile("(Nosepiece|Objective|obj)s?", re.IGNORECASE)
+OBJ_PTRN = re.compile("(TINosePiece|Nosepiece|Objective|obj)s?", re.IGNORECASE)
 
 
 class _MainUI:
@@ -305,6 +305,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
                     self.objective_comboBox.addItems(self._mmc.getStateLabels(device))
+                    self.objective_comboBox.setCurrentIndex(
+                        self._mmc.getState(self.objectives_device)
+                    )
                     self.set_pixel_size()
 
     def _refresh_channel_list(self, channel_group: str = None):
