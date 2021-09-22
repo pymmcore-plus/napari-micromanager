@@ -98,6 +98,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.streaming_timer = None
 
         self.objectives_device = ""
+        self.objectives_cfg = ""
         self.px_size_in_cfg = False
 
         # create connection to mmcore server or process-local variant
@@ -237,6 +238,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_channel_comboBox.clear()
 
         self.objectives_device = ""
+        self.objectives_cfg = ""
         self.px_size_in_cfg = False
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
@@ -279,23 +281,30 @@ class MainWindow(QtW.QWidget, _MainUI):
             if OBJ_PTRN.match(cfg):
 
                 cfg_groups_options = self._mmc.getAvailableConfigs(cfg)
+
+                current_cfg = self._mmc.getCurrentConfig(cfg)
+
+                objective_comboBox_index = cfg_groups_options.index(current_cfg)
+
                 cfg_groups_options_keys = (
-                    self._mmc.getConfigData(cfg, cfg_groups_options[0])
-                ).dict()
+                        self._mmc.getConfigData(cfg, current_cfg)
+                    ).dict()
 
-                dev_name = [
-                    k
-                    for idx, k in enumerate(cfg_groups_options_keys.keys())
-                    if idx == 0
-                ][0]
+                self.objectives_device = [
+                        k
+                        for idx, k in enumerate(cfg_groups_options_keys.keys())
+                        if idx == 0
+                    ][0]
 
-                self.objectives_device = dev_name
+                self.objectives_cfg = cfg
+
+                print(self.objectives_cfg, self.objectives_device)
 
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
-                    self.objective_comboBox.addItems(
-                        self._mmc.getAvailableConfigs(self.objectives_device)
-                    )
+                    self.objective_comboBox.addItems(cfg_groups_options)
+                    self.objective_comboBox.setCurrentIndex(objective_comboBox_index)
+
                     self.set_pixel_size()
                     return
 
@@ -401,16 +410,17 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         try:
             self._mmc.setConfig(
-                self.objectives_device, self.objective_comboBox.currentText()
+                self.objectives_cfg, self.objective_comboBox.currentText()
             )
+            curr_obj_name = self._mmc.getCurrentConfig(self.objectives_cfg)
         except ValueError:
             self._mmc.setProperty(
                 self.objectives_device, "Label", self.objective_comboBox.currentText()
             )
+            curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
 
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 
@@ -441,7 +451,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         try:
             self._mmc.setConfig(
-                self.objectives_device, self.objective_comboBox.currentText()
+                self.objectives_cfg, self.objective_comboBox.currentText()
             )
         except ValueError:
             self._mmc.setProperty(
