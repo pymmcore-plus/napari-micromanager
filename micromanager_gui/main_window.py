@@ -298,8 +298,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 self.objectives_cfg = cfg
 
-                print(self.objectives_cfg, self.objectives_device)
-
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
                     self.objective_comboBox.addItems(cfg_groups_options)
