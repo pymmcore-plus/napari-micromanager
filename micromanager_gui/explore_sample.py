@@ -134,6 +134,8 @@ class ExploreSample(QtW.QWidget):
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
+        seq_uid = sequence.uid
+        print('seq', seq_uid)
 
         if meta.mode == "explorer":
             ch_and_id = []
@@ -142,18 +144,22 @@ class ExploreSample(QtW.QWidget):
                 try:
                     ch_name = layer.metadata["ch_name"]
                     cidx = layer.metadata["ch_id"]
+                    meta_uid = layer.metadata["uid"]
                 except KeyError:
                     continue
 
                 if (
-                    layer.metadata["uid"] == sequence.uid
+                    meta_uid == seq_uid
                     and (f"[{ch_name}_idx{cidx}]") not in ch_and_id
                 ):
                     ch_and_id.append(f"[{ch_name}_idx{cidx}]")
+                    print('meta',meta_uid)
+            
+            print(ch_and_id)
 
             for name in ch_and_id:
                 layer_list = [
-                    layer for layer in self.viewer.layers if name in layer.name
+                    layer for layer in self.viewer.layers if name in layer.name and layer.metadata["uid"] == seq_uid
                 ]
                 link_layers(layer_list)
                 layer_list.clear()
