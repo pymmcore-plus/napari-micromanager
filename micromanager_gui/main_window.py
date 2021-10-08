@@ -135,8 +135,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.y_down_Button.clicked.connect(self.stage_y_down)
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
-        self.up_Button.clicked.connect(self.snap)
-        self.down_Button.clicked.connect(self.snap)
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
@@ -146,6 +144,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+        # connect spinboxes
+        self.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
@@ -163,8 +165,18 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
 
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
     def _on_exp_change(self, camera: str, exposure: float):
-        self.exp_spinBox.setValue(exposure)
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -333,6 +345,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+        if self._mmc.getFocusDevice():
+            self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_options(self):
         self._refresh_camera_options()
@@ -480,12 +494,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def snap(self):
         self.stop_live()
-
-        self._mmc.setExposure(self.exp_spinBox.value())
-
-        ch_group = self._mmc.getChannelGroup() or "Channel"
-        self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
-
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 

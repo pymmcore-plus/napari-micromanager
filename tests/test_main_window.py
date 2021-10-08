@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 from napari import Viewer
 from pymmcore_plus import server
-from pymmcore_plus.client._client import _get_remote_pid
 from useq import MDASequence
 
 import micromanager_gui
@@ -30,18 +29,11 @@ if not os.getenv("MICROMANAGER_PATH"):
         )
 
 
-def _cleanup_existing_server():
-    proc = _get_remote_pid(server.DEFAULT_HOST, server.DEFAULT_PORT)
-    if proc is not None:
-        print("killing existing process")
-        proc.kill()
-
-
 # https://docs.pytest.org/en/stable/fixture.html
 @pytest.fixture(params=["local", "remote"])
 def main_window(qtbot, request):
     if request.param == "remote":
-        _cleanup_existing_server()
+        server.try_kill_server()
 
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
@@ -150,3 +142,52 @@ def test_refresh_safety(main_window: MainWindow):
     assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
+
+
+def test_explorer(main_window: MainWindow):
+
+    mmc = main_window._mmc
+
+    mmc.setXYPosition(0.0, 0.0)
+    mmc.setPosition(0.0)
+
+    main_window.explorer.scan_size_spinBox_r.setValue(2)
+    main_window.explorer.scan_size_spinBox_c.setValue(2)
+    main_window.explorer.ovelap_spinBox.setValue(0)
+
+    mmc.setConfig(
+        "Objective", "10X"
+    )  # this it is also setting mmc.setPixelSizeConfig('Res10x')
+
+    main_window.explorer.pixel_size = mmc.getPixelSizeUm()
+
+    assert mmc.getPixelSizeUm() == 1
+    assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
+    assert mmc.getROI(mmc.getCameraDevice())[-2] == 512
+
+    assert main_window.explorer.set_grid() == [
+        [-256.0, 256.0, 0.0],
+        [256.0, 256.0, 0.0],
+        [256.0, -256.0, 0.0],
+        [-256.0, -256.0, 0.0],
+    ]
+
+    assert not main_window.viewer.layers
+
+    explorer = MDASequence(
+        channels=["FITC"],
+        stage_positions=[
+            {"x": -256.0, "y": 256.0, "z": 0.0},
+            {"x": 256.0, "y": 256.0, "z": 0.0},
+            {"x": 256.0, "y": -256.0, "z": 0.0},
+            {"x": -256.0, "y": -256.0, "z": 0.0},
+        ],
+    )
+
+    main_window.explorer.SEQUENCE_META[explorer] = SequenceMeta(mode="explorer")
+
+    for event in explorer:
+        frame = np.random.rand(512, 512)
+        main_window.explorer._on_explorer_frame(frame, event)
+    assert main_window.viewer.layers[-1].data.shape == (512, 512)
+    assert len(main_window.viewer.layers) == 4
