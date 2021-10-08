@@ -407,14 +407,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             return
 
         try:
-            self._mmc.setConfig(
-                self.objectives_cfg, self.objective_comboBox.currentText()
-            )
             curr_obj_name = self._mmc.getCurrentConfig(self.objectives_cfg)
         except ValueError:
-            self._mmc.setProperty(
-                self.objectives_device, "Label", self.objective_comboBox.currentText()
-            )
             curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
 
         # define and set pixel size Config
