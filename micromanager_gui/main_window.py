@@ -90,7 +90,7 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
         super().__init__()
         self.setup_ui()
 
@@ -263,7 +263,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
-        self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -315,6 +314,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.objective_comboBox.addItems(cfg_groups_options)
                     self.objective_comboBox.setCurrentIndex(objective_comboBox_index)
 
+                    self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
                     self.set_pixel_size()
                     return
 
@@ -327,6 +327,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.objective_comboBox.setCurrentIndex(
                         self._mmc.getState(self.objectives_device)
                     )
+
+                    self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
                     self.set_pixel_size()
 
     def _refresh_channel_list(self, channel_group: str = None):
