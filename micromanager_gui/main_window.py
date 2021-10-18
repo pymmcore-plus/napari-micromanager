@@ -328,15 +328,19 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.objectives_device = dev
             with blockSignals(self.objective_comboBox):
                 self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(
-                    self._mmc.getStateLabels(self.objectives_device)
-                )
-                self.objective_comboBox.setCurrentIndex(
-                    self._mmc.getState(self.objectives_device)
-                )
+                try:
+                    self.objective_comboBox.addItems(
+                        self._mmc.getStateLabels(self.objectives_device)
+                    )
+                    self.objective_comboBox.setCurrentIndex(
+                        self._mmc.getState(self.objectives_device)
+                    )
 
-                self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
-                self.set_pixel_size()
+                    self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
+                    self.set_pixel_size()
+                    break
+                except Exception:  # which type?
+                    pass
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
