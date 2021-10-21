@@ -28,6 +28,7 @@ class CameraROI:
         self.crop_button = push_btn
         self.crop_button.setEnabled(False)
         self.crop_button.clicked.connect(self.crop_camera)
+        self.camera_roi_cbox.currentIndexChanged.connect(self.roi_action)
 
     def update_viewer(self, data=None):
         if data is None:
