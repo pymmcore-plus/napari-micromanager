@@ -446,7 +446,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     col = "gray"
 
                 # min and max of current slice
-                min_max_show = tuple(layer._calc_data_range(mode="slice"))  
+                min_max_show = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
         self.max_min_val_label.setText(min_max_txt)
