@@ -146,9 +146,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
 
-        self.viewer.layers.events.connect(self.update_max_min_callback)
-        self.viewer.layers.selection.events.active.connect(self.update_max_min_callback)
-        self.viewer.dims.events.current_step.connect(self.update_max_min_callback)
+        self.viewer.layers.events.connect(self.update_max_min)
+        self.viewer.layers.selection.events.active.connect(self.update_max_min)
+        self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -429,32 +429,25 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def update_max_min_callback(self, event):
+    def update_max_min(self, event=None):
+
         if self.tabWidget.currentIndex() != 0:
             return
-        self.update_max_min()
 
-    def update_max_min(self):
         min_max_txt = ""
 
         for layer in self.viewer.layers.selection:
 
-            if isinstance(layer, napari.layers.Image) and layer.visible != 0:
+            if isinstance(layer, napari.layers.Image) and layer.visible:
 
-                current_layer = self.viewer.layers[f"{layer}"]
-
-                if current_layer.ndim > 2:
-                    dims_idx = self.viewer.dims.current_step
-                    curr_layer = current_layer.data[dims_idx[:-2]]
-                else:
-                    curr_layer = current_layer.data
-
-                col = current_layer.colormap.name
+                col = layer.colormap.name
 
                 if col not in QColor.colorNames():
                     col = "gray"
 
-                min_max_show = (np.min(curr_layer), np.max(curr_layer))
+                min_max_show = tuple(
+                    layer._calc_data_range(mode="slice")
+                )  # min and max of current slice
                 txt = f'<font color="{col}">{min_max_show}</font>'
                 min_max_txt += txt
 
