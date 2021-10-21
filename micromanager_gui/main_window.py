@@ -147,6 +147,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_options()
 
         self.viewer.layers.events.connect(self.update_max_min_callback)
+        self.viewer.layers.selection.events.active.connect(self.update_max_min_callback)
+        self.viewer.dims.events.current_step.connect(self.update_max_min_callback)
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -437,13 +439,21 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             if isinstance(layer, napari.layers.Image) and layer.visible != 0:
 
-                curr_layer = self.viewer.layers[f"{layer}"]
-                col = curr_layer.colormap.name
+                current_layer = self.viewer.layers[f"{layer}"]
+
+                if current_layer.ndim > 2:
+                    dims_idx = self.viewer.dims.current_step
+                    curr_layer = current_layer.data[dims_idx[:-2]]
+                    print(dims_idx, curr_layer.shape)
+                else:
+                    curr_layer = current_layer.data
+
+                col = current_layer.colormap.name
 
                 if col not in QColor.colorNames():
                     col = "gray"
 
-                min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
+                min_max_show = (np.min(curr_layer), np.max(curr_layer))
                 txt = f'<font color="{col}">{min_max_show}</font>'
                 min_max_txt += txt
 
