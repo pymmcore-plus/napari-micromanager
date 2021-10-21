@@ -135,7 +135,6 @@ class ExploreSample(QtW.QWidget):
     def _on_mda_finished(self, sequence: useq.MDASequence):
         meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
         seq_uid = sequence.uid
-        print("seq", seq_uid)
 
         if meta.mode == "explorer":
             ch_and_id = []
