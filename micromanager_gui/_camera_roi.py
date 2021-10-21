@@ -76,7 +76,7 @@ class CameraROI:
 
         if self.camera_roi_cbox.currentIndex() > 1:
             self.crop_button.setEnabled(True)
-            self.camera_centered_crop(self.camera_roi_cbox.currentText())
+            self.camera_centered_crop()
 
     def camera_full_chip(self):
         for lay in self.viewer.layers:
@@ -85,7 +85,7 @@ class CameraROI:
         self.clear_roi_and_snap()
         self.crop_button.setEnabled(False)
 
-    def camera_centered_crop(self, choice):
+    def camera_centered_crop(self):
         self.clear_roi_and_snap()
 
         max_width, max_height = self.get_camera_and_size()
