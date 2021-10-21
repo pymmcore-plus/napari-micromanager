@@ -4,12 +4,13 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
-from qtpy.QtGui import QIcon
+from qtpy.QtGui import QColor, QIcon
 
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
@@ -62,8 +63,7 @@ class _MainUI:
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
-    max_val_lineEdit: QtW.QLineEdit
-    min_val_lineEdit: QtW.QLineEdit
+    max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
 
     def setup_ui(self):
@@ -145,6 +145,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
+
+        self.viewer.layers.events.connect(self.update_max_min_callback)
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -245,8 +247,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_val_lineEdit.setText("None")
-        self.min_val_lineEdit.setText("None")
+        self.max_min_val_label.setText("None")
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
@@ -421,11 +422,32 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
 
-        self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
-        self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
+        self.update_max_min()
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
+
+    def update_max_min_callback(self, event):
+        self.update_max_min()
+
+    def update_max_min(self):
+        min_max_txt = ""
+
+        for layer in self.viewer.layers.selection:
+
+            if isinstance(layer, napari.layers.Image) and layer.visible != 0:
+
+                curr_layer = self.viewer.layers[f"{layer}"]
+                col = curr_layer.colormap.name
+
+                if col not in QColor.colorNames():
+                    col = "gray"
+
+                min_max_show = (np.min(curr_layer.data), np.max(curr_layer.data))
+                txt = f'<font color="{col}">{min_max_show}</font>'
+                min_max_txt += txt
+
+            self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
