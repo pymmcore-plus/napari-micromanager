@@ -149,7 +149,6 @@ class ExploreSample(QtW.QWidget):
 
                 if meta_uid == seq_uid and (f"[{ch_name}_idx{cidx}]") not in ch_and_id:
                     ch_and_id.append(f"[{ch_name}_idx{cidx}]")
-                    print("meta", meta_uid)
 
             for name in ch_and_id:
                 layer_list = [
