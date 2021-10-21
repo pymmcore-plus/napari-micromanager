@@ -151,7 +151,6 @@ class ExploreSample(QtW.QWidget):
                     ch_and_id.append(f"[{ch_name}_idx{cidx}]")
                     print("meta", meta_uid)
 
-
             for name in ch_and_id:
                 layer_list = [
                     layer
