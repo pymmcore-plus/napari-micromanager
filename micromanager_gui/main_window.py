@@ -451,7 +451,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 txt = f'<font color="{col}">{min_max_show}</font>'
                 min_max_txt += txt
 
-            self.max_min_val_label.setText(min_max_txt)
+        self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
