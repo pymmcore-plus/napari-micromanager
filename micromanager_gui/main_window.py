@@ -430,6 +430,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.viewer.reset_view()
 
     def update_max_min_callback(self, event):
+        if self.tabWidget.currentIndex() != 0:
+            return
         self.update_max_min()
 
     def update_max_min(self):
