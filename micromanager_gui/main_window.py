@@ -444,7 +444,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if current_layer.ndim > 2:
                     dims_idx = self.viewer.dims.current_step
                     curr_layer = current_layer.data[dims_idx[:-2]]
-                    print(dims_idx, curr_layer.shape)
                 else:
                     curr_layer = current_layer.data
 
