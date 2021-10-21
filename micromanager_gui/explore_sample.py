@@ -157,7 +157,6 @@ class ExploreSample(QtW.QWidget):
                     if name in layer.name and layer.metadata["uid"] == seq_uid
                 ]
                 link_layers(layer_list)
-                layer_list.clear()
 
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
