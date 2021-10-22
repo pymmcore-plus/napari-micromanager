@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import useq
-from napari.layers.utils._link_layers import link_layers
+from napari.experimental import link_layers
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
