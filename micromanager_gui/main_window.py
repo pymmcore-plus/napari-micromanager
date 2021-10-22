@@ -154,7 +154,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-    def properties(self):
+    def _show_prop_browser(self):
         pb = PropBrowser(self._mmc)
         pb.show(run=True)
 
