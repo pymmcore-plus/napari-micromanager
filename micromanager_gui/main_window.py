@@ -135,7 +135,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
-        self.properties_Button.clicked.connect(self.properties)
+        self.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
