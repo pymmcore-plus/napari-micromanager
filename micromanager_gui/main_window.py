@@ -155,8 +155,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _show_prop_browser(self):
-        pb = PropBrowser(self._mmc)
-        pb.show()
+        pb = PropBrowser(self._mmc, self)
+        pb.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
