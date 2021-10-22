@@ -17,6 +17,7 @@ from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
+from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
     import napari.layers
@@ -66,6 +67,7 @@ class _MainUI:
     live_Button: QtW.QPushButton
     max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
+    properties_Button: QtW.QPushButton
 
     illumination_Button: QtW.QPushButton
 
@@ -137,6 +139,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.live_Button.clicked.connect(self.toggle_live)
 
         self.illumination_Button.clicked.connect(self.illumination)
+        self.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -158,6 +161,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def illumination(self):
         ill = Illumination(self._mmc)
         return ill.make_illumination_magicgui()
+
+    def _show_prop_browser(self):
+        pb = PropBrowser(self._mmc, self)
+        pb.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -454,13 +461,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if col not in QColor.colorNames():
                     col = "gray"
 
-                min_max_show = tuple(
-                    layer._calc_data_range(mode="slice")
-                )  # min and max of current slice
-                txt = f'<font color="{col}">{min_max_show}</font>'
-                min_max_txt += txt
+                # min and max of current slice
+                min_max_show = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-            self.max_min_val_label.setText(min_max_txt)
+        self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()

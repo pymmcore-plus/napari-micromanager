@@ -1,8 +1,6 @@
 from dataclasses import dataclass
-from enum import IntEnum
-from typing import Any, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Iterator, Sequence
 
-import pymmcore
 from magicgui import magicgui
 from magicgui.widgets import (
     ComboBox,
@@ -13,54 +11,28 @@ from magicgui.widgets import (
     Table,
     Widget,
 )
+from pymmcore_plus import DeviceType, PropertyType
+from PyQt5.QtWidgets import QHBoxLayout
 from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QDialog
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
 
 
-# MMDeviceConstants.h
-class DeviceType(IntEnum):
-    UnknownType = getattr(pymmcore, "UnknownType")
-    AnyType = getattr(pymmcore, "AnyType")
-    CameraDevice = getattr(pymmcore, "CameraDevice")
-    ShutterDevice = getattr(pymmcore, "ShutterDevice")
-    StateDevice = getattr(pymmcore, "StateDevice")
-    StageDevice = getattr(pymmcore, "StageDevice")
-    XYStageDevice = getattr(pymmcore, "XYStageDevice")
-    SerialDevice = getattr(pymmcore, "SerialDevice")
-    GenericDevice = getattr(pymmcore, "GenericDevice")
-    AutoFocusDevice = getattr(pymmcore, "AutoFocusDevice")
-    CoreDevice = getattr(pymmcore, "CoreDevice")
-    ImageProcessorDevice = getattr(pymmcore, "ImageProcessorDevice")
-    SignalIODevice = getattr(pymmcore, "SignalIODevice")
-    MagnifierDevice = getattr(pymmcore, "MagnifierDevice")
-    SLMDevice = getattr(pymmcore, "SLMDevice")
-    HubDevice = getattr(pymmcore, "HubDevice")
-    GalvoDevice = getattr(pymmcore, "GalvoDevice")
-
-    @classmethod
-    def other(cls):
-        return (
-            DeviceType.XYStageDevice,
-            DeviceType.SerialDevice,
-            DeviceType.GenericDevice,
-            DeviceType.AutoFocusDevice,
-            DeviceType.CoreDevice,
-            DeviceType.ImageProcessorDevice,
-            DeviceType.SignalIODevice,
-            DeviceType.MagnifierDevice,
-            DeviceType.SLMDevice,
-            DeviceType.HubDevice,
-            DeviceType.GalvoDevice,
-        )
-
-
-class PropertyType(IntEnum):
-    Undef = getattr(pymmcore, "Undef")
-    String = getattr(pymmcore, "String")
-    Float = getattr(pymmcore, "Float")
-    Integer = getattr(pymmcore, "Integer")
-
-
-_PropTypes = {"Undef": Any, "String": str, "Float": float, "Integer": int}
+OTHER_DEVICES = (
+    DeviceType.XYStageDevice,
+    DeviceType.SerialDevice,
+    DeviceType.GenericDevice,
+    DeviceType.AutoFocusDevice,
+    DeviceType.CoreDevice,
+    DeviceType.ImageProcessorDevice,
+    DeviceType.SignalIODevice,
+    DeviceType.MagnifierDevice,
+    DeviceType.SLMDevice,
+    DeviceType.HubDevice,
+    DeviceType.GalvoDevice,
+)
 
 
 @dataclass
@@ -78,9 +50,9 @@ class PropertyItem:
     allowed: Sequence[str]
 
 
-def yield_dev_props(mmc) -> Iterator[PropertyItem]:
+def iter_dev_props(mmc: "CMMCorePlus") -> Iterator[PropertyItem]:
     for dev in mmc.getLoadedDevices():
-        dev_type = DeviceType(mmc.getDeviceType(dev))
+        dev_type = mmc.getDeviceType(dev)
         for prop in mmc.getDevicePropertyNames(dev):
             yield PropertyItem(
                 device=dev,
@@ -92,16 +64,18 @@ def yield_dev_props(mmc) -> Iterator[PropertyItem]:
                 has_range=mmc.hasPropertyLimits(dev, prop),
                 lower_lim=mmc.getPropertyLowerLimit(dev, prop),
                 upper_lim=mmc.getPropertyUpperLimit(dev, prop),
-                prop_type=PropertyType(mmc.getPropertyType(dev, prop)),
+                prop_type=mmc.getPropertyType(dev, prop),
                 allowed=mmc.getAllowedPropertyValues(dev, prop),
             )
 
 
 class PropTable(Table):
-    def __init__(self, mmcore) -> None:
+    def __init__(self, mmcore: "CMMCorePlus") -> None:
         super().__init__()
         self.mmcore = mmcore
         self._update()
+        hdr = self.native.horizontalHeader()
+        hdr.setSectionResizeMode(hdr.Stretch)
         vh = self.native.verticalHeader()
         vh.setSectionResizeMode(vh.Fixed)
         vh.setDefaultSectionSize(24)
@@ -111,7 +85,7 @@ class PropTable(Table):
 
     def _update(self):
         data = []
-        for p in yield_dev_props(self.mmcore):
+        for p in iter_dev_props(self.mmcore):
             val = p.value if p.read_only else get_editor_widget(p, self.mmcore)
             data.append([int(p.dev_type), p.read_only, f"{p.device}-{p.name}", val])
         self.value = {
@@ -169,15 +143,25 @@ def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
     if prop.allowed:
         wdg = ComboBox(value=prop.value, choices=prop.allowed)
     elif prop.has_range:
-        cls = FloatSlider if PropertyType(prop.prop_type).name == "Float" else Slider
-        wdg = cls(value=float(prop.value), min=prop.lower_lim, max=prop.upper_lim)
+        if PropertyType(prop.prop_type).name == "Float":
+            wdg = FloatSlider(
+                value=float(prop.value),
+                min=float(prop.lower_lim),
+                max=float(prop.upper_lim),
+            )
+        else:
+            wdg = Slider(
+                value=int(prop.value),
+                min=int(prop.lower_lim),
+                max=int(prop.upper_lim),
+            )
     else:
         wdg = LineEdit(value=prop.value)
 
-    def _on_change(e):
-        mmc.setProperty(prop.device, prop.name, e.value)
+    @wdg.changed.connect
+    def _on_change(value: Any):
+        mmc.setProperty(prop.device, prop.name, value)
 
-    wdg.changed.connect(_on_change)
     return wdg
 
 
@@ -188,7 +172,7 @@ def make_checkboxes(pt):
         ("shutters", DeviceType.ShutterDevice),
         ("stages", DeviceType.StageDevice),
         ("wheels, turrets, etc.", DeviceType.StateDevice),
-        ("other devices", DeviceType.other()),
+        ("other devices", OTHER_DEVICES),
     ]
     for label, dtype in dt:
 
@@ -208,10 +192,12 @@ def make_checkboxes(pt):
     return c
 
 
-class PropBrowser(Container):
-    def __init__(self, mmcore=None):
+class PropBrowser(QDialog):
+    def __init__(self, mmcore=None, parent=None):
+        super().__init__(parent)
         self.pt = PropTable(mmcore)
         self.le = LineEdit(label="Filter:")
+        self.le.native.setPlaceholderText("Filter...")
         self.le.changed.connect(self._on_le_change)
         right = Container(widgets=[self.le, self.pt], labels=False)
         self.cb = make_checkboxes(self.pt)
@@ -219,17 +205,26 @@ class PropBrowser(Container):
         self.cb.native.layout().setSpacing(0)
         self.pt.show()
         self.cb.show()
-        super().__init__(layout="horizontal", widgets=[self.cb, right], labels=False)
+        self._container = Container(
+            layout="horizontal", widgets=[self.cb, right], labels=False
+        )
+        self._container.margins = 0, 0, 0, 0
+        self.setLayout(QHBoxLayout())
+        self.setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(self._container.native)
 
-    def _on_le_change(self, e):
-        self.pt.filter_string = e.value
+    def _on_le_change(self, value: str):
+        self.pt.filter_string = value
 
 
 if __name__ == "__main__":
-    from micromanager_gui._core._mmcore_plus import MMCorePlus
+    from pymmcore_plus import CMMCorePlus  # noqa
+    from qtpy.QtWidgets import QApplication
 
-    mmcore = MMCorePlus()
-    mmcore.loadSystemConfiguration()
+    app = QApplication([])
+
+    mmcore = CMMCorePlus()
+    mmcore.loadSystemConfiguration("tests/test_config.cfg")
     pb = PropBrowser(mmcore)
-
-    pb.show(run=True)
+    pb.show()
+    app.exec()
