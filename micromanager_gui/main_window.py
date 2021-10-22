@@ -454,13 +454,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if col not in QColor.colorNames():
                     col = "gray"
 
-                min_max_show = tuple(
-                    layer._calc_data_range(mode="slice")
-                )  # min and max of current slice
-                txt = f'<font color="{col}">{min_max_show}</font>'
-                min_max_txt += txt
+                # min and max of current slice
+                min_max_show = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-            self.max_min_val_label.setText(min_max_txt)
+        self.max_min_val_label.setText(min_max_txt)
+
 
     def snap(self):
         self.stop_live()
