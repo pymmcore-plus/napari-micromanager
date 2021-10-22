@@ -452,7 +452,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                 if col not in QColor.colorNames():
                     col = "gray"
-                    
+
                 min_max_show = tuple(
                     layer._calc_data_range(mode="slice")
                 )  # min and max of current slice
