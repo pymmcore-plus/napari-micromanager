@@ -156,7 +156,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _show_prop_browser(self):
         pb = PropBrowser(self._mmc)
-        pb.show(run=True)
+        pb.show()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():

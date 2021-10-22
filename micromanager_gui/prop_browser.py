@@ -174,10 +174,10 @@ def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
     else:
         wdg = LineEdit(value=prop.value)
 
-    def _on_change(e):
-        mmc.setProperty(prop.device, prop.name, e.value)
+    @wdg.changed.connect
+    def _on_change(value: Any):
+        mmc.setProperty(prop.device, prop.name, value)
 
-    wdg.changed.connect(_on_change)
     return wdg
 
 
@@ -221,13 +221,14 @@ class PropBrowser(Container):
         self.cb.show()
         super().__init__(layout="horizontal", widgets=[self.cb, right], labels=False)
 
-    def _on_le_change(self, e):
-        self.pt.filter_string = e.value
+    def _on_le_change(self, value: str):
+        self.pt.filter_string = value
 
 
-# if __name__ == "__main__":
-#     from pymmcore_plus import CMMCorePlus
-#     mmcore = CMMCorePlus()
-#     mmcore.loadSystemConfiguration('tests/test_config.cfg')
-#     pb = PropBrowser(mmcore)
-#     pb.show(run=True)
+if __name__ == "__main__":
+    from pymmcore_plus import CMMCorePlus
+
+    mmcore = CMMCorePlus()
+    mmcore.loadSystemConfiguration("tests/test_config.cfg")
+    pb = PropBrowser(mmcore)
+    pb.show(run=True)
