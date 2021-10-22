@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,6 +21,10 @@ if TYPE_CHECKING:
 
 
 UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
+
+
+def _channel_key(name: str, index: int) -> str:
+    return f"[{name}_idx{index}]"
 
 
 class ExploreSample(QtW.QWidget):
@@ -116,16 +121,16 @@ class ExploreSample(QtW.QWidget):
         pos_idx = event.index["p"]
         file_name = meta.file_name if meta.should_save else "Exp"
         ch_name = event.channel.config
-        cidx = event.index["c"]
-        layer_name = f"Pos{pos_idx:03d}_{file_name}_[{ch_name}_idx{cidx}]"
+        ch_id = event.index["c"]
+        layer_name = f"Pos{pos_idx:03d}_{file_name}_{_channel_key(ch_name, ch_id)}"
 
         meta = dict(
             useq_sequence=seq,
             uid=seq.uid,
             scan_coord=(y, x),
             scan_position=f"Pos{pos_idx:03d}",
-            ch_name=f"{event.channel.config}",
-            ch_id=f'{event.index["c"]}',
+            ch_name=ch_name,
+            ch_id=ch_id,
         )
         self.viewer.add_image(
             image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
@@ -137,26 +142,13 @@ class ExploreSample(QtW.QWidget):
         seq_uid = sequence.uid
 
         if meta.mode == "explorer":
-            ch_and_id = []
-            for layer in self.viewer.layers:
-
-                try:
-                    ch_name = layer.metadata["ch_name"]
-                    cidx = layer.metadata["ch_id"]
-                    meta_uid = layer.metadata["uid"]
-                except KeyError:
-                    continue
-
-                if meta_uid == seq_uid and (f"[{ch_name}_idx{cidx}]") not in ch_and_id:
-                    ch_and_id.append(f"[{ch_name}_idx{cidx}]")
-
-            for name in ch_and_id:
-                layer_list = [
-                    layer
-                    for layer in self.viewer.layers
-                    if name in layer.name and layer.metadata["uid"] == seq_uid
-                ]
-                link_layers(layer_list)
+            layergroups = defaultdict(set)
+            for lay in self.viewer.layers:
+                if lay.metadata.get("uid") == seq_uid:
+                    key = _channel_key(lay.metadata["ch_name"], lay.metadata["ch_id"])
+                    layergroups[key].add(lay)
+            for group in layergroups.values():
+                link_layers(group)
 
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
