@@ -219,8 +219,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         y_val = self.stage_tableWidget.item(curr_row, 1).text()
         z_val = self.stage_tableWidget.item(curr_row, 2).text()
         self._mmc.setXYPosition(float(x_val), float(y_val))
-        self._mmc.setPosition("Z_Stage", float(z_val))
-        print(f"\nStage moved to x:{x_val} y:{y_val} z:{z_val}")
+        self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
 
     def set_multi_d_acq_dir(self):
         # set the directory

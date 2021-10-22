@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import warnings
+from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 import useq
+from napari.experimental import link_layers
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
@@ -19,6 +21,10 @@ if TYPE_CHECKING:
 
 
 UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
+
+
+def _channel_key(name: str, index: int) -> str:
+    return f"[{name}_idx{index}]"
 
 
 class ExploreSample(QtW.QWidget):
@@ -118,16 +124,16 @@ class ExploreSample(QtW.QWidget):
         pos_idx = event.index["p"]
         file_name = meta.file_name if meta.should_save else "Exp"
         ch_name = event.channel.config
-        cidx = event.index["c"]
-        layer_name = f"Pos{pos_idx:03d}_{file_name}_[{ch_name}_idx{cidx}]"
+        ch_id = event.index["c"]
+        layer_name = f"Pos{pos_idx:03d}_{file_name}_{_channel_key(ch_name, ch_id)}"
 
         meta = dict(
             useq_sequence=seq,
             uid=seq.uid,
             scan_coord=(y, x),
             scan_position=f"Pos{pos_idx:03d}",
-            ch_name=f"{event.channel.config}",
-            ch_id=f'{event.index["c"]}',
+            ch_name=ch_name,
+            ch_id=ch_id,
         )
         self.viewer.add_image(
             image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
@@ -135,6 +141,7 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
+
         if (
             self.return_to_position_x is not None
             and self.return_to_position_y is not None
@@ -144,6 +151,19 @@ class ExploreSample(QtW.QWidget):
             )
             self.return_to_position_x = None
             self.return_to_position_y = None
+
+        meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
+        seq_uid = sequence.uid
+
+        if meta.mode == "explorer":
+            layergroups = defaultdict(set)
+            for lay in self.viewer.layers:
+                if lay.metadata.get("uid") == seq_uid:
+                    key = _channel_key(lay.metadata["ch_name"], lay.metadata["ch_id"])
+                    layergroups[key].add(lay)
+            for group in layergroups.values():
+                link_layers(group)
+
         meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
