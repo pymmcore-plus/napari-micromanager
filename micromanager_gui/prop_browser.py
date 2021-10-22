@@ -143,8 +143,18 @@ def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
     if prop.allowed:
         wdg = ComboBox(value=prop.value, choices=prop.allowed)
     elif prop.has_range:
-        cls = FloatSlider if PropertyType(prop.prop_type).name == "Float" else Slider
-        wdg = cls(value=float(prop.value), min=prop.lower_lim, max=prop.upper_lim)
+        if PropertyType(prop.prop_type).name == "Float":
+            wdg = FloatSlider(
+                value=float(prop.value),
+                min=float(prop.lower_lim),
+                max=float(prop.upper_lim),
+            )
+        else:
+            wdg = Slider(
+                value=int(prop.value),
+                min=int(prop.lower_lim),
+                max=int(prop.upper_lim),
+            )
     else:
         wdg = LineEdit(value=prop.value)
 
