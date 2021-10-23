@@ -163,7 +163,7 @@ def test_saving_explorer(qtbot: "QtBot", main_window: MainWindow):
             )
             layer_2.metadata["uid"] = seq_uid
             layer_2.metadata["ch_name"] = "Cy5"
-            layer_2.metadata["ch_id"] = 0
+            layer_2.metadata["ch_id"] = 1
             layer_2.metadata["scan_position"] = f"Pos{i:03}"
 
         main_window.viewer.add_image(np.random.rand(10, 10), name="preview")
