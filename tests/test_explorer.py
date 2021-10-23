@@ -176,11 +176,11 @@ def test_saving_explorer(qtbot: "QtBot", main_window: MainWindow):
 
         folder = tmp_path / "scan_EXPLORER_000"  # after _imsave()
 
-        file_list = [pth.name for pth in folder.iterdir()]
-        assert file_list == ["FITC.tif", "Cy5.tif"]
-
-        saved_file = tifffile.imread(folder / "FITC.tif")
-        assert saved_file.shape == (4, 10, 10)
+        file_list = sorted(pth.name for pth in folder.iterdir())
+        assert file_list == ["Cy5.tif", "FITC.tif"]
 
         saved_file = tifffile.imread(folder / "Cy5.tif")
+        assert saved_file.shape == (4, 10, 10)
+
+        saved_file = tifffile.imread(folder / "FITC.tif")
         assert saved_file.shape == (4, 10, 10)
