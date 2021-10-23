@@ -1,18 +1,22 @@
 import os
+import tempfile
 import uuid
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+import tifffile
 from napari import Viewer
 from pymmcore_plus import server
 from useq import MDASequence
 
+from micromanager_gui._saving import save_sequence
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
-    pass
+    from pytestqt.qtbot import QtBot
 
 
 @pytest.fixture(params=["local", "remote"])
@@ -124,3 +128,59 @@ def test_explorer_link_layer(main_window: MainWindow):
     # check that also the last layer is not visible
     layer_1 = main_window.viewer.layers[1]
     assert not layer_1.visible
+
+
+def test_saving_explorer(qtbot: "QtBot", main_window: MainWindow):
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+
+        explorer = MDASequence(
+            uid=uuid.uuid4(),
+        )
+
+        main_window.explorer.SEQUENCE_META[explorer] = SequenceMeta(
+            mode="explorer",
+            split_channels=True,
+            should_save=True,
+            file_name="EXPLORER",
+            save_dir=tmp_path,
+        )
+
+        meta = main_window.explorer.SEQUENCE_META[explorer]
+        seq_uid = explorer.uid
+
+        for i in range(4):
+            layer = main_window.viewer.add_image(
+                np.random.rand(10, 10), name=f"Pos{i:03}_[FITC_idx0]"
+            )
+            layer.metadata["uid"] = seq_uid
+            layer.metadata["ch_name"] = "FITC"
+            layer.metadata["ch_id"] = 0
+            layer.metadata["scan_position"] = f"Pos{i:03}"
+
+        for i in range(4):
+            layer = main_window.viewer.add_image(
+                np.random.rand(10, 10), name=f"Pos{i:03}_[Cy5_idx0]"
+            )
+            layer.metadata["uid"] = seq_uid
+            layer.metadata["ch_name"] = "Cy5"
+            layer.metadata["ch_id"] = 0
+            layer.metadata["scan_position"] = f"Pos{i:03}"
+
+        main_window.viewer.add_image(np.random.rand(10, 10), name="preview")
+
+        layer_list = [lay for lay in main_window.viewer.layers]
+        assert len(layer_list) == 9
+
+        save_sequence(explorer, layer_list, meta)
+
+        folder = tmp_path / "scan_EXPLORER_000"  # after _imsave()
+
+        file_list = [pth.name for pth in folder.iterdir()]
+        assert file_list == ["FITC.tif", "Cy5.tif"]
+
+        saved_file = tifffile.imread(folder / "FITC.tif")
+        assert saved_file.shape == (4, 10, 10)
+
+        saved_file = tifffile.imread(folder / "Cy5.tif")
+        assert saved_file.shape == (4, 10, 10)
