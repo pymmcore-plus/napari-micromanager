@@ -150,22 +150,21 @@ def test_saving_explorer(qtbot: "QtBot", main_window: MainWindow):
         seq_uid = explorer.uid
 
         for i in range(4):
-            layer = main_window.viewer.add_image(
+            layer_1 = main_window.viewer.add_image(
                 np.random.rand(10, 10), name=f"Pos{i:03}_[FITC_idx0]"
             )
-            layer.metadata["uid"] = seq_uid
-            layer.metadata["ch_name"] = "FITC"
-            layer.metadata["ch_id"] = 0
-            layer.metadata["scan_position"] = f"Pos{i:03}"
+            layer_1.metadata["uid"] = seq_uid
+            layer_1.metadata["ch_name"] = "FITC"
+            layer_1.metadata["ch_id"] = 0
+            layer_1.metadata["scan_position"] = f"Pos{i:03}"
 
-        for i in range(4):
-            layer = main_window.viewer.add_image(
+            layer_2 = main_window.viewer.add_image(
                 np.random.rand(10, 10), name=f"Pos{i:03}_[Cy5_idx0]"
             )
-            layer.metadata["uid"] = seq_uid
-            layer.metadata["ch_name"] = "Cy5"
-            layer.metadata["ch_id"] = 0
-            layer.metadata["scan_position"] = f"Pos{i:03}"
+            layer_2.metadata["uid"] = seq_uid
+            layer_2.metadata["ch_name"] = "Cy5"
+            layer_2.metadata["ch_id"] = 0
+            layer_2.metadata["scan_position"] = f"Pos{i:03}"
 
         main_window.viewer.add_image(np.random.rand(10, 10), name="preview")
 
