@@ -28,7 +28,7 @@ def main_window(qtbot, request):
 
 
 @pytest.fixture
-def setup_explorer(main_window: MainWindow):
+def setup_explorer_no_channel(main_window: MainWindow):
 
     main_window.explorer.scan_size_spinBox_r.setValue(2)
     main_window.explorer.scan_size_spinBox_c.setValue(2)
@@ -45,7 +45,6 @@ def setup_explorer(main_window: MainWindow):
         uid=uuid.uuid4(),
     )
 
-    # main_window.explorer.SEQUENCE_META[explorer] = SequenceMeta(mode="explorer")
     main_window.explorer.SEQUENCE_META[explorer] = SequenceMeta(
         mode="explorer",
         split_channels=True,
@@ -60,10 +59,10 @@ def setup_explorer(main_window: MainWindow):
 
 
 @pytest.fixture
-def setup_explorer_one_channel(setup_explorer):
+def setup_explorer_one_channel(setup_explorer_no_channel):
 
-    main_win = setup_explorer[0]
-    seq = setup_explorer[3]
+    main_win = setup_explorer_no_channel[0]
+    seq = setup_explorer_no_channel[3]
 
     for i in range(4):
         layer = main_win.viewer.add_image(
@@ -73,14 +72,14 @@ def setup_explorer_one_channel(setup_explorer):
         layer.metadata["ch_name"] = "FITC"
         layer.metadata["ch_id"] = 0
 
-    return setup_explorer
+    return setup_explorer_no_channel
 
 
 @pytest.fixture
-def setup_explorer_two_channel(setup_explorer):
+def setup_explorer_two_channel(setup_explorer_no_channel):
 
-    main_win = setup_explorer[0]
-    seq = setup_explorer[3]
+    main_win = setup_explorer_no_channel[0]
+    seq = setup_explorer_no_channel[3]
 
     for i in range(4):
         layer_1 = main_win.viewer.add_image(
@@ -99,4 +98,4 @@ def setup_explorer_two_channel(setup_explorer):
         layer_2.metadata["ch_id"] = 1
         layer_2.metadata["scan_position"] = f"Pos{i:03}"
 
-    return setup_explorer
+    return setup_explorer_no_channel

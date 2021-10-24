@@ -11,12 +11,12 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-def test_explorer(setup_explorer):
+def test_explorer(setup_explorer_no_channel):
 
-    main_win = setup_explorer[0]
-    explorer = setup_explorer[1]
-    meta = setup_explorer[2]
-    seq = setup_explorer[3]
+    main_win = setup_explorer_no_channel[0]
+    explorer = setup_explorer_no_channel[1]
+    meta = setup_explorer_no_channel[2]
+    seq = setup_explorer_no_channel[3]
 
     mmc = main_win._mmc
 
