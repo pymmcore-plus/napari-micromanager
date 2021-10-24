@@ -110,17 +110,6 @@ def setup_explorer_two_channel(setup_explorer):
     return setup_explorer
 
 
-# def add_two_channels(main_window: MainWindow):
-
-#     for i in range(4):
-#         layer = main_window.viewer.add_image(
-#             np.random.rand(10, 10), name=f"Pos{i}_[FITC_idx0]"
-#         )
-#         layer.metadata["uid"] = seq_uid
-#         layer.metadata["ch_name"] = "FITC"
-#         layer.metadata["ch_id"] = 0
-
-
 def test_explorer(setup_explorer):
 
     main_win = setup_explorer[0]
