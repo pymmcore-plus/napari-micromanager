@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
-from napari import Viewer
-from pymmcore_plus import server
 from useq import MDASequence
 
 import micromanager_gui
@@ -27,23 +25,6 @@ if not os.getenv("MICROMANAGER_PATH"):
             "installation was not found in this package.  Please run "
             "`python micromanager_gui/install_mm.py"
         )
-
-
-# https://docs.pytest.org/en/stable/fixture.html
-@pytest.fixture(params=["local", "remote"])
-def main_window(qtbot, request):
-    if request.param == "remote":
-        server.try_kill_server()
-
-    viewer = Viewer(show=False)
-    win = MainWindow(viewer=viewer, remote=request.param == "remote")
-    config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
-    win._mmc.loadSystemConfiguration(config_path)
-
-    try:
-        yield win
-    finally:
-        viewer.close()
 
 
 def test_main_window_mda(main_window: MainWindow):
