@@ -3,7 +3,7 @@ import re
 from magicgui.widgets import Container
 from qtpy.QtWidgets import QDialog
 
-from prop_browser import get_editor_widget, iter_dev_props
+from .prop_browser import get_editor_widget, iter_dev_props
 
 LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # for testing
 
