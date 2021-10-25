@@ -13,6 +13,7 @@ from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
+from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
@@ -70,6 +71,7 @@ class _MainUI:
     properties_Button: QtW.QPushButton
     cam_roi_comboBox: QtW.QComboBox
     crop_Button: QtW.QPushButton
+    illumination_Button: QtW.QPushButton
     snap_on_click_xy_checkBox: QtW.QCheckBox
     snap_on_click_z_checkBox: QtW.QCheckBox
 
@@ -140,6 +142,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
+        self.illumination_Button.clicked.connect(self.illumination)
         self.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
@@ -162,6 +165,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+    def illumination(self):
+        if not hasattr(self, "_illumination"):
+            self._illumination = IlluminationDialog(self._mmc, self)
+        self._illumination.show()
 
     def _show_prop_browser(self):
         pb = PropBrowser(self._mmc, self)
