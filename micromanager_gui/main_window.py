@@ -96,7 +96,7 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
         self.setup_ui()
 
