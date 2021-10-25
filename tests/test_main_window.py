@@ -144,3 +144,5 @@ def test_crop_camera(main_window: MainWindow):
     assert crop_layer.data.shape == (512 // div, 512 // div)
 
     cbox.setCurrentText("Full")
+    crop_layer = main_window.viewer.layers[-1]
+    assert crop_layer.data.shape == (512, 512)

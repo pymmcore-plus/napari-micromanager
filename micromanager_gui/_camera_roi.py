@@ -55,10 +55,7 @@ class CameraROI:
         self.update_viewer()
 
     def get_camera_and_size(self):
-        cam_dev = self._mmc.getCameraDevice()
-        max_width = self._mmc.getROI(cam_dev)[2]
-        max_height = self._mmc.getROI(cam_dev)[3]
-        return max_width, max_height
+        return self._mmc.getROI(self._mmc.getCameraDevice())[-2:]
 
     def center_crop_roi_size(self, max_height, max_width, w, h):
         return [
