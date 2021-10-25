@@ -3,18 +3,19 @@ import warnings
 
 import napari
 import napari.viewer
-from pymmcore_plus import RemoteMMCore
+from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
+
+CAM_ROI_LAYER = "Camera_ROI"
 
 
 class CameraROI:
     def __init__(
         self,
         viewer: napari.viewer.Viewer,
-        mmcore: RemoteMMCore,
+        mmcore: CMMCorePlus or RemoteMMCore,
         combobox: QtW.QComboBox,
         push_btn: QtW.QPushButton,
-        parent=None,
     ):
 
         self._mmc = mmcore
@@ -23,14 +24,18 @@ class CameraROI:
         super().__init__()
 
         self.camera_roi_cbox = combobox
+        self.camera_roi_cbox.clear()
         self.camera_roi_cbox.addItems(["Full", "ROI", "1/4", "1/16", "1/64"])
 
         self.crop_button = push_btn
         self.crop_button.setEnabled(False)
-        self.crop_button.clicked.connect(self.crop_camera)
-        self.camera_roi_cbox.currentIndexChanged.connect(self.roi_action)
+        self.crop_button.clicked.connect(self._on_crop_pushed)
+        self.camera_roi_cbox.currentTextChanged.connect(self._on_roi_cbox_change)
 
-    def update_viewer(self, data=None):
+    def update_viewer(self):
+        self._mmc.snapImage()
+        data = self._mmc.getImage()
+
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -47,8 +52,7 @@ class CameraROI:
 
     def clear_roi_and_snap(self):
         self._mmc.clearROI()
-        self._mmc.snapImage()
-        self.update_viewer(self._mmc.getImage())
+        self.update_viewer()
 
     def get_camera_and_size(self):
         cam_dev = self._mmc.getCameraDevice()
@@ -64,23 +68,30 @@ class CameraROI:
             [(max_height // 2) + (h // 2), (max_width // 2) - (w // 2)],
         ]
 
-    def roi_action(self):
+    def add_roi_layer(self):
+        return self.viewer.add_shapes(
+            name=CAM_ROI_LAYER,
+            shape_type="rectangle",
+            edge_color="green",
+            opacity=0.5,
+        )
 
-        if self.camera_roi_cbox.currentText() == "Full":
-            self.crop_button.setEnabled(False)
-            self.camera_full_chip()
+    def make_rectangle_roi_layer(self):
+        cam_roi_layer = self.add_roi_layer()
+        cam_roi_layer.mode = "ADD_RECTANGLE"
 
-        if self.camera_roi_cbox.currentText() == "ROI":
-            self.crop_button.setEnabled(True)
+    def _on_roi_cbox_change(self, mode: str):
+        self.crop_button.setEnabled(mode != "Full")
+        if mode == "Full":
+            self.clear_roi_and_snap()
+        elif mode == "ROI":
             self.camera_custom_crop()
-
-        if self.camera_roi_cbox.currentIndex() > 1:
-            self.crop_button.setEnabled(True)
+        else:
             self.camera_centered_crop()
 
     def camera_full_chip(self):
         for lay in self.viewer.layers:
-            if lay.name == "Camera_ROI":
+            if lay.name == CAM_ROI_LAYER:
                 self.viewer.layers.remove(lay)
         self.clear_roi_and_snap()
         self.crop_button.setEnabled(False)
@@ -98,74 +109,54 @@ class CameraROI:
         )
 
         try:
-            cam_roi_layer = self.viewer.layers["Camera_ROI"]
+            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
             cam_roi_layer.data = crop_size
             cam_roi_layer.mode = "select"
         except KeyError:
-            cam_roi_layer = self.viewer.add_shapes(
-                crop_size,
-                name="Camera_ROI",
-                shape_type="rectangle",
-                edge_color="green",
-                opacity=0.5,
-            )
+            cam_roi_layer = self.add_roi_layer()
+            cam_roi_layer.data = crop_size
             cam_roi_layer.mode = "select"
 
     def camera_custom_crop(self):
         try:
-            cam_roi_layer = self.viewer.layers["Camera_ROI"]
+            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
             if cam_roi_layer.nshapes == 0:
                 cam_roi_layer.mode = "ADD_RECTANGLE"
             else:
                 cam_roi_layer.mode = "select"
         except KeyError:
-            cam_roi_layer = self.viewer.add_shapes(
-                name="Camera_ROI",
-                shape_type="rectangle",
-                edge_color="green",
-                opacity=0.5,
-            )
-            cam_roi_layer.mode = "ADD_RECTANGLE"
+            self.make_rectangle_roi_layer()
 
-    def crop_camera(self):
+    def _on_crop_pushed(self):
         try:
-            cam_roi_layer = self.viewer.layers["Camera_ROI"]
-
-            shape_selected_list = list(cam_roi_layer.selected_data)
-
-            shape_selected_idx = (
-                0 if not shape_selected_list else shape_selected_list[0]
-            )
-
-            x = int(cam_roi_layer.data[shape_selected_idx][0][1])
-            y = int(cam_roi_layer.data[shape_selected_idx][0][0])
-            xsize = int(cam_roi_layer.data[shape_selected_idx][1][1] - x)
-            ysize = int(cam_roi_layer.data[shape_selected_idx][2][0] - y)
-
-            if any(v < 0 for v in [x, y, xsize, ysize]):
-                warnings.warn("select a ROI within the image size")
-                return
-
-            max_width, max_height = self.get_camera_and_size()
-            if (x + xsize) > max_width or (y + ysize) > max_height:
-                warnings.warn("select a ROI within the image size")
-                return
-
-            self._mmc.setROI(x, y, xsize, ysize)
-
-            self.viewer.layers.remove(cam_roi_layer)
-            self._mmc.snapImage()
-            self.update_viewer(self._mmc.getImage())
-
+            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
+            self.crop(cam_roi_layer)
         except KeyError:
-
-            cam_roi_layer = self.viewer.add_shapes(
-                name="Camera_ROI",
-                shape_type="rectangle",
-                edge_color="green",
-                opacity=0.5,
-            )
-            cam_roi_layer.mode = "ADD_RECTANGLE"
-
+            self.make_rectangle_roi_layer()
         except IndexError:
             warnings.warn("select a ROI within the image size")
+
+    def crop(self, cam_roi_layer):
+
+        shape_selected_list = list(cam_roi_layer.selected_data)
+
+        shape_selected_idx = 0 if not shape_selected_list else shape_selected_list[0]
+
+        x = int(cam_roi_layer.data[shape_selected_idx][0][1])
+        y = int(cam_roi_layer.data[shape_selected_idx][0][0])
+        xsize = int(cam_roi_layer.data[shape_selected_idx][1][1] - x)
+        ysize = int(cam_roi_layer.data[shape_selected_idx][2][0] - y)
+
+        if any(v < 0 for v in [x, y, xsize, ysize]):
+            warnings.warn("select a ROI within the image size")
+            return
+
+        max_width, max_height = self.get_camera_and_size()
+        if (x + xsize) > max_width or (y + ysize) > max_height:
+            warnings.warn("select a ROI within the image size")
+            return
+
+        self._mmc.setROI(x, y, xsize, ysize)
+
+        self.viewer.layers.remove(cam_roi_layer)
+        self.update_viewer()

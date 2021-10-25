@@ -123,3 +123,24 @@ def test_refresh_safety(main_window: MainWindow):
     assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
+
+
+def test_crop_camera(main_window: MainWindow):
+
+    assert not main_window.viewer.layers
+
+    cbox = main_window.cam_roi_comboBox
+    cam_roi_btn = main_window.crop_Button
+
+    text, div = ("1/4", 2)
+
+    cbox.setCurrentText(text)
+
+    cam_roi_btn.click()
+
+    assert len(main_window.viewer.layers) == 1
+
+    crop_layer = main_window.viewer.layers[-1]
+    assert crop_layer.data.shape == (512 // div, 512 // div)
+
+    cbox.setCurrentText("Full")
