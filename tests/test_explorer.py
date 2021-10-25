@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 import numpy as np
 import tifffile
@@ -8,18 +10,19 @@ import tifffile
 from micromanager_gui._saving import save_sequence
 
 if TYPE_CHECKING:
-    from pytestqt.qtbot import QtBot
+    from useq import MDASequence
+
+    from micromanager_gui.main_window import MainWindow
+    from micromanager_gui.multid_widget import SequenceMeta
+
+    ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
 
 
-def test_explorer(setup_explorer_no_channel):
+def test_explorer(explorer_no_channel: ExplorerTuple):
 
-    main_win = setup_explorer_no_channel[0]
-    explorer = setup_explorer_no_channel[1]
-    meta = setup_explorer_no_channel[2]
-    seq = setup_explorer_no_channel[3]
+    main_win, sequence, meta = explorer_no_channel
 
     mmc = main_win._mmc
-
     mmc.setXYPosition(0.0, 0.0)
     mmc.setPosition(0.0)
 
@@ -43,7 +46,7 @@ def test_explorer(setup_explorer_no_channel):
     assert not main_win.viewer.layers
     assert meta.mode == "explorer"
 
-    for event in explorer:
+    for event in sequence:
         frame = np.random.rand(512, 512)
         main_win.explorer._on_explorer_frame(frame, event)
 
@@ -53,23 +56,21 @@ def test_explorer(setup_explorer_no_channel):
     _layer = main_win.viewer.layers[-1]
     assert _layer.metadata["ch_name"] == "FITC"
     assert _layer.metadata["ch_id"] == 0
-    assert seq == _layer.metadata["uid"]
+    assert _layer.metadata["uid"] == sequence.uid
 
 
-def test_explorer_link_layer(setup_explorer_one_channel):
+def test_explorer_link_layer(explorer_one_channel: ExplorerTuple):
 
-    main_win = setup_explorer_one_channel[0]
-    explorer = setup_explorer_one_channel[1]
-    seq = setup_explorer_one_channel[3]
+    main_win, sequence, _ = explorer_one_channel
 
     assert len(main_win.viewer.layers) == 4
 
     for _layer in main_win.viewer.layers:
-        assert _layer.metadata["uid"] == seq
+        assert _layer.metadata["uid"] == sequence.uid
         assert _layer.metadata["ch_name"] == "FITC"
         assert _layer.metadata["ch_id"] == 0
 
-    main_win.explorer._on_mda_finished(explorer)
+    main_win.explorer._on_mda_finished(sequence)
 
     # hide first layer
     layer_0 = main_win.viewer.layers[0]
@@ -80,13 +81,12 @@ def test_explorer_link_layer(setup_explorer_one_channel):
     assert not layer_1.visible
 
 
-def test_saving_explorer(qtbot: "QtBot", setup_explorer_two_channel):
+def test_saving_explorer(qtbot, explorer_two_channel: ExplorerTuple):
+
+    main_win, sequence, meta = explorer_two_channel
+
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)
-
-        main_win = setup_explorer_two_channel[0]
-        explorer = setup_explorer_two_channel[1]
-        meta = setup_explorer_two_channel[2]
 
         meta.should_save = True
         meta.save_dir = tmp_path
@@ -96,7 +96,7 @@ def test_saving_explorer(qtbot: "QtBot", setup_explorer_two_channel):
         layer_list = [lay for lay in main_win.viewer.layers]
         assert len(layer_list) == 9
 
-        save_sequence(explorer, layer_list, meta)
+        save_sequence(sequence, layer_list, meta)
 
         folder = tmp_path / "scan_EXPLORER_000"  # after _imsave()
 
