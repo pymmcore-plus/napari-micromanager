@@ -1,53 +1,24 @@
 import re
 
-from magicgui import magicgui
 from magicgui.widgets import Container
-from pymmcore_plus import RemoteMMCore
+from qtpy.QtWidgets import QDialog
+
+from prop_browser import get_editor_widget, iter_dev_props
 
 LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # for testing
 
 
-class Illumination(Container):
-    def __init__(self, mmcore: RemoteMMCore):
-        super().__init__()
+class Illumination(QDialog):
+    def __init__(self, mmcore=None, parent=None):
+        super().__init__(parent)
 
-        self._mmc = mmcore
+    def make_illumination_gui(mmcore) -> Container:
 
-    def make_illumination_magicgui(self):
-        c = Container(labels=False)
-
-        devices = self._mmc.getLoadedDevices()
-        for device in devices:
-            properties = self._mmc.getDevicePropertyNames(device)
-            for prop in properties:
-                has_range = self._mmc.hasPropertyLimits(device, prop)
-                if LIGHT_LIST.search(prop) and has_range:
-
-                    lower_lim = self._mmc.getPropertyLowerLimit(device, prop)
-                    upper_lim = self._mmc.getPropertyUpperLimit(device, prop)
-                    is_float = isinstance(upper_lim, float)
-
-                    if is_float:
-                        slider_type = "FloatSlider"
-                        slider_value = float(self._mmc.getProperty(device, prop))
-                    else:
-                        slider_type = "Slider"
-                        slider_value = self._mmc.getProperty(device, prop)
-
-                    @magicgui(
-                        auto_call=True,
-                        layout="vertical",
-                        dev_name={"bind": device},
-                        prop={"bind": prop},
-                        slider={
-                            "label": f"{device}_{prop}",
-                            "widget_type": slider_type,
-                            "max": upper_lim,
-                            "min": lower_lim,
-                        },
-                    )
-                    def sld(dev_name, prop, slider=slider_value):
-                        self._mmc.setProperty(dev_name, prop, slider)
-
-                    c.append(sld)
-        c.show()
+        return Container(
+            widgets=[
+                get_editor_widget(prop, mmcore)
+                for prop in iter_dev_props(mmcore)
+                if LIGHT_LIST.search(prop.name) and prop.has_range
+            ],
+            labels=True,
+        )

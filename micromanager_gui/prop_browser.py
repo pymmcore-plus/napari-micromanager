@@ -148,12 +148,14 @@ def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
                 value=float(prop.value),
                 min=float(prop.lower_lim),
                 max=float(prop.upper_lim),
+                label=f"{prop.device} {prop.name}",
             )
         else:
             wdg = Slider(
                 value=int(prop.value),
                 min=int(prop.lower_lim),
                 max=int(prop.upper_lim),
+                label=f"{prop.device} {prop.name}",
             )
     else:
         wdg = LineEdit(value=prop.value)

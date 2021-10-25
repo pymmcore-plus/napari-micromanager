@@ -159,8 +159,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def illumination(self):
-        ill = Illumination(self._mmc)
-        return ill.make_illumination_magicgui()
+        ill = Illumination.make_illumination_gui(self._mmc)
+        ill.show()
 
     def _show_prop_browser(self):
         pb = PropBrowser(self._mmc, self)
