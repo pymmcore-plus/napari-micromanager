@@ -4,17 +4,20 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
-from qtpy.QtGui import QIcon
+from qtpy.QtGui import QColor, QIcon
 
+from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
+from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
     import napari.layers
@@ -63,9 +66,12 @@ class _MainUI:
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
     live_Button: QtW.QPushButton
-    max_val_lineEdit: QtW.QLineEdit
-    min_val_lineEdit: QtW.QLineEdit
+    max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
+    properties_Button: QtW.QPushButton
+    illumination_Button: QtW.QPushButton
+    snap_on_click_xy_checkBox: QtW.QCheckBox
+    snap_on_click_z_checkBox: QtW.QCheckBox
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -117,7 +123,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.sequenceFinished.connect(self._refresh_options)  # why when acq is finished?
         sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
@@ -139,6 +144,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
+        self.illumination_Button.clicked.connect(self.illumination)
+        self.properties_Button.clicked.connect(self._show_prop_browser)
+
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
@@ -151,6 +159,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
+
+        self.viewer.layers.events.connect(self.update_max_min)
+        self.viewer.layers.selection.events.active.connect(self.update_max_min)
+        self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+    def illumination(self):
+        if not hasattr(self, "_illumination"):
+            self._illumination = IlluminationDialog(self._mmc, self)
+        self._illumination.show()
+
+    def _show_prop_browser(self):
+        pb = PropBrowser(self._mmc, self)
+        pb.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -255,8 +276,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_val_lineEdit.setText("None")
-        self.min_val_lineEdit.setText("None")
+        self.max_min_val_label.setText("None")
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
@@ -407,31 +427,43 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def stage_x_left(self):
         self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
             0.0,
             float(self.xy_step_size_SpinBox.value()),
         )
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
             0.0,
             -float(self.xy_step_size_SpinBox.value()),
         )
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
         )
+        if self.snap_on_click_z_checkBox.isChecked():
+            self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
         )
+        if self.snap_on_click_z_checkBox.isChecked():
+            self.snap()
 
     def set_pixel_size(self):
         if self.px_size_in_cfg:
@@ -503,11 +535,32 @@ class MainWindow(QtW.QWidget, _MainUI):
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
 
-        self.max_val_lineEdit.setText(str(np.max(preview_layer.data)))
-        self.min_val_lineEdit.setText(str(np.min(preview_layer.data)))
+        self.update_max_min()
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
+
+    def update_max_min(self, event=None):
+
+        if self.tabWidget.currentIndex() != 0:
+            return
+
+        min_max_txt = ""
+
+        for layer in self.viewer.layers.selection:
+
+            if isinstance(layer, napari.layers.Image) and layer.visible:
+
+                col = layer.colormap.name
+
+                if col not in QColor.colorNames():
+                    col = "gray"
+
+                # min and max of current slice
+                min_max_show = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
+
+        self.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
