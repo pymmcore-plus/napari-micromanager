@@ -12,7 +12,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
-from ._illumination import Illumination
+from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
@@ -160,8 +160,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def illumination(self):
-        ill = Illumination.make_illumination_gui(self._mmc)
-        ill.show()
+        if not hasattr(self, "_illumination"):
+            self._illumination = IlluminationDialog(self._mmc, self)
+        self._illumination.show()
 
     def _show_prop_browser(self):
         pb = PropBrowser(self._mmc, self)

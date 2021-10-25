@@ -1,20 +1,19 @@
 import re
 
 from magicgui.widgets import Container
-from qtpy.QtWidgets import QDialog
+from qtpy.QtWidgets import QDialog, QVBoxLayout
 
 from .prop_browser import get_editor_widget, iter_dev_props
 
 LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # for testing
 
 
-class Illumination(QDialog):
+class IlluminationDialog(QDialog):
     def __init__(self, mmcore=None, parent=None):
         super().__init__(parent)
-
-    def make_illumination_gui(mmcore) -> Container:
-
-        return Container(
+        self.setLayout(QVBoxLayout())
+        self.setContentsMargins(0, 0, 0, 0)
+        self._container = Container(
             widgets=[
                 get_editor_widget(prop, mmcore)
                 for prop in iter_dev_props(mmcore)
@@ -22,3 +21,4 @@ class Illumination(QDialog):
             ],
             labels=True,
         )
+        self.layout().addWidget(self._container.native)
