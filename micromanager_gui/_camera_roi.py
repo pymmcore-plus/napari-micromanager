@@ -80,18 +80,14 @@ class CameraROI:
     def _on_roi_cbox_change(self, mode: str):
         self.crop_button.setEnabled(mode != "Full")
         if mode == "Full":
+            for lay in self.viewer.layers:
+                if lay.name == CAM_ROI_LAYER:
+                    self.viewer.layers.remove(lay)
             self.clear_roi_and_snap()
         elif mode == "ROI":
             self.camera_custom_crop()
         else:
             self.camera_centered_crop()
-
-    def camera_full_chip(self):
-        for lay in self.viewer.layers:
-            if lay.name == CAM_ROI_LAYER:
-                self.viewer.layers.remove(lay)
-        self.clear_roi_and_snap()
-        self.crop_button.setEnabled(False)
 
     def camera_centered_crop(self):
         self.clear_roi_and_snap()
@@ -130,8 +126,6 @@ class CameraROI:
             self.crop(cam_roi_layer)
         except KeyError:
             self.make_rectangle_roi_layer()
-        except IndexError:
-            warnings.warn("select a ROI within the image size")
 
     def crop(self, cam_roi_layer):
 
