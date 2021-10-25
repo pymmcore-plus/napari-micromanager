@@ -289,24 +289,36 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_objective_options(self):
 
+        obj_dev_list = self._mmc.guessObjectiveDevices()
+        # e.g. ['Objective']
+
+        if not obj_dev_list:
+            return
+
         for cfg in self._mmc.getAvailableConfigGroups():
-            if OBJ_PTRN.match(cfg):
+            # e.g. ('Camera', 'Channel', 'LightPath', 'Objective', 'System')
+
+            if cfg in obj_dev_list:
 
                 cfg_groups_options = self._mmc.getAvailableConfigs(cfg)
+                # e.g. ('10X', '20X', '40X')
 
                 current_cfg = self._mmc.getCurrentConfig(cfg)
+                # e.g. 10X
 
                 objective_comboBox_index = cfg_groups_options.index(current_cfg)
+                # e.g. 0
 
                 cfg_groups_options_keys = (
                     self._mmc.getConfigData(cfg, current_cfg)
-                ).dict()
+                ).dict()  # e.g. {'Objective': {'State': '1'}}
 
                 self.objectives_device = [
                     k
                     for idx, k in enumerate(cfg_groups_options_keys.keys())
                     if idx == 0
                 ][0]
+                # e.g Objective
 
                 self.objectives_cfg = cfg
 
@@ -319,28 +331,20 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.set_pixel_size()
                     return
 
-        obj_dev_list = self._mmc.guessObjectiveDevices()
-
-        if not obj_dev_list:
-            return
-
         for dev in obj_dev_list:
             self.objectives_device = dev
             with blockSignals(self.objective_comboBox):
                 self.objective_comboBox.clear()
-                try:
-                    self.objective_comboBox.addItems(
-                        self._mmc.getStateLabels(self.objectives_device)
-                    )
-                    self.objective_comboBox.setCurrentIndex(
-                        self._mmc.getState(self.objectives_device)
-                    )
+                self.objective_comboBox.addItems(
+                    self._mmc.getStateLabels(self.objectives_device)
+                )
+                self.objective_comboBox.setCurrentIndex(
+                    self._mmc.getState(self.objectives_device)
+                )
 
-                    self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
-                    self.set_pixel_size()
-                    break
-                except Exception:  # which type?
-                    pass
+                self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
+                self.set_pixel_size()
+                return
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
