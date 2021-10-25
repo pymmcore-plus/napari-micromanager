@@ -68,6 +68,9 @@ class _MainUI:
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
     properties_Button: QtW.QPushButton
 
+    snap_on_click_xy_checkBox: QtW.QCheckBox
+    snap_on_click_z_checkBox: QtW.QCheckBox
+
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
@@ -358,31 +361,43 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def stage_x_left(self):
         self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
             0.0,
             float(self.xy_step_size_SpinBox.value()),
         )
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
             0.0,
             -float(self.xy_step_size_SpinBox.value()),
         )
+        if self.snap_on_click_xy_checkBox.isChecked():
+            self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
         )
+        if self.snap_on_click_z_checkBox.isChecked():
+            self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
         )
+        if self.snap_on_click_z_checkBox.isChecked():
+            self.snap()
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
