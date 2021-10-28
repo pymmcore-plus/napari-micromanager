@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -103,9 +104,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
-        self.objectives_device = ""
-        self.objectives_cfg = ""
-        self.px_size_in_cfg = False
+        self.objectives_device = None
+        self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
@@ -130,6 +130,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
+
+        sig.propertyChanged.connect(self._on_prop_changed)
+        sig.pixelSizeChanged.connect(self._on_px_size_changed)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -163,6 +166,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+    def _on_prop_changed(self, p1, p2, p3):
+        logger.debug(p1, p2, p3)
+
+    def _on_px_size_changed(self, value):
+        logger.debug("new pixel size: ", value)
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -270,9 +279,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
 
-        self.objectives_device = ""
-        self.objectives_cfg = ""
-        self.px_size_in_cfg = False
+        self.objectives_device = None
+        self.objectives_cfg = None
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
@@ -347,7 +355,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.objective_comboBox.addItems(cfg_groups_options)
                     self.objective_comboBox.setCurrentIndex(objective_comboBox_index)
 
-                    self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
                     self.set_pixel_size()
                     return
 
@@ -362,7 +369,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getState(self.objectives_device)
                 )
 
-                self.px_size_in_cfg = bool(self._mmc.getAvailablePixelSizeConfigs())
                 self.set_pixel_size()
                 return
 
@@ -466,30 +472,31 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap()
 
     def set_pixel_size(self):
-        if self.px_size_in_cfg:
+
+        curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
+
+        if bool(self._mmc.getCurrentPixelSizeConfig()):
+            cfg_name_wanted = f"px_size_{curr_obj}"
+            if self._mmc.getCurrentPixelSizeConfig() != cfg_name_wanted:
+                self._mmc.renamePixelSizeConfig(
+                    self._mmc.getCurrentPixelSizeConfig(), cfg_name_wanted
+                )
             return
 
-        try:
-            curr_obj_name = self._mmc.getCurrentConfig(self.objectives_cfg)
-        except ValueError:
-            curr_obj_name = self._mmc.getProperty(self.objectives_device, "Label")
-
-        # define and set pixel size Config
-        self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        self._mmc.definePixelSizeConfig(curr_obj_name)
-        self._mmc.setPixelSizeConfig(curr_obj_name)
-
-        # get magnification info from the objective name
-        # and set image pixel sixe (x,y) for the current pixel size Config
-        match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
-        if match:
-            mag = int(match.groups()[0])
-            self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-            self._mmc.setPixelSizeUm(
-                self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
-            )
         else:
-            self._mmc.setPixelSizeUm(self._mmc.getCurrentPixelSizeConfig(), 0.0)
+            # get magnification info from the objective name
+            # and set image pixel sixe (x,y) for newly created pixel size Config
+            match = re.search(r"(\d{1,3})[xX]", curr_obj)
+            if match:
+                mag = int(match.groups()[0])
+                image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+                px_cgf_name = f"px_size_{curr_obj}"
+
+                self._mmc.definePixelSizeConfig(
+                    px_cgf_name, self.objectives_device, "Label", curr_obj
+                )
+                self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
+                self._mmc.setPixelSizeConfig(px_cgf_name)
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
