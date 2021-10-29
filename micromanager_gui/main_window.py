@@ -168,10 +168,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _on_prop_changed(self, p1, p2, p3):
-        logger.debug(p1, p2, p3)
+        logger.debug(f"{p1}, {p2}, {p3}")
 
     def _on_px_size_changed(self, value):
-        logger.debug("new pixel size: ", value)
+        logger.debug(f"new pixel size: {value}")
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -318,42 +318,34 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _refresh_objective_options(self):
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
-        # e.g. ['Objective']
+        # e.g. ['TiNosePiece']
 
         if not obj_dev_list:
             return
 
-        for cfg in self._mmc.getAvailableConfigGroups():
-            # e.g. ('Camera', 'Channel', 'LightPath', 'Objective', 'System')
+        for cfg_groups in self._mmc.getAvailableConfigGroups():
+            # e.g. ('Camera', 'Channel', 'Objectives')
 
-            if cfg in obj_dev_list:
+            options = self._mmc.getAvailableConfigs(cfg_groups)
 
-                cfg_groups_options = self._mmc.getAvailableConfigs(cfg)
-                # e.g. ('10X', '20X', '40X')
+            cfg_keys = self._mmc.getConfigData(
+                cfg_groups, options[0]
+            )  # first group option
 
-                current_cfg = self._mmc.getCurrentConfig(cfg)
-                # e.g. 10X
+            device = [k for idx, k in enumerate(cfg_keys.dict().keys()) if idx == 0][
+                0
+            ]  # get the device name
 
-                objective_comboBox_index = cfg_groups_options.index(current_cfg)
-                # e.g. 0
+            if device in obj_dev_list:
+                self.objectives_device = obj_dev_list[obj_dev_list.index(device)]
+                self.objectives_cfg = cfg_groups
 
-                cfg_groups_options_keys = (
-                    self._mmc.getConfigData(cfg, current_cfg)
-                ).dict()  # e.g. {'Objective': {'State': '1'}}
-
-                self.objectives_device = [
-                    k
-                    for idx, k in enumerate(cfg_groups_options_keys.keys())
-                    if idx == 0
-                ][0]
-                # e.g Objective
-
-                self.objectives_cfg = cfg
+                current_cfg = self._mmc.getCurrentConfig(self.objectives_device)
 
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
-                    self.objective_comboBox.addItems(cfg_groups_options)
-                    self.objective_comboBox.setCurrentIndex(objective_comboBox_index)
+                    self.objective_comboBox.addItems(options)
+                    self.objective_comboBox.setCurrentText(current_cfg)
 
                     self.set_pixel_size()
                     return
