@@ -314,25 +314,24 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
 
     def set_pixel_size(self):
-
-        # if pixel size is already set
+        # if pixel size is already set -> return
         if bool(self._mmc.getCurrentPixelSizeConfig()):
             return
-
         # if not, create and store a new pixel size config for the current objective.
-        # get magnification info from the objective name
-        # and set image pixel sixe (x,y) for newly created pixel size config
         curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
+        # get magnification info from the current objective label
         match = re.search(r"(\d{1,3})[xX]", curr_obj)
         if match:
             mag = int(match.groups()[0])
             image_pixel_size = self.px_size_doubleSpinBox.value() / mag
             px_cgf_name = f"px_size_{curr_obj}"
+            # set image pixel sixe (x,y) for the newly created pixel size config
             self._mmc.definePixelSizeConfig(
                 px_cgf_name, self.objectives_device, "Label", curr_obj
             )
             self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
             self._mmc.setPixelSizeConfig(px_cgf_name)
+        # if it does't match, px size is set to 0.0
 
     def _refresh_objective_options(self):
 
