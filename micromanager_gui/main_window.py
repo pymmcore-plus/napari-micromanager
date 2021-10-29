@@ -347,7 +347,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.set_pixel_size()
                     return
 
-        # if not, use the labels to piopulate the objective combobox
+        # if not, use the labels to populate the objective combobox
         for dev in obj_dev_list:
             self.objectives_device = dev
             with blockSignals(self.objective_comboBox):
