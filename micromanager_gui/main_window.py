@@ -313,6 +313,27 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
+    def set_pixel_size(self):
+
+        # if pixel size is already set
+        if bool(self._mmc.getCurrentPixelSizeConfig()):
+            return
+
+        # if not, create and store a new pixel size config for the current objective.
+        # get magnification info from the objective name
+        # and set image pixel sixe (x,y) for newly created pixel size config
+        curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
+        match = re.search(r"(\d{1,3})[xX]", curr_obj)
+        if match:
+            mag = int(match.groups()[0])
+            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            px_cgf_name = f"px_size_{curr_obj}"
+            self._mmc.definePixelSizeConfig(
+                px_cgf_name, self.objectives_device, "Label", curr_obj
+            )
+            self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
+            self._mmc.setPixelSizeConfig(px_cgf_name)
+
     def _refresh_objective_options(self):
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
@@ -329,11 +350,11 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             cfg_keys = self._mmc.getConfigData(
                 cfg_groups, options[0]
-            )  # first group option
+            )  # first group option e.g. TiNosePiece: State=1
 
             device = [k for idx, k in enumerate(cfg_keys.dict().keys()) if idx == 0][
                 0
-            ]  # get the device name
+            ]  # get the device name e.g. TiNosePiece
 
             if device in obj_dev_list:
                 self.objectives_device = obj_dev_list[obj_dev_list.index(device)]
@@ -459,32 +480,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         )
         if self.snap_on_click_z_checkBox.isChecked():
             self.snap()
-
-    def set_pixel_size(self):
-
-        curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
-
-        if bool(self._mmc.getCurrentPixelSizeConfig()):
-            cfg_name_wanted = f"px_size_{curr_obj}"
-            if self._mmc.getCurrentPixelSizeConfig() != cfg_name_wanted:
-                self._mmc.renamePixelSizeConfig(
-                    self._mmc.getCurrentPixelSizeConfig(), cfg_name_wanted
-                )
-            return
-
-        # get magnification info from the objective name
-        # and set image pixel sixe (x,y) for newly created pixel size Config
-        match = re.search(r"(\d{1,3})[xX]", curr_obj)
-        if match:
-            mag = int(match.groups()[0])
-            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-            px_cgf_name = f"px_size_{curr_obj}"
-
-            self._mmc.definePixelSizeConfig(
-                px_cgf_name, self.objectives_device, "Label", curr_obj
-            )
-            self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
-            self._mmc.setPixelSizeConfig(px_cgf_name)
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
