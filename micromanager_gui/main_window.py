@@ -130,7 +130,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
 
-        sig.propertyChanged.connect(self._on_prop_changed)
         sig.pixelSizeChanged.connect(self._on_px_size_changed)
 
         # connect buttons
@@ -166,11 +165,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-    def _on_prop_changed(self, p1, p2, p3):
-        logger.debug(f"{p1}, {p2}, {p3}")
-
     def _on_px_size_changed(self, value):
-        logger.debug(f"new pixel size: {value}")
+        logger.debug(
+            f"\ncurrent pixel config: "
+            f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
+        )
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -473,20 +472,19 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
             return
 
-        else:
-            # get magnification info from the objective name
-            # and set image pixel sixe (x,y) for newly created pixel size Config
-            match = re.search(r"(\d{1,3})[xX]", curr_obj)
-            if match:
-                mag = int(match.groups()[0])
-                image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-                px_cgf_name = f"px_size_{curr_obj}"
+        # get magnification info from the objective name
+        # and set image pixel sixe (x,y) for newly created pixel size Config
+        match = re.search(r"(\d{1,3})[xX]", curr_obj)
+        if match:
+            mag = int(match.groups()[0])
+            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            px_cgf_name = f"px_size_{curr_obj}"
 
-                self._mmc.definePixelSizeConfig(
-                    px_cgf_name, self.objectives_device, "Label", curr_obj
-                )
-                self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
-                self._mmc.setPixelSizeConfig(px_cgf_name)
+            self._mmc.definePixelSizeConfig(
+                px_cgf_name, self.objectives_device, "Label", curr_obj
+            )
+            self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
+            self._mmc.setPixelSizeConfig(px_cgf_name)
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
