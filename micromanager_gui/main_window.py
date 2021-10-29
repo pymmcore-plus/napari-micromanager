@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from loguru import logger
+from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -49,6 +50,7 @@ class _MainUI:
     stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
     Z_groupBox: QtW.QGroupBox
+    focus_device_comboBox: QtW.QComboBox
     left_Button: QtW.QPushButton
     right_Button: QtW.QPushButton
     y_up_Button: QtW.QPushButton
@@ -69,8 +71,7 @@ class _MainUI:
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
     properties_Button: QtW.QPushButton
     illumination_Button: QtW.QPushButton
-    snap_on_click_xy_checkBox: QtW.QCheckBox
-    snap_on_click_z_checkBox: QtW.QCheckBox
+    snap_on_click_checkBox: QtW.QCheckBox
 
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
@@ -147,6 +148,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        self.focus_device_comboBox.currentTextChanged.connect(self._change_focus_device)
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
@@ -158,6 +160,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+        @sig.propertyChanged.connect
+        def prop_changed(device, prop, value):
+            logger.debug(f"{device}.{prop} -> {value}")
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -275,6 +281,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
+    def _refresh_focus_device(self):
+        self.focus_device_comboBox.clear()
+        self.focus_device_comboBox.addItems(
+            [dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice)]
+        )
+        self.focus_device_comboBox.setCurrentText(self._mmc.getAutoFocusDevice())
+
+    def _change_focus_device(self):
+        self._mmc.setFocusDevice(self.focus_device_comboBox.currentText())
+
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
         if not cam_device:
@@ -331,6 +347,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
+        self._refresh_focus_device()
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -368,12 +385,12 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def stage_x_left(self):
         self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_up(self):
@@ -381,7 +398,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             0.0,
             float(self.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_down(self):
@@ -389,21 +406,21 @@ class MainWindow(QtW.QWidget, _MainUI):
             0.0,
             -float(self.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
         )
-        if self.snap_on_click_z_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
         )
-        if self.snap_on_click_z_checkBox.isChecked():
+        if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def change_objective(self):
