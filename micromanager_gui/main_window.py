@@ -323,6 +323,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not obj_dev_list:
             return
 
+        # check if there is a configuration group for the objectives
         for cfg_groups in self._mmc.getAvailableConfigGroups():
             # e.g. ('Camera', 'Channel', 'Objectives')
 
@@ -339,17 +340,15 @@ class MainWindow(QtW.QWidget, _MainUI):
             if device in obj_dev_list:
                 self.objectives_device = obj_dev_list[obj_dev_list.index(device)]
                 self.objectives_cfg = cfg_groups
-
                 current_cfg = self._mmc.getCurrentConfig(self.objectives_device)
-
                 with blockSignals(self.objective_comboBox):
                     self.objective_comboBox.clear()
                     self.objective_comboBox.addItems(options)
                     self.objective_comboBox.setCurrentText(current_cfg)
-
                     self.set_pixel_size()
                     return
 
+        # if not, use the labels to piopulate the objective combobox
         for dev in obj_dev_list:
             self.objectives_device = dev
             with blockSignals(self.objective_comboBox):
