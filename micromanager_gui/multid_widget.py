@@ -199,7 +199,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
             if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
-                z_offset = self._mmc.getProperty("TIPFSOffset", "Position")
+                z_offset = self._mmc.getProperty(
+                    self._mmc.getAutoFocusDevice(), "Position"
+                )
                 z_offset_txt = QtW.QTableWidgetItem(str(z_offset))
                 z_offset_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 self.stage_tableWidget.setItem(

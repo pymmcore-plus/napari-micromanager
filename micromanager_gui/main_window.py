@@ -142,6 +142,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
+        sig.propertiesChanged.connect(self._on_offset_status_changed)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -186,23 +187,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.propertyChanged.connect
         def prop_changed(device, prop, value):
-
             logger.debug(f"{device}.{prop} -> {value}")
-
-            if self._mmc.getAutoFocusDevice():
-
-                if self._mmc.isContinuousFocusEnabled():
-
-                    if (
-                        self._mmc.isContinuousFocusLocked()
-                        or self._mmc.getProperty("TIPFSStatus", "State") == "Focusing"
-                    ):
-                        self.offset_Z_groupBox.setEnabled(True)
-                        self.Z_groupBox.setEnabled(False)
-
-                else:
-                    self.offset_Z_groupBox.setEnabled(False)
-                    self.Z_groupBox.setEnabled(True)
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -377,7 +362,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.focus_device_comboBox.clear()
         self.offset_device_comboBox.clear()
 
-        _OFFSET_RE = re.compile("Offset", re.IGNORECASE)
+        _OFFSET_RE = re.compile("Offset", re.IGNORECASE)  # TIPFSOffset
         focus_devs = []
         offset_devs = []
 
@@ -491,23 +476,47 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
+    def _on_offset_status_changed(self):
+        if self._mmc.getAutoFocusDevice():
+
+            if self._mmc.isContinuousFocusEnabled():
+
+                if (
+                    self._mmc.isContinuousFocusLocked()
+                    or self._mmc.getProperty("TIPFSStatus", "State") == "Focusing"
+                ):  # TODO: find a way to chenge "TIPFSStatus" to be general
+                    self.offset_Z_groupBox.setEnabled(True)
+                    self.Z_groupBox.setEnabled(False)
+
+            else:
+                self.offset_Z_groupBox.setEnabled(False)
+                self.Z_groupBox.setEnabled(True)
+
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = float(self._mmc.getProperty("TIPFSOffset", "Position"))
+            current_offset = float(
+                self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "Position")
+            )
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty("TIPFSOffset", "Position", new_offset)
+            self._mmc.setProperty(
+                self._mmc.getAutoFocusDevice(), "Position", new_offset
+            )
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = float(self._mmc.getProperty("TIPFSOffset", "Position"))
+            current_offset = float(
+                self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "Position")
+            )
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty("TIPFSOffset", "Position", new_offset)
+            self._mmc.setProperty(
+                self._mmc.getAutoFocusDevice(), "Position", new_offset
+            )
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
