@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from loguru import logger
+from magicgui import magicgui
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -332,13 +333,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _refresh_objective_options(self):
-
-        obj_dev_list = self._mmc.guessObjectiveDevices()
-        # e.g. ['TiNosePiece']
-
-        if not obj_dev_list:
-            return
+    def _set_objective_device(self, obj_devices: list):
 
         # check if there is a configuration group for the objectives
         for cfg_groups in self._mmc.getAvailableConfigGroups():
@@ -354,8 +349,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                 0
             ]  # get the device name e.g. TiNosePiece
 
-            if device in obj_dev_list:
-                self.objectives_device = obj_dev_list[obj_dev_list.index(device)]
+            if device == obj_devices[0]:
+                self.objectives_device = device
                 self.objectives_cfg = cfg_groups
                 current_cfg = self._mmc.getCurrentConfig(self.objectives_device)
                 with blockSignals(self.objective_comboBox):
@@ -366,19 +361,41 @@ class MainWindow(QtW.QWidget, _MainUI):
                     return
 
         # if not, use the labels to populate the objective combobox
-        for dev in obj_dev_list:
-            self.objectives_device = dev
-            with blockSignals(self.objective_comboBox):
-                self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(
-                    self._mmc.getStateLabels(self.objectives_device)
-                )
-                self.objective_comboBox.setCurrentIndex(
-                    self._mmc.getState(self.objectives_device)
-                )
+        self.objectives_device = obj_devices[0]
+        with blockSignals(self.objective_comboBox):
+            self.objective_comboBox.clear()
+            self.objective_comboBox.addItems(
+                self._mmc.getStateLabels(self.objectives_device)
+            )
+            self.objective_comboBox.setCurrentIndex(
+                self._mmc.getState(self.objectives_device)
+            )
 
-                self.set_pixel_size()
-                return
+            self.set_pixel_size()
+            return
+
+    def _refresh_objective_options(self):
+
+        obj_dev = self._mmc.guessObjectiveDevices()
+        # e.g. ['TiNosePiece']
+
+        if not obj_dev:
+            return
+
+        if len(obj_dev) == 1:
+            self._set_objective_device(obj_dev)
+        else:
+            # if obj_dev has more than 1 possible objective device,
+            # you can select the correct one
+            @magicgui(
+                objective_device={"choices": obj_dev},
+                call_button="Ok",
+                layout="horizontal",
+            )
+            def select_obj_dev(objective_device):
+                self._set_objective_device([objective_device])
+
+            select_obj_dev.show(run=True)
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
