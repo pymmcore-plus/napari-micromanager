@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from loguru import logger
-from magicgui import magicgui
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -16,7 +15,12 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import (
+    blockSignals,
+    event_indices,
+    extend_array_for_index,
+    select_device_from_magicgui_combobox,
+)
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
@@ -376,26 +380,20 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _refresh_objective_options(self):
 
-        obj_dev = self._mmc.guessObjectiveDevices()
+        obj_dev_list = self._mmc.guessObjectiveDevices()
         # e.g. ['TiNosePiece']
 
-        if not obj_dev:
+        if not obj_dev_list:
             return
 
-        if len(obj_dev) == 1:
-            self._set_objective_device(obj_dev)
+        if len(obj_dev_list) == 1:
+            self._set_objective_device(obj_dev_list)
         else:
-            # if obj_dev has more than 1 possible objective device,
-            # you can select the correct one
-            @magicgui(
-                objective_device={"choices": obj_dev},
-                call_button="Ok",
-                layout="horizontal",
+            # if obj_dev_list has more than 1 possible objective device,
+            # you can select the correct one through a magicgui combobox
+            select_device_from_magicgui_combobox(
+                obj_dev_list, self._set_objective_device
             )
-            def select_obj_dev(objective_device):
-                self._set_objective_device([objective_device])
-
-            select_obj_dev.show(run=True)
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:

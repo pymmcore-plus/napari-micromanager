@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import numpy as np
+from magicgui import magicgui
 from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
@@ -103,3 +104,15 @@ def blockSignals(widget: QWidget):
     widget.blockSignals(True)
     yield
     widget.blockSignals(orig_state)
+
+
+def select_device_from_magicgui_combobox(obj_dev: list, func: Callable):
+    @magicgui(
+        objective_device={"choices": obj_dev},
+        call_button="Ok",
+        layout="horizontal",
+    )
+    def select_obj_dev(objective_device):
+        func([objective_device])
+
+    select_obj_dev.show(run=True)
