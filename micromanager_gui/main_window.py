@@ -130,8 +130,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
 
-        sig.pixelSizeChanged.connect(self._on_px_size_changed)
-
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
@@ -165,11 +163,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-    def _on_px_size_changed(self, value):
-        logger.debug(
-            f"\ncurrent pixel config: "
-            f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
-        )
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"\ncurrent pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
+            )
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
