@@ -198,6 +198,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 1, QtW.QTableWidgetItem(y_txt))
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
+            if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
+                z_offset = self._mmc.getProperty("TIPFSOffset", "Position")
+                z_offset_txt = QtW.QTableWidgetItem(str(z_offset))
+                z_offset_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                self.stage_tableWidget.setItem(
+                    idx, 3, QtW.QTableWidgetItem(z_offset_txt)
+                )
+
             self.toggle_checkbox_save_pos()
 
     def remove_position(self):
@@ -220,6 +228,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         z_val = self.stage_tableWidget.item(curr_row, 2).text()
         self._mmc.setXYPosition(float(x_val), float(y_val))
         self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
+        # TODO: set relative pos for when using ofsett
 
     def set_multi_d_acq_dir(self):
         # set the directory

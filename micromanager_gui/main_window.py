@@ -195,10 +195,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
                     if (
                         self._mmc.isContinuousFocusLocked()
-                        or self._mmc.getProperty(
-                            self._mmc.getAutoFocusDevice(), "State"
-                        )
-                        == "Focusing"
+                        or self._mmc.getProperty("TIPFSStatus", "State") == "Focusing"
                     ):
                         self.offset_Z_groupBox.setEnabled(True)
                         self.Z_groupBox.setEnabled(False)
@@ -375,6 +372,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_focus_device(self):
+        # TODO: check what are TIPFSOffset and TIPFStatus
+        # Which one is the resut of getAutoFocusDevice?
         self.focus_device_comboBox.clear()
         self.offset_device_comboBox.clear()
 
@@ -494,27 +493,21 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
-            curr_autofocus_dev = self._mmc.getAutoFocusDevice()
-            current_offset = float(
-                self._mmc.getProperty(curr_autofocus_dev, "Position")
-            )
+            current_offset = float(self._mmc.getProperty("TIPFSOffset", "Position"))
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(curr_autofocus_dev, "Position", new_offset)
+            self._mmc.setProperty("TIPFSOffset", "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
-            curr_autofocus_dev = self._mmc.getAutoFocusDevice()
-            current_offset = float(
-                self._mmc.getProperty(curr_autofocus_dev, "Position")
-            )
+            current_offset = float(self._mmc.getProperty("TIPFSOffset", "Position"))
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(curr_autofocus_dev, "Position", new_offset)
+            self._mmc.setProperty("TIPFSOffset", "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
