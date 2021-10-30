@@ -16,10 +16,10 @@ from qtpy.QtGui import QColor, QIcon
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
+    SelectDeviceFromCombobox,
     blockSignals,
     event_indices,
     extend_array_for_index,
-    select_device_from_magicgui_combobox,
 )
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
@@ -391,9 +391,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         else:
             # if obj_dev_list has more than 1 possible objective device,
             # you can select the correct one through a magicgui combobox
-            select_device_from_magicgui_combobox(
-                obj_dev_list, self._set_objective_device
+            obj = SelectDeviceFromCombobox(
+                obj_dev_list,
+                self._set_objective_device,
+                "Select Objective Device:",
+                self,
             )
+            obj.show()
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:

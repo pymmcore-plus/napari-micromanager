@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import numpy as np
-from magicgui import magicgui
-from qtpy.QtWidgets import QWidget
+from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QWidget
 
 if TYPE_CHECKING:
     import useq
@@ -106,13 +105,23 @@ def blockSignals(widget: QWidget):
     widget.blockSignals(orig_state)
 
 
-def select_device_from_magicgui_combobox(obj_dev: list, func: Callable):
-    @magicgui(
-        objective_device={"choices": obj_dev},
-        call_button="Ok",
-        layout="horizontal",
-    )
-    def select_obj_dev(objective_device):
-        func([objective_device])
+class SelectDeviceFromCombobox(QDialog):
+    def __init__(self, obj_dev: list, func: Callable, label: str, parent=None):
+        super().__init__(parent)
 
-    select_obj_dev.show(run=True)
+        self.func = func
+
+        self.setLayout(QHBoxLayout())
+        self.label = QLabel()
+        self.label.setText(label)
+        self.combobox = QComboBox()
+        self.combobox.addItems(obj_dev)
+        self.button = QPushButton("Set")
+        self.button.clicked.connect(self._on_click)
+
+        self.layout().addWidget(self.label)
+        self.layout().addWidget(self.combobox)
+        self.layout().addWidget(self.button)
+
+    def _on_click(self):
+        self.func([self.combobox.currentText()])
