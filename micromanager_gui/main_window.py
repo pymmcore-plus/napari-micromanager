@@ -30,6 +30,9 @@ ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
+OBJECTIVE = "Objective"
+# OBJECTIVE = "TINosePiece"
+
 
 class _MainUI:
     UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
@@ -49,16 +52,26 @@ class _MainUI:
     z_lineEdit: QtW.QLineEdit
     stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
+
     Z_groupBox: QtW.QGroupBox
     focus_device_comboBox: QtW.QComboBox
+    up_Button: QtW.QPushButton
+    down_Button: QtW.QPushButton
+    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
+
+    offset_Z_groupBox: QtW.QGroupBox
+    offset_device_comboBox: QtW.QComboBox
+    offset_up_Button: QtW.QPushButton
+    offset_down_Button: QtW.QPushButton
+    offset_z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
+
+    offset_snap_on_click_z_checkBox: QtW.QCheckBox
+
     left_Button: QtW.QPushButton
     right_Button: QtW.QPushButton
     y_up_Button: QtW.QPushButton
     y_down_Button: QtW.QPushButton
-    up_Button: QtW.QPushButton
-    down_Button: QtW.QPushButton
     xy_step_size_SpinBox: QtW.QSpinBox
-    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
     tabWidget: QtW.QTabWidget
     snap_live_tab: QtW.QWidget
     multid_tab: QtW.QWidget
@@ -87,6 +100,8 @@ class _MainUI:
             ("y_down_Button", "down_arrow_1_green.svg"),
             ("up_Button", "up_arrow_1_green.svg"),
             ("down_Button", "down_arrow_1_green.svg"),
+            ("offset_up_Button", "up_arrow_1_green.svg"),
+            ("offset_down_Button", "down_arrow_1_green.svg"),
             ("snap_Button", "cam.svg"),
             ("live_Button", "vcam.svg"),
         ]:
@@ -102,6 +117,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.viewer = viewer
         self.streaming_timer = None
+        self.available_focus_devs = []
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
@@ -137,6 +153,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.up_Button.clicked.connect(self.stage_z_up)
         self.down_Button.clicked.connect(self.stage_z_down)
 
+        # offset
+        self.offset_up_Button.clicked.connect(self.offset_up)
+        self.offset_down_Button.clicked.connect(self.offset_down)
+
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
 
@@ -148,7 +168,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
-        self.focus_device_comboBox.currentTextChanged.connect(self._change_focus_device)
+        self.focus_device_comboBox.currentTextChanged.connect(self._set_focus_device)
+        self.offset_device_comboBox.currentTextChanged.connect(
+            self._set_autofocus_device
+        )
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
@@ -163,7 +186,26 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.propertyChanged.connect
         def prop_changed(device, prop, value):
+
             logger.debug(f"{device}.{prop} -> {value}")
+
+            if self._mmc.getAutoFocusDevice():
+
+                if self._mmc.isContinuousFocusEnabled():
+
+                    if (
+                        self._mmc.isContinuousFocusLocked()
+                        or self._mmc.getProperty(
+                            self._mmc.getAutoFocusDevice(), "State"
+                        )
+                        == "Focusing"
+                    ):
+                        self.offset_Z_groupBox.setEnabled(True)
+                        self.Z_groupBox.setEnabled(False)
+
+                else:
+                    self.offset_Z_groupBox.setEnabled(False)
+                    self.Z_groupBox.setEnabled(True)
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -183,9 +225,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objective_groupBox.setEnabled(enabled)
         self.camera_groupBox.setEnabled(enabled)
         self.XY_groupBox.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
+        self.snap_live_tab.setEnabled(enabled)
         self.Z_groupBox.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -281,16 +323,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
-    def _refresh_focus_device(self):
-        self.focus_device_comboBox.clear()
-        self.focus_device_comboBox.addItems(
-            [dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice)]
-        )
-        self.focus_device_comboBox.setCurrentText(self._mmc.getAutoFocusDevice())
-
-    def _change_focus_device(self):
-        self._mmc.setFocusDevice(self.focus_device_comboBox.currentText())
-
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
         if not cam_device:
@@ -315,12 +347,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
 
     def _refresh_objective_options(self):
-        if "Objective" in self._mmc.getLoadedDevices():
+        if OBJECTIVE in self._mmc.getLoadedDevices():
             with blockSignals(self.objective_comboBox):
                 self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
+                self.objective_comboBox.addItems(self._mmc.getStateLabels(OBJECTIVE))
                 self.objective_comboBox.setCurrentText(
-                    self._mmc.getStateLabel("Objective")
+                    self._mmc.getStateLabel(OBJECTIVE)
                 )
 
     def _refresh_channel_list(self, channel_group: str = None):
@@ -342,12 +374,49 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getFocusDevice():
             self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
+    def _refresh_focus_device(self):
+        self.focus_device_comboBox.clear()
+        self.offset_device_comboBox.clear()
+
+        _OFFSET_RE = re.compile("Offset", re.IGNORECASE)
+        focus_devs = []
+        offset_devs = []
+
+        for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice):
+
+            if _OFFSET_RE.match(dev):
+                offset_devs.append(dev)
+            else:
+                focus_devs.append(dev)
+
+        if not offset_devs:
+            self.offset_device_comboBox.setEnabled(False)
+        else:
+            self.offset_device_comboBox.addItems(offset_devs)
+            self._set_autofocus_device()
+
+        if not focus_devs:
+            self.focus_device_comboBox.setEnabled(False)
+        else:
+            self.focus_device_comboBox.addItems(focus_devs)
+            self._set_focus_device()
+
     def _refresh_options(self):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
         self._refresh_focus_device()
+
+    def _set_autofocus_device(self):
+        if not self.offset_device_comboBox.count():
+            return
+        self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
+
+    def _set_focus_device(self):
+        if not self.focus_device_comboBox.count():
+            return
+        self._mmc.setFocusDevice(self.focus_device_comboBox.currentText())
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -411,17 +480,43 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
+            0.0, 0.0, float(self.z_step_size_doubleSpinBox_1.value())
         )
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
+            0.0, 0.0, -float(self.z_step_size_doubleSpinBox_1.value())
         )
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
+
+    def offset_up(self):
+        if self._mmc.isContinuousFocusLocked():
+            curr_autofocus_dev = self._mmc.getAutoFocusDevice()
+            current_offset = float(
+                self._mmc.getProperty(curr_autofocus_dev, "Position")
+            )
+            new_offset = current_offset + float(
+                self.offset_z_step_size_doubleSpinBox.value()
+            )
+            self._mmc.setProperty(curr_autofocus_dev, "Position", new_offset)
+            if self.snap_on_click_checkBox.isChecked():
+                self.snap()
+
+    def offset_down(self):
+        if self._mmc.isContinuousFocusLocked():
+            curr_autofocus_dev = self._mmc.getAutoFocusDevice()
+            current_offset = float(
+                self._mmc.getProperty(curr_autofocus_dev, "Position")
+            )
+            new_offset = current_offset - float(
+                self.offset_z_step_size_doubleSpinBox.value()
+            )
+            self._mmc.setProperty(curr_autofocus_dev, "Position", new_offset)
+            if self.snap_on_click_checkBox.isChecked():
+                self.snap()
 
     def change_objective(self):
         if self.objective_comboBox.count() <= 0:
@@ -432,16 +527,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         currentZ = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
-        self._mmc.setProperty(
-            "Objective", "Label", self.objective_comboBox.currentText()
-        )
-        self._mmc.waitForDevice("Objective")
+        self._mmc.setProperty(OBJECTIVE, "Label", self.objective_comboBox.currentText())
+        self._mmc.waitForDevice(OBJECTIVE)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
         # define and set pixel size Config
         self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty("Objective", "Label")
+        curr_obj_name = self._mmc.getProperty(OBJECTIVE, "Label")
         self._mmc.definePixelSizeConfig(curr_obj_name)
         self._mmc.setPixelSizeConfig(curr_obj_name)
 

@@ -975,13 +975,13 @@
          </size>
         </property>
         <property name="title">
-         <string>PFS Offset</string>
+         <string>Z Offset</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_12">
          <property name="topMargin">
           <number>15</number>
          </property>
-         <item row="1" column="0" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+         <item row="2" column="0" alignment="Qt::AlignHCenter|Qt::AlignVCenter">
           <widget class="QDoubleSpinBox" name="offset_z_step_size_doubleSpinBox">
            <property name="enabled">
             <bool>true</bool>
@@ -1024,7 +1024,7 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="0" alignment="Qt::AlignHCenter">
+         <item row="3" column="0" alignment="Qt::AlignHCenter">
           <widget class="QPushButton" name="offset_down_Button">
            <property name="enabled">
             <bool>true</bool>
@@ -1040,7 +1040,7 @@
            </property>
           </widget>
          </item>
-         <item row="0" column="0" alignment="Qt::AlignHCenter">
+         <item row="1" column="0" alignment="Qt::AlignHCenter">
           <widget class="QPushButton" name="offset_up_Button">
            <property name="enabled">
             <bool>true</bool>
@@ -1061,6 +1061,9 @@
             <string/>
            </property>
           </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QComboBox" name="offset_device_comboBox"/>
          </item>
         </layout>
        </widget>
