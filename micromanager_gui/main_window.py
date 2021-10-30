@@ -464,14 +464,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, float(self.z_step_size_doubleSpinBox_1.value())
+            0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
         )
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, -float(self.z_step_size_doubleSpinBox_1.value())
+            0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
         )
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
