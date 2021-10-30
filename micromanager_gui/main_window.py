@@ -390,7 +390,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._set_objective_device(obj_dev_list)
         else:
             # if obj_dev_list has more than 1 possible objective device,
-            # you can select the correct one through a magicgui combobox
+            # you can select the correct one through a combobox
             obj = SelectDeviceFromCombobox(
                 obj_dev_list,
                 self._set_objective_device,
