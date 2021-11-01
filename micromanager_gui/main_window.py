@@ -357,33 +357,35 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_focus_device(self):
-        # TODO: check what are TIPFSOffset and TIPFStatus
-        # Which one is the resut of getAutoFocusDevice?
+        # for Nikon PFS:
+        # getAutoFocusDevice() -> TIPFStatus
+        # to change the offset -> TIPFSOffset
         self.focus_device_comboBox.clear()
         self.offset_device_comboBox.clear()
 
-        _OFFSET_RE = re.compile("Offset", re.IGNORECASE)  # TIPFSOffset
         focus_devs = []
         offset_devs = []
 
         for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice):
+            if "TIPFS" in dev:  # for Nikon PFS for now
+                self.offset_z_stage = dev
+            else: # to remove Nikon TIPFSOffset from the list 
+                focus_devs.append(dev) 
 
-            if _OFFSET_RE.match(dev):
-                offset_devs.append(dev)
-            else:
-                focus_devs.append(dev)
-
-        if not offset_devs:
-            self.offset_device_comboBox.setEnabled(False)
-        else:
-            self.offset_device_comboBox.addItems(offset_devs)
-            self._set_autofocus_device()
+        for dev in self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice):
+            offset_devs.append(dev)       
 
         if not focus_devs:
             self.focus_device_comboBox.setEnabled(False)
         else:
             self.focus_device_comboBox.addItems(focus_devs)
             self._set_focus_device()
+        
+        if not offset_devs:
+            self.offset_device_comboBox.setEnabled(False)
+        else:
+            self.offset_device_comboBox.addItems(offset_devs)
+            self._set_autofocus_device()
 
     def _refresh_options(self):
         self._refresh_camera_options()
@@ -477,14 +479,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap()
 
     def _on_offset_status_changed(self):
+
         if self._mmc.getAutoFocusDevice():
 
-            if self._mmc.isContinuousFocusEnabled():
+            print(self._mmc.getAutoFocusDevice())
 
+            if self._mmc.isContinuousFocusEnabled():
                 if (
                     self._mmc.isContinuousFocusLocked()
-                    or self._mmc.getProperty("TIPFSStatus", "State") == "Focusing"
-                ):  # TODO: find a way to chenge "TIPFSStatus" to be general
+                    or self._mmc.getProperty(
+                        self._mmc.getAutoFocusDevice(), "State"
+                    ) == "Focusing"
+                ):
                     self.offset_Z_groupBox.setEnabled(True)
                     self.Z_groupBox.setEnabled(False)
 
@@ -495,13 +501,13 @@ class MainWindow(QtW.QWidget, _MainUI):
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "Position")
+                self._mmc.getProperty( self.offset_z_stage, "Position")
             )
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
             self._mmc.setProperty(
-                self._mmc.getAutoFocusDevice(), "Position", new_offset
+                 self.offset_z_stage, "Position", new_offset
             )
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
@@ -509,13 +515,13 @@ class MainWindow(QtW.QWidget, _MainUI):
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "Position")
+                self._mmc.getProperty( self.offset_z_stage, "Position")
             )
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
             self._mmc.setProperty(
-                self._mmc.getAutoFocusDevice(), "Position", new_offset
+                self.offset_z_stage, "Position", new_offset
             )
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
