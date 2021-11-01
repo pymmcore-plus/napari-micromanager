@@ -52,6 +52,7 @@ class _MainUI:
     z_lineEdit: QtW.QLineEdit
     stage_groupBox: QtW.QGroupBox
     XY_groupBox: QtW.QGroupBox
+    xy_device_comboBox: QtW.QComboBox
 
     Z_groupBox: QtW.QGroupBox
     focus_device_comboBox: QtW.QComboBox
@@ -363,24 +364,33 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.focus_device_comboBox.clear()
         self.offset_device_comboBox.clear()
 
-        focus_devs = []
-        offset_devs = []
+        xy_stage_dev = [
+            dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice)
+        ]
 
+        focus_devs = []
         for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice):
             if "TIPFS" in dev:  # for Nikon PFS for now
                 self.offset_z_stage = dev
-            else: # to remove Nikon TIPFSOffset from the list 
-                focus_devs.append(dev) 
+            else:  # to remove Nikon TIPFSOffset from the list
+                focus_devs.append(dev)
 
-        for dev in self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice):
-            offset_devs.append(dev)       
+        offset_devs = [
+            dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice)
+        ]
+
+        if not xy_stage_dev:
+            self.xy_device_comboBox.setEnabled(False)
+        else:
+            self.xy_device_comboBox.addItems(xy_stage_dev)
+            self._set_xy_stage_device()
 
         if not focus_devs:
             self.focus_device_comboBox.setEnabled(False)
         else:
             self.focus_device_comboBox.addItems(focus_devs)
             self._set_focus_device()
-        
+
         if not offset_devs:
             self.offset_device_comboBox.setEnabled(False)
         else:
@@ -394,15 +404,20 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_positions()
         self._refresh_focus_device()
 
-    def _set_autofocus_device(self):
-        if not self.offset_device_comboBox.count():
+    def _set_xy_stage_device(self):
+        if not self.xy_device_comboBox.count():
             return
-        self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
+        self._mmc.setXYStageDevice(self.xy_device_comboBox.currentText())
 
     def _set_focus_device(self):
         if not self.focus_device_comboBox.count():
             return
         self._mmc.setFocusDevice(self.focus_device_comboBox.currentText())
+
+    def _set_autofocus_device(self):
+        if not self.offset_device_comboBox.count():
+            return
+        self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -487,9 +502,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             if self._mmc.isContinuousFocusEnabled():
                 if (
                     self._mmc.isContinuousFocusLocked()
-                    or self._mmc.getProperty(
-                        self._mmc.getAutoFocusDevice(), "State"
-                    ) == "Focusing"
+                    or self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "State")
+                    == "Focusing"
                 ):
                     self.offset_Z_groupBox.setEnabled(True)
                     self.Z_groupBox.setEnabled(False)
@@ -501,28 +515,24 @@ class MainWindow(QtW.QWidget, _MainUI):
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty( self.offset_z_stage, "Position")
+                self._mmc.getProperty(self.offset_z_stage, "Position")
             )
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(
-                 self.offset_z_stage, "Position", new_offset
-            )
+            self._mmc.setProperty(self.offset_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty( self.offset_z_stage, "Position")
+                self._mmc.getProperty(self.offset_z_stage, "Position")
             )
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(
-                self.offset_z_stage, "Position", new_offset
-            )
+            self._mmc.setProperty(self.offset_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
