@@ -286,15 +286,24 @@ class MainWindow(QtW.QWidget, _MainUI):
         # reactivate gui when mda finishes.
         self._set_enabled(True)
 
-    def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
-
-        # clear spinbox/combobox
+    def clear_comboboxes(self):
         self.objective_comboBox.clear()
         self.bin_comboBox.clear()
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
+        self.xy_device_comboBox.clear()
+        self.focus_device_comboBox.clear()
+        self.offset_device_comboBox.clear()
+        self.mda.clear_channel()
+        self.mda.clear_positions()
+        self.explorer.clear_channel()
+
+    def browse_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
+        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
+
+        # clear combobox
+        self.clear_comboboxes()
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
