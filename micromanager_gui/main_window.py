@@ -143,7 +143,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.configSet.connect(self._on_config_set)
-        sig.propertiesChanged.connect(self._on_offset_status_changed)
+        sig.propertyChanged.connect(self._on_offset_status_changed)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
