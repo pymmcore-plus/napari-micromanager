@@ -105,7 +105,7 @@ class PropTable(Table):
         self._refresh_visibilty()
 
 
-class PropBrowser(QDialog):
+class GroupConfigurations(QDialog):
     def __init__(self, mmcore=None, parent=None):
         super().__init__(parent)
         self.pt = PropTable(mmcore)
@@ -113,21 +113,23 @@ class PropBrowser(QDialog):
 
         self.le = LineEdit(label="Filter:")
         self.le.native.setPlaceholderText("Filter...")
-        self.le.changed.connect(self._on_le_change)
-
-        top = Container(widgets=[self.le, self.pt], labels=False)
-
+        table = Container(widgets=[self.le, self.pt], labels=False)
         self.pt.show()
 
-        self.le_1 = LineEdit(label="Group Name:")
-        self.le_2 = LineEdit(label="Preset Name:")
-        self.btn = PushButton(text="Create Preset")
+        self.group_le = LineEdit(label="Group:")
+        self.preset_le = LineEdit(label="Preset")
+        group_preset = Container(
+            widgets=[self.group_le, self.preset_le], labels=True, layout="horizontal"
+        )
+
+        self.btn = PushButton(text="Create/Edit")
+
+        # connect
+        self.le.changed.connect(self._on_le_change)
         self.btn.clicked.connect(self._create_group)
-        self.gp = Container(widgets=[self.le_1, self.le_2, self.btn], labels=True)
-        self.gp.max_width = 300
 
         self._container = Container(
-            layout="vertical", widgets=[top, self.gp], labels=False
+            layout="vertical", widgets=[table, group_preset, self.btn], labels=False
         )
         self._container.margins = 0, 0, 0, 0
         self.setLayout(QHBoxLayout())
@@ -138,8 +140,8 @@ class PropBrowser(QDialog):
         self.pt.filter_string = value
 
     def _create_group(self):
-        group_name = self.le_1.value
-        preset_name = self.le_2.value
+        group_name = self.group_le.value
+        preset_name = self.preset_le.value
 
         if not group_name or not preset_name:
             print("FIELDS EMPTY")
@@ -180,6 +182,6 @@ if __name__ == "__main__":
 
     mmcore = CMMCorePlus()
     mmcore.loadSystemConfiguration("tests/test_config.cfg")
-    pb = PropBrowser(mmcore)
+    pb = GroupConfigurations(mmcore)
     pb.show()
     app.exec()
