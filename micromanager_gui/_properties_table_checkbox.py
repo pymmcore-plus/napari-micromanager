@@ -1,25 +1,18 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
-from magicgui import magicgui
-from magicgui.widgets import (
-    CheckBox,
-    ComboBox,
-    Container,
-    FloatSlider,
-    LineEdit,
-    Slider,
-    Table,
-    Widget,
-)
+from magicgui.widgets import CheckBox, Container, LineEdit, PushButton, Table, Widget
 from pymmcore_plus import DeviceType, PropertyType
 from PyQt5.QtWidgets import QHBoxLayout
-from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog
+
+from .prop_browser import get_editor_widget, iter_dev_props
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
 
+
+TABLE_INDEX_LIST = []
 
 OTHER_DEVICES = (
     DeviceType.XYStageDevice,
@@ -51,27 +44,23 @@ class PropertyItem:
     allowed: Sequence[str]
 
 
-def iter_dev_props(mmc: "CMMCorePlus") -> Iterator[PropertyItem]:
-    for dev in mmc.getLoadedDevices():
-        dev_type = mmc.getDeviceType(dev)
-        for prop in mmc.getDevicePropertyNames(dev):
-            yield PropertyItem(
-                device=dev,
-                name=prop,
-                dev_type=dev_type,
-                value=mmc.getProperty(dev, prop),
-                read_only=mmc.isPropertyReadOnly(dev, prop),
-                pre_init=mmc.isPropertyPreInit(dev, prop),
-                has_range=mmc.hasPropertyLimits(dev, prop),
-                lower_lim=mmc.getPropertyLowerLimit(dev, prop),
-                upper_lim=mmc.getPropertyUpperLimit(dev, prop),
-                prop_type=mmc.getPropertyType(dev, prop),
-                allowed=mmc.getAllowedPropertyValues(dev, prop),
-            )
+def create_group_checkboxes(pt: Table, index: int) -> Widget:
+    wdg = CheckBox(value=False, annotation=index)
+
+    @wdg.changed.connect
+    def _on_toggle():
+        if wdg.value:
+            TABLE_INDEX_LIST.append(wdg.annotation)
+        else:
+            idx = TABLE_INDEX_LIST.index(wdg.annotation)
+            TABLE_INDEX_LIST.pop(idx)
+        print("ROW: ", TABLE_INDEX_LIST)
+
+    return wdg
 
 
 class PropTable(Table):
-    def __init__(self, mmcore: "CMMCorePlus") -> None:
+    def __init__(self, mmcore) -> None:
         super().__init__()
         self.mmcore = mmcore
         self._update()
@@ -83,46 +72,25 @@ class PropTable(Table):
         vh.setDefaultSectionSize(24)
         self._visible_dtypes = set(DeviceType)
         self._filter_string = ""
-        self._show_read_only = True
 
     def _update(self):
         data = []
-        for p in iter_dev_props(self.mmcore):
-            val = p.value if p.read_only else get_editor_widget(p, self.mmcore)
-            c_box = "" if p.read_only else create_cbox()
-            # data.append([int(p.dev_type), p.read_only, f"{p.device}-{p.name}", val])
-            data.append(
-                [int(p.dev_type), p.read_only, c_box, f"{p.device}-{p.name}", val]
-            )
+        for row_index, p in enumerate(iter_dev_props(self.mmcore)):
+            if p.read_only:
+                continue
+            val = get_editor_widget(p, self.mmcore)
+            c_box = create_group_checkboxes(self, row_index)
+            data.append([int(p.dev_type), c_box, f"{p.device}-{p.name}", val])
         self.value = {
             "data": data,
             "index": [],
-            "columns": ["Type", "Read_only", "", "Property", "Value"],
+            "columns": ["Type", " ", "Property", "Value"],
         }
-
         self.native.hideColumn(0)
-        self.native.hideColumn(1)
-
-        cols = self.shape[1]
-        for r, ro in enumerate(self["Read_only"]):
-            if ro:
-                for c in range(cols):
-                    i = self.native.item(r, c)
-                    i.setFlags(i.flags() & ~Qt.ItemIsEnabled)
-
-    def set_dtype_visibility(self, dtype: DeviceType, visible: bool):
-        _dtype = dtype if isinstance(dtype, (list, tuple)) else (dtype,)
-        if visible:
-            self._visible_dtypes.update(_dtype)
-        else:
-            self._visible_dtypes.difference_update(_dtype)
-        self._refresh_visibilty()
 
     def _refresh_visibilty(self):
-        for i, (dtype, ro, prop, _, _) in enumerate(self.data):
-            if ro and not self.show_read_only:
-                self.native.hideRow(i)
-            elif dtype in self._visible_dtypes and self.filter_string in prop.lower():
+        for i, (dtype, _, prop, _) in enumerate(self.data):
+            if dtype in self._visible_dtypes and self.filter_string in prop.lower():
                 self.native.showRow(i)
             else:
                 self.native.hideRow(i)
@@ -136,106 +104,72 @@ class PropTable(Table):
         self._filter_string = val.lower()
         self._refresh_visibilty()
 
-    @property
-    def show_read_only(self):
-        return self._show_read_only
-
-    @show_read_only.setter
-    def show_read_only(self, val: bool):
-        self._show_read_only = val
-        self._refresh_visibilty()
-
-
-def create_cbox() -> Widget:
-    wdg = CheckBox(value=False)
-
-    @wdg.changed.connect
-    def _on_toggle():
-        print("TOGGLED")
-
-    return wdg
-
-
-def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
-    wdg = None
-    if prop.allowed:
-        wdg = ComboBox(value=prop.value, choices=prop.allowed)
-    elif prop.has_range:
-        if PropertyType(prop.prop_type).name == "Float":
-            wdg = FloatSlider(
-                value=float(prop.value),
-                min=float(prop.lower_lim),
-                max=float(prop.upper_lim),
-                label=f"{prop.device} {prop.name}",
-            )
-        else:
-            wdg = Slider(
-                value=int(prop.value),
-                min=int(prop.lower_lim),
-                max=int(prop.upper_lim),
-                label=f"{prop.device} {prop.name}",
-            )
-    else:
-        wdg = LineEdit(value=prop.value)
-
-    @wdg.changed.connect
-    def _on_change(value: Any):
-        mmc.setProperty(prop.device, prop.name, value)
-
-    return wdg
-
-
-def make_checkboxes(pt):
-    c = Container(labels=False)
-    dt = [
-        ("cameras", DeviceType.CameraDevice),
-        ("shutters", DeviceType.ShutterDevice),
-        ("stages", DeviceType.StageDevice),
-        ("wheels, turrets, etc.", DeviceType.StateDevice),
-        ("other devices", OTHER_DEVICES),
-    ]
-    for label, dtype in dt:
-
-        @magicgui(auto_call=True, dt={"bind": dtype}, vis={"label": label})
-        def toggle(vis: bool = True, dt=None):
-            pt.set_dtype_visibility(dt, visible=vis)
-
-        toggle.name = label[:2]
-        c.append(toggle)
-
-    @magicgui(auto_call=True, show={"label": "Show read-only"})
-    def show_ro(show: bool = True):
-        pt.show_read_only = show
-
-    c.append(show_ro)
-
-    return c
-
 
 class PropBrowser(QDialog):
     def __init__(self, mmcore=None, parent=None):
         super().__init__(parent)
         self.pt = PropTable(mmcore)
+        self.pt.min_width = 550
+
         self.le = LineEdit(label="Filter:")
         self.le.native.setPlaceholderText("Filter...")
         self.le.changed.connect(self._on_le_change)
-        right = Container(widgets=[self.le, self.pt], labels=False)
-        self.cb = make_checkboxes(self.pt)
-        self.cb.native.layout().addStretch()
-        self.cb.native.layout().setSpacing(0)
+
+        top = Container(widgets=[self.le, self.pt], labels=False)
+
         self.pt.show()
-        self.cb.show()
+
+        self.le_1 = LineEdit(label="Group Name:")
+        self.le_2 = LineEdit(label="Preset Name:")
+        self.btn = PushButton(text="Create Preset")
+        self.btn.clicked.connect(self._create_group)
+        self.gp = Container(widgets=[self.le_1, self.le_2, self.btn], labels=True)
+        self.gp.max_width = 300
+
         self._container = Container(
-            layout="horizontal", widgets=[self.cb, right], labels=False
+            layout="vertical", widgets=[top, self.gp], labels=False
         )
         self._container.margins = 0, 0, 0, 0
-        self._container.min_width = 750
         self.setLayout(QHBoxLayout())
         self.setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._container.native)
 
     def _on_le_change(self, value: str):
         self.pt.filter_string = value
+
+    def _create_group(self):
+        group_name = self.le_1.value
+        preset_name = self.le_2.value
+
+        if not group_name or not preset_name:
+            print("FIELDS EMPTY")
+            return
+        if not TABLE_INDEX_LIST:
+            print("SELECT AT LEST ONE")
+            return
+
+        if not mmcore.isGroupDefined(group_name):
+            mmcore.defineConfigGroup(group_name)
+
+        if mmcore.isConfigDefined(group_name, preset_name):
+            mmcore.deleteConfig(group_name, preset_name)
+
+        for r in TABLE_INDEX_LIST:
+            ls = self.pt._get_rowi(r)
+            _split = ls[2].split("-")
+            dev = _split[0]
+            prop = _split[1]
+            val = ls[3].value
+
+            mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
+        for gp in mmcore.getAvailableConfigGroups():
+            if gp == group_name:
+                print("group", gp)
+                for ps in mmcore.getAvailableConfigs(gp):
+                    print("Preset:", ps)
+                    print(mmcore.getConfigData(gp, ps))
+                print()
+        print()
 
 
 if __name__ == "__main__":
