@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
 from magicgui.widgets import CheckBox, Container, LineEdit, PushButton, Table, Widget
 from pymmcore_plus import DeviceType, PropertyType
@@ -7,10 +7,6 @@ from PyQt5.QtWidgets import QHBoxLayout
 from qtpy.QtWidgets import QDialog
 
 from .prop_browser import get_editor_widget, iter_dev_props
-
-if TYPE_CHECKING:
-    from pymmcore_plus import CMMCorePlus
-
 
 TABLE_INDEX_LIST = []
 
@@ -75,12 +71,14 @@ class PropTable(Table):
 
     def _update(self):
         data = []
-        for row_index, p in enumerate(iter_dev_props(self.mmcore)):
+        row_index = 0
+        for p in iter_dev_props(self.mmcore):
             if p.read_only:
                 continue
             val = get_editor_widget(p, self.mmcore)
             c_box = create_group_checkboxes(self, row_index)
             data.append([int(p.dev_type), c_box, f"{p.device}-{p.name}", val])
+            row_index += 1
         self.value = {
             "data": data,
             "index": [],
@@ -108,7 +106,8 @@ class PropTable(Table):
 class GroupConfigurations(QDialog):
     def __init__(self, mmcore=None, parent=None):
         super().__init__(parent)
-        self.pt = PropTable(mmcore)
+        self._mmcore = mmcore
+        self.pt = PropTable(self._mmcore)
         self.pt.min_width = 550
 
         self.le = LineEdit(label="Filter:")
@@ -144,17 +143,15 @@ class GroupConfigurations(QDialog):
         preset_name = self.preset_le.value
 
         if not group_name or not preset_name:
-            print("FIELDS EMPTY")
             return
         if not TABLE_INDEX_LIST:
-            print("SELECT AT LEST ONE")
             return
 
-        if not mmcore.isGroupDefined(group_name):
-            mmcore.defineConfigGroup(group_name)
+        if not self._mmcore.isGroupDefined(group_name):
+            self._mmcore.defineConfigGroup(group_name)
 
-        if mmcore.isConfigDefined(group_name, preset_name):
-            mmcore.deleteConfig(group_name, preset_name)
+        if self._mmcore.isConfigDefined(group_name, preset_name):
+            self._mmcore.deleteConfig(group_name, preset_name)
 
         for r in TABLE_INDEX_LIST:
             ls = self.pt._get_rowi(r)
@@ -163,25 +160,4 @@ class GroupConfigurations(QDialog):
             prop = _split[1]
             val = ls[3].value
 
-            mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
-        for gp in mmcore.getAvailableConfigGroups():
-            if gp == group_name:
-                print("group", gp)
-                for ps in mmcore.getAvailableConfigs(gp):
-                    print("Preset:", ps)
-                    print(mmcore.getConfigData(gp, ps))
-                print()
-        print()
-
-
-if __name__ == "__main__":
-    from pymmcore_plus import CMMCorePlus  # noqa
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication([])
-
-    mmcore = CMMCorePlus()
-    mmcore.loadSystemConfiguration("tests/test_config.cfg")
-    pb = GroupConfigurations(mmcore)
-    pb.show()
-    app.exec()
+            self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))

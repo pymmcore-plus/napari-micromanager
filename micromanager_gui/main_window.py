@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -14,6 +15,7 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
+from ._tab_group_and_presets import GroupPresetWidget
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
@@ -108,8 +110,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
+        self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -159,6 +163,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
+        @sig.propertyChanged.connect
+        def _on_prop_changed(dev, prop, val):
+            logger.debug(f"{dev}.{prop} -> {val}")
+
     def illumination(self):
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationDialog(self._mmc, self)
@@ -169,9 +177,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb.exec()
 
     def _on_config_set(self, groupName: str, configName: str):
+
+        print(f"ON CONFIG CHANGED -> {groupName}-{configName}")
+
         if groupName == self._get_channel_group():
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.setCurrentText(configName)
+
+        self._refresh_camera_options()
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
@@ -331,6 +344,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
+
+        self.groups_and_presets._add_to_table()
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
