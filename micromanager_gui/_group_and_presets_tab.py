@@ -29,7 +29,7 @@ class MainTable(Table):
         super().__init__()
         self.mmcore = mmcore
         hdr = self.native.horizontalHeader()
-        hdr.setSectionResizeMode(hdr.ResizeToContents)
+        hdr.setSectionResizeMode(hdr.Stretch)
         vh = self.native.verticalHeader()
         vh.setVisible(False)
         vh.setSectionResizeMode(vh.Fixed)
@@ -69,6 +69,18 @@ class GroupPresetWidget(QtW.QWidget):
         self.layout().addWidget(self.group_presets_widget.native)
 
         self._add_to_table()
+
+        # @sig.configSet.connect
+        # def _on_cfg_set(group: str, preset: str):
+        #     print(f"[tab] New group cfg set: {group} -> {preset}")
+        #     channel_group = self._mmc.getChannelGroup()
+        #     if group == channel_group:
+        #         rows = self.tb.shape[0]
+        #         for row in range(rows):
+        #             gp, wdg = self.tb.data[row]
+        #             if gp == group:
+        #                 wdg.value = self._mmc.getCurrentConfig(gp)
+        #                 return
 
     def _add_to_table(self):
         groups = self._mmc.getAvailableConfigGroups()

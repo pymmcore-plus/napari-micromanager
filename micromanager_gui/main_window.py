@@ -120,6 +120,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
+        self.tabWidget.currentChanged.connect(self._on_group_tab)
 
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
@@ -180,17 +181,24 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.configSet.connect
         def _on_cfg_set(group: str, preset: str):
-            print(f"New group cfg set: {group} -> {preset}")
-
-        @sig.channelGroupChanged.connect
-        def _on_ch_changed(channelgroup: str):
-            print(f"Channel Group -> {channelgroup}")
+            print(f"[main] New group cfg set: {group} -> {preset}")
+            # channel combobox
+            channel_group = self._mmc.getChannelGroup()
+            if channel_group == group:
+                self.snap_channel_comboBox.setCurrentText(
+                    self._mmc.getCurrentConfig(channel_group)
+                )
+            # Camera
+            self._refresh_camera_options()
+            # Objective
+            if self.objectives_cfg and group == self.objectives_cfg:
+                self.objective_comboBox.setCurrentText(preset)
 
         @sig.pixelSizeChanged.connect
         def _on_px_size_changed(value):
             logger.debug(
-                f"\ncurrent pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
+                f"current pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
             )
 
     def illumination(self):
@@ -210,12 +218,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.groups_and_presets._add_to_table
         )
 
-    def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._get_channel_group():
-            with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.setCurrentText(configName)
-
-        self._refresh_camera_options()
+    def _on_group_tab(self):
+        if self.tabWidget.currentIndex() == 1:
+            self.groups_and_presets._update_group_table_status()
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
