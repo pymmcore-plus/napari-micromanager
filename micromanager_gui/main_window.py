@@ -307,17 +307,37 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getStateLabel("Objective")
                 )
 
-    def _refresh_channel_list(self, channel_group: str = None):
-        if channel_group is None:
-            channel_group = self._get_channel_group()
-        if channel_group:
-            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-            with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.clear()
-                self.snap_channel_comboBox.addItems(channel_list)
-                self.snap_channel_comboBox.setCurrentText(
-                    self._mmc.getCurrentConfig("Channel")
-                )
+    # def _refresh_channel_list(self, channel_group: str = None):
+    #     guessed_channel_list = self._mmc.getOrGuessChannelGroup()
+
+    #     if not guessed_channel_list:
+    #         return
+
+    #     if len(guessed_channel_list) == 1:
+    #         self._mmc.setChannelGroup(guessed_channel_list[0])
+    #     else:
+    #          # if guessed_channel_list has more than 1 possible channel group,
+    #          # you can select the correct one through a combobox
+    #          obj = SelectDeviceFromCombobox(
+    #              guessed_channel_list,
+    #              self._set_objective_device,
+    #              "Select Objective Device:",
+    #              self,
+    #          )
+    #          obj.show()
+
+    # def _set_channel_group(self, guessed_channel_list: list):
+
+    #     if channel_group is None:
+    #         channel_group = self._get_channel_group()
+    #     if channel_group:
+    #         channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+    #         with blockSignals(self.snap_channel_comboBox):
+    #             self.snap_channel_comboBox.clear()
+    #             self.snap_channel_comboBox.addItems(channel_list)
+    #             self.snap_channel_comboBox.setCurrentText(
+    #                 self._mmc.getCurrentConfig("Channel")
+    #             )
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
