@@ -338,7 +338,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # if it does't match, px size is set to 0.0
 
     def _set_objective_device(self, obj_devices: list):
-
         # check if there is a configuration group for the objectives
         for cfg_groups in self._mmc.getAvailableConfigGroups():
             # e.g. ('Camera', 'Channel', 'Objectives')
@@ -349,7 +348,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 cfg_groups, options[0]
             )  # first group option e.g. TiNosePiece: State=1
 
-            device = [k for idx, k in enumerate(cfg_keys.dict().keys()) if idx == 0][
+            device = [key[0] for idx, key in enumerate(cfg_keys) if idx == 0][
                 0
             ]  # get the device name e.g. TiNosePiece
 
