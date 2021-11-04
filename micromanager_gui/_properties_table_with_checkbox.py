@@ -14,6 +14,7 @@ from magicgui.widgets import (
 )
 from pymmcore_plus import DeviceType, PropertyType
 from PyQt5.QtWidgets import QHBoxLayout
+from qtpy import QtWidgets
 from qtpy.QtWidgets import QDialog
 
 from .prop_browser import iter_dev_props
@@ -100,6 +101,7 @@ class PropTable(Table):
         vh.setDefaultSectionSize(24)
         self._visible_dtypes = set(DeviceType)
         self._filter_string = ""
+        self.native.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
     def _update(self):
         data = []
