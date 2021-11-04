@@ -13,9 +13,10 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
+from ._group_and_presets_tab import GroupPresetWidget
 from ._illumination import IlluminationDialog
+from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
-from ._tab_group_and_presets import GroupPresetWidget
 from ._util import blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
@@ -108,12 +109,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         # tab widgets
+        # create groups and presets tab
+        self.groups_and_presets = GroupPresetWidget(self._mmc)
+        self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
+
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
-        self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
-        self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -146,6 +149,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.illumination_Button.clicked.connect(self.illumination)
         self.properties_Button.clicked.connect(self._show_prop_browser)
 
+        self.groups_and_presets.new_btn.clicked.connect(self._create_group_presets)
+
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
@@ -167,6 +172,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         def _on_prop_changed(dev, prop, val):
             logger.debug(f"{dev}.{prop} -> {val}")
 
+        @sig.configSet.connect
+        def cgf_set(groupName: str, configName: str):
+            print(f"CONFIG SET -> {groupName}-{configName}")
+
+        @sig.channelGroupChanged.connect
+        def _on_ch_changed(channelgroup: str):
+            print(f"Channel Group -> {channelgroup}")
+
     def illumination(self):
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationDialog(self._mmc, self)
@@ -176,10 +189,17 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb = PropBrowser(self._mmc, self)
         pb.exec()
 
+    def _create_group_presets(self):
+        if not hasattr(self, "_gp_ps_widget"):
+            self._gp_ps_widget = GroupConfigurations(self._mmc, self)
+        self._gp_ps_widget.show()
+        self._gp_ps_widget.create_btn.clicked.connect(
+            self.groups_and_presets._add_to_table
+        )
+
+    #######################
+
     def _on_config_set(self, groupName: str, configName: str):
-
-        print(f"ON CONFIG CHANGED -> {groupName}-{configName}")
-
         if groupName == self._get_channel_group():
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.setCurrentText(configName)
@@ -358,6 +378,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
+    #######################
+
     def _get_channel_group(self) -> str | None:
         """
         Get channelGroup falling back to Channel if not set, also
@@ -370,6 +392,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if chan_group in self._mmc.getAvailableConfigGroups():
             return chan_group
 
+    #######################
     def _channel_changed(self, newChannel: str):
         self._mmc.setConfig(self._get_channel_group(), newChannel)
 

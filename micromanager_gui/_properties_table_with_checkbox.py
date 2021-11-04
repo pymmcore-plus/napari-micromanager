@@ -1,12 +1,22 @@
 from dataclasses import dataclass
 from typing import Any, Sequence
 
-from magicgui.widgets import CheckBox, Container, LineEdit, PushButton, Table, Widget
+from magicgui.widgets import (
+    CheckBox,
+    ComboBox,
+    Container,
+    FloatSlider,
+    LineEdit,
+    PushButton,
+    Slider,
+    Table,
+    Widget,
+)
 from pymmcore_plus import DeviceType, PropertyType
 from PyQt5.QtWidgets import QHBoxLayout
 from qtpy.QtWidgets import QDialog
 
-from .prop_browser import get_editor_widget, iter_dev_props
+from .prop_browser import iter_dev_props
 
 TABLE_INDEX_LIST = []
 
@@ -38,6 +48,28 @@ class PropertyItem:
     upper_lim: float
     prop_type: PropertyType
     allowed: Sequence[str]
+
+
+def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
+    if prop.allowed:
+        return ComboBox(value=prop.value, choices=prop.allowed)
+    elif prop.has_range:
+        if PropertyType(prop.prop_type).name == "Float":
+            return FloatSlider(
+                value=float(prop.value),
+                min=float(prop.lower_lim),
+                max=float(prop.upper_lim),
+                label=f"{prop.device} {prop.name}",
+            )
+        else:
+            return Slider(
+                value=int(prop.value),
+                min=int(prop.lower_lim),
+                max=int(prop.upper_lim),
+                label=f"{prop.device} {prop.name}",
+            )
+    else:
+        return LineEdit(value=prop.value)
 
 
 def create_group_checkboxes(pt: Table, index: int) -> Widget:
@@ -121,14 +153,16 @@ class GroupConfigurations(QDialog):
             widgets=[self.group_le, self.preset_le], labels=True, layout="horizontal"
         )
 
-        self.btn = PushButton(text="Create/Edit")
+        self.create_btn = PushButton(text="Create/Edit")
 
         # connect
         self.le.changed.connect(self._on_le_change)
-        self.btn.clicked.connect(self._create_group)
+        self.create_btn.clicked.connect(self._create_group_and_preset)
 
         self._container = Container(
-            layout="vertical", widgets=[table, group_preset, self.btn], labels=False
+            layout="vertical",
+            widgets=[table, group_preset, self.create_btn],
+            labels=False,
         )
         self._container.margins = 0, 0, 0, 0
         self.setLayout(QHBoxLayout())
@@ -138,7 +172,7 @@ class GroupConfigurations(QDialog):
     def _on_le_change(self, value: str):
         self.pt.filter_string = value
 
-    def _create_group(self):
+    def _create_group_and_preset(self):
         group_name = self.group_le.value
         preset_name = self.preset_le.value
 

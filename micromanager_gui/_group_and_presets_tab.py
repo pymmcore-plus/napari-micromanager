@@ -15,13 +15,13 @@ from magicgui.widgets import (
 from PyQt5.QtWidgets import QHBoxLayout
 from qtpy import QtWidgets as QtW
 
-from ._properties_table_with_checkbox import GroupConfigurations
+# from ._properties_table_with_checkbox import GroupConfigurations
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 
-WDG_TYPE = ["FloatSlider", "Slider" "LineEdit"]
+WDG_TYPE = (FloatSlider, Slider, LineEdit)
 
 
 class MainTable(Table):
@@ -34,6 +34,7 @@ class MainTable(Table):
         vh.setVisible(False)
         vh.setSectionResizeMode(vh.Fixed)
         vh.setDefaultSectionSize(24)
+        self.native.setEditTriggers(QtW.QTableWidget.NoEditTriggers)
 
 
 class GroupPresetWidget(QtW.QWidget):
@@ -49,9 +50,10 @@ class GroupPresetWidget(QtW.QWidget):
         self.tb.show()
 
         self.new_btn = PushButton(text="New")
-        self.new_btn.clicked.connect(self._open_create_gp_ps)
         self.edit_btn = PushButton(text="Edit")
+        # self.edit_btn.clicked.connect(self._edit_group_presets)
         self.delete_btn = PushButton(text="Delete")
+        # self.delete_btn.clicked.connect(self._delete_group_presets)
         buttons = Container(
             widgets=[self.new_btn, self.edit_btn, self.delete_btn],
             labels=False,
@@ -68,43 +70,29 @@ class GroupPresetWidget(QtW.QWidget):
 
         self._add_to_table()
 
-        # @sig.propertyChanged.connect
-        # def _on_p_c(dev, prop, val):
-        #     print('PROP CHANGED - tb!')
-        #     logger.debug(f"{dev}.{prop} -> {val}")
-
-    def _open_create_gp_ps(self):
-        self._gp_ps_widget = GroupConfigurations(self._mmc, self)
-        self._gp_ps_widget.show()
-        self._gp_ps_widget.btn.clicked.connect(self._add_to_table)
-
     def _add_to_table(self):
         groups = self._mmc.getAvailableConfigGroups()
         data = []
-        cashed_settings = []
         for group in groups:
             presets = self._mmc.getAvailableConfigs(group)
             wdg = self._set_widget(group, presets)
-            if wdg.name in WDG_TYPE:
-                current_setting = self._mmc.getPropertyFromCache(
+            data.append([group, wdg])
+        self.tb.value = {"data": data, "index": [], "columns": ["Groups", "Presets"]}
+
+        self._update_group_table_status()
+
+    def _update_group_table_status(self):
+
+        for row in range(self.tb.shape[0]):
+
+            group, wdg = self.tb.data[row]
+
+            if isinstance(wdg, WDG_TYPE):
+                preset = self._mmc.getPropertyFromCache(
                     wdg.annotation[0], wdg.annotation[1]
                 )
-            else:
-                current_setting = self._mmc.getCurrentConfigFromCache(group)
-            cashed_settings.append((group, current_setting, wdg))
-            data.append([group, wdg])
-        self.tb.value = {
-            "data": data,
-            "index": [],
-            "columns": ["Groups", "Presets"],
-        }
-        for s in cashed_settings:
-            group, preset, wdg = s
-            if preset:
-                if wdg.name == "ComboBox":
-                    self._mmc.setConfig(group, preset)
-                    wdg.value = preset
-                else:
+
+                if preset:
                     dev, prop = wdg.annotation
                     if wdg.name == "Slider":
                         val = int(preset)
@@ -114,6 +102,12 @@ class GroupPresetWidget(QtW.QWidget):
                         val = str(preset)
                     wdg.value = val
                     self._mmc.setProperty(dev, prop, val)
+
+            else:
+                preset = self._mmc.getCurrentConfigFromCache(group)
+                if preset:
+                    wdg.value = preset
+                    self._mmc.setConfig(group, preset)
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
