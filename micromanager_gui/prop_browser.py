@@ -13,6 +13,7 @@ from magicgui.widgets import (
 )
 from pymmcore_plus import DeviceType, PropertyType
 from PyQt5.QtWidgets import QHBoxLayout
+from qtpy import QtWidgets
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog
 
@@ -82,6 +83,7 @@ class PropTable(Table):
         self._visible_dtypes = set(DeviceType)
         self._filter_string = ""
         self._show_read_only = True
+        self.native.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
     def _update(self):
         data = []
