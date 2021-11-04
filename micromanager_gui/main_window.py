@@ -17,7 +17,12 @@ from ._group_and_presets_tab import GroupPresetWidget
 from ._illumination import IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import (
+    SelectDeviceFromCombobox,
+    blockSignals,
+    event_indices,
+    extend_array_for_index,
+)
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
@@ -105,6 +110,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer = viewer
         self.streaming_timer = None
 
+        self.objectives_device = None
+        self.objectives_cfg = None
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -180,6 +188,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         def _on_ch_changed(channelgroup: str):
             print(f"Channel Group -> {channelgroup}")
 
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"\ncurrent pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
+            )
+
     def illumination(self):
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationDialog(self._mmc, self)
@@ -196,8 +211,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._gp_ps_widget.create_btn.clicked.connect(
             self.groups_and_presets._add_to_table
         )
-
-    #######################
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._get_channel_group():
@@ -298,6 +311,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.clear()
         self.snap_channel_comboBox.clear()
 
+        self.objectives_device = None
+        self.objectives_cfg = None
+
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
         self.max_min_val_label.setText("None")
@@ -331,14 +347,86 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
+    def set_pixel_size(self):
+        # if pixel size is already set -> return
+        if bool(self._mmc.getCurrentPixelSizeConfig()):
+            return
+        # if not, create and store a new pixel size config for the current objective.
+        curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
+        # get magnification info from the current objective label
+        match = re.search(r"(\d{1,3})[xX]", curr_obj)
+        if match:
+            mag = int(match.groups()[0])
+            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            px_cgf_name = f"px_size_{curr_obj}"
+            # set image pixel sixe (x,y) for the newly created pixel size config
+            self._mmc.definePixelSizeConfig(
+                px_cgf_name, self.objectives_device, "Label", curr_obj
+            )
+            self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
+            self._mmc.setPixelSizeConfig(px_cgf_name)
+        # if it does't match, px size is set to 0.0
+
+    def _set_objective_device(self, obj_devices: list):
+        # check if there is a configuration group for the objectives
+        for cfg_groups in self._mmc.getAvailableConfigGroups():
+            # e.g. ('Camera', 'Channel', 'Objectives')
+
+            options = self._mmc.getAvailableConfigs(cfg_groups)
+
+            cfg_keys = self._mmc.getConfigData(
+                cfg_groups, options[0]
+            )  # first group option e.g. TiNosePiece: State=1
+
+            device = [key[0] for idx, key in enumerate(cfg_keys) if idx == 0][
+                0
+            ]  # get the device name e.g. TiNosePiece
+
+            if device == obj_devices[0]:
+                self.objectives_device = device
+                self.objectives_cfg = cfg_groups
+                current_cfg = self._mmc.getCurrentConfig(self.objectives_device)
+                with blockSignals(self.objective_comboBox):
+                    self.objective_comboBox.clear()
+                    self.objective_comboBox.addItems(options)
+                    self.objective_comboBox.setCurrentText(current_cfg)
+                    self.set_pixel_size()
+                    return
+
+        # if not, use the labels to populate the objective combobox
+        self.objectives_device = obj_devices[0]
+        with blockSignals(self.objective_comboBox):
+            self.objective_comboBox.clear()
+            self.objective_comboBox.addItems(
+                self._mmc.getStateLabels(self.objectives_device)
+            )
+            self.objective_comboBox.setCurrentIndex(
+                self._mmc.getState(self.objectives_device)
+            )
+
+            self.set_pixel_size()
+            return
+
     def _refresh_objective_options(self):
-        if "Objective" in self._mmc.getLoadedDevices():
-            with blockSignals(self.objective_comboBox):
-                self.objective_comboBox.clear()
-                self.objective_comboBox.addItems(self._mmc.getStateLabels("Objective"))
-                self.objective_comboBox.setCurrentText(
-                    self._mmc.getStateLabel("Objective")
-                )
+
+        obj_dev_list = self._mmc.guessObjectiveDevices()
+        # e.g. ['TiNosePiece']
+
+        if not obj_dev_list:
+            return
+
+        if len(obj_dev_list) == 1:
+            self._set_objective_device(obj_dev_list)
+        else:
+            # if obj_dev_list has more than 1 possible objective device,
+            # you can select the correct one through a combobox
+            obj = SelectDeviceFromCombobox(
+                obj_dev_list,
+                self._set_objective_device,
+                "Select Objective Device:",
+                self,
+            )
+            obj.show()
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
@@ -448,33 +536,29 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.objective_comboBox.count() <= 0:
             return
 
+        if self.objectives_device == "":
+            return
+
         zdev = self._mmc.getFocusDevice()
 
         currentZ = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
-        self._mmc.setProperty(
-            "Objective", "Label", self.objective_comboBox.currentText()
-        )
-        self._mmc.waitForDevice("Objective")
+
+        try:
+            self._mmc.setConfig(
+                self.objectives_cfg, self.objective_comboBox.currentText()
+            )
+        except ValueError:
+            self._mmc.setProperty(
+                self.objectives_device, "Label", self.objective_comboBox.currentText()
+            )
+
+        self._mmc.waitForDevice(self.objectives_device)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
-        # define and set pixel size Config
-        self._mmc.deletePixelSizeConfig(self._mmc.getCurrentPixelSizeConfig())
-        curr_obj_name = self._mmc.getProperty("Objective", "Label")
-        self._mmc.definePixelSizeConfig(curr_obj_name)
-        self._mmc.setPixelSizeConfig(curr_obj_name)
-
-        # get magnification info from the objective name
-        # and set image pixel sixe (x,y) for the current pixel size Config
-        match = re.search(r"(\d{1,3})[xX]", curr_obj_name)
-        if match:
-            mag = int(match.groups()[0])
-            self.image_pixel_size = self.px_size_doubleSpinBox.value() / mag
-            self._mmc.setPixelSizeUm(
-                self._mmc.getCurrentPixelSizeConfig(), self.image_pixel_size
-            )
+        self.set_pixel_size()
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
