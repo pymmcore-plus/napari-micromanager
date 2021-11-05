@@ -188,11 +188,14 @@ class GroupPresetWidget(QtW.QWidget):
         for row_idx in sorted(selected_rows, reverse=True):
             self.tb.native.removeRow(row_idx)
 
-    def _delete_selected_preset(self):
+    def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
         for row_idx in sorted(selected_rows, reverse=True):
             wdg = self.tb.data[row_idx, 1]  # [r, c]
             if isinstance(wdg, ComboBox):
-                wdg.del_choice(wdg.value)
+                if len(wdg.choices) == 1:
+                    self.tb.native.removeRow(row_idx)
+                else:
+                    wdg.del_choice(wdg.value)
             else:
                 self.tb.native.removeRow(row_idx)
