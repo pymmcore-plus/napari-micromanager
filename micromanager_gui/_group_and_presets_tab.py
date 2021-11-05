@@ -184,7 +184,9 @@ class GroupPresetWidget(QtW.QWidget):
         return wdg
 
     def _delete_selected_group(self):
-        pass
+        selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
+        for row_idx in sorted(selected_rows, reverse=True):
+            self.tb.native.removeRow(row_idx)
 
     def _delete_selected_preset(self):
         pass
