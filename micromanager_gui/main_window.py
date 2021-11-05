@@ -119,7 +119,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
-        self.tabWidget.currentChanged.connect(self._on_group_tab)
+        # self.tabWidget.currentChanged.connect(self._on_group_tab)
 
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
@@ -159,9 +159,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets.new_btn.clicked.connect(
             self._create_edit_group_presets
         )  # + group/preset
-        # self.groups_and_presets.edit_btn.clicked.connect(
-        #     self._edit_group_presets
-        # )  # edit group/preset
+        self.groups_and_presets.edit_btn.clicked.connect(
+            self._create_edit_group_presets
+        )  # edit group/preset
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -214,10 +214,25 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb.exec()
 
     def _create_edit_group_presets(self):
+        which_button = self.sender().text()
         if not hasattr(self, "_gp_ps_widget"):
             self._gp_ps_widget = GroupConfigurations(self._mmc, self)
-        self._gp_ps_widget.show()
-        self._gp_ps_widget._reset_comboboxes()
+
+        if which_button == "New Group/Preset":
+            self._gp_ps_widget._reset_comboboxes()
+            self._gp_ps_widget.show()
+
+        elif which_button == "Edit Group/Preset":
+            self._gp_ps_widget._reset_comboboxes()
+            (
+                group,
+                preset,
+                _to_find,
+            ) = self.groups_and_presets._edit_selected_group_preset()
+            self._gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
+            self._gp_ps_widget.show()  # -> here is duplicated because the widget
+            # doesn't have to show if there is a warning from the methods above
+
         self._gp_ps_widget.create_btn.clicked.connect(
             self.groups_and_presets._add_to_table
         )

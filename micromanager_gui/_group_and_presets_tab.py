@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any
 
 from magicgui.widgets import (
@@ -199,3 +200,22 @@ class GroupPresetWidget(QtW.QWidget):
                     wdg.del_choice(wdg.value)
             else:
                 self.tb.native.removeRow(row_idx)
+
+    def _edit_selected_group_preset(self):
+        selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
+
+        if not selected_row or len(selected_row) > 1:
+            warnings.warn()
+            return
+
+        groupname = self.tb.data[selected_row[0], 0]  # [r, c]
+        wdg = self.tb.data[selected_row[0], 1]
+
+        curr_preset = wdg.value
+
+        item_to_find_list = [
+            f"{key[0]}-{key[1]}"
+            for key in self._mmc.getConfigData(groupname, curr_preset)
+        ]
+
+        return groupname, curr_preset, item_to_find_list

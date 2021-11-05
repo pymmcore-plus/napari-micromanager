@@ -13,6 +13,7 @@ from magicgui.widgets import (
     Widget,
 )
 from pymmcore_plus import DeviceType, PropertyType
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout
 from qtpy import QtWidgets
 from qtpy.QtWidgets import QDialog
@@ -176,16 +177,6 @@ class GroupConfigurations(QDialog):
         self.setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._container.native)
 
-    def _reset_comboboxes(self):
-        for r in range(self.pt.shape[0]):
-            print(self.pt.data[r])
-            _, combobox, _, _ = self.pt.data[r]
-            print(combobox)
-            print(combobox.value)
-            if combobox.value:
-                combobox.value = False
-            print()
-
     def _on_le_change(self, value: str):
         self.pt.filter_string = value
 
@@ -212,3 +203,31 @@ class GroupConfigurations(QDialog):
             val = wdg.value
 
             self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
+
+    def _reset_comboboxes(self):
+        self._filter_string = ""
+        for r in range(self.pt.shape[0]):
+            _, combobox, _, _ = self.pt.data[r]
+            if combobox.value:
+                combobox.value = False
+
+    def _set_checkboxes_status(
+        self, groupname: str, presetname: str, item_to_find_list: list
+    ):
+        self.group_le.value = groupname
+        self.preset_le.value = presetname
+
+        if not item_to_find_list:
+            return
+
+        matched_item_row = []
+        for item_to_find in item_to_find_list:
+            matching_items = self.pt.native.findItems(item_to_find, Qt.MatchContains)
+            matched_item_row.append(matching_items[0].row())
+
+        if not matched_item_row:
+            return
+
+        for row in matched_item_row:
+            wdg = self.pt.data[row, 1]
+            wdg.value = True
