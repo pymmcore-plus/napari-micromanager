@@ -49,13 +49,20 @@ class GroupPresetWidget(QtW.QWidget):
         self.tb.column_headers = ("Groups", "Presets")
         self.tb.show()
 
-        self.new_btn = PushButton(text="New")
-        self.edit_btn = PushButton(text="Edit")
-        # self.edit_btn.clicked.connect(self._edit_group_presets)
-        self.delete_btn = PushButton(text="Delete")
-        # self.delete_btn.clicked.connect(self._delete_group_presets)
+        self.new_btn = PushButton(text="New Group/Preset")
+        self.edit_btn = PushButton(text="Edit Group/Preset")
+        self.delete_gp_btn = PushButton(text="- Group")
+        self.delete_gp_btn.clicked.connect(self._delete_selected_group)
+        self.delete_ps_btn = PushButton(text="- Preset")
+        self.delete_ps_btn.clicked.connect(self._delete_selected_preset)
+
         buttons = Container(
-            widgets=[self.new_btn, self.edit_btn, self.delete_btn],
+            widgets=[
+                self.new_btn,
+                self.edit_btn,
+                self.delete_gp_btn,
+                self.delete_ps_btn,
+            ],
             labels=False,
             layout="horizontal",
         )
@@ -136,33 +143,30 @@ class GroupPresetWidget(QtW.QWidget):
         if len(presets) > 1:
             wdg = ComboBox(choices=presets, name="ComboBox", annotation=[dev, prop])
         else:
-            if count > 1:
+            if count > 1 or self._mmc.getAllowedPropertyValues(dev, prop):
                 wdg = ComboBox(choices=presets, name="ComboBox", annotation=[dev, prop])
-            else:
-                if self._mmc.hasPropertyLimits(dev, prop):
-                    val_type = self._mmc.getPropertyLowerLimit(dev, prop)
-                    if isinstance(val_type, float):
-                        wdg = FloatSlider(
-                            value=float(val),
-                            min=float(self._mmc.getPropertyLowerLimit(dev, prop)),
-                            max=float(self._mmc.getPropertyUpperLimit(dev, prop)),
-                            label=str(prop),
-                            name="FloatSlider",
-                            annotation=[dev, prop],
-                        )
-                    else:
-                        wdg = Slider(
-                            value=int(val),
-                            min=int(self._mmc.getPropertyLowerLimit(dev, prop)),
-                            max=int(self._mmc.getPropertyUpperLimit(dev, prop)),
-                            label=str(prop),
-                            name="Slider",
-                            annotation=[dev, prop],
-                        )
-                else:
-                    wdg = LineEdit(
-                        value=str(val), name="LineEdit", annotation=[dev, prop]
+            elif self._mmc.hasPropertyLimits(dev, prop):
+                val_type = self._mmc.getPropertyLowerLimit(dev, prop)
+                if isinstance(val_type, float):
+                    wdg = FloatSlider(
+                        value=float(val),
+                        min=float(self._mmc.getPropertyLowerLimit(dev, prop)),
+                        max=float(self._mmc.getPropertyUpperLimit(dev, prop)),
+                        label=str(prop),
+                        name="FloatSlider",
+                        annotation=[dev, prop],
                     )
+                else:
+                    wdg = Slider(
+                        value=int(val),
+                        min=int(self._mmc.getPropertyLowerLimit(dev, prop)),
+                        max=int(self._mmc.getPropertyUpperLimit(dev, prop)),
+                        label=str(prop),
+                        name="Slider",
+                        annotation=[dev, prop],
+                    )
+            else:
+                wdg = LineEdit(value=str(val), name="LineEdit", annotation=[dev, prop])
 
         @wdg.changed.connect
         def _on_change(value: Any):
@@ -178,3 +182,9 @@ class GroupPresetWidget(QtW.QWidget):
                 self._mmc.setProperty(dev, prop, v)
 
         return wdg
+
+    def _delete_selected_group(self):
+        pass
+
+    def _delete_selected_preset(self):
+        pass

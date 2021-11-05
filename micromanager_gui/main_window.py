@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -156,7 +155,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.illumination_Button.clicked.connect(self.illumination)
         self.properties_Button.clicked.connect(self._show_prop_browser)
 
-        self.groups_and_presets.new_btn.clicked.connect(self._create_group_presets)
+        # connect for GroupPresetWidget
+        self.groups_and_presets.new_btn.clicked.connect(
+            self._create_edit_group_presets
+        )  # + group/preset
+        # self.groups_and_presets.edit_btn.clicked.connect(
+        #     self._edit_group_presets
+        # )  # edit group/preset
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -175,9 +180,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @sig.propertyChanged.connect
-        def _on_prop_changed(dev, prop, val):
-            logger.debug(f"{dev}.{prop} -> {val}")
+        # @sig.propertyChanged.connect
+        # def _on_prop_changed(dev, prop, val):
+        #     logger.debug(f"{dev}.{prop} -> {val}")
 
         @sig.configSet.connect
         def _on_cfg_set(group: str, preset: str):
@@ -185,21 +190,19 @@ class MainWindow(QtW.QWidget, _MainUI):
             # channel combobox
             channel_group = self._mmc.getChannelGroup()
             if channel_group == group:
-                self.snap_channel_comboBox.setCurrentText(
-                    self._mmc.getCurrentConfig(channel_group)
-                )
+                self.snap_channel_comboBox.setCurrentText(preset)
             # Camera
             self._refresh_camera_options()
             # Objective
             if self.objectives_cfg and group == self.objectives_cfg:
                 self.objective_comboBox.setCurrentText(preset)
 
-        @sig.pixelSizeChanged.connect
-        def _on_px_size_changed(value):
-            logger.debug(
-                f"current pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-            )
+        # @sig.pixelSizeChanged.connect
+        # def _on_px_size_changed(value):
+        #     logger.debug(
+        #         f"current pixel config: "
+        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+        #     )
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -210,10 +213,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb = PropBrowser(self._mmc, self)
         pb.exec()
 
-    def _create_group_presets(self):
+    def _create_edit_group_presets(self):
         if not hasattr(self, "_gp_ps_widget"):
             self._gp_ps_widget = GroupConfigurations(self._mmc, self)
         self._gp_ps_widget.show()
+        self._gp_ps_widget._reset_comboboxes()
         self._gp_ps_widget.create_btn.clicked.connect(
             self.groups_and_presets._add_to_table
         )

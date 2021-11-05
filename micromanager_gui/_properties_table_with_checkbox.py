@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from magicgui.widgets import (
     CheckBox,
@@ -18,6 +18,9 @@ from qtpy import QtWidgets
 from qtpy.QtWidgets import QDialog
 
 from .prop_browser import iter_dev_props
+
+if TYPE_CHECKING:
+    from pymmcore_plus import RemoteMMCore
 
 TABLE_INDEX_LIST = []
 
@@ -51,7 +54,7 @@ class PropertyItem:
     allowed: Sequence[str]
 
 
-def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
+def get_editor_widget(prop: PropertyItem) -> Widget:
     if prop.allowed:
         return ComboBox(value=prop.value, choices=prop.allowed)
     elif prop.has_range:
@@ -60,17 +63,17 @@ def get_editor_widget(prop: PropertyItem, mmc) -> Widget:
                 value=float(prop.value),
                 min=float(prop.lower_lim),
                 max=float(prop.upper_lim),
-                label=f"{prop.device} {prop.name}",
+                name=f"{prop.device}, {prop.name}",
             )
         else:
             return Slider(
                 value=int(prop.value),
                 min=int(prop.lower_lim),
                 max=int(prop.upper_lim),
-                label=f"{prop.device} {prop.name}",
+                name=f"{prop.device}, {prop.name}",
             )
     else:
-        return LineEdit(value=prop.value)
+        return LineEdit(value=prop.value, name=f"{prop.device}, {prop.name}")
 
 
 def create_group_checkboxes(pt: Table, index: int) -> Widget:
@@ -89,7 +92,7 @@ def create_group_checkboxes(pt: Table, index: int) -> Widget:
 
 
 class PropTable(Table):
-    def __init__(self, mmcore) -> None:
+    def __init__(self, mmcore: "RemoteMMCore") -> None:
         super().__init__()
         self.mmcore = mmcore
         self._update()
@@ -109,7 +112,7 @@ class PropTable(Table):
         for p in iter_dev_props(self.mmcore):
             if p.read_only:
                 continue
-            val = get_editor_widget(p, self.mmcore)
+            val = get_editor_widget(p)
             c_box = create_group_checkboxes(self, row_index)
             data.append([int(p.dev_type), c_box, f"{p.device}-{p.name}", val])
             row_index += 1
@@ -138,7 +141,7 @@ class PropTable(Table):
 
 
 class GroupConfigurations(QDialog):
-    def __init__(self, mmcore=None, parent=None):
+    def __init__(self, mmcore: "RemoteMMCore", parent=None):
         super().__init__(parent)
         self._mmcore = mmcore
         self.pt = PropTable(self._mmcore)
@@ -156,20 +159,32 @@ class GroupConfigurations(QDialog):
         )
 
         self.create_btn = PushButton(text="Create/Edit")
+        self.clear_checkboxes_btn = PushButton(text="Clear")
 
         # connect
         self.le.changed.connect(self._on_le_change)
         self.create_btn.clicked.connect(self._create_group_and_preset)
+        self.clear_checkboxes_btn.clicked.connect(self._reset_comboboxes)
 
         self._container = Container(
             layout="vertical",
-            widgets=[table, group_preset, self.create_btn],
+            widgets=[table, group_preset, self.create_btn, self.clear_checkboxes_btn],
             labels=False,
         )
         self._container.margins = 0, 0, 0, 0
         self.setLayout(QHBoxLayout())
         self.setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._container.native)
+
+    def _reset_comboboxes(self):
+        for r in range(self.pt.shape[0]):
+            print(self.pt.data[r])
+            _, combobox, _, _ = self.pt.data[r]
+            print(combobox)
+            print(combobox.value)
+            if combobox.value:
+                combobox.value = False
+            print()
 
     def _on_le_change(self, value: str):
         self.pt.filter_string = value
@@ -190,10 +205,10 @@ class GroupConfigurations(QDialog):
             self._mmcore.deleteConfig(group_name, preset_name)
 
         for r in TABLE_INDEX_LIST:
-            ls = self.pt._get_rowi(r)
-            _split = ls[2].split("-")
+            _, _, dev_prop, wdg = self.pt.data[r]
+            _split = dev_prop.split("-")
             dev = _split[0]
             prop = _split[1]
-            val = ls[3].value
+            val = wdg.value
 
             self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
