@@ -214,14 +214,15 @@ class GroupPresetWidget(QtW.QWidget):
         wdg = self.tb.data[selected_row[0], 1]
 
         try:
-            item_to_find_list = self._to_item_to_find_list(groupname, wdg.value)
+            curr_preset = wdg.value
+            item_to_find_list = self._create_item_to_find_list(groupname, curr_preset)
         except ValueError:
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
-            item_to_find_list = self._to_item_to_find_list(groupname, curr_preset)
+            item_to_find_list = self._create_item_to_find_list(groupname, curr_preset)
 
         return groupname, curr_preset, item_to_find_list
 
-    def _to_item_to_find_list(self, groupname, _to_find):
+    def _create_item_to_find_list(self, groupname, _to_find):
         return [
             f"{key[0]}-{key[1]}" for key in self._mmc.getConfigData(groupname, _to_find)
         ]

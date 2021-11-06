@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
 
+from magicgui import magicgui
 from magicgui.widgets import (
     CheckBox,
     ComboBox,
@@ -13,9 +14,9 @@ from magicgui.widgets import (
     Widget,
 )
 from pymmcore_plus import DeviceType, PropertyType
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout
 from qtpy import QtWidgets
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog
 
 from .prop_browser import iter_dev_props
@@ -123,6 +124,14 @@ class PropTable(Table):
         }
         self.native.hideColumn(0)
 
+    def set_dtype_visibility(self, dtype: DeviceType, visible: bool):
+        _dtype = dtype if isinstance(dtype, (list, tuple)) else (dtype,)
+        if visible:
+            self._visible_dtypes.update(_dtype)
+        else:
+            self._visible_dtypes.difference_update(_dtype)
+        self._refresh_visibilty()
+
     def _refresh_visibilty(self):
         for i, (dtype, _, prop, _) in enumerate(self.data):
             if dtype in self._visible_dtypes and self.filter_string in prop.lower():
@@ -140,17 +149,46 @@ class PropTable(Table):
         self._refresh_visibilty()
 
 
+def make_checkboxes(pt):
+    c = Container(labels=False)
+    dt = [
+        ("cameras", DeviceType.CameraDevice),
+        ("shutters", DeviceType.ShutterDevice),
+        ("stages", DeviceType.StageDevice),
+        ("wheels, turrets, etc.", DeviceType.StateDevice),
+        ("other devices", OTHER_DEVICES),
+    ]
+    for label, dtype in dt:
+
+        @magicgui(auto_call=True, dt={"bind": dtype}, vis={"label": label})
+        def toggle(vis: bool = True, dt=None):
+            pt.set_dtype_visibility(dt, visible=vis)
+
+        toggle.name = label[:2]
+        c.append(toggle)
+
+    return c
+
+
 class GroupConfigurations(QDialog):
     def __init__(self, mmcore: "RemoteMMCore", parent=None):
         super().__init__(parent)
         self._mmcore = mmcore
         self.pt = PropTable(self._mmcore)
         self.pt.min_width = 550
+        self.pt.show()
 
         self.le = LineEdit(label="Filter:")
         self.le.native.setPlaceholderText("Filter...")
         table = Container(widgets=[self.le, self.pt], labels=False)
-        self.pt.show()
+
+        self.cb = make_checkboxes(self.pt)
+        self.cb.native.layout().addStretch()
+        self.cb.native.layout().setSpacing(0)
+        self.cb.show()
+        c_box_tb = Container(
+            layout="horizontal", widgets=[self.cb, table], labels=False
+        )
 
         self.group_le = LineEdit(label="Group:")
         self.preset_le = LineEdit(label="Preset")
@@ -168,7 +206,12 @@ class GroupConfigurations(QDialog):
 
         self._container = Container(
             layout="vertical",
-            widgets=[table, group_preset, self.create_btn, self.clear_checkboxes_btn],
+            widgets=[
+                c_box_tb,
+                group_preset,
+                self.create_btn,
+                self.clear_checkboxes_btn,
+            ],
             labels=False,
         )
         self._container.margins = 0, 0, 0, 0
@@ -230,3 +273,29 @@ class GroupConfigurations(QDialog):
         for row in matched_item_row:
             wdg = self.pt.data[row, 1]
             wdg.value = True
+
+
+class PropBroGroupConfigurationswser(QDialog):
+    def __init__(self, mmcore=None, parent=None):
+        super().__init__(parent)
+        self.pt = PropTable(mmcore)
+        self.le = LineEdit(label="Filter:")
+        self.le.native.setPlaceholderText("Filter...")
+        self.le.changed.connect(self._on_le_change)
+        right = Container(widgets=[self.le, self.pt], labels=False)
+
+        self.cb = make_checkboxes(self.pt)
+        self.cb.native.layout().addStretch()
+        self.cb.native.layout().setSpacing(0)
+        self.pt.show()
+        self.cb.show()
+        self._container = Container(
+            layout="horizontal", widgets=[self.cb, right], labels=False
+        )
+        self._container.margins = 0, 0, 0, 0
+        self.setLayout(QHBoxLayout())
+        self.setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(self._container.native)
+
+    def _on_le_change(self, value: str):
+        self.pt.filter_string = value
