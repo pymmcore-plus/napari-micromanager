@@ -202,9 +202,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             if self.objectives_cfg and group == self.objectives_cfg:
                 self.objective_comboBox.setCurrentText(preset)
 
-        # @sig.configGroupChanged.connect
-        # def _on_gp_changed(group: str, preset: str):
-        # print(f"[main] Group cfg changed: {group} -> {preset}")
+        @sig.configGroupChanged.connect
+        def _on_gp_changed(group: str, preset: str):
+            print(f"[main] Group cfg changed: {group} -> {preset}")
 
         # @sig.pixelSizeChanged.connect
         # def _on_px_size_changed(value):
