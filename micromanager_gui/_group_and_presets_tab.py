@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, Any
 
 from magicgui.widgets import (
@@ -114,11 +113,11 @@ class GroupPresetWidget(QtW.QWidget):
 
                 if preset:
                     dev, prop = wdg.annotation
-                    if wdg.name == "Slider":
+                    if isinstance(wdg, Slider):
                         val = int(preset)
-                    elif wdg.name == "FloatSlider":
+                    elif isinstance(wdg, FloatSlider):
                         val = float(preset)
-                    elif wdg.name == "LineEdit":
+                    elif isinstance(wdg, LineEdit):
                         val = str(preset)
                     wdg.value = val
                     self._mmc.setProperty(dev, prop, val)
@@ -142,10 +141,12 @@ class GroupPresetWidget(QtW.QWidget):
         dev, prop, val, count = self._get_cfg_data(group, presets[0])
 
         if len(presets) > 1:
-            wdg = ComboBox(choices=presets, name="ComboBox", annotation=[dev, prop])
+            wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[dev, prop])
         else:
             if count > 1 or self._mmc.getAllowedPropertyValues(dev, prop):
-                wdg = ComboBox(choices=presets, name="ComboBox", annotation=[dev, prop])
+                wdg = ComboBox(
+                    choices=presets, name=f"{presets}", annotation=[dev, prop]
+                )
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
                 if isinstance(val_type, float):
@@ -154,7 +155,7 @@ class GroupPresetWidget(QtW.QWidget):
                         min=float(self._mmc.getPropertyLowerLimit(dev, prop)),
                         max=float(self._mmc.getPropertyUpperLimit(dev, prop)),
                         label=str(prop),
-                        name="FloatSlider",
+                        name=f"{presets}",
                         annotation=[dev, prop],
                     )
                 else:
@@ -163,22 +164,24 @@ class GroupPresetWidget(QtW.QWidget):
                         min=int(self._mmc.getPropertyLowerLimit(dev, prop)),
                         max=int(self._mmc.getPropertyUpperLimit(dev, prop)),
                         label=str(prop),
-                        name="Slider",
+                        name=f"{presets}",
                         annotation=[dev, prop],
                     )
             else:
-                wdg = LineEdit(value=str(val), name="LineEdit", annotation=[dev, prop])
+                wdg = LineEdit(
+                    value=str(val), name=f"{presets}", annotation=[dev, prop]
+                )
 
         @wdg.changed.connect
         def _on_change(value: Any):
-            if wdg.name == "ComboBox":
+            if isinstance(wdg, ComboBox):
                 self._mmc.setConfig(group, value)
             else:
-                if wdg.name == "FloatSlider":
+                if isinstance(wdg, FloatSlider):
                     v = float(value)
-                elif wdg.name == "LineEdit":
+                if isinstance(wdg, LineEdit):
                     v = str(value)
-                elif wdg.name == "Slider":
+                if isinstance(wdg, Slider):
                     v = int(value)
                 self._mmc.setProperty(dev, prop, v)
 
@@ -205,17 +208,20 @@ class GroupPresetWidget(QtW.QWidget):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
 
         if not selected_row or len(selected_row) > 1:
-            warnings.warn()
             return
 
         groupname = self.tb.data[selected_row[0], 0]  # [r, c]
         wdg = self.tb.data[selected_row[0], 1]
 
-        curr_preset = wdg.value
-
-        item_to_find_list = [
-            f"{key[0]}-{key[1]}"
-            for key in self._mmc.getConfigData(groupname, curr_preset)
-        ]
+        try:
+            item_to_find_list = self._to_item_to_find_list(groupname, wdg.value)
+        except ValueError:
+            curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
+            item_to_find_list = self._to_item_to_find_list(groupname, curr_preset)
 
         return groupname, curr_preset, item_to_find_list
+
+    def _to_item_to_find_list(self, groupname, _to_find):
+        return [
+            f"{key[0]}-{key[1]}" for key in self._mmc.getConfigData(groupname, _to_find)
+        ]

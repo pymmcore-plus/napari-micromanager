@@ -87,7 +87,6 @@ def create_group_checkboxes(pt: Table, index: int) -> Widget:
         else:
             idx = TABLE_INDEX_LIST.index(wdg.annotation)
             TABLE_INDEX_LIST.pop(idx)
-        print("ROW: ", TABLE_INDEX_LIST)
 
     return wdg
 
@@ -205,7 +204,7 @@ class GroupConfigurations(QDialog):
             self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
 
     def _reset_comboboxes(self):
-        self._filter_string = ""
+        self.le.value = ""
         for r in range(self.pt.shape[0]):
             _, combobox, _, _ = self.pt.data[r]
             if combobox.value:
