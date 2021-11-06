@@ -264,6 +264,7 @@ class GroupConfigurations(QDialog):
 
         matched_item_row = []
         for item_to_find in item_to_find_list:
+            print(item_to_find)
             matching_items = self.pt.native.findItems(item_to_find, Qt.MatchContains)
             matched_item_row.append(matching_items[0].row())
 

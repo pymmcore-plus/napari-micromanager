@@ -119,7 +119,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
-        # self.tabWidget.currentChanged.connect(self._on_group_tab)
+        self.tabWidget.currentChanged.connect(self._on_group_tab)
 
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
@@ -180,22 +180,31 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        # @sig.propertyChanged.connect
-        # def _on_prop_changed(dev, prop, val):
-        #     logger.debug(f"{dev}.{prop} -> {val}")
+        @sig.propertyChanged.connect
+        def _on_prop_changed(dev, prop, val):
+            # print(f"{dev}.{prop} -> {val}")
+            if dev == self._mmc.getCameraDevice():
+                self._refresh_camera_options
+                self.exp_spinBox.setValue(float(val))  # self._on_exp_change working?
+
+        # @sig.exposureChanged.connect
+        # def _set_exp_combobox(camera_dev: str, exposure: float):
+        #     print(f"{camera_dev} new exp -> {exposure}")
 
         @sig.configSet.connect
         def _on_cfg_set(group: str, preset: str):
-            print(f"[main] New group cfg set: {group} -> {preset}")
-            # channel combobox
+            # print(f"[main] New group cfg set: {group} -> {preset}")
+            # Channels
             channel_group = self._mmc.getChannelGroup()
             if channel_group == group:
                 self.snap_channel_comboBox.setCurrentText(preset)
-            # Camera
-            self._refresh_camera_options()
             # Objective
             if self.objectives_cfg and group == self.objectives_cfg:
                 self.objective_comboBox.setCurrentText(preset)
+
+        # @sig.configGroupChanged.connect
+        # def _on_gp_changed(group: str, preset: str):
+        # print(f"[main] Group cfg changed: {group} -> {preset}")
 
         # @sig.pixelSizeChanged.connect
         # def _on_px_size_changed(value):
@@ -430,6 +439,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             return
 
     def _refresh_objective_options(self):
+        if self.objectives_device:
+            self._set_objective_device([self.objectives_device])
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
         # e.g. ['TiNosePiece']

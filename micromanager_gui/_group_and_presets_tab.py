@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from magicgui.widgets import (
     ComboBox,
     Container,
     FloatSlider,
+    Label,
     LineEdit,
     PushButton,
     Slider,
     Table,
     Widget,
 )
-from PyQt5.QtWidgets import QHBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
 from qtpy import QtWidgets as QtW
-
-# from ._properties_table_with_checkbox import GroupConfigurations
+from qtpy.QtWidgets import QDialog
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
@@ -51,6 +51,8 @@ class GroupPresetWidget(QtW.QWidget):
 
         self.new_btn = PushButton(text="New Group/Preset")
         self.edit_btn = PushButton(text="Edit Group/Preset")
+        self.rename_btn = PushButton(text="Rename Group/Preset")
+        self.rename_btn.clicked.connect(self._open_rename_widget)
         self.delete_gp_btn = PushButton(text="- Group")
         self.delete_gp_btn.clicked.connect(self._delete_selected_group)
         self.delete_ps_btn = PushButton(text="- Preset")
@@ -60,6 +62,7 @@ class GroupPresetWidget(QtW.QWidget):
             widgets=[
                 self.new_btn,
                 self.edit_btn,
+                self.rename_btn,
                 self.delete_gp_btn,
                 self.delete_ps_btn,
             ],
@@ -190,19 +193,29 @@ class GroupPresetWidget(QtW.QWidget):
     def _delete_selected_group(self):
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
         for row_idx in sorted(selected_rows, reverse=True):
+            group = self.tb.data[row_idx, 0]
             self.tb.native.removeRow(row_idx)
+            self._mmc.deleteConfigGroup(group)
+            print(f"group {group} deleted!")
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
         for row_idx in sorted(selected_rows, reverse=True):
+            group = self.tb.data[row_idx, 0]
             wdg = self.tb.data[row_idx, 1]  # [r, c]
             if isinstance(wdg, ComboBox):
                 if len(wdg.choices) == 1:
+                    self._mmc.deleteConfigGroup(group)
                     self.tb.native.removeRow(row_idx)
+                    print(f"group {group} deleted!")  # logger
                 else:
+                    self._mmc.deleteConfig(group, str(wdg.value))
                     wdg.del_choice(wdg.value)
+                    print(f"group {group}.{wdg.value} deleted!")  # logger
             else:
+                self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
+                print(f"group {group} deleted!")  # logger
 
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
@@ -215,14 +228,82 @@ class GroupPresetWidget(QtW.QWidget):
 
         try:
             curr_preset = wdg.value
-            item_to_find_list = self._create_item_to_find_list(groupname, curr_preset)
+            item_to_find_list = self._create_item_list(groupname, curr_preset)
         except ValueError:
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
-            item_to_find_list = self._create_item_to_find_list(groupname, curr_preset)
+            item_to_find_list = self._create_item_list(groupname, curr_preset)
+
+        print(groupname, curr_preset, item_to_find_list)
 
         return groupname, curr_preset, item_to_find_list
 
-    def _create_item_to_find_list(self, groupname, _to_find):
+    def _create_item_list(self, groupname, _to_find):
         return [
             f"{key[0]}-{key[1]}" for key in self._mmc.getConfigData(groupname, _to_find)
         ]
+
+    def _open_rename_widget(self):
+        if not hasattr(self, "rw"):
+            rw = RenameGroupPreset(self._mmc, self.tb, self._add_to_table, self)
+        rw.show()
+
+
+class RenameGroupPreset(QDialog):
+    def __init__(
+        self, mmcore: RemoteMMCore, table: Table, add_to_table: Callable, parent=None
+    ):
+        super().__init__(parent)
+
+        self._mmc = mmcore
+        self.tb = table
+        self.add_to_table = add_to_table
+
+        self.gp_label = Label(label="Group:")
+        self.gp_lineedit = LineEdit()
+        self.ps_label = Label(label="Preset:")
+        self.ps_lineedit = LineEdit()
+        self._get_group_and_preset_names()
+
+        self.button = PushButton(text="Reneme")
+        self.button.clicked.connect(self._rename)
+
+        self.group = Container(
+            widgets=[self.gp_label, self.gp_lineedit], labels=True, layout="horizontal"
+        )
+        self.preset = Container(
+            widgets=[self.ps_label, self.ps_lineedit], labels=True, layout="horizontal"
+        )
+        self.main = Container(
+            widgets=[self.group, self.preset, self.button],
+            labels=True,
+            layout="vertical",
+        )
+
+        self.setLayout(QVBoxLayout())
+        self.layout().addWidget(self.main.native)
+
+    def _get_group_and_preset_names(self):
+        selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
+
+        if not selected_row or len(selected_row) > 1:
+            return
+
+        self.groupname = self.tb.data[selected_row[0], 0]  # [r, c]
+        wdg = self.tb.data[selected_row[0], 1]
+
+        if isinstance(wdg, ComboBox):
+            self.curr_preset = wdg.value
+        else:
+            self.curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
+
+        self.gp_label.value = f"{self.groupname}  ->"
+        self.ps_label.value = f"{self.curr_preset}  ->"
+        self.gp_lineedit.value = self.groupname
+        self.ps_lineedit.value = self.curr_preset
+
+    def _rename(self):
+        self._mmc.renameConfigGroup(self.groupname, self.gp_lineedit.value)
+        self._mmc.renameConfig(
+            self.gp_lineedit.value, self.curr_preset, self.ps_lineedit.value
+        )
+        self.add_to_table()
