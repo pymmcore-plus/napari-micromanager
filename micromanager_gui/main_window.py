@@ -9,7 +9,7 @@ import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, QTimer
+from qtpy.QtCore import QSize, Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._group_and_presets_tab import GroupPresetWidget
@@ -30,11 +30,14 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+    from magicgui.widgets import Table
 
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
+
+EXP_PROP = re.compile("(.+)?(exp(osure)?)", re.IGNORECASE)
 
 
 class _MainUI:
@@ -119,7 +122,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
-        self.tabWidget.currentChanged.connect(self._on_group_tab)
 
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
@@ -139,6 +141,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
 
+        sig.configSet.connect(self._on_cfg_set)
+        sig.propertyChanged.connect(self._on_prop_changed)
+        sig.configGroupChanged.connect(self._on_cfg_changed)
+
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
@@ -157,17 +163,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # connect for GroupPresetWidget
         self.groups_and_presets.new_btn.clicked.connect(
-            self._create_edit_group_presets
+            self._create_group_presets
         )  # + group/preset
         self.groups_and_presets.edit_btn.clicked.connect(
-            self._create_edit_group_presets
+            self._edit_group_presets
         )  # edit group/preset
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        # add change obj group in gp_ps table
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        # add change ch group in gp_ps table
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
@@ -180,36 +188,67 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @sig.propertyChanged.connect
-        def _on_prop_changed(dev, prop, val):
-            # print(f"{dev}.{prop} -> {val}")
-            if dev == self._mmc.getCameraDevice():
-                self._refresh_camera_options
-                self.exp_spinBox.setValue(float(val))  # self._on_exp_change working?
-
-        @sig.configSet.connect
-        def _on_cfg_set(group: str, preset: str):
-            # print(f"[main] New group cfg set: {group} -> {preset}")
-            # Channels
-            channel_group = self._mmc.getChannelGroup()
-            if channel_group == group:
-                self.snap_channel_comboBox.setCurrentText(preset)
-            # Objective
-            if self.objectives_cfg and group == self.objectives_cfg:
-                self.objective_comboBox.setCurrentText(preset)
-            # Camera
-            self._refresh_camera_options
-
-        @sig.configGroupChanged.connect
-        def _on_gp_changed(group: str, preset: str):
-            print(f"[main] Group cfg changed: {group} -> {preset}")
-
         # @sig.pixelSizeChanged.connect
         # def _on_px_size_changed(value):
         #     logger.debug(
         #         f"current pixel config: "
         #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
         #     )
+
+    def _match_and_set(self, group: str, table: Table):
+        matching_ch_group = table.native.findItems(group, Qt.MatchContains)
+        table_row = matching_ch_group[0].row()
+        wdg = table.data[table_row, 1]
+        wdg.value = self._mmc.getCurrentConfig(group)
+
+    def _on_cfg_set(self, group: str, preset: str):
+        # logger.debug(f"CONFIG SET: {group} -> {preset}")
+        table = self.groups_and_presets.tb
+        # Channels -> change comboboxes (main gui and group table)
+        channel_group = self._mmc.getChannelGroup()
+        if channel_group == group:
+            # main gui
+            self.snap_channel_comboBox.setCurrentText(preset)
+            # group/preset table
+            self._match_and_set(group, table)
+        # Objective -> change comboboxes (main gui and group table)
+        if self.objectives_cfg and group == self.objectives_cfg:
+            # main gui
+            self.objective_comboBox.setCurrentText(preset)
+            # group/preset table
+            self._match_and_set(group, table)
+
+    def _on_prop_changed(self, dev, prop, val):
+        # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+        # Camera/Exposure time -> change gui widgets
+        if dev == self._mmc.getCameraDevice():
+            self._refresh_camera_options()
+            if EXP_PROP.match(prop):
+                self.exp_spinBox.setValue(float(val))
+
+    def _on_cfg_changed(self, group: str, preset: str):
+        # logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
+        # populate objective combobox when creating/modifying objective group
+        if self.objectives_device:
+            try:
+                for key in self._mmc.getConfigData(group, preset):
+                    if self.objectives_device == key[0]:
+                        self._refresh_objective_options()
+            except ValueError:
+                pass
+        # populate gui channel combobox when creating/modifying the channel group
+        if not self._mmc.getChannelGroup():
+            self._refresh_channel_list()
+        else:
+            channel_list = self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
+            cbox_list = [
+                self.snap_channel_comboBox.itemText(i)
+                for i in range(self.snap_channel_comboBox.count())
+            ]
+            channel_list.sort()
+            cbox_list.sort()
+            if channel_list != cbox_list:
+                self._refresh_channel_list()
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -220,33 +259,33 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb = PropBrowser(self._mmc, self)
         pb.exec()
 
-    def _create_edit_group_presets(self):
-        which_button = self.sender().text()
-        if not hasattr(self, "_gp_ps_widget"):
-            self._gp_ps_widget = GroupConfigurations(self._mmc, self)
-
-        if which_button == "New Group/Preset":
-            self._gp_ps_widget._reset_comboboxes()
-            self._gp_ps_widget.show()
-
-        elif which_button == "Edit Group/Preset":
-            self._gp_ps_widget._reset_comboboxes()
-            (
-                group,
-                preset,
-                _to_find,
-            ) = self.groups_and_presets._edit_selected_group_preset()
-            self._gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
-            self._gp_ps_widget.show()  # -> here is duplicated because the widget
-            # doesn't have to show if there is a warning from the methods above
-
-        self._gp_ps_widget.create_btn.clicked.connect(
+    def _create_group_presets(self):
+        if hasattr(self, "edit_gp_ps_widget"):
+            self.edit_gp_ps_widget.close()
+        if not hasattr(self, "create_gp_ps_widget"):
+            self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
+        self.create_gp_ps_widget._reset_comboboxes()
+        self.create_gp_ps_widget.show()
+        self.create_gp_ps_widget.create_btn.clicked.connect(
             self.groups_and_presets._add_to_table
         )
 
-    def _on_group_tab(self):
-        if self.tabWidget.currentIndex() == 1:
-            self.groups_and_presets._update_group_table_status()
+    def _edit_group_presets(self):
+        if hasattr(self, "create_gp_ps_widget"):
+            self.create_gp_ps_widget.close()
+        if not hasattr(self, "edit_gp_ps_widget"):
+            self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
+        self.edit_gp_ps_widget._reset_comboboxes()
+        (
+            group,
+            preset,
+            _to_find,
+        ) = self.groups_and_presets._edit_selected_group_preset()
+        self.edit_gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
+        self.edit_gp_ps_widget.show()
+        self.edit_gp_ps_widget.create_btn.clicked.connect(
+            self.groups_and_presets._add_to_table
+        )
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)

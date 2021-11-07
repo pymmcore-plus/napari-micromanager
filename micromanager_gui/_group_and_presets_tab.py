@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable
 
+from loguru import logger
 from magicgui.widgets import (
     ComboBox,
     Container,
@@ -184,7 +185,8 @@ class GroupPresetWidget(QtW.QWidget):
             group = self.tb.data[row_idx, 0]
             self.tb.native.removeRow(row_idx)
             self._mmc.deleteConfigGroup(group)
-            print(f"group {group} deleted!")
+            logger.debug(f"group {group} deleted!")  # logger
+            self._update_group_table_status()
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
@@ -195,15 +197,16 @@ class GroupPresetWidget(QtW.QWidget):
                 if len(wdg.choices) == 1:
                     self._mmc.deleteConfigGroup(group)
                     self.tb.native.removeRow(row_idx)
-                    print(f"group {group} deleted!")  # logger
+                    logger.debug(f"group {group} deleted!")
                 else:
                     self._mmc.deleteConfig(group, str(wdg.value))
+                    logger.debug(f"group {group}.{wdg.value} deleted!")
                     wdg.del_choice(wdg.value)
-                    print(f"group {group}.{wdg.value} deleted!")  # logger
             else:
                 self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
-                print(f"group {group} deleted!")  # logger
+                logger.debug(f"group {group} deleted!")
+            self._update_group_table_status()
 
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
@@ -221,8 +224,6 @@ class GroupPresetWidget(QtW.QWidget):
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
             item_to_find_list = self._create_item_list(groupname, curr_preset)
 
-        print(groupname, curr_preset, item_to_find_list)
-
         return groupname, curr_preset, item_to_find_list
 
     def _create_item_list(self, groupname, _to_find):
@@ -233,7 +234,8 @@ class GroupPresetWidget(QtW.QWidget):
     def _open_rename_widget(self):
         if not hasattr(self, "rw"):
             rw = RenameGroupPreset(self._mmc, self.tb, self._add_to_table, self)
-        rw.show()
+        if self.tb.native.selectedIndexes():
+            rw.show()
 
 
 class RenameGroupPreset(QDialog):
@@ -293,5 +295,9 @@ class RenameGroupPreset(QDialog):
         self._mmc.renameConfigGroup(self.groupname, self.gp_lineedit.value)
         self._mmc.renameConfig(
             self.gp_lineedit.value, self.curr_preset, self.ps_lineedit.value
+        )
+        logger.debug(
+            f"Renamed: {self.groupname}.{self.curr_preset} -> "
+            f"{self.gp_lineedit.value}.{self.ps_lineedit.value}"
         )
         self.add_to_table()

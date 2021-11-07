@@ -248,6 +248,8 @@ class GroupConfigurations(QDialog):
 
     def _reset_comboboxes(self):
         self.le.value = ""
+        self.group_le.value = ""
+        self.preset_le.value = ""
         for r in range(self.pt.shape[0]):
             _, combobox, _, _ = self.pt.data[r]
             if combobox.value:
@@ -264,7 +266,6 @@ class GroupConfigurations(QDialog):
 
         matched_item_row = []
         for item_to_find in item_to_find_list:
-            print(item_to_find)
             matching_items = self.pt.native.findItems(item_to_find, Qt.MatchContains)
             matched_item_row.append(matching_items[0].row())
 
