@@ -187,10 +187,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._refresh_camera_options
                 self.exp_spinBox.setValue(float(val))  # self._on_exp_change working?
 
-        # @sig.exposureChanged.connect
-        # def _set_exp_combobox(camera_dev: str, exposure: float):
-        #     print(f"{camera_dev} new exp -> {exposure}")
-
         @sig.configSet.connect
         def _on_cfg_set(group: str, preset: str):
             # print(f"[main] New group cfg set: {group} -> {preset}")
