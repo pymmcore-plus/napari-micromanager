@@ -201,6 +201,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             # Objective
             if self.objectives_cfg and group == self.objectives_cfg:
                 self.objective_comboBox.setCurrentText(preset)
+            # Camera
+            self._refresh_camera_options
 
         @sig.configGroupChanged.connect
         def _on_gp_changed(group: str, preset: str):
