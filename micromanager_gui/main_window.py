@@ -174,11 +174,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
-        # add change obj group in gp_ps table
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
-        # add change ch group in gp_ps table
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
