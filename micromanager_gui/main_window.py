@@ -199,10 +199,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         #     )
 
     def _match_and_set(self, group: str, table: Table):
-        matching_ch_group = table.native.findItems(group, Qt.MatchContains)
-        table_row = matching_ch_group[0].row()
-        wdg = table.data[table_row, 1]
-        wdg.value = self._mmc.getCurrentConfig(group)
+        try:
+            matching_ch_group = table.native.findItems(group, Qt.MatchContains)
+            table_row = matching_ch_group[0].row()
+            wdg = table.data[table_row, 1]
+            wdg.value = self._mmc.getCurrentConfig(group)
+        except IndexError:
+            pass
 
     def _on_cfg_set(self, group: str, preset: str):
         # logger.debug(f"CONFIG SET: {group} -> {preset}")
