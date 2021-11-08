@@ -239,8 +239,7 @@ class GroupPresetWidget(QtW.QWidget):
     def _open_rename_widget(self):
         if not hasattr(self, "rw"):
             rw = RenameGroupPreset(self._mmc, self.tb, self._add_to_table, self)
-        if self.tb.native.selectedIndexes():
-            rw.show()
+        rw.show()
 
 
 class RenameGroupPreset(QDialog):
