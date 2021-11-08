@@ -282,20 +282,20 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
         self.edit_gp_ps_widget._reset_comboboxes()
-        # try:
-        (
-            group,
-            preset,
-            _to_find,
-        ) = self.groups_and_presets._edit_selected_group_preset()
-        self.edit_gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
-        self.edit_gp_ps_widget.show()
-        self.edit_gp_ps_widget.create_btn.clicked.connect(
-            self.groups_and_presets._add_to_table
-        )
-        # except TypeError:
-        #     print('pass')
-        # pass
+        try:
+            (
+                group,
+                preset,
+                _to_find,
+            ) = self.groups_and_presets._edit_selected_group_preset()
+            self.edit_gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
+            self.edit_gp_ps_widget.show()
+            self.edit_gp_ps_widget.create_btn.clicked.connect(
+                self.groups_and_presets._add_to_table
+            )
+        except TypeError:
+            # if no row is selected
+            pass
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
