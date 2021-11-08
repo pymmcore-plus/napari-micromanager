@@ -171,6 +171,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets.rename_btn.clicked.connect(
             self._open_rename_widget
         )  # rename group/preset
+        self.groups_and_presets.save_cfg_btn.clicked.connect(
+            self._save_cfg
+        )  # save group/preset .cfg
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -195,6 +198,17 @@ class MainWindow(QtW.QWidget, _MainUI):
         #         f"current pixel config: "
         #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
         #     )
+
+    def _save_cfg(self):
+        current_cfg_path = Path(self.cfg_LineEdit.text())
+        f_name = current_cfg_path.stem
+        parent_path = current_cfg_path.parent
+        print(current_cfg_path)
+        print(parent_path)
+        path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
+            self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
+        )
+        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
 
     def _match_and_set(self, group: str, table: Table):
         try:
