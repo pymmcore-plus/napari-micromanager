@@ -161,13 +161,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.illumination_Button.clicked.connect(self.illumination)
         self.properties_Button.clicked.connect(self._show_prop_browser)
 
-        # connect for GroupPresetWidget
+        # connect GroupPresetWidget
         self.groups_and_presets.new_btn.clicked.connect(
             self._create_group_presets
         )  # + group/preset
         self.groups_and_presets.edit_btn.clicked.connect(
             self._edit_group_presets
         )  # edit group/preset
+        self.groups_and_presets.rename_btn.clicked.connect(
+            self._open_rename_widget
+        )  # rename group/preset
 
         # connect comboBox
         self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -296,6 +299,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         except TypeError:
             # if no row is selected
             pass
+
+    def _open_rename_widget(self):
+        if self.groups_and_presets.tb.native.selectedIndexes():
+            self.groups_and_presets._open_rename_widget()
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)

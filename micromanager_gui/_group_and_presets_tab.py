@@ -53,7 +53,7 @@ class GroupPresetWidget(QtW.QWidget):
         self.new_btn = PushButton(text="New Group/Preset")
         self.edit_btn = PushButton(text="Edit Group/Preset")
         self.rename_btn = PushButton(text="Rename Group/Preset")
-        self.rename_btn.clicked.connect(self._open_rename_widget)
+        # self.rename_btn.clicked.connect(self._open_rename_widget)
         self.delete_gp_btn = PushButton(text="- Group")
         self.delete_gp_btn.clicked.connect(self._delete_selected_group)
         self.delete_ps_btn = PushButton(text="- Preset")
