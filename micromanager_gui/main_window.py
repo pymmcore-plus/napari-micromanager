@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -122,11 +123,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
+        self.tabWidget.tabBar().moveTab(1, 0)
 
+        # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
+
+        self.tabWidget.setMovable(True)
+        self.tabWidget.setCurrentIndex(0)
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -192,23 +198,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        # @sig.pixelSizeChanged.connect
-        # def _on_px_size_changed(value):
-        #     logger.debug(
-        #         f"current pixel config: "
-        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-        #     )
-
-    def _save_cfg(self):
-        current_cfg_path = Path(self.cfg_LineEdit.text())
-        f_name = current_cfg_path.stem
-        parent_path = current_cfg_path.parent
-        print(current_cfg_path)
-        print(parent_path)
-        path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
-            self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
-        )
-        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"current pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+            )
 
     def _match_and_set(self, group: str, table: Table):
         try:
@@ -220,7 +215,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             pass
 
     def _on_cfg_set(self, group: str, preset: str):
-        # logger.debug(f"CONFIG SET: {group} -> {preset}")
+        logger.debug(f"CONFIG SET: {group} -> {preset}")
         table = self.groups_and_presets.tb
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
@@ -237,7 +232,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._match_and_set(group, table)
 
     def _on_prop_changed(self, dev, prop, val):
-        # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+        logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
         # Camera/Exposure time -> change gui widgets
         if dev == self._mmc.getCameraDevice():
             self._refresh_camera_options()
@@ -245,7 +240,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.exp_spinBox.setValue(float(val))
 
     def _on_cfg_changed(self, group: str, preset: str):
-        # logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
+        logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
         # populate objective combobox when creating/modifying objective group
         if self.objectives_cfg:
             obj_gp_list = [
@@ -318,6 +313,17 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _open_rename_widget(self):
         if self.groups_and_presets.tb.native.selectedIndexes():
             self.groups_and_presets._open_rename_widget()
+
+    def _save_cfg(self):
+        current_cfg_path = Path(self.cfg_LineEdit.text())
+        f_name = current_cfg_path.stem
+        parent_path = current_cfg_path.parent
+        print(current_cfg_path)
+        print(parent_path)
+        path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
+            self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
+        )
+        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
@@ -692,7 +698,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def update_max_min(self, event=None):
 
-        if self.tabWidget.currentIndex() != 0:
+        if self.tabWidget.currentIndex() != 1:
             return
 
         min_max_txt = ""

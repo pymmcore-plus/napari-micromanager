@@ -57,7 +57,7 @@ class GroupPresetWidget(QtW.QWidget):
         self.delete_gp_btn.clicked.connect(self._delete_selected_group)
         self.delete_ps_btn = PushButton(text="- Preset")
         self.delete_ps_btn.clicked.connect(self._delete_selected_preset)
-        self.save_cfg_btn = PushButton(text="Save Configurations")
+        self.save_cfg_btn = PushButton(text="Save Configuration File")
 
         buttons = Container(
             widgets=[
