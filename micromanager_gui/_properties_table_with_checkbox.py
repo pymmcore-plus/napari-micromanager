@@ -277,7 +277,7 @@ class GroupConfigurations(QDialog):
             wdg.value = True
 
 
-class PropBroGroupConfigurationswser(QDialog):
+class PropBrowserGroupConfigurations(QDialog):
     def __init__(self, mmcore=None, parent=None):
         super().__init__(parent)
         self.pt = PropTable(mmcore)

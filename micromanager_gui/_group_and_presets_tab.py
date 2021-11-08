@@ -58,6 +58,7 @@ class GroupPresetWidget(QtW.QWidget):
         self.delete_gp_btn.clicked.connect(self._delete_selected_group)
         self.delete_ps_btn = PushButton(text="- Preset")
         self.delete_ps_btn.clicked.connect(self._delete_selected_preset)
+        self.save_cfg_btn = PushButton(text="Save")
 
         buttons = Container(
             widgets=[
@@ -66,6 +67,7 @@ class GroupPresetWidget(QtW.QWidget):
                 self.rename_btn,
                 self.delete_gp_btn,
                 self.delete_ps_btn,
+                self.save_cfg_btn,
             ],
             labels=False,
             layout="horizontal",
@@ -211,18 +213,21 @@ class GroupPresetWidget(QtW.QWidget):
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
 
+        print(selected_row)
+
         if not selected_row or len(selected_row) > 1:
             return
 
         groupname = self.tb.data[selected_row[0], 0]  # [r, c]
         wdg = self.tb.data[selected_row[0], 1]
 
-        try:
+        print(groupname, wdg)
+
+        if isinstance(wdg, ComboBox):
             curr_preset = wdg.value
-            item_to_find_list = self._create_item_list(groupname, curr_preset)
-        except ValueError:
+        else:
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
-            item_to_find_list = self._create_item_list(groupname, curr_preset)
+        item_to_find_list = self._create_item_list(groupname, curr_preset)
 
         return groupname, curr_preset, item_to_find_list
 

@@ -229,13 +229,19 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_cfg_changed(self, group: str, preset: str):
         # logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
         # populate objective combobox when creating/modifying objective group
-        if self.objectives_device:
-            try:
-                for key in self._mmc.getConfigData(group, preset):
-                    if self.objectives_device == key[0]:
-                        self._refresh_objective_options()
-            except ValueError:
-                pass
+        if self.objectives_cfg:
+            obj_gp_list = [
+                self.objective_comboBox.itemText(i)
+                for i in range(self.objective_comboBox.count())
+            ]
+            obj_cfg_list = self._mmc.getAvailableConfigs(self.objectives_cfg)
+            obj_gp_list.sort()
+            obj_cfg_list.sort()
+            if obj_gp_list != obj_cfg_list:
+                self._refresh_objective_options()
+        elif self.objectives_device:
+            self._refresh_objective_options()
+
         # populate gui channel combobox when creating/modifying the channel group
         if not self._mmc.getChannelGroup():
             self._refresh_channel_list()
@@ -276,6 +282,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
         self.edit_gp_ps_widget._reset_comboboxes()
+        # try:
         (
             group,
             preset,
@@ -286,6 +293,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.edit_gp_ps_widget.create_btn.clicked.connect(
             self.groups_and_presets._add_to_table
         )
+        # except TypeError:
+        #     print('pass')
+        # pass
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
