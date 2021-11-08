@@ -122,6 +122,8 @@ class GroupPresetWidget(QtW.QWidget):
                     wdg.value = preset
                     self._mmc.setConfig(group, preset)
 
+        self._mmc.events.configGroupChanged.emit("", "")
+
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
             dev = key[0]
@@ -188,7 +190,6 @@ class GroupPresetWidget(QtW.QWidget):
             self.tb.native.removeRow(row_idx)
             self._mmc.deleteConfigGroup(group)
             logger.debug(f"group {group} deleted!")  # logger
-            self._mmc.events.configGroupChanged.emit("", "")
             self._update_group_table_status()
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
@@ -209,7 +210,6 @@ class GroupPresetWidget(QtW.QWidget):
                 self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
                 logger.debug(f"group {group} deleted!")
-            self._mmc.events.configGroupChanged.emit("", "")
             self._update_group_table_status()
 
     def _edit_selected_group_preset(self):
@@ -302,4 +302,5 @@ class RenameGroupPreset(QDialog):
             f"Renamed: {self.groupname}.{self.curr_preset} -> "
             f"{self.gp_lineedit.value}.{self.ps_lineedit.value}"
         )
+
         self.add_to_table()
