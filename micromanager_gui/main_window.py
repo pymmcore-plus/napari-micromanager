@@ -522,6 +522,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         guessed_channel_list = self._mmc.getOrGuessChannelGroup()
 
         if not guessed_channel_list:
+            self.snap_channel_comboBox.clear()
             return
 
         if len(guessed_channel_list) == 1:
@@ -574,20 +575,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
-    def _get_channel_group(self) -> str | None:
-        """
-        Get channelGroup falling back to Channel if not set, also
-        check that this is an availableConfigGroup.
-        """
-        chan_group = self._mmc.getChannelGroup()
-        if chan_group == "":
-            # not set in core. Try "Channel" as a fallback
-            chan_group = "Channel"
-        if chan_group in self._mmc.getAvailableConfigGroups():
-            return chan_group
-
     def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
+        try:
+            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
+        except ValueError:
+            pass
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")

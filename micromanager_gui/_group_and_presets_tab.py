@@ -188,6 +188,7 @@ class GroupPresetWidget(QtW.QWidget):
             self.tb.native.removeRow(row_idx)
             self._mmc.deleteConfigGroup(group)
             logger.debug(f"group {group} deleted!")  # logger
+            self._mmc.events.configGroupChanged.emit("", "")
             self._update_group_table_status()
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
@@ -208,20 +209,17 @@ class GroupPresetWidget(QtW.QWidget):
                 self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
                 logger.debug(f"group {group} deleted!")
+            self._mmc.events.configGroupChanged.emit("", "")
             self._update_group_table_status()
 
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
-
-        print(selected_row)
 
         if not selected_row or len(selected_row) > 1:
             return
 
         groupname = self.tb.data[selected_row[0], 0]  # [r, c]
         wdg = self.tb.data[selected_row[0], 1]
-
-        print(groupname, wdg)
 
         if isinstance(wdg, ComboBox):
             curr_preset = wdg.value
