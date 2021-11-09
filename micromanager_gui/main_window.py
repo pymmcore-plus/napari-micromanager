@@ -210,7 +210,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             matching_ch_group = table.native.findItems(group, Qt.MatchContains)
             table_row = matching_ch_group[0].row()
             wdg = table.data[table_row, 1]
-            wdg.value = preset
+            if preset:
+                wdg.value = preset
+            else:
+                wdg.value = self._mmc.getCurrentConfig(group)
         except IndexError:
             pass
 
@@ -219,6 +222,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         table = self.groups_and_presets.tb
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
+        print('channel_group -> ', channel_group, '  |  group -> ', group)
         if channel_group == group:
             # main gui
             self.snap_channel_comboBox.setCurrentText(preset)
@@ -229,7 +233,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             # main gui
             self.objective_comboBox.setCurrentText(preset)
             # group/preset table
-            self._match_and_set(group, table, "")
+            self._match_and_set(group, table, preset)
 
     def _on_prop_changed(self, dev, prop, val):
         logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
