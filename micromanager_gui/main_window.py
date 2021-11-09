@@ -205,12 +205,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
             )
 
-    def _match_and_set(self, group: str, table: Table):
+    def _match_and_set(self, group: str, table: Table, preset: str):
         try:
             matching_ch_group = table.native.findItems(group, Qt.MatchContains)
             table_row = matching_ch_group[0].row()
             wdg = table.data[table_row, 1]
-            wdg.value = self._mmc.getCurrentConfig(group)
+            wdg.value = preset
         except IndexError:
             pass
 
@@ -223,13 +223,13 @@ class MainWindow(QtW.QWidget, _MainUI):
             # main gui
             self.snap_channel_comboBox.setCurrentText(preset)
             # group/preset table
-            self._match_and_set(group, table)
+            self._match_and_set(group, table, preset)
         # Objective -> change comboboxes (main gui and group table)
         if self.objectives_cfg and group == self.objectives_cfg:
             # main gui
             self.objective_comboBox.setCurrentText(preset)
             # group/preset table
-            self._match_and_set(group, table)
+            self._match_and_set(group, table, "")
 
     def _on_prop_changed(self, dev, prop, val):
         logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
