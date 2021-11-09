@@ -327,7 +327,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
             self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
         )
-        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
+        self._mmc.saveSystemConfiguration(f"{path_and_filename}")
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
