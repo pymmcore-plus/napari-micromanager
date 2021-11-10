@@ -117,7 +117,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+        self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
 
         # tab widgets
         # create groups and presets tab
@@ -200,16 +200,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @sig.pixelSizeChanged.connect
-        def _on_px_size_changed(value):
-            logger.debug(
-                f"current pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-            )
+        # @sig.pixelSizeChanged.connect
+        # def _on_px_size_changed(value):
+        #     logger.debug(
+        #         f"current pixel config: "
+        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+        #     )
 
     # def _on_cfg_changed(self, group: str, preset: str):
     def _on_update_table_status(self, group: str, preset: str):
-        logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
+        # logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
         if f"{group} {preset}" != "update table status":
             return
         # populate objective combobox when creating/modifying objective group
@@ -249,20 +249,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         except IndexError:
             pass
 
-    # def _on_cfg_set(self, group: str, preset: str):
-    def _on_update_widget(self, group: str, preset: str):
-        logger.debug(f"CONFIG SET: {group} -> {preset}")
-        if f"{group} {preset}" != f"{group} update widgets":
+    def _on_update_widget(self, group_preset: str, update_str: str):
+        # logger.debug(f"CONFIG SET: {group_preset} -> {update_str}")
+        if update_str != f"update widgets":
             return
+        preset = group_preset.split('*_*')[-1]
+        group = group_preset.split('*_*')[0]
         table = self.groups_and_presets.tb
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
         if channel_group == group:
             # main gui
-            current_channel = self._mmc.getCurrentConfig(channel_group)
-            self.snap_channel_comboBox.setCurrentText(current_channel)
+            # self._mmc.getCurrentConfig(channel_group) does not work for some reason...
+            self.snap_channel_comboBox.setCurrentText(preset)
             # group/preset table
-            self._match_and_set(group, table, current_channel)
+            self._match_and_set(group, table, preset)
         # Objective -> change comboboxes (main gui and group table)
         if self.objectives_cfg == group:
             # main gui
@@ -271,25 +272,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             # group/preset table
             self._match_and_set(group, table, current_obj)
 
-    # def _on_cfg_set(self, group: str, preset: str):
-    #     logger.debug(f"CONFIG SET: {group} -> {preset}")
-    #     table = self.groups_and_presets.tb
-    #     # Channels -> change comboboxes (main gui and group table)
-    #     channel_group = self._mmc.getChannelGroup()
-    #     if channel_group == group:
-    #         # main gui
-    #         self.snap_channel_comboBox.setCurrentText(preset)
-    #         # group/preset table
-    #         self._match_and_set(group, table, preset)
-    #     # Objective -> change comboboxes (main gui and group table)
-    #     if self.objectives_cfg and group == self.objectives_cfg:
-    #         # main gui
-    #         self.objective_comboBox.setCurrentText(preset)
-    #         # group/preset table
-    #         self._match_and_set(group, table, preset)
-
     def _on_prop_changed(self, dev, prop, val):
-        logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+        # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
         # Camera/Exposure time -> change gui widgets
         if dev == self._mmc.getCameraDevice():
             self._refresh_camera_options()
@@ -625,7 +609,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
             self._mmc.events.configSet.emit(
-                self._mmc.getChannelGroup(), "update widgets"
+                f"{self._mmc.getChannelGroup()}*_*{newChannel}", "update widgets"
             )
         except ValueError:
             pass
@@ -707,7 +691,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.set_pixel_size()
 
         if self.objectives_cfg:
-            self._mmc.events.configSet.emit(self.objectives_cfg, "update widgets")
+            curr_obj = self.objective_comboBox.currentText()
+            self._mmc.events.configSet.emit(
+                f"{self.objectives_cfg}*_*{curr_obj}", "update widgets"
+            )
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective

@@ -182,7 +182,7 @@ class GroupPresetWidget(QtW.QWidget):
                     v = int(value)
                 self._mmc.setProperty(dev, prop, v)
 
-            self._mmc.events.configSet.emit(group, "update widgets")
+            self._mmc.events.configSet.emit(f"{group}*_*{value}", "update widgets")
 
         return wdg
 
