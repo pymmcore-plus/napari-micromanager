@@ -200,12 +200,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        # @sig.pixelSizeChanged.connect
-        # def _on_px_size_changed(value):
-        #     logger.debug(
-        #         f"current pixel config: "
-        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-        #     )
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"current pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+            )
 
     # def _on_cfg_changed(self, group: str, preset: str):
     def _on_update_table_status(self, group: str, preset: str):
@@ -251,10 +251,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_update_widget(self, group_preset: str, update_str: str):
         # logger.debug(f"CONFIG SET: {group_preset} -> {update_str}")
-        if update_str != f"update widgets":
+        if update_str != "update widgets":
             return
-        preset = group_preset.split('*_*')[-1]
-        group = group_preset.split('*_*')[0]
+        preset = group_preset.split("*_*")[-1]
+        group = group_preset.split("*_*")[0]
         table = self.groups_and_presets.tb
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
