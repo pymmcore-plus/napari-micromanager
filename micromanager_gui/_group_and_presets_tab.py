@@ -123,7 +123,7 @@ class GroupPresetWidget(QtW.QWidget):
                     wdg.value = preset
                     self._mmc.setConfig(group, preset)
 
-        self._mmc.events.configGroupChanged.emit("", "")
+        self._mmc.events.configGroupChanged.emit("update", "table status")
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -181,6 +181,8 @@ class GroupPresetWidget(QtW.QWidget):
                 if isinstance(wdg, Slider):
                     v = int(value)
                 self._mmc.setProperty(dev, prop, v)
+
+            self._mmc.events.configSet.emit(group, "update widgets")
 
         return wdg
 
@@ -305,3 +307,5 @@ class RenameGroupPreset(QDialog):
         )
 
         self.add_to_table()
+
+        self.close()
