@@ -9,7 +9,6 @@ from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     import useq
-    from typing import Union, List
 
 
 def get_devices_and_props(self):
@@ -99,7 +98,7 @@ def event_indices(event: useq.MDAEvent):
 
 
 @contextmanager
-def blockSignals(widgets: Union[QWidget, List[QWidget]]):
+def blockSignals(widgets: QWidget | list[QWidget]):
     if not isinstance(widgets, (list, tuple)):
         widgets = [widgets]
     orig_states = []
