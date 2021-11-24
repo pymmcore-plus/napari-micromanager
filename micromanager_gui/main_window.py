@@ -259,11 +259,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
-        # clear spinbox/combobox
-        self.objective_comboBox.clear()
-        self.bin_comboBox.clear()
-        self.bit_comboBox.clear()
-        self.snap_channel_comboBox.clear()
+        # clear spinbox/combobox without accidently setting properties
+        boxes = [
+            self.objective_comboBox,
+            self.bin_comboBox,
+            self.bit_comboBox,
+            self.snap_channel_comboBox,
+        ]
+        with blockSignals(boxes):
+            for box in boxes:
+                box.clear()
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
