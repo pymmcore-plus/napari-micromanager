@@ -98,8 +98,13 @@ def event_indices(event: useq.MDAEvent):
 
 
 @contextmanager
-def blockSignals(widget: QWidget):
-    orig_state = widget.signalsBlocked()
-    widget.blockSignals(True)
+def blockSignals(widgets: QWidget | list[QWidget]):
+    if not isinstance(widgets, (list, tuple)):
+        widgets = [widgets]
+    orig_states = []
+    for w in widgets:
+        orig_states.append(w.signalsBlocked())
+        w.blockSignals(True)
     yield
-    widget.blockSignals(orig_state)
+    for w, s in zip(widgets, orig_states):
+        w.blockSignals(s)
