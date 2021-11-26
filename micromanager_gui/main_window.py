@@ -175,6 +175,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         pb = PropBrowser(self._mmc, self)
         pb.exec()
 
+    def _on_config_set(self, groupName: str, configName: str):
+        if groupName == self._mmc.getOrGuessChannelGroup():
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.setCurrentText(configName)
+
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
         self.camera_groupBox.setEnabled(enabled)
@@ -261,11 +266,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
-        # clear spinbox/combobox
-        self.objective_comboBox.clear()
-        self.bin_comboBox.clear()
-        self.bit_comboBox.clear()
-        self.snap_channel_comboBox.clear()
+        # clear spinbox/combobox without accidently setting properties
+        boxes = [
+            self.objective_comboBox,
+            self.bin_comboBox,
+            self.bit_comboBox,
+            self.snap_channel_comboBox,
+        ]
+        with blockSignals(boxes):
+            for box in boxes:
+                box.clear()
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
@@ -512,7 +522,7 @@ class MainWindow(QtW.QWidget, _MainUI):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getChannelGroup() or "Channel"
+            ch_group = self._mmc.getOrGuessChannelGroup()
             self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
 
             self.start_live()
