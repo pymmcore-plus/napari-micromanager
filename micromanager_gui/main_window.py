@@ -422,11 +422,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
-        # clear spinbox/combobox
-        self.objective_comboBox.clear()
-        self.bin_comboBox.clear()
-        self.bit_comboBox.clear()
-        self.snap_channel_comboBox.clear()
+        # clear spinbox/combobox without accidently setting properties
+        boxes = [
+            self.objective_comboBox,
+            self.bin_comboBox,
+            self.bit_comboBox,
+            self.snap_channel_comboBox,
+        ]
+        with blockSignals(boxes):
+            for box in boxes:
+                box.clear()
 
         self.objectives_device = None
         self.objectives_cfg = None
@@ -762,7 +767,7 @@ class MainWindow(QtW.QWidget, _MainUI):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getChannelGroup() or "Channel"
+            ch_group = self._mmc.getOrGuessChannelGroup()
             self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
 
             self.start_live()
