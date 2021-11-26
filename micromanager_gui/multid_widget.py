@@ -146,10 +146,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in self._mmc.getAvailableConfigGroups():
-                raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
-            self.channel_comboBox.addItems(channel_list)
+            channel_group = self._mmc.getOrGuessChannelGroup()
+            if channel_group:
+                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+                self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
@@ -199,7 +199,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
             if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
-                z_offset = self._mmc.getProperty("TIPFSOffset", "Position")  # for Nikon PFS only for now
+                z_offset = self._mmc.getProperty(
+                    "TIPFSOffset", "Position"
+                )  # for Nikon PFS only for now
                 z_offset_txt = QtW.QTableWidgetItem(str(z_offset))
                 z_offset_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 self.stage_tableWidget.setItem(
