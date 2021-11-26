@@ -259,7 +259,7 @@ class RenameGroupPreset(QDialog):
         self.ps_lineedit = LineEdit()
         self._get_group_and_preset_names()
 
-        self.button = PushButton(text="Reneme")
+        self.button = PushButton(text="Rename")
         self.button.clicked.connect(self._rename)
 
         self.group = Container(
