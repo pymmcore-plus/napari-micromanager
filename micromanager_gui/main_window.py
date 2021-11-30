@@ -328,6 +328,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
+        self._on_exp_change(cam_device, self._mmc.getExposure())
+
     def _refresh_objective_options(self):
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
