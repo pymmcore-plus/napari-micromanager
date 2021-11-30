@@ -3,8 +3,8 @@
 [![License](https://img.shields.io/pypi/l/napari-micromanager.svg?color=green)](https://github.com/napari/napari-micromanager/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-micromanager.svg?color=green)](https://pypi.org/project/napari-micromanager)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-micromanager.svg?color=green)](https://python.org)
-[![tests](https://github.com/tlambert03/napari-micromanager/workflows/tests/badge.svg)](https://github.com/tlambert03/napari-micromanager/actions)
-[![codecov](https://codecov.io/gh/tlambert03/napari-micromanager/branch/master/graph/badge.svg)](https://codecov.io/gh/tlambert03/napari-micromanager)
+[![Tests](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml/badge.svg)](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/tlambert03/napari-micromanager/branch/main/graph/badge.svg?token=tf6lYDWV1s)](https://codecov.io/gh/tlambert03/napari-micromanager)
 
 GUI interface between napari and micromanager
 
