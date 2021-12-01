@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -10,6 +11,7 @@ from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton,
 
 if TYPE_CHECKING:
     import useq
+    from pymmcore_plus import RemoteMMCore
 
 
 def get_devices_and_props(self):
@@ -131,3 +133,52 @@ class SelectDeviceFromCombobox(QDialog):
 
     def _on_click(self):
         self.val_changed.emit(self.combobox.currentText())
+
+# This could maybe be a per camera device cache in cases with multiple cameras
+# work for the future - let the good be the enemy of the perfect rather than
+# the other way around!
+class ExposureCache:
+    def __init__(
+        self, mmc: RemoteMMCore, channel_group: str = None, fallback_value: float = 1
+    ) -> None:
+        self._mmc = mmc
+        self._fallback_value = fallback_value
+        self._cache = defaultdict(lambda: fallback_value)
+        if channel_group is None:
+            self._channel_group: str = self._mmc.getOrGuessChannelGroup()
+        else:
+            self._channel_group: str = channel_group
+
+    @property
+    def channel_group(self):
+        return self._channel_group
+
+    @channel_group.setter
+    def channel_group(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError("channel_group must be a string.")
+        if value != self._channel_group:
+            # invalidate the cache
+            self._cache = defaultdict(lambda: self._fallback_value)
+            self._channel_group = value
+
+    def update_cache(self, channel: str = None, exposure: float = None):
+        """Update the values in the cache, inferring as needed."""
+        if channel is None:
+            channel = self._mmc.getCurrentConfigFromCache(self._channel_group)
+        if exposure is None:
+            exposure = self._mmc.getExposure()
+        self._cache[channel] = exposure
+
+    def __getitem__(self, channel: str) -> float:
+        if self._channel_group in self._mmc.getAvailableConfigGroups() and channel:
+            cfg = self._mmc.getConfigData(self._channel_group, channel)
+            cam_device = self._mmc.getCameraDevice()
+            if (cam_device, "Exposure") in cfg:
+                return float(cfg[(cam_device, "Exposure")])
+            else:
+                return self._cache[channel]
+        return self._fallback_value
+
+    def __setitem__(self, channel: str, exposure: float):
+        self._cache[channel] = exposure
