@@ -77,6 +77,9 @@ jobs:
           MICROMANAGER_PATH: Micro-Manager-${{ steps.MM-version.outputs.MM }}*
         run: |
           echo $MICROMANAGER_PATH
+          echo $(pwd)
+          pwd
+          echo $GITHUB_WORKSPACE
           pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
 
       - name: Coverage
