@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -6,7 +5,6 @@ import numpy as np
 import pytest
 from useq import MDASequence
 
-import micromanager_gui
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
