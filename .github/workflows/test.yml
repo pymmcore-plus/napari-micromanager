@@ -55,18 +55,29 @@ jobs:
           pip install -e .[testing]
           pip install pytest-cov
 
+      - name: Get MM Version
+        id: MM-version
+        run: |
+          output=$(python -c "from pymmcore_plus.install import VERSION, RELEASE; print(f'{VERSION}-{RELEASE}')")
+          echo "::set-output name=MM::$output"
+        shell: bash
+
       - uses: actions/cache@v2
         id: cache
         with:
-          path: micromanager_gui/Micro-Manager-*
-          key: ${{ hashFiles('micromanager_gui/install_mm.py') }}
+          path: Micro-Manager-*
+          key: ${{ steps.MM-version.outputs.MM }}
 
       - name: Install Micro-Manager
         if: steps.cache.outputs.cache-hit != 'true'
-        run: python micromanager_gui/install_mm.py
+        run: python -m pymmcore_plus.install -d .
 
       - name: Test
-        run: pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
+        env:
+          MICROMANAGER_PATH: Micro-Manager-${{ steps.MM-version.outputs.MM }}*
+        run: |
+          echo $MICROMANAGER_PATH
+          pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v1
