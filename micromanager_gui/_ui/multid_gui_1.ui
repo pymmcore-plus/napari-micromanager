@@ -567,6 +567,19 @@
              </widget>
             </item>
             <item>
+             <spacer name="horizontalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
              <widget class="QLabel" name="label_9">
               <property name="minimumSize">
                <size>
@@ -594,7 +607,7 @@
                </size>
               </property>
               <property name="text">
-               <string>0</string>
+               <string>35</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -608,14 +621,14 @@
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>150</height>
+              <height>140</height>
              </size>
             </property>
             <property name="tabPosition">
              <enum>QTabWidget::North</enum>
             </property>
             <property name="currentIndex">
-             <number>2</number>
+             <number>0</number>
             </property>
             <property name="movable">
              <bool>true</bool>
@@ -632,6 +645,25 @@
                <widget class="QPushButton" name="set_top_Button">
                 <property name="minimumSize">
                  <size>
+                  <width>95</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>100</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Set Top</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="z_top_label">
+                <property name="minimumSize">
+                 <size>
                   <width>100</width>
                   <height>0</height>
                  </size>
@@ -643,11 +675,50 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Set Top</string>
+                 <string>...</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
+              <item row="0" column="2">
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <item>
+                 <widget class="QLabel" name="label_6">
+                  <property name="minimumSize">
+                   <size>
+                    <width>65</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>75</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Range (µm):</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="z_range_topbottom_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="1" column="0">
                <widget class="QPushButton" name="set_bottom_Button">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -663,7 +734,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>135</width>
+                  <width>100</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -672,11 +743,11 @@
                 </property>
                </widget>
               </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_6">
+              <item row="1" column="1">
+               <widget class="QLabel" name="z_bottom_label">
                 <property name="minimumSize">
                  <size>
-                  <width>65</width>
+                  <width>100</width>
                   <height>0</height>
                  </size>
                 </property>
@@ -687,67 +758,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>Range (µm):</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QDoubleSpinBox" name="z_top_doubleSpinBox">
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="readOnly">
-                 <bool>false</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="decimals">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <double>1000000000.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="z_bottom_doubleSpinBox">
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="readOnly">
-                 <bool>false</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="decimals">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <double>1000000000.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QDoubleSpinBox" name="z_range_topbottom_doubleSpinBox">
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="decimals">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <double>1000000000.000000000000000</double>
+                 <string>...</string>
                 </property>
                </widget>
               </item>
@@ -847,57 +858,16 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>110</width>
+                  <width>75</width>
                   <height>16777215</height>
                  </size>
                 </property>
                 <property name="text">
                  <string>Above (µm):</string>
                 </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QLabel" name="label_11">
-                <property name="minimumSize">
-                 <size>
-                  <width>70</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>110</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>Below (µm):</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_5">
-                <property name="maximumSize">
-                 <size>
-                  <width>110</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string> Range (µm):</string>
-                </property>
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
                <widget class="QDoubleSpinBox" name="above_doubleSpinBox">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -913,7 +883,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>110</width>
+                  <width>130</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -933,7 +903,75 @@
                  <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
                 </property>
                 <property name="value">
-                 <double>1.000000000000000</double>
+                 <double>0.500000000000000</double>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="2">
+               <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <item>
+                 <spacer name="horizontalSpacer_4">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeType">
+                   <enum>QSizePolicy::Fixed</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>30</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_5">
+                  <property name="maximumSize">
+                   <size>
+                    <width>95</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string> Range (µm):</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="z_range_abovebelow_label">
+                  <property name="minimumSize">
+                   <size>
+                    <width>60</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>...</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_11">
+                <property name="minimumSize">
+                 <size>
+                  <width>70</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>75</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Below (µm):</string>
                 </property>
                </widget>
               </item>
@@ -947,7 +985,7 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>110</width>
+                  <width>130</width>
                   <height>16777215</height>
                  </size>
                 </property>
@@ -967,29 +1005,7 @@
                  <enum>QAbstractSpinBox::AdaptiveDecimalStepType</enum>
                 </property>
                 <property name="value">
-                 <double>1.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QDoubleSpinBox" name="z_range_abovebelow_doubleSpinBox">
-                <property name="alignment">
-                 <set>Qt::AlignCenter</set>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="decimals">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <double>1000000000.000000000000000</double>
-                </property>
-                <property name="value">
-                 <double>2.000000000000000</double>
+                 <double>0.500000000000000</double>
                 </property>
                </widget>
               </item>
