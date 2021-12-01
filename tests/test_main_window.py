@@ -12,6 +12,44 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
+def test_exposure_changing(qtbot: "QtBot", main_window: MainWindow):
+    wait = 500
+    mmc = main_window._mmc
+    main_window.snap_channel_comboBox.setCurrentText("DAPI")
+    qtbot.wait_signal(main_window.snap_channel_comboBox.currentTextChanged)
+    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
+
+    # Wait signals got this working on local but not remote?
+    # although it behaves fine as a user.
+    qtbot.wait(wait)
+    assert main_window.exp_spinBox.value() == 1.0
+    assert mmc.getExposure() == 1.0
+    mmc.setExposure(15)
+
+    # Cy3/Cy5 has exposure defined in config group and we should respect that.
+    main_window.snap_channel_comboBox.setCurrentText("Cy5")
+    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
+    qtbot.wait(wait)
+    assert main_window.exp_spinBox.value() == 200
+    assert mmc.getExposure() == 200
+
+    # back to DAPI - make sure our 15 stuck
+    main_window.snap_channel_comboBox.setCurrentText("DAPI")
+    qtbot.wait_signal(main_window.snap_channel_comboBox.currentTextChanged)
+    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
+    qtbot.wait(wait)
+    # assert main_window.exp_spinBox.value() == 15
+    assert mmc.getExposure() == 15
+
+    # Now rhodamine - should go to the default value of the cache
+    main_window.snap_channel_comboBox.setCurrentText("Rhodamine")
+    # qtbot.wait_signal(mmc.events.exposureChanged)
+    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
+    qtbot.wait(wait)
+    assert main_window.exp_spinBox.value() == 1
+    assert mmc.getExposure() == 1
+
+
 def test_main_window_mda(main_window: MainWindow):
 
     assert not main_window.viewer.layers
