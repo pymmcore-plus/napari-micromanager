@@ -14,19 +14,6 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-if not os.getenv("MICROMANAGER_PATH"):
-    try:
-        root = Path(micromanager_gui.__file__)
-        mm_path = list(root.parent.glob("Micro-Manager*"))[0]
-        os.environ["MICROMANAGER_PATH"] = str(mm_path)
-    except IndexError:
-        raise AssertionError(
-            "MICROMANAGER_PATH env var was not set, and Micro-Manager "
-            "installation was not found in this package.  Please run "
-            "`python micromanager_gui/install_mm.py"
-        )
-
-
 def test_main_window_mda(main_window: MainWindow):
 
     assert not main_window.viewer.layers
