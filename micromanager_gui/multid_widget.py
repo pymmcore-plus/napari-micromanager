@@ -164,24 +164,16 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             abs(self.z_top_doubleSpinBox.value() - self.z_bottom_doubleSpinBox.value())
         )
 
-    def _update_rangearound_label(self):
-        up_down_range = self.zrange_spinBox.value() / 2
-        self.range_around_label.setText(
-            f"-{up_down_range} µm <- z -> +{up_down_range} µm"
-        )
+    def _update_rangearound_label(self, value):
+        self.range_around_label.setText(f"-{value/2} µm <- z -> +{value/2} µm")
 
     def _update_abovebelow_range(self):
         self.z_range_abovebelow_doubleSpinBox.setValue(
             self.above_doubleSpinBox.value() + self.below_doubleSpinBox.value()
         )
 
-    def _update_n_images(self, value):
-        # when chenging step_size_doubleSpinBox
-        if self.sender().objectName() == "step_size_doubleSpinBox":
-            step = value
-        else:
-            step = self.step_size_doubleSpinBox.value()
-
+    def _update_n_images(self):
+        step = self.step_size_doubleSpinBox.value()
         # set what is the range to consider depending on the z_stack mode
         if self.z_tabWidget.currentIndex() == 0:
             range = self.z_range_topbottom_doubleSpinBox.value()
