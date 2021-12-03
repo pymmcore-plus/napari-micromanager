@@ -118,9 +118,9 @@ class AutofocusDevice:
         self._mmc = mmcore
 
     @classmethod
-    def create(self, key):
-        if key == "TIPFStatus":  # mmcore.getAutoFocusDevice() -> "TIPFStatus"
-            return NikonPFS()
+    def create(self, key, mmcore):
+        if key == "TIPFSStatus":  # mmcore.getAutoFocusDevice() -> "TIPFStatus"
+            return NikonPFS(mmcore)
 
 
 class NikonPFS(AutofocusDevice):
@@ -130,8 +130,8 @@ class NikonPFS(AutofocusDevice):
     def set_offset(self, offset: float) -> None:
         self._mmc.setProperty("TIPFSOffset", "Position", offset)
 
-    def get_position(self) -> str:
-        self._mmc.getProperty("TIPFSOffset", "Position")
+    def get_position(self) -> float:
+        return float(self._mmc.getProperty("TIPFSOffset", "Position"))
 
     def isEngaged(self) -> bool:
         return self._mmc.isContinuousFocusEnabled()
@@ -140,7 +140,7 @@ class NikonPFS(AutofocusDevice):
         return self._mmc.isContinuousFocusLocked()
 
     def isFocusing(self) -> bool:
-        status = self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "State")
+        status = self._mmc.getProperty("TIPFSStatus", "State")
         return status == "Focusing"
 
 

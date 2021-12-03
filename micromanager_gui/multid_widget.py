@@ -266,12 +266,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
             if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
-                autofocus_dev = AutofocusDevice.create(self._mmc.getAutoFocusDevice())
+                autofocus_dev = AutofocusDevice.create(
+                    self._mmc.getAutoFocusDevice(), self._mmc
+                )
                 autofocus_dev.get_position()
                 # z_offset = self._mmc.getProperty(
                 #     "TIPFSOffset", "Position"
                 # )  # for Nikon PFS only for now
-                z_offset_txt = QtW.QTableWidgetItem(autofocus_dev.get_position())
+                z_offset_txt = QtW.QTableWidgetItem(str(autofocus_dev.get_position()))
                 z_offset_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 self.stage_tableWidget.setItem(
                     idx, 3, QtW.QTableWidgetItem(z_offset_txt)

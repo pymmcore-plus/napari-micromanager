@@ -543,10 +543,33 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _set_autofocus_device(self):
         if not self.offset_device_comboBox.count():
             return
+
         self.autofocus_z_stage = AutofocusDevice.create(
-            self.offset_device_comboBox.currentText()
+            self.offset_device_comboBox.currentText(), self._mmc
         )
-        self._mmc.setAutoFocusDevice(self.autofocus_z_stage)
+
+        self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
+
+    def _on_offset_status_changed(self):
+
+        if not self.autofocus_z_stage:
+            self.offset_Z_groupBox.setEnabled(False)
+            self.Z_groupBox.setEnabled(True)
+
+        else:
+
+            if self.autofocus_z_stage.isEngaged():
+
+                if (
+                    self.autofocus_z_stage.isLocked()
+                    or self.autofocus_z_stage.isFocusing()
+                ):
+                    self.offset_Z_groupBox.setEnabled(True)
+                    self.Z_groupBox.setEnabled(False)
+
+            else:
+                self.offset_Z_groupBox.setEnabled(False)
+                self.Z_groupBox.setEnabled(True)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -610,43 +633,29 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.snap_on_click_checkBox.isChecked():
             self.snap()
 
-    def _on_offset_status_changed(self):
-
-        if self.autofocus_z_stage:
-
-            if self.autofocus_z_stage.isEngaged():
-                if (
-                    self.autofocus_z_stage.isLocked()
-                    or self.autofocus_z_stage.isFocusing()
-                ):
-                    self.offset_Z_groupBox.setEnabled(True)
-                    self.Z_groupBox.setEnabled(False)
-
-            else:
-                self.offset_Z_groupBox.setEnabled(False)
-                self.Z_groupBox.setEnabled(True)
-
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = float(
-                self._mmc.getProperty(self.autofocus_z_stage, "Position")
-            )
+            current_offset = self.autofocus_z_stage.get_position()
+
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
+
             self.autofocus_z_stage.set_offset(new_offset)
+
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = float(
-                self._mmc.getProperty(self.autofocus_z_stage, "Position")
-            )
+            current_offset = self.autofocus_z_stage.get_position()
+
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
+
             self.autofocus_z_stage.set_offset(new_offset)
+
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
@@ -744,8 +753,11 @@ class MainWindow(QtW.QWidget, _MainUI):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getOrGuessChannelGroup()
-            self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            ch_group = self._mmc.getChannelGroup()
+            if ch_group:
+                self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            else:
+                return
 
             self.start_live()
             self.live_Button.setIcon(CAM_STOP_ICON)
