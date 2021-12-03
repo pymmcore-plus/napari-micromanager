@@ -15,8 +15,6 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
-OBJECTIVE_DEVICE = "Objective"
-# Once the PR #43 is merged, we pass the objective device to this variable
 
 
 @dataclass
