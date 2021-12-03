@@ -129,6 +129,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
+        self.autofocus_z_stage = None
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
@@ -610,15 +612,12 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_offset_status_changed(self):
 
-        if self._mmc.getAutoFocusDevice():
+        if self.autofocus_z_stage:
 
-            print(self._mmc.getAutoFocusDevice())
-
-            if self._mmc.isContinuousFocusEnabled():
+            if self.autofocus_z_stage.isEngaged():
                 if (
-                    self._mmc.isContinuousFocusLocked()
-                    or self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "State")
-                    == "Focusing"
+                    self.autofocus_z_stage.isLocked()
+                    or self.autofocus_z_stage.isFocusing()
                 ):
                     self.offset_Z_groupBox.setEnabled(True)
                     self.Z_groupBox.setEnabled(False)
@@ -636,7 +635,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.offset_z_step_size_doubleSpinBox.value()
             )
             self.autofocus_z_stage.set_offset(new_offset)
-            # self._mmc.setProperty(self.autofocus_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
@@ -649,7 +647,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.offset_z_step_size_doubleSpinBox.value()
             )
             self.autofocus_z_stage.set_offset(new_offset)
-            # self._mmc.setProperty(self.autofocus_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 

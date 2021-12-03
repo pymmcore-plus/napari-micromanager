@@ -119,7 +119,7 @@ class AutofocusDevice:
 
     @classmethod
     def create(self, key):
-        if key == "TIPFS":
+        if key == "TIPFStatus":  # mmcore.getAutoFocusDevice() -> "TIPFStatus"
             return NikonPFS()
 
 
@@ -132,6 +132,16 @@ class NikonPFS(AutofocusDevice):
 
     def get_position(self) -> str:
         self._mmc.getProperty("TIPFSOffset", "Position")
+
+    def isEngaged(self) -> bool:
+        return self._mmc.isContinuousFocusEnabled()
+
+    def isLocked(self) -> bool:
+        return self._mmc.isContinuousFocusLocked()
+
+    def isFocusing(self) -> bool:
+        status = self._mmc.getProperty(self._mmc.getAutoFocusDevice(), "State")
+        return status == "Focusing"
 
 
 class SelectDeviceFromCombobox(QDialog):
