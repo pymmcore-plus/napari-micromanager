@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
+from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QWidget
 
 if TYPE_CHECKING:
@@ -106,10 +107,10 @@ def blockSignals(widget: QWidget):
 
 
 class SelectDeviceFromCombobox(QDialog):
-    def __init__(self, obj_dev: list, func: Callable, label: str, parent=None):
-        super().__init__(parent)
+    val_changed = Signal(str)
 
-        self.func = func
+    def __init__(self, obj_dev: list, label: str, parent=None):
+        super().__init__(parent)
 
         self.setLayout(QHBoxLayout())
         self.label = QLabel()
@@ -124,4 +125,4 @@ class SelectDeviceFromCombobox(QDialog):
         self.layout().addWidget(self.button)
 
     def _on_click(self):
-        self.func([self.combobox.currentText()])
+        self.val_changed.emit(self.combobox.currentText())

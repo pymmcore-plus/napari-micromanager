@@ -317,7 +317,75 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
-    def set_pixel_size(self):
+    def _refresh_objective_options(self):
+
+        obj_dev_list = self._mmc.guessObjectiveDevices()
+        # e.g. ['TiNosePiece']
+
+        if not obj_dev_list:
+            return
+
+        if len(obj_dev_list) == 1:
+            self._set_objectives(obj_dev_list[0])
+        else:
+            # if obj_dev_list has more than 1 possible objective device,
+            # you can select the correct one through a combobox
+            obj = SelectDeviceFromCombobox(
+                obj_dev_list,
+                "Select Objective Device:",
+                self,
+            )
+            obj.val_changed.connect(self._set_objectives)
+            obj.show()
+
+    def _set_objectives(self, obj_device: str):
+
+        obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
+
+        if obj_dev and obj_cfg and presets:
+            current_cfg = self._mmc.getCurrentConfig(obj_dev)
+        else:
+            current_cfg = self._mmc.getState(obj_dev)
+            presets = self._mmc.getStateLabels(obj_dev)
+        self._add_objective_to_gui(current_cfg, presets)
+
+    def _get_objective_device(self, obj_device: str):
+        # check if there is a configuration group for the objectives
+        for cfg_groups in self._mmc.getAvailableConfigGroups():
+            # e.g. ('Camera', 'Channel', 'Objectives')
+
+            presets = self._mmc.getAvailableConfigs(cfg_groups)
+
+            if not presets:
+                continue
+
+            cfg_data = self._mmc.getConfigData(
+                cfg_groups, presets[0]
+            )  # first group option e.g. TINosePiece: State=1
+
+            device = cfg_data.getSetting(0).getDeviceLabel()
+            # e.g. TINosePiece
+
+            if device == obj_device:
+                self.objectives_device = device
+                self.objectives_cfg = cfg_groups
+                return self.objectives_device, self.objectives_cfg, presets
+
+        self.objectives_device = obj_device
+        return self.objectives_device, None, None
+
+    def _add_objective_to_gui(self, current_cfg, presets):
+        with blockSignals(self.objective_comboBox):
+            self.objective_comboBox.clear()
+            self.objective_comboBox.addItems(presets)
+            if isinstance(current_cfg, int):
+                self.objective_comboBox.setCurrentIndex(current_cfg)
+            else:
+                self.objective_comboBox.setCurrentText(current_cfg)
+            self._update_pixel_size()
+            return
+
+    def _update_pixel_size(self):
         # if pixel size is already set -> return
         if bool(self._mmc.getCurrentPixelSizeConfig()):
             return
@@ -336,67 +404,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
-
-    def _set_objective_device(self, obj_devices: list):
-        # check if there is a configuration group for the objectives
-        for cfg_groups in self._mmc.getAvailableConfigGroups():
-            # e.g. ('Camera', 'Channel', 'Objectives')
-
-            options = self._mmc.getAvailableConfigs(cfg_groups)
-
-            cfg_keys = self._mmc.getConfigData(
-                cfg_groups, options[0]
-            )  # first group option e.g. TiNosePiece: State=1
-
-            device = [key[0] for idx, key in enumerate(cfg_keys) if idx == 0][
-                0
-            ]  # get the device name e.g. TiNosePiece
-
-            if device == obj_devices[0]:
-                self.objectives_device = device
-                self.objectives_cfg = cfg_groups
-                current_cfg = self._mmc.getCurrentConfig(self.objectives_device)
-                with blockSignals(self.objective_comboBox):
-                    self.objective_comboBox.clear()
-                    self.objective_comboBox.addItems(options)
-                    self.objective_comboBox.setCurrentText(current_cfg)
-                    self.set_pixel_size()
-                    return
-
-        # if not, use the labels to populate the objective combobox
-        self.objectives_device = obj_devices[0]
-        with blockSignals(self.objective_comboBox):
-            self.objective_comboBox.clear()
-            self.objective_comboBox.addItems(
-                self._mmc.getStateLabels(self.objectives_device)
-            )
-            self.objective_comboBox.setCurrentIndex(
-                self._mmc.getState(self.objectives_device)
-            )
-
-            self.set_pixel_size()
-            return
-
-    def _refresh_objective_options(self):
-
-        obj_dev_list = self._mmc.guessObjectiveDevices()
-        # e.g. ['TiNosePiece']
-
-        if not obj_dev_list:
-            return
-
-        if len(obj_dev_list) == 1:
-            self._set_objective_device(obj_dev_list)
-        else:
-            # if obj_dev_list has more than 1 possible objective device,
-            # you can select the correct one through a combobox
-            obj = SelectDeviceFromCombobox(
-                obj_dev_list,
-                self._set_objective_device,
-                "Select Objective Device:",
-                self,
-            )
-            obj.show()
 
     def _refresh_channel_list(self, channel_group: str = None):
         if channel_group is None:
@@ -523,7 +530,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
 
-        self.set_pixel_size()
+        self._update_pixel_size()
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
