@@ -9,6 +9,7 @@ from qtpy.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     import useq
+    from pymmcore_plus import RemoteMMCore
 
 
 def get_devices_and_props(self):
@@ -108,3 +109,25 @@ def blockSignals(widgets: QWidget | list[QWidget]):
     yield
     for w, s in zip(widgets, orig_states):
         w.blockSignals(s)
+
+
+class AutofocusDevice:
+    def __init__(self, mmcore: RemoteMMCore):
+        super().__init__()
+        self._mmc = mmcore
+
+    @classmethod
+    def create(self, key):
+        if key == "TIPFS":
+            return NikonPFS()
+
+
+class NikonPFS(AutofocusDevice):
+    # for Nikon PFS:
+    # mmcore.getAutoFocusDevice() -> "TIPFStatus"
+    # to get/change the offset use -> "TIPFSOffset" "Position" mmcore Property
+    def set_offset(self, offset: float) -> None:
+        self._mmc.setProperty("TIPFSOffset", "Position", offset)
+
+    def get_position(self) -> str:
+        self._mmc.getProperty("TIPFSOffset", "Position")

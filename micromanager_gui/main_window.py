@@ -15,7 +15,7 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import AutofocusDevice, blockSignals, event_indices, extend_array_for_index
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
@@ -318,6 +318,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
 
+    def _refresh_options(self):
+        self._refresh_camera_options()
+        self._refresh_objective_options()
+        self._refresh_channel_list()
+        self._refresh_positions()
+        self._refresh_xyz_devices()
+
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
         if not cam_device:
@@ -351,9 +358,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
 
     def _refresh_channel_list(self, channel_group: str = None):
+
+        print("channel_group 1: ", channel_group)
+
         if channel_group is None:
             channel_group = self._mmc.getOrGuessChannelGroup()
+            print("channel_group 2: ", channel_group)
         if channel_group:
+            print("channel_group 3: ", channel_group)
             channel_list = list(self._mmc.getAvailableConfigs(channel_group))
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.clear()
@@ -369,23 +381,20 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getFocusDevice():
             self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
-    def _refresh_focus_device(self):
-        # for Nikon PFS:
-        # getAutoFocusDevice() -> TIPFStatus
-        # to change the offset -> TIPFSOffset
+    def _refresh_xyz_devices(self):
         self.focus_device_comboBox.clear()
         self.offset_device_comboBox.clear()
+        self.xy_device_comboBox.clear()
 
         xy_stage_dev = [
             dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice)
         ]
 
-        focus_devs = []
-        for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice):
-            if "TIPFS" in dev:  # for Nikon PFS for now
-                self.offset_z_stage = dev
-            else:  # to remove Nikon TIPFSOffset from the list
-                focus_devs.append(dev)
+        focus_devs = [
+            dev
+            for dev in self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice)
+            if dev != "TIPFSOffset"  # to remove Nikon TIPFSOffset from the list
+        ]
 
         offset_devs = [
             dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice)
@@ -409,13 +418,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.offset_device_comboBox.addItems(offset_devs)
             self._set_autofocus_device()
 
-    def _refresh_options(self):
-        self._refresh_camera_options()
-        self._refresh_objective_options()
-        self._refresh_channel_list()
-        self._refresh_positions()
-        self._refresh_focus_device()
-
     def _set_xy_stage_device(self):
         if not self.xy_device_comboBox.count():
             return
@@ -429,7 +431,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _set_autofocus_device(self):
         if not self.offset_device_comboBox.count():
             return
-        self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
+        self.autofocus_z_stage = AutofocusDevice.create(
+            self.offset_device_comboBox.currentText()
+        )
+        self._mmc.setAutoFocusDevice(self.autofocus_z_stage)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -517,24 +522,26 @@ class MainWindow(QtW.QWidget, _MainUI):
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty(self.offset_z_stage, "Position")
+                self._mmc.getProperty(self.autofocus_z_stage, "Position")
             )
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(self.offset_z_stage, "Position", new_offset)
+            self.autofocus_z_stage.set_offset(new_offset)
+            # self._mmc.setProperty(self.autofocus_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = float(
-                self._mmc.getProperty(self.offset_z_stage, "Position")
+                self._mmc.getProperty(self.autofocus_z_stage, "Position")
             )
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self._mmc.setProperty(self.offset_z_stage, "Position", new_offset)
+            self.autofocus_z_stage.set_offset(new_offset)
+            # self._mmc.setProperty(self.autofocus_z_stage, "Position", new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
