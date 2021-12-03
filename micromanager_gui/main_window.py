@@ -544,7 +544,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not self.offset_device_comboBox.count():
             return
 
-        self.autofocus_z_stage = AutofocusDevice.create(
+        self.autofocus_z_stage = AutofocusDevice.set(
             self.offset_device_comboBox.currentText(), self._mmc
         )
 
