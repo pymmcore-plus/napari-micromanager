@@ -390,15 +390,16 @@ class MainWindow(QtW.QWidget, _MainUI):
             obj.show()
 
     def _set_objectives(self, obj_device: str):
-
+        
         obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
 
         if obj_dev and obj_cfg and presets:
-            current_cfg = self._mmc.getCurrentConfig(obj_dev)
+            current_obj = self._mmc.getCurrentConfig(obj_cfg)
         else:
-            current_cfg = self._mmc.getState(obj_dev)
+            current_obj = self._mmc.getState(obj_dev)
             presets = self._mmc.getStateLabels(obj_dev)
-        self._add_objective_to_gui(current_cfg, presets)
+
+        self._add_objective_to_gui(current_obj, presets)
 
     def _get_objective_device(self, obj_device: str):
         # check if there is a configuration group for the objectives
@@ -425,14 +426,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = obj_device
         return self.objectives_device, None, None
 
-    def _add_objective_to_gui(self, current_cfg, presets):
+    def _add_objective_to_gui(self, current_obj, presets):
         with blockSignals(self.objective_comboBox):
             self.objective_comboBox.clear()
             self.objective_comboBox.addItems(presets)
-            if isinstance(current_cfg, int):
-                self.objective_comboBox.setCurrentIndex(current_cfg)
+            if isinstance(current_obj, int):
+                self.objective_comboBox.setCurrentIndex(current_obj)
             else:
-                self.objective_comboBox.setCurrentText(current_cfg)
+                self.objective_comboBox.setCurrentText(current_obj)
             self._update_pixel_size()
             return
 
@@ -543,30 +544,24 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _set_autofocus_device(self):
         if not self.offset_device_comboBox.count():
             return
-
         self.autofocus_z_stage = AutofocusDevice.set(
             self.offset_device_comboBox.currentText(), self._mmc
         )
-
         self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
+        self._on_offset_status_changed()
 
     def _on_offset_status_changed(self):
-
         if not self.autofocus_z_stage:
             self.offset_Z_groupBox.setEnabled(False)
             self.Z_groupBox.setEnabled(True)
-
         else:
-
             if self.autofocus_z_stage.isEngaged():
-
                 if (
                     self.autofocus_z_stage.isLocked()
                     or self.autofocus_z_stage.isFocusing()
                 ):
                     self.offset_Z_groupBox.setEnabled(True)
                     self.Z_groupBox.setEnabled(False)
-
             else:
                 self.offset_Z_groupBox.setEnabled(False)
                 self.Z_groupBox.setEnabled(True)
@@ -636,26 +631,20 @@ class MainWindow(QtW.QWidget, _MainUI):
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = self.autofocus_z_stage.get_position()
-
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-
             self.autofocus_z_stage.set_offset(new_offset)
-
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
             current_offset = self.autofocus_z_stage.get_position()
-
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-
             self.autofocus_z_stage.set_offset(new_offset)
-
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
