@@ -326,7 +326,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             return
 
         if len(guessed_channel_list) == 1:
-            self._set_channel_group(guessed_channel_list)
+            self._set_channel_group(guessed_channel_list[0])
         else:
             # if guessed_channel_list has more than 1 possible channel group,
             # you can select the correct one through a combobox
@@ -335,10 +335,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 "Select Channel Group:",
                 self,
             )
+            ch.val_changed.connect(self._set_channel_group)
             ch.show()
 
-    def _set_channel_group(self, guessed_channel_list: list):
-        channel_group = guessed_channel_list[0]
+    def _set_channel_group(self, guessed_channel: str):
+        channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = self._mmc.getAvailableConfigs(channel_group)
         with blockSignals(self.snap_channel_comboBox):
