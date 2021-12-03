@@ -390,7 +390,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             obj.show()
 
     def _set_objectives(self, obj_device: str):
-        
+
         obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
 
         if obj_dev and obj_cfg and presets:
@@ -554,17 +554,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not self.autofocus_z_stage:
             self.offset_Z_groupBox.setEnabled(False)
             self.Z_groupBox.setEnabled(True)
+        elif self.autofocus_z_stage.isEngaged():
+            if self.autofocus_z_stage.isLocked() or self.autofocus_z_stage.isFocusing():
+                self.offset_Z_groupBox.setEnabled(True)
+                self.Z_groupBox.setEnabled(False)
         else:
-            if self.autofocus_z_stage.isEngaged():
-                if (
-                    self.autofocus_z_stage.isLocked()
-                    or self.autofocus_z_stage.isFocusing()
-                ):
-                    self.offset_Z_groupBox.setEnabled(True)
-                    self.Z_groupBox.setEnabled(False)
-            else:
-                self.offset_Z_groupBox.setEnabled(False)
-                self.Z_groupBox.setEnabled(True)
+            self.offset_Z_groupBox.setEnabled(False)
+            self.Z_groupBox.setEnabled(True)
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
