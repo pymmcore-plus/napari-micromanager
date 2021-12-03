@@ -332,7 +332,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             # you can select the correct one through a combobox
             ch = SelectDeviceFromCombobox(
                 guessed_channel_list,
-                self._set_channel_group,
                 "Select Channel Group:",
                 self,
             )
