@@ -12,9 +12,8 @@ from magicgui.widgets import (
     Widget,
 )
 from pymmcore_plus import DeviceType, PropertyType
-from PyQt5.QtWidgets import QHBoxLayout
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QDialog
+from qtpy.QtWidgets import QDialog, QHBoxLayout
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
