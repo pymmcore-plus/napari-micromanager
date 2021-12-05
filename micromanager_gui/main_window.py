@@ -499,7 +499,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.offset_device_comboBox.clear()
         self.xy_device_comboBox.clear()
 
-        xy_stage_dev = [
+        xy_stage_devs = [
             dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice)
         ]
 
@@ -511,10 +511,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             dev for dev in self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice)
         ]
 
-        if not xy_stage_dev:
+        if not xy_stage_devs:
             self.xy_device_comboBox.setEnabled(False)
         else:
-            self.xy_device_comboBox.addItems(xy_stage_dev)
+            self.xy_device_comboBox.addItems(xy_stage_devs)
             self._set_xy_stage_device()
 
         if not focus_devs:
