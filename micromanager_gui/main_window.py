@@ -545,17 +545,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.autofocus_z_stage = AutofocusDevice.set(
             self.offset_device_comboBox.currentText(), self._mmc
         )
-
         # remove autofocus offset device if in the combobox of focus devices
         # e.g. "TIPSFOffset" for Nikon PFS
-        focus_cbox_items = [item for item in self.focus_device_comboBox.itemText()]
-        if self.autofocus_z_stage.offset_device in focus_cbox_items:
-            self.focus_device_comboBox.removeItem(
-                self.focus_device_comboBox.findText(
-                    self.autofocus_z_stage.offset_device
+        if self.focus_device_comboBox.count() > 1:
+            focus_cbox_items = [item for item in self.focus_device_comboBox.itemText()]
+            if self.autofocus_z_stage.offset_device in focus_cbox_items:
+                self.focus_device_comboBox.removeItem(
+                    self.focus_device_comboBox.findText(
+                        self.autofocus_z_stage.offset_device
+                    )
                 )
-            )
-
         self._mmc.setAutoFocusDevice(self.offset_device_comboBox.currentText())
         self._on_offset_status_changed()
 
