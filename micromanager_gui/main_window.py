@@ -336,6 +336,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         )
         self._mmc.saveSystemConfiguration(f"{path_and_filename}")
 
+    def _on_config_set(self, groupName: str, configName: str):
+        if groupName == self._mmc.getOrGuessChannelGroup():
+            with blockSignals(self.snap_channel_comboBox):
+                self.snap_channel_comboBox.setCurrentText(configName)
+
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
         self.camera_groupBox.setEnabled(enabled)
@@ -559,17 +564,35 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _refresh_channel_list(self, channel_group: str = None):
-        if channel_group is None:
-            channel_group = self._mmc.getOrGuessChannelGroup()
-        if channel_group:
-            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-            with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.clear()
-                self.snap_channel_comboBox.addItems(channel_list)
-                self.snap_channel_comboBox.setCurrentText(
-                    self._mmc.getCurrentConfig(channel_group)
-                )
+    def _refresh_channel_list(self):
+        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
+
+        if not guessed_channel_list:
+            return
+
+        if len(guessed_channel_list) == 1:
+            self._set_channel_group(guessed_channel_list[0])
+        else:
+            # if guessed_channel_list has more than 1 possible channel group,
+            # you can select the correct one through a combobox
+            ch = SelectDeviceFromCombobox(
+                guessed_channel_list,
+                "Select Channel Group:",
+                self,
+            )
+            ch.val_changed.connect(self._set_channel_group)
+            ch.show()
+
+    def _set_channel_group(self, guessed_channel: str):
+        channel_group = guessed_channel
+        self._mmc.setChannelGroup(channel_group)
+        channel_list = self._mmc.getAvailableConfigs(channel_group)
+        with blockSignals(self.snap_channel_comboBox):
+            self.snap_channel_comboBox.clear()
+            self.snap_channel_comboBox.addItems(channel_list)
+            self.snap_channel_comboBox.setCurrentText(
+                self._mmc.getCurrentConfig(channel_group)
+            )
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
@@ -598,14 +621,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setProperty(cd, "Binning", bins)
 
     def _channel_changed(self, newChannel: str):
-        try:
-            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
-
-            self._mmc.events.configSet.emit(
-                f"{self._mmc.getChannelGroup()}*_*{newChannel}", "update widgets"
-            )
-        except ValueError:
-            pass
+        channel_group = self._mmc.getOrGuessChannelGroup()
+        if channel_group:
+            self._mmc.setConfig(channel_group, newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
