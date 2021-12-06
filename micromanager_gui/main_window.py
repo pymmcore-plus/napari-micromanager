@@ -38,8 +38,6 @@ ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
-EXP_PROP = re.compile("(.+)?(exp(osure)?)", re.IGNORECASE)
-
 
 class _MainUI:
     UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
@@ -107,7 +105,7 @@ class _MainUI:
 
 class MainWindow(QtW.QWidget, _MainUI):
 
-    update_widget = Signal(str, str)
+    update_cbox_widget = Signal(str, str)
 
     def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
@@ -129,7 +127,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.tabBar().moveTab(1, 0)
         # connect signals from groups and presets tab
         self.groups_and_presets.update_table.connect(self._on_update_table)
-        self.groups_and_presets.on_change_widget.connect(self._on_update_widget)
+        self.groups_and_presets.on_change_cbox_widget.connect(
+            self._on_update_cbox_widget
+        )
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -156,7 +156,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.propertyChanged.connect(self._on_prop_changed)
 
         # connect update_widget signal
-        self.update_widget.connect(self._on_update_widget)
+        self.update_cbox_widget.connect(self._on_update_cbox_widget)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -242,8 +242,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             if channel_list != cbox_list:
                 self._refresh_channel_list()
 
-    def _on_update_widget(self, group: str, preset: str):
-        logger.debug(f"update widget: {group} -> {preset}")
+    def _on_update_cbox_widget(self, group: str, preset: str):
+        logger.debug(f"update cbox widget: {group} -> {preset}")
         table = self.groups_and_presets.tb
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
@@ -268,13 +268,25 @@ class MainWindow(QtW.QWidget, _MainUI):
         except IndexError:
             pass
 
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
+    def _on_exp_change(self, camera: str, exposure: float):
+        logger.debug(f"EXPOSURE CHANGED: {camera} -> {exposure}")
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+
     def _on_prop_changed(self, dev, prop, val):
         logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
-        # Camera/Exposure time -> change gui widgets
+        # Camera gui options -> change gui widgets
         if dev == self._mmc.getCameraDevice():
             self._refresh_camera_options()
-            if EXP_PROP.match(prop):
-                self.exp_spinBox.setValue(float(val))
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -344,19 +356,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
-
-    def _update_exp(self, exposure: float):
-        self._mmc.setExposure(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.exp_spinBox):
-            self.exp_spinBox.setValue(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -476,6 +475,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # e.g. ['TiNosePiece']
 
         if not obj_dev_list:
+            self.objective_comboBox.clear()
             return
 
         if len(obj_dev_list) == 1:
@@ -562,6 +562,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         guessed_channel_list = self._mmc.getOrGuessChannelGroup()
 
         if not guessed_channel_list:
+            self.snap_channel_comboBox.clear()
             return
 
         if len(guessed_channel_list) == 1:
@@ -615,8 +616,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setProperty(cd, "Binning", bins)
 
     def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
-        self.update_widget.emit(self._mmc.getChannelGroup(), newChannel)
+        if self._mmc.getChannelGroup():
+            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
+            self.update_cbox_widget.emit(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -694,19 +696,11 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         curr_obj = self.objective_comboBox.currentText()
         if self.objectives_cfg:
-            self.update_widget.emit(self.objectives_cfg, curr_obj)
+            self.update_cbox_widget.emit(self.objectives_cfg, curr_obj)
         else:
-            self.update_widget.emit("no_group", curr_obj)
+            self.update_cbox_widget.emit("no_group", curr_obj)
 
         self._update_pixel_size()
-
-        # if self.objectives_cfg:
-        # curr_obj = self.objective_comboBox.currentText()
-        # self.update_widget.emit(self.objectives_cfg, curr_obj)
-
-        # self._mmc.events.configSet.emit(
-        #     f"{self.objectives_cfg}*_*{curr_obj}", "update widgets"
-        # )
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective

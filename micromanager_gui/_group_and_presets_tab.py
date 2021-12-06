@@ -42,7 +42,7 @@ class MainTable(Table):
 class GroupPresetWidget(QtW.QWidget):
 
     update_table = Signal(str)
-    on_change_widget = Signal(str, str)
+    on_change_cbox_widget = Signal(str, str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
@@ -175,7 +175,7 @@ class GroupPresetWidget(QtW.QWidget):
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
                 self._mmc.setConfig(group, value)
-                self.on_change_widget.emit(f"{group}", f"{value}")
+                self.on_change_cbox_widget.emit(f"{group}", f"{value}")
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
