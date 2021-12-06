@@ -475,8 +475,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )
 
     def _refresh_objective_options(self):
-        if self.objectives_device:
-            self._set_objective_device([self.objectives_device])
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
         # e.g. ['TiNosePiece']
@@ -502,11 +500,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
 
         if obj_dev and obj_cfg and presets:
-            current_cfg = self._mmc.getCurrentConfig(obj_dev)
+            current_obj = self._mmc.getCurrentConfig(obj_cfg)
         else:
-            current_cfg = self._mmc.getState(obj_dev)
+            current_obj = self._mmc.getState(obj_dev)
             presets = self._mmc.getStateLabels(obj_dev)
-        self._add_objective_to_gui(current_cfg, presets)
+        self._add_objective_to_gui(current_obj, presets)
 
     def _get_objective_device(self, obj_device: str):
         # check if there is a configuration group for the objectives
@@ -533,14 +531,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = obj_device
         return self.objectives_device, None, None
 
-    def _add_objective_to_gui(self, current_cfg, presets):
+    def _add_objective_to_gui(self, current_obj, presets):
         with blockSignals(self.objective_comboBox):
             self.objective_comboBox.clear()
             self.objective_comboBox.addItems(presets)
-            if isinstance(current_cfg, int):
-                self.objective_comboBox.setCurrentIndex(current_cfg)
+            if isinstance(current_obj, int):
+                self.objective_comboBox.setCurrentIndex(current_obj)
             else:
-                self.objective_comboBox.setCurrentText(current_cfg)
+                self.objective_comboBox.setCurrentText(current_obj)
             self._update_pixel_size()
             return
 
