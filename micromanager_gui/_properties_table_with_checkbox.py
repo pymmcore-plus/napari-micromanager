@@ -139,6 +139,16 @@ class PropTable(Table):
             else:
                 self.native.hideRow(i)
 
+    def _show_only_selected(self, status):
+        for i, (_, c_box, _, _) in enumerate(self.data):
+            if status:
+                if c_box.value:
+                    self.native.showRow(i)
+                else:
+                    self.native.hideRow(i)
+            else:
+                self._refresh_visibilty()
+
     @property
     def filter_string(self):
         return self._filter_string
@@ -186,9 +196,15 @@ class GroupConfigurations(QDialog):
         self.cb.native.layout().addStretch()
         self.cb.native.layout().setSpacing(0)
         self.cb.show()
-        c_box_tb = Container(
-            layout="horizontal", widgets=[self.cb, table], labels=False
+
+        self.cbox_show = CheckBox(text="show only selected")
+        self.cbox_show.changed.connect(self.show_hide_selected)
+
+        cbox1 = Container(
+            layout="vertical", widgets=[self.cbox_show, self.cb], labels=True
         )
+
+        c_box_tb = Container(layout="horizontal", widgets=[cbox1, table], labels=False)
 
         self.group_le = LineEdit(label="Group:")
         self.preset_le = LineEdit(label="Preset")
@@ -221,6 +237,9 @@ class GroupConfigurations(QDialog):
 
     def _on_le_change(self, value: str):
         self.pt.filter_string = value
+
+    def show_hide_selected(self, status: bool):
+        self.pt._show_only_selected(status)
 
     def _create_group_and_preset(self):
         group_name = self.group_le.value
