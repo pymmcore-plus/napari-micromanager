@@ -16,6 +16,7 @@ from magicgui.widgets import (
 )
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
 from qtpy import QtWidgets as QtW
+from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QDialog
 
 if TYPE_CHECKING:
@@ -39,12 +40,13 @@ class MainTable(Table):
 
 
 class GroupPresetWidget(QtW.QWidget):
+
+    update_table = Signal(str)
+    on_change_widget = Signal(str, str)
+
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
         self._mmc = mmcore
-
-        # connect mmcore signals
-        # sig = self._mmc.events
 
         self.tb = MainTable(self._mmc)
         self.tb.column_headers = ("Groups", "Presets")
@@ -123,7 +125,7 @@ class GroupPresetWidget(QtW.QWidget):
                     wdg.value = preset
                     self._mmc.setConfig(group, preset)
 
-        self._mmc.events.configGroupChanged.emit("update", "table status")
+        self.update_table.emit("update_table")
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -173,6 +175,7 @@ class GroupPresetWidget(QtW.QWidget):
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
                 self._mmc.setConfig(group, value)
+                self.on_change_widget.emit(f"{group}", f"{value}")
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
@@ -181,8 +184,6 @@ class GroupPresetWidget(QtW.QWidget):
                 if isinstance(wdg, Slider):
                     v = int(value)
                 self._mmc.setProperty(dev, prop, v)
-
-            self._mmc.events.configSet.emit(f"{group}*_*{value}", "update widgets")
 
         return wdg
 

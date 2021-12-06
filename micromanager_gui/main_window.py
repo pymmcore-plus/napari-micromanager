@@ -10,7 +10,7 @@ from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, Qt, QTimer
+from qtpy.QtCore import QSize, Qt, QTimer, Signal
 from qtpy.QtGui import QColor, QIcon
 
 from ._group_and_presets_tab import GroupPresetWidget
@@ -106,6 +106,9 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
+
+    update_widget = Signal(str, str)
+
     def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
         self.setup_ui()
@@ -124,6 +127,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.tabWidget.tabBar().moveTab(1, 0)
+        # connect signals from groups and presets tab
+        self.groups_and_presets.update_table.connect(self._on_update_table)
+        self.groups_and_presets.on_change_widget.connect(self._on_update_widget)
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -148,10 +154,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
 
         sig.propertyChanged.connect(self._on_prop_changed)
-        # sig.configSet.connect(self._on_cfg_set)
-        sig.configSet.connect(self._on_update_widget)
-        # sig.configGroupChanged.connect(self._on_cfg_changed)
-        sig.configGroupChanged.connect(self._on_update_table_status)
+
+        # connect update_widget signal
+        self.update_widget.connect(self._on_update_widget)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -207,11 +212,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                 f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
             )
 
-    # def _on_cfg_changed(self, group: str, preset: str):
-    def _on_update_table_status(self, group: str, preset: str):
-        # logger.debug(f"CONFIG GROUP CHANGED: {group} -> {preset}")
-        if f"{group} {preset}" != "update table status":
-            return
+    def _on_update_table(self, update_table: str):
+        logger.debug(f"update_table -> {update_table}")
         # populate objective combobox when creating/modifying objective group
         if self.objectives_cfg:
             obj_gp_list = [
@@ -240,6 +242,23 @@ class MainWindow(QtW.QWidget, _MainUI):
             if channel_list != cbox_list:
                 self._refresh_channel_list()
 
+    def _on_update_widget(self, group: str, preset: str):
+        logger.debug(f"update widget: {group} -> {preset}")
+        table = self.groups_and_presets.tb
+        # Channels -> change comboboxes (main gui and group table)
+        channel_group = self._mmc.getChannelGroup()
+        if channel_group == group:
+            # main gui
+            self.snap_channel_comboBox.setCurrentText(preset)
+            # group/preset table
+            self._match_and_set(group, table, preset)
+        # Objective -> change comboboxes (main gui and group table)
+        if self.objectives_cfg:
+            # main gui
+            self.objective_comboBox.setCurrentText(preset)
+            # group/preset table
+            self._match_and_set(group, table, preset)
+
     def _match_and_set(self, group: str, table: Table, preset: str):
         try:
             matching_ch_group = table.native.findItems(group, Qt.MatchContains)
@@ -248,29 +267,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             wdg.value = preset or self._mmc.getCurrentConfig(group)
         except IndexError:
             pass
-
-    def _on_update_widget(self, group_preset: str, update_str: str):
-        # logger.debug(f"CONFIG SET: {group_preset} -> {update_str}")
-        if update_str != "update widgets":
-            return
-        preset = group_preset.split("*_*")[-1]
-        group = group_preset.split("*_*")[0]
-        table = self.groups_and_presets.tb
-        # Channels -> change comboboxes (main gui and group table)
-        channel_group = self._mmc.getChannelGroup()
-        if channel_group == group:
-            # main gui
-            # self._mmc.getCurrentConfig(channel_group) does not work for some reason...
-            self.snap_channel_comboBox.setCurrentText(preset)
-            # group/preset table
-            self._match_and_set(group, table, preset)
-        # Objective -> change comboboxes (main gui and group table)
-        if self.objectives_cfg == group:
-            # main gui
-            current_obj = self._mmc.getCurrentConfig(self.objectives_cfg)
-            self.objective_comboBox.setCurrentText(current_obj)
-            # group/preset table
-            self._match_and_set(group, table, current_obj)
 
     def _on_prop_changed(self, dev, prop, val):
         # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
@@ -620,6 +616,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _channel_changed(self, newChannel: str):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
+        self.update_widget.emit(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -695,13 +692,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         # self._mmc.setPosition(zdev, currentZ)
         # self._mmc.waitForDevice(zdev)
 
+        curr_obj = self.objective_comboBox.currentText()
+        if self.objectives_cfg:
+            self.update_widget.emit(self.objectives_cfg, curr_obj)
+        else:
+            self.update_widget.emit("no_group", curr_obj)
+
         self._update_pixel_size()
 
-        if self.objectives_cfg:
-            curr_obj = self.objective_comboBox.currentText()
-            self._mmc.events.configSet.emit(
-                f"{self.objectives_cfg}*_*{curr_obj}", "update widgets"
-            )
+        # if self.objectives_cfg:
+        # curr_obj = self.objective_comboBox.currentText()
+        # self.update_widget.emit(self.objectives_cfg, curr_obj)
+
+        # self._mmc.events.configSet.emit(
+        #     f"{self.objectives_cfg}*_*{curr_obj}", "update widgets"
+        # )
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective
