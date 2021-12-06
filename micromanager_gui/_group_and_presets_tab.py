@@ -247,7 +247,7 @@ class GroupPresetWidget(QtW.QWidget):
 class RenameGroupPreset(QDialog):
     def __init__(
         self, mmcore: RemoteMMCore, table: Table, add_to_table: Callable, parent=None
-    ):
+    ):  # maybe change add_to_table: Callable and emit a signal?
         super().__init__(parent)
 
         self._mmc = mmcore
@@ -307,6 +307,6 @@ class RenameGroupPreset(QDialog):
             f"{self.gp_lineedit.value}.{self.ps_lineedit.value}"
         )
 
-        self.add_to_table()
+        self.add_to_table()  # maybe change and emit a signal?
 
         self.close()
