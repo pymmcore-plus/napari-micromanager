@@ -619,9 +619,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setProperty(cd, "Binning", bins)
 
     def _channel_changed(self, newChannel: str):
-        channel_group = self._mmc.getOrGuessChannelGroup()
-        if channel_group:
-            self._mmc.setConfig(channel_group, newChannel)
+        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
