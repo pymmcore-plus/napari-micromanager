@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -164,7 +165,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.configSet.connect
         def _on_cfg_set(group: str, preset: str):
-            print(f"New group cfg set: {group} -> {preset}")
+            logger.debug(f"New group cfg set: {group} -> {preset}")
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
