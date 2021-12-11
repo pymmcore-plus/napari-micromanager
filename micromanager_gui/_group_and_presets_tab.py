@@ -117,15 +117,15 @@ class GroupPresetWidget(QtW.QWidget):
                     elif isinstance(wdg, LineEdit):
                         val = str(preset)
                     wdg.value = val
-                    self._mmc.setProperty(dev, prop, val)
+                    self._mmc.setProperty(dev, prop, val)  # -> propertyChanged
 
             else:
                 preset = self._mmc.getCurrentConfigFromCache(group)
                 if preset:
                     wdg.value = preset
-                    self._mmc.setConfig(group, preset)
+                    self._mmc.setConfig(group, preset)  # -> configSet
 
-        self.update_table.emit("update_table")
+        # self.update_table.emit("update_table")
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -174,8 +174,8 @@ class GroupPresetWidget(QtW.QWidget):
         @wdg.changed.connect
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
-                self._mmc.setConfig(group, value)
-                self.on_change_cbox_widget.emit(f"{group}", f"{value}")
+                self._mmc.setConfig(group, value)  # -> configSet
+                # self.on_change_cbox_widget.emit(f"{group}", f"{value}")
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
@@ -183,7 +183,7 @@ class GroupPresetWidget(QtW.QWidget):
                     v = str(value)
                 if isinstance(wdg, Slider):
                     v = int(value)
-                self._mmc.setProperty(dev, prop, v)
+                self._mmc.setProperty(dev, prop, v)  # -> propertyChanged
 
         return wdg
 

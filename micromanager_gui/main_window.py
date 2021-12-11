@@ -153,7 +153,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
 
-        sig.propertyChanged.connect(self._on_prop_changed)
+        # sig.propertyChanged.connect(self._on_prop_changed)
 
         # connect update_widget signal
         self.update_cbox_widget.connect(self._on_update_cbox_widget)
@@ -205,12 +205,28 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @sig.pixelSizeChanged.connect
-        def _on_px_size_changed(value):
-            logger.debug(
-                f"current pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-            )
+        # @sig.pixelSizeChanged.connect
+        # def _on_px_size_changed(value):
+        #     logger.debug(
+        #         f"current pixel config: "
+        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+        #     )
+
+        @sig.configSet.connect
+        def _on_config_set(groupName: str, configName: str):
+            logger.debug(f"CFG SET: {groupName} -> {configName}")
+
+            self._on_update_cbox_widget(groupName, configName)
+            # update gui channel cbox
+            # update gui objective cbox if self.objectives_cfg
+
+        @sig.propertyChanged.connect
+        def _on_prop_changed(dev, prop, val):
+            logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+
+            # Camera gui options -> change gui widgets
+            if dev == self._mmc.getCameraDevice():
+                self._refresh_camera_options()
 
     def _on_update_table(self, update_table: str):
         logger.debug(f"update_table -> {update_table}")
@@ -253,7 +269,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             # group/preset table
             self._match_and_set(group, table, preset)
         # Objective -> change comboboxes (main gui and group table)
-        if self.objectives_cfg:
+        if self.objectives_cfg == group:
             # main gui
             self.objective_comboBox.setCurrentText(preset)
             # group/preset table
@@ -282,11 +298,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
 
-    def _on_prop_changed(self, dev, prop, val):
-        logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
-        # Camera gui options -> change gui widgets
-        if dev == self._mmc.getCameraDevice():
-            self._refresh_camera_options()
+    # def _on_prop_changed(self, dev, prop, val):
+    #     logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+    #     # Camera gui options -> change gui widgets
+    #     if dev == self._mmc.getCameraDevice():
+    #         self._refresh_camera_options()
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -617,8 +633,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _channel_changed(self, newChannel: str):
         if self._mmc.getChannelGroup():
-            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
-            self.update_cbox_widget.emit(self._mmc.getChannelGroup(), newChannel)
+            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)  # -> configSet
+            # self.update_cbox_widget.emit(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -684,21 +700,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         try:
             self._mmc.setConfig(
                 self.objectives_cfg, self.objective_comboBox.currentText()
-            )
+            )  # -> configSet
         except ValueError:
             self._mmc.setProperty(
                 self.objectives_device, "Label", self.objective_comboBox.currentText()
-            )
+            )  # -> propertyChanged
 
         # self._mmc.waitForDevice(self.objectives_device)
         # self._mmc.setPosition(zdev, currentZ)
         # self._mmc.waitForDevice(zdev)
 
-        curr_obj = self.objective_comboBox.currentText()
-        if self.objectives_cfg:
-            self.update_cbox_widget.emit(self.objectives_cfg, curr_obj)
-        else:
-            self.update_cbox_widget.emit("no_group", curr_obj)
+        # curr_obj = self.objective_comboBox.currentText()
+        # if self.objectives_cfg:
+        #     self.update_cbox_widget.emit(self.objectives_cfg, curr_obj)
+        # else:
+        #     self.update_cbox_widget.emit("no_group", curr_obj)
 
         self._update_pixel_size()
 
