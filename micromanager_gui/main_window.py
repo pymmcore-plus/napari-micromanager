@@ -127,9 +127,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.tabBar().moveTab(1, 0)
         # connect signals from groups and presets tab
         self.groups_and_presets.update_table.connect(self._on_update_table)
-        self.groups_and_presets.on_change_cbox_widget.connect(
-            self._on_update_cbox_widget
-        )
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -152,11 +149,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-
-        # sig.propertyChanged.connect(self._on_prop_changed)
-
-        # connect update_widget signal
-        self.update_cbox_widget.connect(self._on_update_cbox_widget)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -205,20 +197,20 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        # @sig.pixelSizeChanged.connect
-        # def _on_px_size_changed(value):
-        #     logger.debug(
-        #         f"current pixel config: "
-        #         f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-        #     )
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"current pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
+            )
 
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
             logger.debug(f"CFG SET: {groupName} -> {configName}")
 
-            self._on_update_cbox_widget(groupName, configName)
-            # update gui channel cbox
+            # update gui channel cbox and
             # update gui objective cbox if self.objectives_cfg
+            self._on_update_cbox_widget(groupName, configName)
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
@@ -228,8 +220,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
 
+            # if dev == self.objectives_device:
+            #     self._refresh_objective_options()
+
     def _on_update_table(self, update_table: str):
-        logger.debug(f"update_table -> {update_table}")
+        logger.debug("updating table")
         # populate objective combobox when creating/modifying objective group
         if self.objectives_cfg:
             obj_gp_list = [
@@ -297,12 +292,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    # def _on_prop_changed(self, dev, prop, val):
-    #     logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
-    #     # Camera gui options -> change gui widgets
-    #     if dev == self._mmc.getCameraDevice():
-    #         self._refresh_camera_options()
 
     def illumination(self):
         if not hasattr(self, "_illumination"):

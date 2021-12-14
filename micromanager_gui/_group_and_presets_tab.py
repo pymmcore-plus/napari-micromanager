@@ -42,7 +42,6 @@ class MainTable(Table):
 class GroupPresetWidget(QtW.QWidget):
 
     update_table = Signal(str)
-    on_change_cbox_widget = Signal(str, str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
@@ -125,7 +124,7 @@ class GroupPresetWidget(QtW.QWidget):
                     wdg.value = preset
                     self._mmc.setConfig(group, preset)  # -> configSet
 
-        # self.update_table.emit("update_table")
+        self.update_table.emit("update_table")
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -175,7 +174,6 @@ class GroupPresetWidget(QtW.QWidget):
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
                 self._mmc.setConfig(group, value)  # -> configSet
-                # self.on_change_cbox_widget.emit(f"{group}", f"{value}")
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
@@ -203,17 +201,21 @@ class GroupPresetWidget(QtW.QWidget):
             wdg = self.tb.data[row_idx, 1]  # [r, c]
             if isinstance(wdg, ComboBox):
                 if len(wdg.choices) == 1:
+                    preset = ""
                     self._mmc.deleteConfigGroup(group)
                     self.tb.native.removeRow(row_idx)
                     logger.debug(f"group {group} deleted!")
                 else:
-                    self._mmc.deleteConfig(group, str(wdg.value))
+                    preset = str(wdg.value)
+                    self._mmc.deleteConfig(group, preset)
                     logger.debug(f"group {group}.{wdg.value} deleted!")
                     wdg.del_choice(wdg.value)
             else:
+                preset = ""
                 self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
                 logger.debug(f"group {group} deleted!")
+
             self._update_group_table_status()
 
     def _edit_selected_group_preset(self):
