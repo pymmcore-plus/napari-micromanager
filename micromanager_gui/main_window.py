@@ -523,8 +523,11 @@ class MainWindow(QtW.QWidget, _MainUI):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getOrGuessChannelGroup()
-            self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            ch_group = self._mmc.getChannelGroup()
+            if ch_group:
+                self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            else:
+                return
 
             self.start_live()
             self.live_Button.setIcon(CAM_STOP_ICON)
