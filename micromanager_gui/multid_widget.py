@@ -15,8 +15,6 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
-OBJECTIVE_DEVICE = "Objective"
-# Once the PR #43 is merged, we pass the objective device to this variable
 
 
 @dataclass
@@ -213,7 +211,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            channel_group = self._mmc.getOrGuessChannelGroup()
+            channel_group = self._mmc.getChannelGroup()
             if channel_group:
                 channel_list = list(self._mmc.getAvailableConfigs(channel_group))
                 self.channel_comboBox.addItems(channel_list)
