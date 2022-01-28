@@ -13,6 +13,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
+from ._camera_roi import CameraROI
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -90,6 +91,8 @@ class _MainUI:
     max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
     properties_Button: QtW.QPushButton
+    cam_roi_comboBox: QtW.QComboBox
+    crop_Button: QtW.QPushButton
     illumination_Button: QtW.QPushButton
     snap_on_click_checkBox: QtW.QCheckBox
 
@@ -130,6 +133,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         self.autofocus_z_stage = None
+
+        self.objectives_device = None
+        self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
@@ -186,6 +192,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._set_autofocus_device
         )
 
+        self.cam_roi = CameraROI(
+            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+        )
+
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
         self.exp_spinBox.setKeyboardTracking(False)
@@ -229,6 +239,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.Z_groupBox.setEnabled(enabled)
+        self.crop_Button.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -325,6 +336,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.mda.clear_channel()
         self.mda.clear_positions()
         self.explorer.clear_channel()
+
         self.objectives_device = None
         self.objectives_cfg = None
 
