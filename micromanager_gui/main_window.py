@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,6 +8,7 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -83,9 +85,6 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
-        # set some defaults
-        self.cfg_LineEdit.setText("demo")
-
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -103,7 +102,9 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+    def __init__(
+        self, viewer: napari.viewer.Viewer, remote=bool(os.getenv("MM_REMOTE"))
+    ):
         super().__init__()
         self.setup_ui()
 
@@ -114,7 +115,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+        _v = bool(os.getenv("MM_VERBOSE"))
+        self._mmc = RemoteMMCore(verbose=_v) if remote else CMMCorePlus()
+
+        adapter_path = find_micromanager()
+        if not adapter_path:
+            raise RuntimeError(
+                "Could not find micromanager adapters. Please run "
+                "`python -m pymmcore_plus.install` or install manually and set "
+                "MICROMANAGER_PATH."
+            )
+
+        # set default config path
+        self.cfg_LineEdit.setText(str(Path(adapter_path) / "MMConfig_demo.cfg"))
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
