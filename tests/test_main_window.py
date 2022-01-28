@@ -146,3 +146,28 @@ def test_crop_camera(main_window: MainWindow):
     cbox.setCurrentText("Full")
     crop_layer = main_window.viewer.layers[-1]
     assert crop_layer.data.shape == (512, 512)
+
+
+def test_objective_device_and_px_size(main_window: MainWindow):
+    mmc = main_window._mmc
+
+    # set 10x objective
+    main_window.objective_comboBox.setCurrentText("10X")
+    assert main_window.objective_comboBox.currentText() == "10X"
+    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+
+    # delete objective group configuration
+    mmc.deleteConfigGroup("Objective")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert main_window.objective_comboBox.currentText() == "Nikon 10X S Fluor"
+
+    # delete pixel size configuration
+    mmc.deletePixelSizeConfig("Res10x")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
