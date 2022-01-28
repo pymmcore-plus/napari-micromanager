@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from loguru import logger
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
@@ -14,7 +15,12 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import (
+    SelectDeviceFromCombobox,
+    blockSignals,
+    event_indices,
+    extend_array_for_index,
+)
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
@@ -123,8 +129,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-        sig.channelGroupChanged.connect(self._refresh_channel_list)
-        sig.configSet.connect(self._on_config_set)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -158,6 +162,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+        @sig.configSet.connect
+        def _on_cfg_set(group: str, preset: str):
+            logger.debug(f"New group cfg set: {group} -> {preset}")
 
     def illumination(self):
         if not hasattr(self, "_illumination"):
@@ -312,17 +320,35 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getStateLabel("Objective")
                 )
 
-    def _refresh_channel_list(self, channel_group: str = None):
-        if channel_group is None:
-            channel_group = self._mmc.getOrGuessChannelGroup()
-        if channel_group:
-            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-            with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.clear()
-                self.snap_channel_comboBox.addItems(channel_list)
-                self.snap_channel_comboBox.setCurrentText(
-                    self._mmc.getCurrentConfig(channel_group)
-                )
+    def _refresh_channel_list(self):
+        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
+
+        if not guessed_channel_list:
+            return
+
+        if len(guessed_channel_list) == 1:
+            self._set_channel_group(guessed_channel_list[0])
+        else:
+            # if guessed_channel_list has more than 1 possible channel group,
+            # you can select the correct one through a combobox
+            ch = SelectDeviceFromCombobox(
+                guessed_channel_list,
+                "Select Channel Group:",
+                self,
+            )
+            ch.val_changed.connect(self._set_channel_group)
+            ch.show()
+
+    def _set_channel_group(self, guessed_channel: str):
+        channel_group = guessed_channel
+        self._mmc.setChannelGroup(channel_group)
+        channel_list = self._mmc.getAvailableConfigs(channel_group)
+        with blockSignals(self.snap_channel_comboBox):
+            self.snap_channel_comboBox.clear()
+            self.snap_channel_comboBox.addItems(channel_list)
+            self.snap_channel_comboBox.setCurrentText(
+                self._mmc.getCurrentConfig(channel_group)
+            )
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
@@ -349,9 +375,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setProperty(cd, "Binning", bins)
 
     def _channel_changed(self, newChannel: str):
-        channel_group = self._mmc.getOrGuessChannelGroup()
-        if channel_group:
-            self._mmc.setConfig(channel_group, newChannel)
+        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -499,8 +523,11 @@ class MainWindow(QtW.QWidget, _MainUI):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getOrGuessChannelGroup()
-            self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            ch_group = self._mmc.getChannelGroup()
+            if ch_group:
+                self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+            else:
+                return
 
             self.start_live()
             self.live_Button.setIcon(CAM_STOP_ICON)
