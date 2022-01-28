@@ -141,21 +141,20 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-
-        if (
-            self.return_to_position_x is not None
-            and self.return_to_position_y is not None
-        ):
-            self._mmc.setXYPosition(
-                self.return_to_position_x, self.return_to_position_y
-            )
-            self.return_to_position_x = None
-            self.return_to_position_y = None
-
         meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
         seq_uid = sequence.uid
 
         if meta.mode == "explorer":
+            if (
+                self.return_to_position_x is not None
+                and self.return_to_position_y is not None
+            ):
+                self._mmc.setXYPosition(
+                    self.return_to_position_x, self.return_to_position_y
+                )
+                self.return_to_position_x = None
+                self.return_to_position_y = None
+
             layergroups = defaultdict(set)
             for lay in self.viewer.layers:
                 if lay.metadata.get("uid") == seq_uid:
