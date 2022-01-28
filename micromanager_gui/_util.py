@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from qtpy.QtWidgets import QWidget
+from qtpy.QtCore import Signal
+from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QWidget
 
 if TYPE_CHECKING:
     import useq
@@ -98,8 +99,35 @@ def event_indices(event: useq.MDAEvent):
 
 
 @contextmanager
-def blockSignals(widget: QWidget):
-    orig_state = widget.signalsBlocked()
-    widget.blockSignals(True)
+def blockSignals(widgets: QWidget | list[QWidget]):
+    if not isinstance(widgets, (list, tuple)):
+        widgets = [widgets]
+    orig_states = []
+    for w in widgets:
+        orig_states.append(w.signalsBlocked())
+        w.blockSignals(True)
     yield
-    widget.blockSignals(orig_state)
+    for w, s in zip(widgets, orig_states):
+        w.blockSignals(s)
+
+
+class SelectDeviceFromCombobox(QDialog):
+    val_changed = Signal(str)
+
+    def __init__(self, obj_dev: list, label: str, parent=None):
+        super().__init__(parent)
+
+        self.setLayout(QHBoxLayout())
+        self.label = QLabel()
+        self.label.setText(label)
+        self.combobox = QComboBox()
+        self.combobox.addItems(obj_dev)
+        self.button = QPushButton("Set")
+        self.button.clicked.connect(self._on_click)
+
+        self.layout().addWidget(self.label)
+        self.layout().addWidget(self.combobox)
+        self.layout().addWidget(self.button)
+
+    def _on_click(self):
+        self.val_changed.emit(self.combobox.currentText())

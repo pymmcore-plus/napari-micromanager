@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 ICONS = Path(__file__).parent / "icons"
+OBJECTIVE_DEVICE = "Objective"
+# Once the PR #43 is merged, we pass the objective device to this variable
 
 
 @dataclass
@@ -50,8 +52,22 @@ class _MultiDUI:
     time_comboBox: QtW.QComboBox
 
     stack_groupBox: QtW.QGroupBox
-    zrange_spinBox: QtW.QSpinBox
+    z_tabWidget: QtW.QTabWidget
     step_size_doubleSpinBox: QtW.QDoubleSpinBox
+    n_images_label: QtW.QLabel
+    # TopBottom
+    set_top_Button: QtW.QPushButton
+    set_bottom_Button: QtW.QPushButton
+    z_top_doubleSpinBox: QtW.QDoubleSpinBox
+    z_bottom_doubleSpinBox: QtW.QDoubleSpinBox
+    z_range_topbottom_doubleSpinBox: QtW.QDoubleSpinBox
+    # RangeAround
+    zrange_spinBox: QtW.QSpinBox
+    range_around_label: QtW.QLabel
+    # AboveBelow
+    above_doubleSpinBox: QtW.QDoubleSpinBox
+    below_doubleSpinBox: QtW.QDoubleSpinBox
+    z_range_abovebelow_doubleSpinBox: QtW.QDoubleSpinBox
 
     stage_pos_groupBox: QtW.QGroupBox
     stage_tableWidget: QtW.QTableWidget  # TODO: extract
@@ -97,6 +113,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.browse_save_Button.clicked.connect(self.set_multi_d_acq_dir)
         self.run_Button.clicked.connect(self._on_run_clicked)
 
+        # connect for z stack
+        self.set_top_Button.clicked.connect(self._set_top)
+        self.set_bottom_Button.clicked.connect(self._set_bottom)
+        self.z_top_doubleSpinBox.valueChanged.connect(self._update_topbottom_range)
+        self.z_bottom_doubleSpinBox.valueChanged.connect(self._update_topbottom_range)
+
+        self.zrange_spinBox.valueChanged.connect(self._update_rangearound_label)
+
+        self.above_doubleSpinBox.valueChanged.connect(self._update_abovebelow_range)
+        self.below_doubleSpinBox.valueChanged.connect(self._update_abovebelow_range)
+
+        self.z_range_abovebelow_doubleSpinBox.valueChanged.connect(
+            self._update_n_images
+        )
+        self.zrange_spinBox.valueChanged.connect(self._update_n_images)
+        self.z_range_topbottom_doubleSpinBox.valueChanged.connect(self._update_n_images)
+        self.step_size_doubleSpinBox.valueChanged.connect(self._update_n_images)
+        self.z_tabWidget.currentChanged.connect(self._update_n_images)
+        self.stack_groupBox.toggled.connect(self._update_n_images)
+
         # toggle connect
         self.save_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
         self.stage_pos_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
@@ -116,6 +152,37 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.stack_groupBox.setEnabled(enabled)
         self.stage_pos_groupBox.setEnabled(enabled)
         self.acquisition_order_comboBox.setEnabled(enabled)
+
+    def _set_top(self):
+        self.z_top_doubleSpinBox.setValue(self._mmc.getZPosition())
+
+    def _set_bottom(self):
+        self.z_bottom_doubleSpinBox.setValue(self._mmc.getZPosition())
+
+    def _update_topbottom_range(self):
+        self.z_range_topbottom_doubleSpinBox.setValue(
+            abs(self.z_top_doubleSpinBox.value() - self.z_bottom_doubleSpinBox.value())
+        )
+
+    def _update_rangearound_label(self, value):
+        self.range_around_label.setText(f"-{value/2} µm <- z -> +{value/2} µm")
+
+    def _update_abovebelow_range(self):
+        self.z_range_abovebelow_doubleSpinBox.setValue(
+            self.above_doubleSpinBox.value() + self.below_doubleSpinBox.value()
+        )
+
+    def _update_n_images(self):
+        step = self.step_size_doubleSpinBox.value()
+        # set what is the range to consider depending on the z_stack mode
+        if self.z_tabWidget.currentIndex() == 0:
+            range = self.z_range_topbottom_doubleSpinBox.value()
+        if self.z_tabWidget.currentIndex() == 1:
+            range = self.zrange_spinBox.value()
+        if self.z_tabWidget.currentIndex() == 2:
+            range = self.z_range_abovebelow_doubleSpinBox.value()
+
+        self.n_images_label.setText(f"{round((range / step) + 1)}")
 
     def _on_mda_started(self, sequence):
         self._set_enabled(False)
@@ -146,10 +213,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            if "Channel" not in self._mmc.getAvailableConfigGroups():
-                raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
-            self.channel_comboBox.addItems(channel_list)
+            channel_group = self._mmc.getChannelGroup()
+            if channel_group:
+                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+                self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
@@ -246,10 +313,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             for c in range(self.channel_tableWidget.rowCount())
         ]
         if self.stack_groupBox.isChecked():
-            state["z_plan"] = {
-                "range": self.zrange_spinBox.value(),
-                "step": self.step_size_doubleSpinBox.value(),
-            }
+
+            if self.z_tabWidget.currentIndex() == 0:
+                state["z_plan"] = {
+                    "top": self.z_top_doubleSpinBox.value(),
+                    "bottom": self.z_bottom_doubleSpinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+
+            elif self.z_tabWidget.currentIndex() == 1:
+                state["z_plan"] = {
+                    "range": self.zrange_spinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+            elif self.z_tabWidget.currentIndex() == 2:
+                state["z_plan"] = {
+                    "above": self.above_doubleSpinBox.value(),
+                    "below": self.below_doubleSpinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+
         if self.time_groupBox.isChecked():
             unit = {"min": "minutes", "sec": "seconds", "ms": "milliseconds"}[
                 self.time_comboBox.currentText()
