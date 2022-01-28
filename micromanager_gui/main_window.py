@@ -12,6 +12,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
+from ._camera_roi import CameraROI
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -73,6 +74,8 @@ class _MainUI:
     max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
     properties_Button: QtW.QPushButton
+    cam_roi_comboBox: QtW.QComboBox
+    crop_Button: QtW.QPushButton
     illumination_Button: QtW.QPushButton
     snap_on_click_xy_checkBox: QtW.QCheckBox
     snap_on_click_z_checkBox: QtW.QCheckBox
@@ -154,6 +157,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
+        self.cam_roi = CameraROI(
+            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+        )
+
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
         self.exp_spinBox.setKeyboardTracking(False)
@@ -186,6 +193,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
+        self.crop_Button.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
