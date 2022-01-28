@@ -548,7 +548,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # remove autofocus offset device if in the combobox of focus devices
         # e.g. "TIPSFOffset" for Nikon PFS
         if self.focus_device_comboBox.count() > 1:
-            focus_cbox_items = [item for item in self.focus_device_comboBox.itemText()]
+            focus_cbox_items = list(self.focus_device_comboBox.itemText())
             if self.autofocus_z_stage.offset_device in focus_cbox_items:
                 self.focus_device_comboBox.removeItem(
                     self.focus_device_comboBox.findText(
