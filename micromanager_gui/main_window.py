@@ -13,6 +13,7 @@ from qtpy import uic
 from qtpy.QtCore import QSize, Qt, QTimer, Signal
 from qtpy.QtGui import QColor, QIcon
 
+from ._camera_roi import CameraROI
 from ._group_and_presets_tab import GroupPresetWidget
 from ._illumination import IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
@@ -77,6 +78,8 @@ class _MainUI:
     max_min_val_label: QtW.QLabel
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
     properties_Button: QtW.QPushButton
+    cam_roi_comboBox: QtW.QComboBox
+    crop_Button: QtW.QPushButton
     illumination_Button: QtW.QPushButton
     snap_on_click_xy_checkBox: QtW.QCheckBox
     snap_on_click_z_checkBox: QtW.QCheckBox
@@ -185,6 +188,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+
+        self.cam_roi = CameraROI(
+            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+        )
 
         # connect spinboxes
         self.exp_spinBox.valueChanged.connect(self._update_exp)
@@ -361,6 +368,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.Z_groupBox.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
+        self.crop_Button.setEnabled(enabled)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -680,30 +688,24 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.objectives_device == "":
             return
 
-        # zdev = self._mmc.getFocusDevice()
+        zdev = self._mmc.getFocusDevice()
 
-        # currentZ = self._mmc.getZPosition()
-        # self._mmc.setPosition(zdev, 0)
-        # self._mmc.waitForDevice(zdev)
+        currentZ = self._mmc.getZPosition()
+        self._mmc.setPosition(zdev, 0)
+        self._mmc.waitForDevice(zdev)
 
         try:
             self._mmc.setConfig(
                 self.objectives_cfg, self.objective_comboBox.currentText()
-            )  # -> configSet
+            )
         except ValueError:
             self._mmc.setProperty(
                 self.objectives_device, "Label", self.objective_comboBox.currentText()
-            )  # -> propertyChanged
+            )
 
-        # self._mmc.waitForDevice(self.objectives_device)
-        # self._mmc.setPosition(zdev, currentZ)
-        # self._mmc.waitForDevice(zdev)
-
-        # curr_obj = self.objective_comboBox.currentText()
-        # if self.objectives_cfg:
-        #     self.update_cbox_widget.emit(self.objectives_cfg, curr_obj)
-        # else:
-        #     self.update_cbox_widget.emit("no_group", curr_obj)
+        self._mmc.waitForDevice(self.objectives_device)
+        self._mmc.setPosition(zdev, currentZ)
+        self._mmc.waitForDevice(zdev)
 
         self._update_pixel_size()
 
