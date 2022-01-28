@@ -123,3 +123,28 @@ def test_refresh_safety(main_window: MainWindow):
     assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
+
+
+def test_objective_device_and_px_size(main_window: MainWindow):
+    mmc = main_window._mmc
+
+    # set 10x objective
+    main_window.objective_comboBox.setCurrentText("10X")
+    assert main_window.objective_comboBox.currentText() == "10X"
+    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+
+    # delete objective group configuration
+    mmc.deleteConfigGroup("Objective")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert main_window.objective_comboBox.currentText() == "Nikon 10X S Fluor"
+
+    # delete pixel size configuration
+    mmc.deletePixelSizeConfig("Res10x")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
