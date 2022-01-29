@@ -563,7 +563,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.offset_Z_groupBox.setEnabled(False)
             self.Z_groupBox.setEnabled(True)
         elif self.autofocus_z_stage.isEngaged():
-            if self.autofocus_z_stage.isLocked() or self.autofocus_z_stage.isFocusing():
+            autofocus_dev = self.autofocus_z_stage.autofocus_device
+            if self.autofocus_z_stage.isLocked() or self.autofocus_z_stage.isFocusing(
+                autofocus_dev
+            ):
                 self.offset_Z_groupBox.setEnabled(True)
                 self.Z_groupBox.setEnabled(False)
         else:
@@ -634,21 +637,23 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def offset_up(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = self.autofocus_z_stage.get_position()
+            offset_dev = self.autofocus_z_stage.offset_device
+            current_offset = self.autofocus_z_stage.get_position(offset_dev)
             new_offset = current_offset + float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self.autofocus_z_stage.set_offset(new_offset)
+            self.autofocus_z_stage.set_offset(offset_dev, new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 
     def offset_down(self):
         if self._mmc.isContinuousFocusLocked():
-            current_offset = self.autofocus_z_stage.get_position()
+            offset_dev = self.autofocus_z_stage.offset_device
+            current_offset = self.autofocus_z_stage.get_position(offset_dev)
             new_offset = current_offset - float(
                 self.offset_z_step_size_doubleSpinBox.value()
             )
-            self.autofocus_z_stage.set_offset(new_offset)
+            self.autofocus_z_stage.set_offset(offset_dev, new_offset)
             if self.snap_on_click_checkBox.isChecked():
                 self.snap()
 

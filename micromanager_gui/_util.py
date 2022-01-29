@@ -10,7 +10,7 @@ from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton,
 
 if TYPE_CHECKING:
     import useq
-    from pymmcore_plus import RemoteMMCore
+    from pymmcore_plus import CMMCorePlus, RemoteMMCore
 
 
 def get_devices_and_props(self):
@@ -113,13 +113,13 @@ def blockSignals(widgets: QWidget | list[QWidget]):
 
 
 class AutofocusDevice:
-    def __init__(self, mmcore: RemoteMMCore):
+    def __init__(self, mmcore: CMMCorePlus or RemoteMMCore):
         super().__init__()
         self._mmc = mmcore
 
     @classmethod
     def set(self, key, mmcore):
-        if key == "TIPFSStatus":  # mmcore.getAutoFocusDevice() -> "TIPFStatus"
+        if key == "TIPFSStatus":  # key = mmcore.getAutoFocusDevice() -> "TIPFStatus"
             return NikonPFS(mmcore)
 
     def isEngaged(self) -> bool:
@@ -127,6 +127,16 @@ class AutofocusDevice:
 
     def isLocked(self) -> bool:
         return self._mmc.isContinuousFocusLocked()
+
+    def isFocusing(self, autofocus_device) -> bool:
+        status = self._mmc.getProperty(autofocus_device, "State")
+        return status == "Focusing"
+
+    def set_offset(self, offset_device, offset: float) -> None:
+        self._mmc.setProperty(offset_device, "Position", offset)
+
+    def get_position(self, offset_device) -> float:
+        return float(self._mmc.getProperty(offset_device, "Position"))
 
 
 class NikonPFS(AutofocusDevice):
@@ -140,16 +150,7 @@ class NikonPFS(AutofocusDevice):
     """
 
     offset_device = "TIPFSOffset"
-
-    def set_offset(self, offset: float) -> None:
-        self._mmc.setProperty("TIPFSOffset", "Position", offset)
-
-    def get_position(self) -> float:
-        return float(self._mmc.getProperty("TIPFSOffset", "Position"))
-
-    def isFocusing(self) -> bool:
-        status = self._mmc.getProperty("TIPFSStatus", "State")
-        return status == "Focusing"
+    autofocus_device = "TIPFStatus"
 
 
 class SelectDeviceFromCombobox(QDialog):
