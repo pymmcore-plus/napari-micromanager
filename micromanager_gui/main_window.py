@@ -13,11 +13,11 @@ from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
 
+from ._autofocus import AutofocusDevice
 from ._camera_roi import CameraROI
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
-    AutofocusDevice,
     SelectDeviceFromCombobox,
     blockSignals,
     event_indices,

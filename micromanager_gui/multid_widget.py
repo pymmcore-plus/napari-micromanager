@@ -11,7 +11,7 @@ from qtpy.QtGui import QIcon
 from typing_extensions import Literal
 from useq import MDASequence
 
-from ._util import AutofocusDevice
+from ._autofocus import AutofocusDevice
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
