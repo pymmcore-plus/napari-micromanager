@@ -6,12 +6,13 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from pymmcore_plus import DeviceType
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
-from ._gui import MMMainWidget
+from ._gui import MainWidget
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -34,17 +35,14 @@ CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
-class MainWindow(MMMainWidget):
+class MainWindow(MainWidget):
     def __init__(self, viewer: napari.viewer.Viewer):
         super().__init__(viewer=viewer)
 
-        self.create_gui()
+        self.create_gui()  # create gui from _gui.py
 
-        # self.viewer = self.napari_viewer
         self.viewer = viewer
-        # create connection to mmcore server or process-local variant
-        self._mmc = self._mmcore
-        # self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+        self._mmc = self._mmcore  # mmcore set in from _gui.py
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
@@ -57,7 +55,7 @@ class MainWindow(MMMainWidget):
         self.explorer = self.mm_explorer
 
         self.streaming_timer = None
-
+        self.available_focus_devs = []
         self.objectives_device = None
         self.objectives_cfg = None
 
@@ -89,6 +87,10 @@ class MainWindow(MMMainWidget):
 
         self.ill.illumination_Button.clicked.connect(self.illumination)
         self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
+
+        self.stages.focus_device_comboBox.currentTextChanged.connect(
+            self._set_focus_device
+        )
 
         # connect comboBox
         self.obj.objective_comboBox.currentIndexChanged.connect(self.change_objective)
@@ -122,7 +124,7 @@ class MainWindow(MMMainWidget):
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._mmc.getOrGuessChannelGroup():
-            with blockSignals(self.snap_channel_comboBox):
+            with blockSignals(self.tab.snap_channel_comboBox):
                 self.tab.snap_channel_comboBox.setCurrentText(configName)
 
     def _set_enabled(self, enabled):
@@ -218,10 +220,16 @@ class MainWindow(MMMainWidget):
             self.cam.bin_comboBox,
             self.cam.bit_comboBox,
             self.tab.snap_channel_comboBox,
+            self.stages.xy_device_comboBox,
+            self.stages.focus_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
                 box.clear()
+
+        self.mda.clear_channel()
+        self.mda.clear_positions()
+        self.explorer.clear_channel()
 
         self.objectives_device = None
         self.objectives_cfg = None
@@ -384,11 +392,42 @@ class MainWindow(MMMainWidget):
         if self._mmc.getFocusDevice():
             self.stages.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
+    def _refresh_xyz_devices(self):
+        self.stages.focus_device_comboBox.clear()
+        self.stages.xy_device_comboBox.clear()
+
+        xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
+
+        focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
+
+        if not xy_stage_devs:
+            self.stages.xy_device_comboBox.setEnabled(False)
+        else:
+            self.stages.xy_device_comboBox.addItems(xy_stage_devs)
+            self._set_xy_stage_device()
+
+        if not focus_devs:
+            self.stages.focus_device_comboBox.setEnabled(False)
+        else:
+            self.stages.focus_device_comboBox.addItems(focus_devs)
+            self._set_focus_device()
+
+    def _set_xy_stage_device(self):
+        if not self.stages.xy_device_comboBox.count():
+            return
+        self._mmc.setXYStageDevice(self.stages.xy_device_comboBox.currentText())
+
+    def _set_focus_device(self):
+        if not self.stages.focus_device_comboBox.count():
+            return
+        self._mmc.setFocusDevice(self.stages.focus_device_comboBox.currentText())
+
     def _refresh_options(self):
         self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
+        self._refresh_xyz_devices()
 
     def bit_changed(self):
         if self.cam.bit_comboBox.count() > 0:
