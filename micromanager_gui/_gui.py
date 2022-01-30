@@ -169,11 +169,11 @@ class MMMainWidget(QtW.QWidget):
     MAIN_UI = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 
     def __init__(self, viewer: napari.viewer.Viewer, remote=True):
-
         super().__init__()
+
         uic.loadUi(self.MAIN_UI, self)
 
-        self.napari_viewer = viewer
+        self.viewer = viewer
         self._mmcore = RemoteMMCore() if remote else CMMCorePlus()
 
         self.mm_configuration = MMConfigurationWidget()
@@ -198,7 +198,7 @@ class MMMainWidget(QtW.QWidget):
 
         # add mda and explorer tabs to mm_tab widget
         self.mm_mda = MultiDWidget(self._mmcore)
-        self.mm_explorer = ExploreSample(self.napari_viewer, self._mmcore)
+        self.mm_explorer = ExploreSample(self.viewer, self._mmcore)
         self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
         self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
 
