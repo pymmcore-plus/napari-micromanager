@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
@@ -36,9 +35,16 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MMMainWidget):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
-        super().__init__()
+    def __init__(self, viewer: napari.viewer.Viewer):
+        super().__init__(viewer=viewer)
+
         self.create_gui()
+
+        # self.viewer = self.napari_viewer
+        self.viewer = viewer
+        # create connection to mmcore server or process-local variant
+        self._mmc = self._mmcore
+        # self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
@@ -50,20 +56,10 @@ class MainWindow(MMMainWidget):
         self.mda = self.mm_mda
         self.explorer = self.mm_explorer
 
-        self.viewer = viewer
         self.streaming_timer = None
 
         self.objectives_device = None
         self.objectives_cfg = None
-
-        # create connection to mmcore server or process-local variant
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
-
-        # # tab widgets
-        # self.mda = MultiDWidget(self._mmc)
-        # self.explorer = ExploreSample(self.viewer, self._mmc)
-        # self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        # self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -420,14 +416,14 @@ class MainWindow(MMMainWidget):
         self._mmc.setRelativeXYPosition(
             -float(self.stages.xy_step_size_SpinBox.value()), 0.0
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(
             float(self.stages.xy_step_size_SpinBox.value()), 0.0
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_up(self):
@@ -435,7 +431,7 @@ class MainWindow(MMMainWidget):
             0.0,
             float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_down(self):
@@ -443,21 +439,21 @@ class MainWindow(MMMainWidget):
             0.0,
             -float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, float(self.stages.z_step_size_doubleSpinBox.value())
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
             0.0, 0.0, -float(self.stages.z_step_size_doubleSpinBox.value())
         )
-        if self.stages.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def change_objective(self):
@@ -539,7 +535,7 @@ class MainWindow(MMMainWidget):
         self.update_viewer(self._mmc.getImage())
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
+        self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self.tab.exp_spinBox.value()))

@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
-from explore_sample import ExploreSample
-from multid_widget import MultiDWidget
+from .explore_sample import ExploreSample
+from .multid_widget import MultiDWidget
+
+if TYPE_CHECKING:
+    import napari.viewer
 
 ICONS = Path(__file__).parent / "icons"
 
@@ -60,6 +65,7 @@ class MMCameraWidget(QtW.QWidget):
     MM_CAM = str(Path(__file__).parent / "_ui" / "mm_camera.ui")
 
     # The MM_CAM above contains these objects:
+    camera_groupBox: QtW.QGroupBox
     bin_comboBox: QtW.QComboBox
     bit_comboBox: QtW.QComboBox
     px_size_doubleSpinBox: QtW.QDoubleSpinBox
@@ -102,7 +108,7 @@ class MMStagesWidget(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
     z_lineEdit: QtW.QLineEdit
 
-    snap_on_click_z_checkBox: QtW.QCheckBox
+    snap_on_click_checkBox: QtW.QCheckBox
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -130,6 +136,8 @@ class MMTabWidget(QtW.QWidget):
 
     # The MM_TAB above contains these objects:
     tabWidget: QtW.QTabWidget
+
+    snap_live_tab: QtW.QWidget
 
     snap_channel_groupBox: QtW.QGroupBox
     snap_channel_comboBox: QtW.QComboBox
@@ -160,9 +168,13 @@ class MMMainWidget(QtW.QWidget):
 
     MAIN_UI = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+
+        super().__init__()
         uic.loadUi(self.MAIN_UI, self)
+
+        self.napari_viewer = viewer
+        self._mmcore = RemoteMMCore() if remote else CMMCorePlus()
 
         self.mm_configuration = MMConfigurationWidget()
         self.mm_objectives = MMObjectivesWidget()
@@ -185,13 +197,15 @@ class MMMainWidget(QtW.QWidget):
         self.add_mm_objectives_illumination_camera_widget()
 
         # add mda and explorer tabs to mm_tab widget
-        self.mm_mda = MultiDWidget()
-        self.mm_explorer = ExploreSample()
+        self.mm_mda = MultiDWidget(self._mmcore)
+        self.mm_explorer = ExploreSample(self.napari_viewer, self._mmcore)
         self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
         self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
+
+        self.mm_configuration.cfg_LineEdit.setText("load a micromanager .cfg file")
 
     def add_mm_objectives_illumination_camera_widget(self):
 
