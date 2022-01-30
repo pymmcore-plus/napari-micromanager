@@ -8,11 +8,11 @@ import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
-from qtpy import uic
-from qtpy.QtCore import QSize, QTimer
+from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
+from ._gui import MMMainWidget
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -21,8 +21,7 @@ from ._util import (
     event_indices,
     extend_array_for_index,
 )
-from .explore_sample import ExploreSample
-from .multid_widget import MultiDWidget, SequenceMeta
+from .multid_widget import SequenceMeta
 from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
@@ -36,76 +35,20 @@ CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
-class _MainUI:
-    UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
-
-    # The UI_FILE above contains these objects:
-    cfg_LineEdit: QtW.QLineEdit
-    browse_cfg_Button: QtW.QPushButton
-    load_cfg_Button: QtW.QPushButton
-    objective_groupBox: QtW.QGroupBox
-    objective_comboBox: QtW.QComboBox
-    camera_groupBox: QtW.QGroupBox
-    bin_comboBox: QtW.QComboBox
-    bit_comboBox: QtW.QComboBox
-    position_groupBox: QtW.QGroupBox
-    x_lineEdit: QtW.QLineEdit
-    y_lineEdit: QtW.QLineEdit
-    z_lineEdit: QtW.QLineEdit
-    stage_groupBox: QtW.QGroupBox
-    XY_groupBox: QtW.QGroupBox
-    Z_groupBox: QtW.QGroupBox
-    left_Button: QtW.QPushButton
-    right_Button: QtW.QPushButton
-    y_up_Button: QtW.QPushButton
-    y_down_Button: QtW.QPushButton
-    up_Button: QtW.QPushButton
-    down_Button: QtW.QPushButton
-    xy_step_size_SpinBox: QtW.QSpinBox
-    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    tabWidget: QtW.QTabWidget
-    snap_live_tab: QtW.QWidget
-    multid_tab: QtW.QWidget
-    snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: QtW.QComboBox
-    exp_spinBox: QtW.QDoubleSpinBox
-    snap_Button: QtW.QPushButton
-    live_Button: QtW.QPushButton
-    max_min_val_label: QtW.QLabel
-    px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    properties_Button: QtW.QPushButton
-    cam_roi_comboBox: QtW.QComboBox
-    crop_Button: QtW.QPushButton
-    illumination_Button: QtW.QPushButton
-    snap_on_click_xy_checkBox: QtW.QCheckBox
-    snap_on_click_z_checkBox: QtW.QCheckBox
-
-    def setup_ui(self):
-        uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
-
-        # set some defaults
-        self.cfg_LineEdit.setText("demo")
-
-        # button icons
-        for attr, icon in [
-            ("left_Button", "left_arrow_1_green.svg"),
-            ("right_Button", "right_arrow_1_green.svg"),
-            ("y_up_Button", "up_arrow_1_green.svg"),
-            ("y_down_Button", "down_arrow_1_green.svg"),
-            ("up_Button", "up_arrow_1_green.svg"),
-            ("down_Button", "down_arrow_1_green.svg"),
-            ("snap_Button", "cam.svg"),
-            ("live_Button", "vcam.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
-
-
-class MainWindow(QtW.QWidget, _MainUI):
+class MainWindow(MMMainWidget):
     def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
-        self.setup_ui()
+        self.create_gui()
+
+        self.cfg = self.mm_configuration
+        self.obj = self.mm_objectives
+        self.ill = self.mm_illumination
+        self.cam = self.mm_camera
+        self.stages = self.mm_xyz_stages
+        self.tab = self.mm_tab
+
+        self.mda = self.mm_mda
+        self.explorer = self.mm_explorer
 
         self.viewer = viewer
         self.streaming_timer = None
@@ -116,11 +59,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
-        # tab widgets
-        self.mda = MultiDWidget(self._mmc)
-        self.explorer = ExploreSample(self.viewer, self._mmc)
-        self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tabWidget.addTab(self.explorer, "Sample Explorer")
+        # # tab widgets
+        # self.mda = MultiDWidget(self._mmc)
+        # self.explorer = ExploreSample(self.viewer, self._mmc)
+        # self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        # self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -136,34 +79,34 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.frameReady.connect(self._on_mda_frame)
 
         # connect buttons
-        self.load_cfg_Button.clicked.connect(self.load_cfg)
-        self.browse_cfg_Button.clicked.connect(self.browse_cfg)
-        self.left_Button.clicked.connect(self.stage_x_left)
-        self.right_Button.clicked.connect(self.stage_x_right)
-        self.y_up_Button.clicked.connect(self.stage_y_up)
-        self.y_down_Button.clicked.connect(self.stage_y_down)
-        self.up_Button.clicked.connect(self.stage_z_up)
-        self.down_Button.clicked.connect(self.stage_z_down)
+        self.cfg.load_cfg_Button.clicked.connect(self.load_cfg)
+        self.cfg.browse_cfg_Button.clicked.connect(self.browse_cfg)
+        self.stages.left_Button.clicked.connect(self.stage_x_left)
+        self.stages.right_Button.clicked.connect(self.stage_x_right)
+        self.stages.y_up_Button.clicked.connect(self.stage_y_up)
+        self.stages.y_down_Button.clicked.connect(self.stage_y_down)
+        self.stages.up_Button.clicked.connect(self.stage_z_up)
+        self.stages.down_Button.clicked.connect(self.stage_z_down)
 
-        self.snap_Button.clicked.connect(self.snap)
-        self.live_Button.clicked.connect(self.toggle_live)
+        self.tab.snap_Button.clicked.connect(self.snap)
+        self.tab.live_Button.clicked.connect(self.toggle_live)
 
-        self.illumination_Button.clicked.connect(self.illumination)
-        self.properties_Button.clicked.connect(self._show_prop_browser)
+        self.ill.illumination_Button.clicked.connect(self.illumination)
+        self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
-        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
-        self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
-        self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
-        self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        self.obj.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        self.cam.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
+        self.cam.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
+        self.tab.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
         self.cam_roi = CameraROI(
-            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+            self.viewer, self._mmc, self.cam.cam_roi_comboBox, self.cam.crop_Button
         )
 
         # connect spinboxes
-        self.exp_spinBox.valueChanged.connect(self._update_exp)
-        self.exp_spinBox.setKeyboardTracking(False)
+        self.tab.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.tab.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
@@ -184,16 +127,16 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._mmc.getOrGuessChannelGroup():
             with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.setCurrentText(configName)
+                self.tab.snap_channel_comboBox.setCurrentText(configName)
 
     def _set_enabled(self, enabled):
-        self.objective_groupBox.setEnabled(enabled)
-        self.camera_groupBox.setEnabled(enabled)
-        self.XY_groupBox.setEnabled(enabled)
-        self.Z_groupBox.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
-        self.crop_Button.setEnabled(enabled)
+        self.obj.objective_groupBox.setEnabled(enabled)
+        self.cam.camera_groupBox.setEnabled(enabled)
+        self.stages.XY_groupBox.setEnabled(enabled)
+        self.stages.Z_groupBox.setEnabled(enabled)
+        self.tab.snap_live_tab.setEnabled(enabled)
+        self.tab.snap_live_tab.setEnabled(enabled)
+        self.cam.crop_Button.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -203,8 +146,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.exp_spinBox):
-            self.exp_spinBox.setValue(exposure)
+        with blockSignals(self.tab.exp_spinBox):
+            self.tab.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
 
@@ -275,10 +218,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
-            self.objective_comboBox,
-            self.bin_comboBox,
-            self.bit_comboBox,
-            self.snap_channel_comboBox,
+            self.obj.objective_comboBox,
+            self.cam.bin_comboBox,
+            self.cam.bit_comboBox,
+            self.tab.snap_channel_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -288,14 +231,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
-        self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_min_val_label.setText("None")
-        self.load_cfg_Button.setEnabled(True)
+        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
+        self.tab.max_min_val_label.setText("None")
+        self.cfg.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
-        self.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg_LineEdit.text())
-        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        self.cfg.load_cfg_Button.setEnabled(False)
+        print("loading", self.cfg.cfg_LineEdit.text())
+        self._mmc.loadSystemConfiguration(self.cfg.cfg_LineEdit.text())
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -304,19 +247,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         cam_props = self._mmc.getDevicePropertyNames(cam_device)
         if "Binning" in cam_props:
             bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            with blockSignals(self.bin_comboBox):
-                self.bin_comboBox.clear()
-                self.bin_comboBox.addItems(bin_opts)
-                self.bin_comboBox.setCurrentText(
+            with blockSignals(self.cam.bin_comboBox):
+                self.cam.bin_comboBox.clear()
+                self.cam.bin_comboBox.addItems(bin_opts)
+                self.cam.bin_comboBox.setCurrentText(
                     self._mmc.getProperty(cam_device, "Binning")
                 )
 
         if "PixelType" in cam_props:
             px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            with blockSignals(self.bit_comboBox):
-                self.bit_comboBox.clear()
-                self.bit_comboBox.addItems(px_t)
-                self.bit_comboBox.setCurrentText(
+            with blockSignals(self.cam.bit_comboBox):
+                self.cam.bit_comboBox.clear()
+                self.cam.bit_comboBox.addItems(px_t)
+                self.cam.bit_comboBox.setCurrentText(
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
@@ -378,13 +321,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         return self.objectives_device, None, None
 
     def _add_objective_to_gui(self, current_obj, presets):
-        with blockSignals(self.objective_comboBox):
-            self.objective_comboBox.clear()
-            self.objective_comboBox.addItems(presets)
+        with blockSignals(self.obj.objective_comboBox):
+            self.obj.objective_comboBox.clear()
+            self.obj.objective_comboBox.addItems(presets)
             if isinstance(current_obj, int):
-                self.objective_comboBox.setCurrentIndex(current_obj)
+                self.obj.objective_comboBox.setCurrentIndex(current_obj)
             else:
-                self.objective_comboBox.setCurrentText(current_obj)
+                self.obj.objective_comboBox.setCurrentText(current_obj)
             self._update_pixel_size()
             return
 
@@ -431,10 +374,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with blockSignals(self.snap_channel_comboBox):
-            self.snap_channel_comboBox.clear()
-            self.snap_channel_comboBox.addItems(channel_list)
-            self.snap_channel_comboBox.setCurrentText(
+        with blockSignals(self.tab.snap_channel_comboBox):
+            self.tab.snap_channel_comboBox.clear()
+            self.tab.snap_channel_comboBox.addItems(channel_list)
+            self.tab.snap_channel_comboBox.setCurrentText(
                 self._mmc.getCurrentConfig(channel_group)
             )
 
@@ -443,7 +386,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
         if self._mmc.getFocusDevice():
-            self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+            self.stages.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_options(self):
         self._refresh_camera_options()
@@ -452,13 +395,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_positions()
 
     def bit_changed(self):
-        if self.bit_comboBox.count() > 0:
-            bits = self.bit_comboBox.currentText()
+        if self.cam.bit_comboBox.count() > 0:
+            bits = self.cam.bit_comboBox.currentText()
             self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
 
     def bin_changed(self):
-        if self.bin_comboBox.count() > 0:
-            bins = self.bin_comboBox.currentText()
+        if self.cam.bin_comboBox.count() > 0:
+            bins = self.cam.bin_comboBox.currentText()
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
@@ -466,55 +409,59 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
-        self.x_lineEdit.setText(f"{x:.1f}")
-        self.y_lineEdit.setText(f"{y:.1f}")
+        self.stages.x_lineEdit.setText(f"{x:.1f}")
+        self.stages.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
-            self.z_lineEdit.setText(f"{value:.1f}")
+            self.stages.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        self._mmc.setRelativeXYPosition(
+            -float(self.stages.xy_step_size_SpinBox.value()), 0.0
+        )
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def stage_x_right(self):
-        self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        self._mmc.setRelativeXYPosition(
+            float(self.stages.xy_step_size_SpinBox.value()), 0.0
+        )
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            float(self.xy_step_size_SpinBox.value()),
+            float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            -float(self.xy_step_size_SpinBox.value()),
+            -float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, float(self.z_step_size_doubleSpinBox.value())
+            0.0, 0.0, float(self.stages.z_step_size_doubleSpinBox.value())
         )
-        if self.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, -float(self.z_step_size_doubleSpinBox.value())
+            0.0, 0.0, -float(self.stages.z_step_size_doubleSpinBox.value())
         )
-        if self.snap_on_click_z_checkBox.isChecked():
+        if self.stages.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
     def change_objective(self):
-        if self.objective_comboBox.count() <= 0:
+        if self.obj.objective_comboBox.count() <= 0:
             return
 
         if self.objectives_device == "":
@@ -528,11 +475,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         try:
             self._mmc.setConfig(
-                self.objectives_cfg, self.objective_comboBox.currentText()
+                self.objectives_cfg, self.obj.objective_comboBox.currentText()
             )
         except ValueError:
             self._mmc.setProperty(
-                self.objectives_device, "Label", self.objective_comboBox.currentText()
+                self.objectives_device,
+                "Label",
+                self.obj.objective_comboBox.currentText(),
             )
 
         self._mmc.waitForDevice(self.objectives_device)
@@ -564,7 +513,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def update_max_min(self, event=None):
 
-        if self.tabWidget.currentIndex() != 0:
+        if self.tab.tabWidget.currentIndex() != 0:
             return
 
         min_max_txt = ""
@@ -582,7 +531,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 min_max_show = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-        self.max_min_val_label.setText(min_max_txt)
+        self.tab.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
@@ -593,28 +542,30 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.exp_spinBox.value()))
-        self.live_Button.setText("Stop")
+        self.streaming_timer.start(int(self.tab.exp_spinBox.value()))
+        self.tab.live_Button.setText("Stop")
 
     def stop_live(self):
         self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.live_Button.setText("Live")
-        self.live_Button.setIcon(CAM_ICON)
+        self.tab.live_Button.setText("Live")
+        self.tab.live_Button.setIcon(CAM_ICON)
 
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
             ch_group = self._mmc.getChannelGroup()
             if ch_group:
-                self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+                self._mmc.setConfig(
+                    ch_group, self.tab.snap_channel_comboBox.currentText()
+                )
             else:
                 return
 
             self.start_live()
-            self.live_Button.setIcon(CAM_STOP_ICON)
+            self.tab.live_Button.setIcon(CAM_STOP_ICON)
         else:
             self.stop_live()
-            self.live_Button.setIcon(CAM_ICON)
+            self.tab.live_Button.setIcon(CAM_ICON)
