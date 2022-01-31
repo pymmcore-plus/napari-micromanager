@@ -42,7 +42,7 @@ class MainWindow(MainWidget):
         self.create_gui()  # create gui from _gui.py
 
         self.viewer = viewer
-        self._mmc = self._mmcore  # mmcore set in from _gui.py
+        self._mmc = self._mmcore  # mmcore set in _gui.py
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
