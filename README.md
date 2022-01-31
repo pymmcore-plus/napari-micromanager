@@ -45,7 +45,7 @@ python launch-dev.py
 Alternatively you can run:
 
 ```bash
-napari -w micromanager
+napari -w napari-micromanager
 ```
 
 ## License
