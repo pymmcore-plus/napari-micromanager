@@ -20,7 +20,8 @@ def main_window(qtbot, request):
         server.try_kill_server()
 
     viewer = Viewer(show=False)
-    win = MainWindow(viewer=viewer, remote=request.param == "remote")
+    # win = MainWindow(viewer=viewer, remote=request.param == "remote")
+    win = MainWindow(viewer=viewer)
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
     win._mmc.loadSystemConfiguration(config_path)
 

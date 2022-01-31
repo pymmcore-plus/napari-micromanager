@@ -345,7 +345,7 @@ class MainWindow(MainWidget):
         match = re.search(r"(\d{1,3})[xX]", curr_obj)
         if match:
             mag = int(match.groups()[0])
-            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
             px_cgf_name = f"px_size_{curr_obj}"
             # set image pixel sixe (x,y) for the newly created pixel size config
             self._mmc.definePixelSizeConfig(
