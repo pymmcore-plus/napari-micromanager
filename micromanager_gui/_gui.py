@@ -165,7 +165,7 @@ class MMTabWidget(QtW.QWidget):
             btn.setIconSize(QSize(30, 30))
 
 
-class MainWidget(QtW.QWidget):
+class MicroManagerWidget(QtW.QWidget):
 
     MAIN_UI = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
 

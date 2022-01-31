@@ -12,7 +12,7 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
-from ._gui import MainWidget
+from ._gui import MicroManagerWidget
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -35,14 +35,14 @@ CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
-class MainWindow(MainWidget):
+class MainWindow(MicroManagerWidget):
     def __init__(self, viewer: napari.viewer.Viewer):
         super().__init__(viewer=viewer)
 
         self.create_gui()  # create gui from _gui.py
 
         self.viewer = viewer
-        self._mmc = self._mmcore  # mmcore set in MainWidget in _gui.py
+        self._mmc = self._mmcore  # mmcore set in MicroManagerWidget in _gui.py
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
