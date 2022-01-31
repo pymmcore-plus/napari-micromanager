@@ -211,7 +211,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
-        self._exposure_cache.update_cache(exposure=exposure)
+        self._exposure_cache[self.snap_channel_comboBox.currentText()] = exposure
 
     def _on_exp_change(self, camera: str, exposure: float = None):
         self._exposure_cache[self.snap_channel_comboBox.currentText()] = exposure

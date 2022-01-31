@@ -134,6 +134,7 @@ class SelectDeviceFromCombobox(QDialog):
     def _on_click(self):
         self.val_changed.emit(self.combobox.currentText())
 
+
 # This could maybe be a per camera device cache in cases with multiple cameras
 # work for the future - let the good be the enemy of the perfect rather than
 # the other way around!
@@ -145,7 +146,9 @@ class ExposureCache:
         self._fallback_value = fallback_value
         self._cache = defaultdict(lambda: fallback_value)
         if channel_group is None:
-            self._channel_group: str = self._mmc.getOrGuessChannelGroup()
+            # don't guess about channel groups
+            # just let that be set elsewhere
+            self._channel_group: str = self._mmc.getChannelGroup()
         else:
             self._channel_group: str = channel_group
 
@@ -162,10 +165,12 @@ class ExposureCache:
             self._cache = defaultdict(lambda: self._fallback_value)
             self._channel_group = value
 
-    def update_cache(self, channel: str = None, exposure: float = None):
+    def update_cache(self, channel: str, exposure: float = None):
         """Update the values in the cache, inferring as needed."""
-        if channel is None:
-            channel = self._mmc.getCurrentConfigFromCache(self._channel_group)
+        # Need to require channel because there is no way to infer that from MM
+        # in the future once that's more easily inferrable allow either as optional
+        # if channel is None:
+        #     channel = self._mmc.getCurrentConfigFromCache(self._channel_group)
         if exposure is None:
             exposure = self._mmc.getExposure()
         self._cache[channel] = exposure
@@ -175,10 +180,13 @@ class ExposureCache:
             cfg = self._mmc.getConfigData(self._channel_group, channel)
             cam_device = self._mmc.getCameraDevice()
             if (cam_device, "Exposure") in cfg:
-                return float(cfg[(cam_device, "Exposure")])
+                exposure = float(cfg[(cam_device, "Exposure")])
+                self._cache[channel] = exposure
+                return exposure
             else:
                 return self._cache[channel]
-        return self._fallback_value
+        else:
+            return self._fallback_value
 
     def __setitem__(self, channel: str, exposure: float):
         self._cache[channel] = exposure

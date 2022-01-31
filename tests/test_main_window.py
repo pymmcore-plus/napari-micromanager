@@ -1,8 +1,10 @@
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from pymmcore_plus import RemoteMMCore
 from useq import MDASequence
 
 from micromanager_gui.main_window import MainWindow
@@ -13,39 +15,67 @@ if TYPE_CHECKING:
 
 
 def test_exposure_changing(qtbot: "QtBot", main_window: MainWindow):
-    wait = 500
     mmc = main_window._mmc
-    main_window.snap_channel_comboBox.setCurrentText("DAPI")
-    qtbot.wait_signal(main_window.snap_channel_comboBox.currentTextChanged)
-    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
+    remote = isinstance(mmc, RemoteMMCore)
 
-    # Wait signals got this working on local but not remote?
-    # although it behaves fine as a user.
-    qtbot.wait(wait)
+    # qtbot wait was breaking at times with pysygnal signals
+    if remote:
+        waitSignals = qtbot.waitSignals
+        waitSignal = qtbot.waitSignal
+
+    else:
+
+        @contextmanager
+        def waitSignals(*args):
+            yield
+
+        @contextmanager
+        def waitSignal(*args):
+            yield
+
+    with waitSignals(
+        [
+            main_window.snap_channel_comboBox.currentTextChanged,
+            mmc.events.exposureChanged,
+        ]
+    ):
+        main_window.snap_channel_comboBox.setCurrentText("DAPI")
+
     assert main_window.exp_spinBox.value() == 1.0
     assert mmc.getExposure() == 1.0
-    mmc.setExposure(15)
+    with waitSignal(mmc.events.exposureChanged):
+        mmc.setExposure(15)
 
     # Cy3/Cy5 has exposure defined in config group and we should respect that.
-    main_window.snap_channel_comboBox.setCurrentText("Cy5")
-    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
-    qtbot.wait(wait)
+    with waitSignals(
+        [
+            main_window.snap_channel_comboBox.currentTextChanged,
+            mmc.events.exposureChanged,
+        ]
+    ):
+        main_window.snap_channel_comboBox.setCurrentText("Cy5")
     assert main_window.exp_spinBox.value() == 200
     assert mmc.getExposure() == 200
 
     # back to DAPI - make sure our 15 stuck
-    main_window.snap_channel_comboBox.setCurrentText("DAPI")
-    qtbot.wait_signal(main_window.snap_channel_comboBox.currentTextChanged)
-    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
-    qtbot.wait(wait)
-    # assert main_window.exp_spinBox.value() == 15
+    with waitSignals(
+        [
+            main_window.snap_channel_comboBox.currentTextChanged,
+            mmc.events.exposureChanged,
+        ]
+    ):
+        main_window.snap_channel_comboBox.setCurrentText("DAPI")
+    assert main_window.exp_spinBox.value() == 15
     assert mmc.getExposure() == 15
 
     # Now rhodamine - should go to the default value of the cache
-    main_window.snap_channel_comboBox.setCurrentText("Rhodamine")
-    # qtbot.wait_signal(mmc.events.exposureChanged)
-    qtbot.wait_signals([mmc.events.configGroupChanged, mmc.events.exposureChanged])
-    qtbot.wait(wait)
+    with waitSignals(
+        [
+            main_window.snap_channel_comboBox.currentTextChanged,
+            mmc.events.exposureChanged,
+        ]
+    ):
+        main_window.snap_channel_comboBox.setCurrentText("Rhodamine")
     assert main_window.exp_spinBox.value() == 1
     assert mmc.getExposure() == 1
 
