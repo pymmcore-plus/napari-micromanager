@@ -200,9 +200,9 @@ class MainWidget(QtW.QWidget):
 
         # add all widgets to main_layout
         self.main_layout.addWidget(self.mm_configuration, 0, 0)
+        self.add_mm_objectives_illumination_camera_widget()
         self.main_layout.addWidget(self.mm_xyz_stages, 2, 0)
         self.main_layout.addWidget(self.mm_tab, 3, 0)
-        self.add_mm_objectives_illumination_camera_widget()
 
         # set main_layout layout
         self.setLayout(self.main_layout)
