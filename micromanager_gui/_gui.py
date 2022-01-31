@@ -15,6 +15,7 @@ from .multid_widget import MultiDWidget
 if TYPE_CHECKING:
     import napari.viewer
 
+
 ICONS = Path(__file__).parent / "icons"
 
 
@@ -176,12 +177,19 @@ class MainWidget(QtW.QWidget):
         self.viewer = viewer
         self._mmcore = RemoteMMCore() if remote else CMMCorePlus()
 
+        # add sub_widgets
         self.mm_configuration = MMConfigurationWidget()
         self.mm_objectives = MMObjectivesWidget()
         self.mm_illumination = MMIlluminationWidget()
         self.mm_camera = MMCameraWidget()
         self.mm_xyz_stages = MMStagesWidget()
+
         self.mm_tab = MMTabWidget()
+        # add mda and explorer tabs to mm_tab widget
+        self.mm_mda = MultiDWidget(self._mmcore)
+        self.mm_explorer = ExploreSample(self.viewer, self._mmcore)
+        self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
+        self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
 
     def create_gui(self):
 
@@ -195,12 +203,6 @@ class MainWidget(QtW.QWidget):
         self.main_layout.addWidget(self.mm_xyz_stages, 2, 0)
         self.main_layout.addWidget(self.mm_tab, 3, 0)
         self.add_mm_objectives_illumination_camera_widget()
-
-        # add mda and explorer tabs to mm_tab widget
-        self.mm_mda = MultiDWidget(self._mmcore)
-        self.mm_explorer = ExploreSample(self.viewer, self._mmcore)
-        self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
-        self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
@@ -225,7 +227,7 @@ class MainWidget(QtW.QWidget):
         # set layout wdg_2
         wdg_2.setLayout(wdg_2_layout)
 
-        # add bjectives and illumination widgets to wdg 1
+        # add objectives and illumination widgets to wdg 1
         wdg_1_layout.addWidget(wdg_2, 0, 0)
 
         # add camera widget to wdg 1
