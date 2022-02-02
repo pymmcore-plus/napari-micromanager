@@ -3,13 +3,14 @@ from qtpy import QtWidgets as QtW
 
 class MMCameraWidget(QtW.QWidget):
     """
-    contains the following objects:
-    - camera_groupBox: QtW.QGroupBox
-    - bin_comboBox: QtW.QComboBox
-    - bit_comboBox: QtW.QComboBox
-    - px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    - cam_roi_comboBox: QtW.QComboBox
-    - crop_Button: QtW.QPushButton
+    Contains the following objects:
+
+    camera_groupBox: QtW.QGroupBox
+    bin_comboBox: QtW.QComboBox
+    bit_comboBox: QtW.QComboBox
+    px_size_doubleSpinBox: QtW.QDoubleSpinBox
+    cam_roi_comboBox: QtW.QComboBox
+    crop_Button: QtW.QPushButton
     """
 
     def __init__(self):

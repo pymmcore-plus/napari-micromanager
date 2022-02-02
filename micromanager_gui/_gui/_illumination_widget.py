@@ -4,9 +4,10 @@ from qtpy import QtWidgets as QtW
 
 class MMIlluminationWidget(QtW.QWidget):
     """
-    contains the following objects:
-    - illumination_groupBox: QtW.QGroupBox
-    - illumination_Button: QtW.QLineEdit
+    Contains the following objects:
+
+    illumination_groupBox: QtW.QGroupBox
+    illumination_Button: QtW.QLineEdit
     """
 
     def __init__(self):

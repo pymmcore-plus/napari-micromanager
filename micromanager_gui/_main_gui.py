@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from qtpy import QtWidgets as QtW
 
-from ._camera_widget import MMCameraWidget
-from ._illumination_widget import MMIlluminationWidget
-from ._mm_configuration_widget import MMConfigurationWidget
-from ._objective_widget import MMObjectivesWidget
-from ._tab_widget import MMTabWidget
-from ._xyz_stages import MMStagesWidget
+from ._gui._camera_widget import MMCameraWidget
+from ._gui._illumination_widget import MMIlluminationWidget
+from ._gui._mm_configuration_widget import MMConfigurationWidget
+from ._gui._objective_widget import MMObjectivesWidget
+from ._gui._tab_widget import MMTabWidget
+from ._gui._xyz_stages import MMStagesWidget
 
 
 class MicroManagerWidget(QtW.QWidget):

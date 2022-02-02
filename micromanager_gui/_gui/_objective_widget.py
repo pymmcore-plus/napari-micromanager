@@ -4,9 +4,10 @@ from qtpy import QtWidgets as QtW
 
 class MMObjectivesWidget(QtW.QWidget):
     """
-    contains the following objects:
-    - objective_groupBox: QtW.QGroupBox
-    - objective_comboBox: QtW.QLineEdit
+    Contains the following objects:
+
+    objective_groupBox: QtW.QGroupBox
+    objective_comboBox: QtW.QLineEdit
     """
 
     def __init__(self):

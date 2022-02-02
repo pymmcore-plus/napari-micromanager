@@ -3,12 +3,13 @@ from qtpy import QtWidgets as QtW
 
 class MMConfigurationWidget(QtW.QWidget):
     """
-    contains the following objects:
-    - cfg_groupBox: QtW.QGroupBox
-    - cfg_LineEdit: QtW.QLineEdit
-    - browse_cfg_Button: QtW.QPushButton
-    - load_cfg_Button: QtW.QPushButton
-    - properties_Button: QtW.QPushButton
+    Contains the following objects:
+
+    cfg_groupBox: QtW.QGroupBox
+    cfg_LineEdit: QtW.QLineEdit
+    browse_cfg_Button: QtW.QPushButton
+    load_cfg_Button: QtW.QPushButton
+    properties_Button: QtW.QPushButton
     """
 
     def __init__(self):
