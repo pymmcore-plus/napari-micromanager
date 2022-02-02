@@ -2,6 +2,8 @@ from pathlib import Path
 
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
+from qtpy.QtCore import QSize
+from qtpy.QtGui import QIcon
 
 ICONS = Path(__file__).parent.parent / "icons"
 
@@ -24,6 +26,14 @@ class MMTabWidget(QtW.QWidget):
     def __init__(self):
         super().__init__()
         self.setup_gui()
+
+        for attr, icon in [
+            ("snap_Button", "cam.svg"),
+            ("live_Button", "vcam.svg"),
+        ]:
+            btn = getattr(self, attr)
+            btn.setIcon(QIcon(str(ICONS / icon)))
+            btn.setIconSize(QSize(30, 30))
 
     def setup_gui(self):
 

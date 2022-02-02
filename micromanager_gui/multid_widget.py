@@ -28,7 +28,7 @@ class SequenceMeta:
 
 
 class _MultiDUI:
-    UI_FILE = str(Path(__file__).parent / "_gui" / "multid_gui.ui")
+    UI_FILE = str(Path(__file__).parent / "_gui_objects" / "multid_gui.ui")
 
     # The UI_FILE above contains these objects:
     save_groupBox: QtW.QGroupBox

@@ -12,8 +12,8 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
+from ._gui import MicroManagerWidget
 from ._illumination import IlluminationDialog
-from ._main_gui import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
     SelectDeviceFromCombobox,

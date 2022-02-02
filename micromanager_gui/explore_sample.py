@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 
-UI_FILE = str(Path(__file__).parent / "_gui" / "explore_sample.ui")
+UI_FILE = str(Path(__file__).parent / "_gui_objects" / "explore_sample.ui")
 
 
 def _channel_key(name: str, index: int) -> str:
