@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from pymmcore_plus import DeviceType
+from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
-from ._gui import MicroManagerWidget
+from ._gui._main_gui import MicroManagerWidget
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -21,7 +21,8 @@ from ._util import (
     event_indices,
     extend_array_for_index,
 )
-from .multid_widget import SequenceMeta
+from .explore_sample import ExploreSample
+from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
@@ -36,13 +37,19 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MicroManagerWidget):
-    def __init__(self, viewer: napari.viewer.Viewer):
-        super().__init__(viewer=viewer)
-
-        self.create_gui()  # create gui from _gui.py
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+        super().__init__()
 
         self.viewer = viewer
-        self._mmc = self._mmcore  # mmcore set in MicroManagerWidget in _gui.py
+        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+
+        self.create_gui()  # create gui from _main_gui.py
+
+        # add mda and explorer tabs to mm_tab widget
+        self.mm_mda = MultiDWidget(self._mmc)
+        self.mm_explorer = ExploreSample(self.viewer, self._mmc)
+        self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
+        self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
@@ -570,6 +577,14 @@ class MainWindow(MicroManagerWidget):
 
     def snap(self):
         self.stop_live()
+        try:
+            self._mmc.setConfig(
+                self._mmc.getChannelGroup(),
+                self.tab.snap_channel_comboBox.currentText(),
+            )
+        except ValueError:
+            pass
+        self._mmc.setExposure(self.tab.exp_spinBox.value())
         self._mmc.snapImage()
         self.update_viewer(self._mmc.getImage())
 
