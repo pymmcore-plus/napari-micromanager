@@ -45,12 +45,6 @@ class MainWindow(MicroManagerWidget):
 
         self.create_gui()  # create gui from _main_gui.py
 
-        # add mda and explorer tabs to mm_tab widget
-        self.mm_mda = MultiDWidget(self._mmc)
-        self.mm_explorer = ExploreSample(self.viewer, self._mmc)
-        self.mm_tab.tabWidget.addTab(self.mm_mda, "Multi-D Acquisition")
-        self.mm_tab.tabWidget.addTab(self.mm_explorer, "Sample Explorer")
-
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
         self.ill = self.mm_illumination
@@ -58,8 +52,12 @@ class MainWindow(MicroManagerWidget):
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
 
-        self.mda = self.mm_mda
-        self.explorer = self.mm_explorer
+        self.mda = MultiDWidget(self._mmc)
+        self.explorer = ExploreSample(self.viewer, self._mmc)
+
+        # add mda and explorer tabs to mm_tab widget
+        self.tab.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         self.streaming_timer = None
         self.available_focus_devs = []
