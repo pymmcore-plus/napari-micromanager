@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from qtpy import QtCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize
@@ -20,62 +21,204 @@ ICONS = Path(__file__).parent / "icons"
 
 
 class MMConfigurationWidget(QtW.QWidget):
+    """
+    contains the following objects:
+    - cfg_groupBox: QtW.QGroupBox
+    - cfg_LineEdit: QtW.QLineEdit
+    - browse_cfg_Button: QtW.QPushButton
+    - load_cfg_Button: QtW.QPushButton
+    - properties_Button: QtW.QPushButton
+    """
 
-    MM_CONFIG = str(Path(__file__).parent / "_ui" / "mm_configuration.ui")
+    def __init__(self):
+        super().__init__()
+        self.setup_gui()
 
-    # The MM_CONFIG above contains these objects:
-    mm_config_groupBox: QtW.QGroupBox
-    cfg_LineEdit: QtW.QLineEdit
-    browse_cfg_Button: QtW.QPushButton
-    load_cfg_Button: QtW.QPushButton
-    properties_Button: QtW.QPushButton
+    def setup_gui(self):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        uic.loadUi(self.MM_CONFIG, self)
+        self.main_layout = QtW.QGridLayout()
+        # cfg groupbox in widget
+        self.cfg_groupBox = QtW.QGroupBox()
+        self.cfg_groupBox.setTitle("Camera")
+        self.main_layout.addWidget(self.cfg_groupBox, 0, 0)
+        self.setLayout(self.main_layout)
+
+        # define camera_groupBox layout
+        self.cfg_groupBox_layout = QtW.QGridLayout()
+
+        # add to cfg_groupBox layout:
+        self.cfg_LineEdit = QtW.QLineEdit()
+        self.browse_cfg_Button = QtW.QPushButton(text="...")
+        self.load_cfg_Button = QtW.QPushButton(text="Load")
+        self.properties_Button = QtW.QPushButton(text="Prop")
+        # widgets in in cfg_groupBox layout
+        self.cfg_groupBox_layout.addWidget(self.cfg_LineEdit, 0, 0)
+        self.cfg_groupBox_layout.addWidget(self.browse_cfg_Button, 0, 1)
+        self.cfg_groupBox_layout.addWidget(self.load_cfg_Button, 0, 2)
+        self.cfg_groupBox_layout.addWidget(self.properties_Button, 0, 3)
+        # set cfg_groupBox layout
+        self.cfg_groupBox.setLayout(self.cfg_groupBox_layout)
 
 
 class MMObjectivesWidget(QtW.QWidget):
+    """
+    contains the following objects:
+    - objective_groupBox: QtW.QGroupBox
+    - objective_comboBox: QtW.QLineEdit
+    """
 
-    MM_OBJ = str(Path(__file__).parent / "_ui" / "mm_objectives.ui")
+    def __init__(self):
+        super().__init__()
+        self.setup_gui()
 
-    # The MM_OBJ above contains these objects:
-    objective_groupBox: QtW.QGroupBox
-    objective_comboBox: QtW.QComboBox
+    def setup_gui(self):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        uic.loadUi(self.MM_OBJ, self)
+        self.main_layout = QtW.QGridLayout()
+
+        # groupbox in widget
+        self.objective_groupBox = QtW.QGroupBox()
+        self.objective_groupBox.setTitle("Objectives")
+        self.main_layout.addWidget(self.objective_groupBox, 0, 0)
+        self.setLayout(self.main_layout)
+
+        # combobox in groupbox
+        self.objective_groupBox_layout = QtW.QGridLayout()
+
+        self.objective_comboBox = QtW.QComboBox()
+        self.objective_groupBox.setMinimumSize(QtCore.QSize(160, 0))
+        # self.objective_groupBox.setObjectName("objective_groupBox")
+
+        self.objective_groupBox_layout.addWidget(self.objective_comboBox, 0, 0)
+        self.objective_groupBox.setLayout(self.objective_groupBox_layout)
 
 
 class MMIlluminationWidget(QtW.QWidget):
+    """
+    contains the following objects:
+    - illumination_groupBox: QtW.QGroupBox
+    - illumination_Button: QtW.QLineEdit
+    """
 
-    MM_ILL = str(Path(__file__).parent / "_ui" / "mm_illumination.ui")
+    def __init__(self):
+        super().__init__()
+        self.setup_gui()
 
-    # The MM_ILL above contains these objects:
-    illumination_groupBox: QtW.QGroupBox
-    illumination_Button: QtW.QPushButton
+    def setup_gui(self):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        uic.loadUi(self.MM_ILL, self)
+        self.main_layout = QtW.QGridLayout()
+        # groupbox in widget
+        self.illumination_groupBox = QtW.QGroupBox()
+        self.illumination_groupBox.setTitle("Illumination")
+        self.main_layout.addWidget(self.illumination_groupBox, 0, 0)
+        self.setLayout(self.main_layout)
+
+        # PushButton in groupbox
+        self.illumination_groupBox_layout = QtW.QGridLayout()
+        self.illumination_Button = QtW.QPushButton(text="Illumination")
+        self.illumination_groupBox.setMinimumSize(QtCore.QSize(160, 0))
+
+        self.illumination_groupBox_layout.addWidget(self.illumination_Button, 0, 0)
+        self.illumination_groupBox.setLayout(self.illumination_groupBox_layout)
 
 
 class MMCameraWidget(QtW.QWidget):
+    """
+    contains the following objects:
+    - camera_groupBox: QtW.QGroupBox
+    - bin_comboBox: QtW.QComboBox
+    - bit_comboBox: QtW.QComboBox
+    - px_size_doubleSpinBox: QtW.QDoubleSpinBox
+    - cam_roi_comboBox: QtW.QComboBox
+    - crop_Button: QtW.QPushButton
+    """
 
-    MM_CAM = str(Path(__file__).parent / "_ui" / "mm_camera.ui")
+    def __init__(self):
+        super().__init__()
+        self.setup_gui()
 
-    # The MM_CAM above contains these objects:
-    camera_groupBox: QtW.QGroupBox
-    bin_comboBox: QtW.QComboBox
-    bit_comboBox: QtW.QComboBox
-    px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    cam_roi_comboBox: QtW.QComboBox
-    crop_Button: QtW.QPushButton
+    def setup_gui(self):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        uic.loadUi(self.MM_CAM, self)
+        self.main_layout = QtW.QGridLayout()
+        # camera groupbox in widget
+        self.camera_groupBox = QtW.QGroupBox()
+        self.camera_groupBox.setTitle("Camera")
+        self.main_layout.addWidget(self.camera_groupBox, 0, 0)
+        self.setLayout(self.main_layout)
+
+        # define camera_groupBox layout
+        self.camera_groupBox_layout = QtW.QGridLayout()
+
+        # add to camera_groupBox layout:
+        # bin widget and layout
+        self.bin_wdg = QtW.QWidget()
+        self.bin_layout = QtW.QGridLayout()
+        # label bin in layout
+        self.bin_label = QtW.QLabel(text="Binning:")
+        self.bin_label.setMaximumWidth(65)
+        self.bin_layout.addWidget(self.bin_label, 0, 0)
+        # combobox bin in layout
+        self.bin_comboBox = QtW.QComboBox()
+        # self.bin_comboBox.setMaximumWidth(75)
+        self.bin_layout.addWidget(self.bin_comboBox, 0, 1)
+        # set bin_wdg layout
+        self.bin_wdg.setLayout(self.bin_layout)
+        # bin widget in groupbox
+        self.camera_groupBox_layout.addWidget(self.bin_wdg, 0, 0)
+
+        # bit widget and layout
+        self.bit_wdg = QtW.QWidget()
+        self.bit_layout = QtW.QGridLayout()
+        # label bit in groupbox r1 c0
+        self.bit_label = QtW.QLabel(text="Bit Depth:")
+        self.bit_label.setMaximumWidth(65)
+        self.bit_layout.addWidget(self.bit_label, 0, 0)
+        # combobox bit in groupbox r1 c1
+        self.bit_comboBox = QtW.QComboBox()
+        # self.bit_comboBox.setMaximumWidth(75)
+        self.bit_layout.addWidget(self.bit_comboBox, 0, 1)
+        # set bit_wdg layout
+        self.bit_wdg.setLayout(self.bit_layout)
+        # bit widget in groupbox
+        self.camera_groupBox_layout.addWidget(self.bit_wdg, 1, 0)
+
+        # cam_px widget and layout
+        self.cam_px_wdg = QtW.QWidget()
+        self.cam_px_layout = QtW.QGridLayout()
+        # label px in groupbox r0 c2
+        self.cam_px_label = QtW.QLabel(text="Pixel (µm):")
+        self.cam_px_label.setMaximumWidth(70)
+        self.cam_px_layout.addWidget(self.cam_px_label, 0, 0)
+        # doublespinbox px in groupbox r0 c3
+        self.px_size_doubleSpinBox = QtW.QDoubleSpinBox()
+        # self.px_size_doubleSpinBox.setMaximumWidth(120)
+        self.cam_px_layout.addWidget(self.px_size_doubleSpinBox, 0, 1)
+        # set bit_wdg layout
+        self.cam_px_wdg.setLayout(self.cam_px_layout)
+        # bit widget in groupbox
+        self.camera_groupBox_layout.addWidget(self.cam_px_wdg, 0, 1)
+
+        # camera roi widget and layout
+        self.cam_roi_wdg = QtW.QWidget()
+        self.cam_roi_wdg_layout = QtW.QGridLayout()
+        # camera roi label in cam_roi_wdg
+        self.cam_roi_label = QtW.QLabel(text="ROI:")
+        self.cam_roi_label.setMaximumWidth(30)
+        self.cam_roi_wdg_layout.addWidget(self.cam_roi_label, 0, 0)
+        # combobox in cam_roi_wdg
+        self.cam_roi_comboBox = QtW.QComboBox()
+        self.cam_roi_comboBox.setMinimumWidth(70)
+        self.cam_roi_wdg_layout.addWidget(self.cam_roi_comboBox, 0, 1)
+        # pushbutton in cam_roi_wdg
+        self.crop_Button = QtW.QPushButton(text="Crop")
+        self.crop_Button.setMaximumWidth(50)
+        self.cam_roi_wdg_layout.addWidget(self.crop_Button, 0, 2)
+        # set cam_roi_wdg layout
+        self.cam_roi_wdg.setLayout(self.cam_roi_wdg_layout)
+        # cam_roi widget in groupbox
+        self.camera_groupBox_layout.addWidget(self.cam_roi_wdg, 1, 1)
+
+        # set layout camera_groupBox
+        self.camera_groupBox.setLayout(self.camera_groupBox_layout)
 
 
 class MMStagesWidget(QtW.QWidget):
