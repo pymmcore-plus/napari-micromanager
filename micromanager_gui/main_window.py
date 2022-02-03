@@ -257,7 +257,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
         if channel_group == group:
-            logger.debug(f"CHANNEL CFG SET: {group} -> {group}")
+            logger.debug(f"CHANNEL CFG SET: {group} -> {preset}")
             logger.debug(f"update cbox widget: {group} -> {preset}")
             # main gui
             with blockSignals(self.snap_channel_comboBox):
@@ -266,7 +266,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._match_and_set(group, table, preset)
         # Objective -> change comboboxes (main gui and group table)
         if self.objectives_cfg == group:
-            logger.debug(f"OBJECTIVE CFG SET: {group} -> {group}")
+            logger.debug(f"OBJECTIVE CFG SET: {group} -> {preset}")
             logger.debug(f"update cbox widget: {group} -> {preset}")
             # main gui
             with blockSignals(self.objective_comboBox):

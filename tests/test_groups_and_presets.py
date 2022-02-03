@@ -26,6 +26,7 @@ def test_groups_and_presets(main_window: MainWindow):
     assert mm_table.native.rowCount() == 5
     assert mm_table.native.columnCount() == 2
 
+    # test channel comboboxes
     _, channel_tab_cbox = mm_table.data[1]  # channel combobox in table
     print("___________ComboBox:", channel_tab_cbox)
     print("___________current text:", channel_tab_cbox.get_value())
@@ -34,7 +35,6 @@ def test_groups_and_presets(main_window: MainWindow):
     print("___________ComboBox:", channel_tab_cbox)
     print("___________new text:", channel_tab_cbox.get_value())
     print("___________snap cbox text:", main_window.snap_channel_comboBox.currentText())
-
     assert main_window.snap_channel_comboBox.currentText() == "Rhodamine"
     assert channel_tab_cbox.get_value() == "Rhodamine"
 
@@ -42,14 +42,24 @@ def test_groups_and_presets(main_window: MainWindow):
     main_window.snap_channel_comboBox.setCurrentText("DAPI")
     print("#############snap cbox:", main_window.snap_channel_comboBox.currentText())
     print("#############tab cbox:", channel_tab_cbox.get_value())
-
     assert channel_tab_cbox.get_value() == "DAPI"
     assert main_window.snap_channel_comboBox.currentText() == "DAPI"
 
-    # _, wdg = mm_table.data[3]
-    # print('___________ComboBox:', wdg)
-    # print('___________current text:', wdg.get_value())
-    # wdg.value = "20X"
-    # print('___________ComboBox:', wdg)
-    # print('___________new text:', wdg.get_value())
-    # print('___________snap cbox text:', main_window.objective_comboBox.currentText())
+    # test objective comboboxes
+    _, objective_tab_cbox = mm_table.data[3]
+    # set objective_tab_cbox to "20X" -> it should change also objective_comboBox
+    objective_tab_cbox.value = "20X"
+    assert main_window.objective_comboBox.currentText() == "20X"
+    assert objective_tab_cbox.get_value() == "20X"
+
+    # set objective_comboBox to "40X" -> it should change also objective_tab_cbox
+    main_window.objective_comboBox.setCurrentText("40X")
+    assert objective_tab_cbox.get_value() == "40X"
+    assert main_window.objective_comboBox.currentText() == "40X"
+
+    # test camera presets
+    _, camera_tab_cbox = mm_table.data[0]
+    # set camera_tab_cbox to "MedRes" -> it should change also objective_comboBox
+    camera_tab_cbox.value = "MedRes"
+    assert main_window.bin_comboBox.currentText() == "2"
+    assert camera_tab_cbox.get_value() == "MedRes"
