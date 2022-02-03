@@ -204,17 +204,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @sig.pixelSizeChanged.connect
-        def _on_px_size_changed(value):
-            logger.debug(
-                f"current pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} -> pixel size: {value}"
-            )
-
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
             logger.debug(f"CFG SET: {groupName} -> {configName}")
-
             # update gui channel cbox and
             # update gui objective cbox if self.objectives_cfg
             self._on_update_cbox_widget(groupName, configName)
@@ -227,8 +219,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
 
-            # if dev == self.objectives_device:
-            #     self._refresh_objective_options()
+            if dev == self.objectives_device:
+                self._refresh_objective_options()
 
     def _on_update_table(self, update_table: str):
         logger.debug("updating table")
@@ -294,7 +286,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
-        logger.debug(f"EXPOSURE CHANGED: {camera} -> {exposure}")
         with blockSignals(self.exp_spinBox):
             self.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
