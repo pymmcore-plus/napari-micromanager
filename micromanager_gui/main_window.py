@@ -230,7 +230,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.objective_comboBox.itemText(i)
                 for i in range(self.objective_comboBox.count())
             ]
-            obj_cfg_list = self._mmc.getAvailableConfigs(self.objectives_cfg)
+            obj_cfg_list = list(self._mmc.getAvailableConfigs(self.objectives_cfg))
             obj_gp_list.sort()
             obj_cfg_list.sort()
             if obj_gp_list != obj_cfg_list:
@@ -242,7 +242,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not self._mmc.getChannelGroup():
             self._refresh_channel_list()
         else:
-            channel_list = self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
+            channel_list = list(
+                self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
+            )
             cbox_list = [
                 self.snap_channel_comboBox.itemText(i)
                 for i in range(self.snap_channel_comboBox.count())
@@ -585,7 +587,7 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _set_channel_group(self, guessed_channel: str):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
-        channel_list = self._mmc.getAvailableConfigs(channel_group)
+        channel_list = list(self._mmc.getAvailableConfigs(channel_group))
         with blockSignals(self.snap_channel_comboBox):
             self.snap_channel_comboBox.clear()
             self.snap_channel_comboBox.addItems(channel_list)
