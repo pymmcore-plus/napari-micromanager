@@ -206,21 +206,19 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
-            logger.debug(f"CFG SET: {groupName} -> {configName}")
             # update gui channel cbox and
             # update gui objective cbox if self.objectives_cfg
             self._on_update_cbox_widget(groupName, configName)
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
-            logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
-
+            # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
 
-            if dev == self.objectives_device:
-                self._refresh_objective_options()
+            # if dev == self.objectives_device:
+            #     self._refresh_objective_options()
 
     def _on_update_table(self, update_table: str):
         logger.debug("updating table")
@@ -259,6 +257,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
         if channel_group == group:
+            logger.debug(f"CHANNEL CFG SET: {group} -> {group}")
             logger.debug(f"update cbox widget: {group} -> {preset}")
             # main gui
             with blockSignals(self.snap_channel_comboBox):
@@ -267,6 +266,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._match_and_set(group, table, preset)
         # Objective -> change comboboxes (main gui and group table)
         if self.objectives_cfg == group:
+            logger.debug(f"OBJECTIVE CFG SET: {group} -> {group}")
             logger.debug(f"update cbox widget: {group} -> {preset}")
             # main gui
             with blockSignals(self.objective_comboBox):
