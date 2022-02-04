@@ -123,13 +123,21 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
 
+        self.cfg_LineEdit.setText(
+            str(Path(__file__).parent.parent / "tests" / "test_config.cfg")
+        )
+
         # tab widgets
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.tabWidget.tabBar().moveTab(1, 0)
         # connect signals from groups and presets tab
-        self.groups_and_presets.update_table.connect(self._on_update_table)
+        self.groups_and_presets.table_wdg_changed.connect(self._change_channel_main_gui)
+        self.groups_and_presets.table_wdg_changed.connect(
+            self._change_objective_main_gui
+        )
+        # self.groups_and_presets.update_table.connect(self._on_update_table)________________
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -184,10 +192,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         )  # save group/preset .cfg
 
         # connect comboBox
-        self.objective_comboBox.currentIndexChanged.connect(self.change_objective)
+        self.objective_comboBox.currentTextChanged.connect(
+            self._change_objective_main_gui
+        )
         self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
-        self.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        self.snap_channel_comboBox.currentTextChanged.connect(
+            self._change_channel_main_gui
+        )
 
         self.cam_roi = CameraROI(
             self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
@@ -204,21 +216,31 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
+        @sig.pixelSizeChanged.connect
+        def _on_px_size_changed(value):
+            logger.debug(
+                f"\ncurrent pixel config: "
+                f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
+            )
+
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
-            # update gui channel cbox and
-            # update gui objective cbox if self.objectives_cfg
-            self._on_update_cbox_widget(groupName, configName)
+            logger.debug(f"CFG SET: {groupName} -> {configName}")
+
+            if groupName == self.objectives_cfg:
+                self._update_pixel_size()
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
             # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
 
-            # if dev == self.objectives_device:
-            #     self._refresh_objective_options()
+            if dev == self.objectives_device:
+                logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+                self._update_pixel_size()
 
     def _on_update_table(self, update_table: str):
         # logger.debug("updating table")
@@ -624,10 +646,75 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
 
-    def _channel_changed(self, newChannel: str):
-        if self._mmc.getChannelGroup():
-            self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)  # -> configSet
-            # self.update_cbox_widget.emit(self._mmc.getChannelGroup(), newChannel)
+    def _change_channel_main_gui(self, newChannel: str):
+        if self._mmc.getChannelGroup() and newChannel in list(
+            self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
+        ):
+
+            if newChannel != self.snap_channel_comboBox.currentText():
+                with blockSignals(self.snap_channel_comboBox):
+                    self.snap_channel_comboBox.setCurrentText(newChannel)
+            else:
+                self._mmc.setConfig(
+                    self._mmc.getChannelGroup(), newChannel
+                )  # -> configSet
+
+            self._change_channel_cbox_in_table(self._mmc.getChannelGroup(), newChannel)
+
+    def _change_channel_cbox_in_table(self, channel_group: str, channel_preset: str):
+        table = self.groups_and_presets.tb
+        for row in range(table.shape[0]):
+            group, wdg = table.data[row]
+            if group == channel_group and wdg.get_value() != channel_preset:
+                with blockSignals(wdg.native):
+                    wdg.value = channel_preset  # -> configSet
+                break
+
+    def _change_objective_main_gui(self, objective: str):
+
+        if self.objective_comboBox.count() <= 0:
+            return
+        if self.objectives_device == "":
+            return
+
+        if self.objectives_cfg and objective in list(
+            self._mmc.getAvailableConfigs(self.objectives_cfg)
+        ):
+
+            if objective != self.objective_comboBox.currentText():
+                with blockSignals(self.objective_comboBox):
+                    self.objective_comboBox.setCurrentText(objective)
+            else:
+                self._mmc.setConfig(
+                    self.objectives_cfg, self.objective_comboBox.currentText()
+                )  # -> configSet
+
+            self._change_objective_cbox_in_table(self.objectives_cfg, objective)
+
+        else:
+            objective_list = [
+                self.objective_comboBox.itemText(i)
+                for i in range(self.objective_comboBox.count())
+            ]
+            if objective in objective_list:
+                self._mmc.setProperty(
+                    self.objectives_device,
+                    "Label",
+                    self.objective_comboBox.currentText(),
+                )  # -> propertyChanged
+
+        self._update_pixel_size()
+
+    def _change_objective_cbox_in_table(
+        self, objective_group: str, objective_preset: str
+    ):
+        table = self.groups_and_presets.tb
+        for row in range(table.shape[0]):
+            group, wdg = table.data[row]
+            if group == objective_group and wdg.get_value() != objective_preset:
+                with blockSignals(wdg.native):
+                    wdg.value = objective_preset  # -> configSet
+                break
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
@@ -676,34 +763,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         )
         if self.snap_on_click_z_checkBox.isChecked():
             self.snap()
-
-    def change_objective(self):
-        if self.objective_comboBox.count() <= 0:
-            return
-
-        if self.objectives_device == "":
-            return
-
-        zdev = self._mmc.getFocusDevice()
-
-        currentZ = self._mmc.getZPosition()
-        self._mmc.setPosition(zdev, 0)
-        self._mmc.waitForDevice(zdev)
-
-        try:
-            self._mmc.setConfig(
-                self.objectives_cfg, self.objective_comboBox.currentText()
-            )
-        except ValueError:
-            self._mmc.setProperty(
-                self.objectives_device, "Label", self.objective_comboBox.currentText()
-            )
-
-        self._mmc.waitForDevice(self.objectives_device)
-        self._mmc.setPosition(zdev, currentZ)
-        self._mmc.waitForDevice(zdev)
-
-        self._update_pixel_size()
 
     def update_viewer(self, data=None):
         # TODO: - fix the fact that when you change the objective

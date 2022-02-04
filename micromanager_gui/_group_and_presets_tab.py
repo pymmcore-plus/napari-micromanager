@@ -41,6 +41,7 @@ class MainTable(Table):
 class GroupPresetWidget(QtW.QWidget):
 
     update_table = Signal(str)
+    table_wdg_changed = Signal(str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
@@ -176,6 +177,7 @@ class GroupPresetWidget(QtW.QWidget):
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
                 self._mmc.setConfig(group, value)  # -> configSet
+                self.table_wdg_changed.emit(value)
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
