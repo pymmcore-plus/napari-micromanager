@@ -221,7 +221,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             #     self._refresh_objective_options()
 
     def _on_update_table(self, update_table: str):
-        logger.debug("updating table")
+        # logger.debug("updating table")
         # populate objective combobox when creating/modifying objective group
         if self.objectives_cfg:
             obj_gp_list = [
@@ -231,6 +231,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             obj_cfg_list = list(self._mmc.getAvailableConfigs(self.objectives_cfg))
             obj_gp_list.sort()
             obj_cfg_list.sort()
+
+            print("updating table:", obj_gp_list, obj_cfg_list)
+
             if obj_gp_list != obj_cfg_list:
                 self._refresh_objective_options()
         elif self.objectives_device:
@@ -254,6 +257,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _on_update_cbox_widget(self, group: str, preset: str):
         table = self.groups_and_presets.tb
+        logger.debug(f'_on_update_cbox_widget"  {group}, {preset}')
         # Channels -> change comboboxes (main gui and group table)
         channel_group = self._mmc.getChannelGroup()
         if channel_group == group:

@@ -14,10 +14,9 @@ from magicgui.widgets import (
     Table,
     Widget,
 )
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Signal
-from qtpy.QtWidgets import QDialog
+from qtpy.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
@@ -83,9 +82,11 @@ class GroupPresetWidget(QtW.QWidget):
         self.setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self.group_presets_widget.native)
 
+        logger.debug("FIRST ADD TO TABLE")
         self._add_to_table()
 
     def _add_to_table(self):
+        logger.debug("_add_to_table")
         groups = self._mmc.getAvailableConfigGroups()
         data = []
         for group in groups:
@@ -122,6 +123,7 @@ class GroupPresetWidget(QtW.QWidget):
                 preset = self._mmc.getCurrentConfigFromCache(group)
                 if preset:
                     wdg.value = preset
+                    logger.debug(f"CHECKBOX: {wdg}")
                     self._mmc.setConfig(group, preset)  # -> configSet
 
         self.update_table.emit("update_table")
@@ -198,7 +200,7 @@ class GroupPresetWidget(QtW.QWidget):
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
         for row_idx in sorted(selected_rows, reverse=True):
             group = self.tb.data[row_idx, 0]
-            wdg = self.tb.data[row_idx, 1]  # [r, c]
+            wdg = self.tb.data[row_idx, 1]
             if isinstance(wdg, ComboBox):
                 if len(wdg.choices) == 1:
                     preset = ""
@@ -210,6 +212,7 @@ class GroupPresetWidget(QtW.QWidget):
                     self._mmc.deleteConfig(group, preset)
                     logger.debug(f"group {group}.{wdg.value} deleted!")
                     wdg.del_choice(wdg.value)
+
             else:
                 preset = ""
                 self._mmc.deleteConfigGroup(group)
@@ -224,7 +227,7 @@ class GroupPresetWidget(QtW.QWidget):
         if not selected_row or len(selected_row) > 1:
             return
 
-        groupname = self.tb.data[selected_row[0], 0]  # [r, c]
+        groupname = self.tb.data[selected_row[0], 0]
         wdg = self.tb.data[selected_row[0], 1]
 
         if isinstance(wdg, ComboBox):
@@ -286,7 +289,7 @@ class RenameGroupPreset(QDialog):
         if not selected_row or len(selected_row) > 1:
             return
 
-        self.groupname = self.tb.data[selected_row[0], 0]  # [r, c]
+        self.groupname = self.tb.data[selected_row[0], 0]
         wdg = self.tb.data[selected_row[0], 1]
 
         if isinstance(wdg, ComboBox):
