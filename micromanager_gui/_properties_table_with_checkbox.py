@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
 
+from loguru import logger
 from magicgui import magicgui
 from magicgui.widgets import (
     CheckBox,
@@ -14,10 +15,9 @@ from magicgui.widgets import (
     Widget,
 )
 from pymmcore_plus import DeviceType, PropertyType
-from PyQt5.QtWidgets import QHBoxLayout
 from qtpy import QtWidgets
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QDialog
+from qtpy.QtCore import Qt, Signal
+from qtpy.QtWidgets import QDialog, QHBoxLayout
 
 from .prop_browser import iter_dev_props
 
@@ -97,8 +97,7 @@ class PropTable(Table):
         super().__init__()
         self.mmcore = mmcore
         self._update()
-        hdr = self.native.horizontalHeader()
-        hdr.setSectionResizeMode(hdr.ResizeToContents)
+        self.native.setColumnWidth(0, 50)
         vh = self.native.verticalHeader()
         vh.setVisible(False)
         vh.setSectionResizeMode(vh.Fixed)
@@ -181,10 +180,16 @@ def make_checkboxes(pt):
 
 
 class GroupConfigurations(QDialog):
+
+    new_group_preset = Signal(str, str)
+
     def __init__(self, mmcore: "RemoteMMCore", parent=None):
         super().__init__(parent)
         self._mmcore = mmcore
         self.pt = PropTable(self._mmcore)
+
+        self.pt.native.resizeColumnsToContents()
+
         self.pt.min_width = 550
         self.pt.show()
 
@@ -264,6 +269,8 @@ class GroupConfigurations(QDialog):
             val = wdg.value
 
             self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
+        logger.debug(f"new group signal sent: {group_name}, {preset_name}")
+        self.new_group_preset.emit(group_name, preset_name)
 
     def _reset_comboboxes(self):
         self.le.value = ""
@@ -277,6 +284,9 @@ class GroupConfigurations(QDialog):
     def _set_checkboxes_status(
         self, groupname: str, presetname: str, item_to_find_list: list
     ):
+
+        self.cbox_show.value = False
+
         self.group_le.value = groupname
         self.preset_le.value = presetname
 
@@ -295,28 +305,4 @@ class GroupConfigurations(QDialog):
             wdg = self.pt.data[row, 1]
             wdg.value = True
 
-
-class PropBrowserGroupConfigurations(QDialog):
-    def __init__(self, mmcore=None, parent=None):
-        super().__init__(parent)
-        self.pt = PropTable(mmcore)
-        self.le = LineEdit(label="Filter:")
-        self.le.native.setPlaceholderText("Filter...")
-        self.le.changed.connect(self._on_le_change)
-        right = Container(widgets=[self.le, self.pt], labels=False)
-
-        self.cb = make_checkboxes(self.pt)
-        self.cb.native.layout().addStretch()
-        self.cb.native.layout().setSpacing(0)
-        self.pt.show()
-        self.cb.show()
-        self._container = Container(
-            layout="horizontal", widgets=[self.cb, right], labels=False
-        )
-        self._container.margins = 0, 0, 0, 0
-        self.setLayout(QHBoxLayout())
-        self.setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(self._container.native)
-
-    def _on_le_change(self, value: str):
-        self.pt.filter_string = value
+        self.cbox_show.value = True

@@ -1,20 +1,22 @@
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
 from loguru import logger
+from magicgui.widgets import ComboBox, FloatSlider, LineEdit, Slider
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, Qt, QTimer, Signal
+from qtpy.QtCore import QSize, QTimer, Signal
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
-from ._group_and_presets_tab import GroupPresetWidget
+from ._group_and_presets_tab import GroupPresetWidget, RenameGroupPreset
 from ._illumination import IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
@@ -32,12 +34,12 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
-    from magicgui.widgets import Table
 
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
+WDG_TYPE = (FloatSlider, Slider, LineEdit)
 
 
 class _MainUI:
@@ -120,6 +122,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
+        self.dict_group_presets_table = {
+            "groups": [],
+            "presets": [],
+            "current_preset": [],
+            "device": [],
+            "property": [],
+        }
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
 
@@ -132,12 +142,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets = GroupPresetWidget(self._mmc)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.tabWidget.tabBar().moveTab(1, 0)
+        self.table = self.groups_and_presets.tb
         # connect signals from groups and presets tab
         self.groups_and_presets.table_wdg_changed.connect(self._change_channel_main_gui)
         self.groups_and_presets.table_wdg_changed.connect(
             self._change_objective_main_gui
         )
-        # self.groups_and_presets.update_table.connect(self._on_update_table)________________
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -147,6 +157,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.tabWidget.setMovable(True)
         self.tabWidget.setCurrentIndex(0)
+
+        # disable gui
+        self._set_enabled(False)
 
         # connect mmcore signals
         sig = self._mmc.events
@@ -218,10 +231,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.pixelSizeChanged.connect
         def _on_px_size_changed(value):
-            logger.debug(
-                f"\ncurrent pixel config: "
-                f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
-            )
+            px_cfg = self._mmc.getCurrentPixelSizeConfig()
+            logger.debug(f"pixel config:{px_cfg} -> pixel size: {value}")
 
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
@@ -237,78 +248,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
-
-            if dev == self.objectives_device:
-                logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
-                self._update_pixel_size()
-
-    def _on_update_table(self, update_table: str):
-        # logger.debug("updating table")
-        # populate objective combobox when creating/modifying objective group
-        if self.objectives_cfg:
-            obj_gp_list = [
-                self.objective_comboBox.itemText(i)
-                for i in range(self.objective_comboBox.count())
-            ]
-            obj_cfg_list = list(self._mmc.getAvailableConfigs(self.objectives_cfg))
-            obj_gp_list.sort()
-            obj_cfg_list.sort()
-
-            print("updating table:", obj_gp_list, obj_cfg_list)
-
-            if obj_gp_list != obj_cfg_list:
-                self._refresh_objective_options()
-        elif self.objectives_device:
-            self._refresh_objective_options()
-
-        # populate gui channel combobox when creating/modifying the channel group
-        if not self._mmc.getChannelGroup():
-            self._refresh_channel_list()
-        else:
-            channel_list = list(
-                self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
-            )
-            cbox_list = [
-                self.snap_channel_comboBox.itemText(i)
-                for i in range(self.snap_channel_comboBox.count())
-            ]
-            channel_list.sort()
-            cbox_list.sort()
-            if channel_list != cbox_list:
-                self._refresh_channel_list()
-
-    def _on_update_cbox_widget(self, group: str, preset: str):
-        table = self.groups_and_presets.tb
-        logger.debug(f'_on_update_cbox_widget"  {group}, {preset}')
-        # Channels -> change comboboxes (main gui and group table)
-        channel_group = self._mmc.getChannelGroup()
-        if channel_group == group:
-            logger.debug(f"CHANNEL CFG SET: {group} -> {preset}")
-            logger.debug(f"update cbox widget: {group} -> {preset}")
-            # main gui
-            with blockSignals(self.snap_channel_comboBox):
-                self.snap_channel_comboBox.setCurrentText(preset)
-            # group/preset table
-            self._match_and_set(group, table, preset)
-        # Objective -> change comboboxes (main gui and group table)
-        if self.objectives_cfg == group:
-            logger.debug(f"OBJECTIVE CFG SET: {group} -> {preset}")
-            logger.debug(f"update cbox widget: {group} -> {preset}")
-            # main gui
-            with blockSignals(self.objective_comboBox):
-                self.objective_comboBox.setCurrentText(preset)
-            # group/preset table
-            self._match_and_set(group, table, preset)
-
-    def _match_and_set(self, group: str, table: Table, preset: str):
-        try:
-            matching_ch_group = table.native.findItems(group, Qt.MatchContains)
-            table_row = matching_ch_group[0].row()
-            wdg = table.data[table_row, 1]
-            with blockSignals(wdg.native):
-                wdg.value = preset or self._mmc.getCurrentConfig(group)
-        except IndexError:
-            pass
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -337,17 +276,107 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.edit_gp_ps_widget.close()
         if not hasattr(self, "create_gp_ps_widget"):
             self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
+            self.create_gp_ps_widget.new_group_preset.connect(
+                self._update_group_preset_table
+            )
         self.create_gp_ps_widget._reset_comboboxes()
         self.create_gp_ps_widget.show()
-        self.create_gp_ps_widget.create_btn.clicked.connect(
-            self.groups_and_presets._add_to_table
+
+    def _get_dict_group_presets_table_data(self, dict: dict):
+        dict["groups"] = []
+        dict["presets"] = []
+        dict["current_preset"] = []
+        dict["device"] = []
+        dict["property"] = []
+
+        for row in range(self.table.shape[0]):
+            group, wdg = self.table.data[row]
+
+            if isinstance(wdg, WDG_TYPE):
+                dict["groups"].append("")
+                dict["presets"].append("")
+                dict["current_preset"].append("")
+                dict["device"].append(wdg.annotation[0])
+                dict["property"].append(wdg.annotation[1])
+            else:
+                cbox_items = [wdg.native.itemText(i) for i in range(wdg.native.count())]
+                dict["groups"].append(group)
+                dict["presets"].append(cbox_items)
+                dict["current_preset"].append(wdg.get_value())
+                dict["device"].append("")
+                dict["property"].append("")
+
+    def _update_group_preset_table(self, group: str, preset: str):
+        logger.debug(f"signal recived: {group}, {preset}")
+
+        groups_list = list(self._mmc.getAvailableConfigGroups())
+        groups_diff = list(
+            set(groups_list) ^ set(self.dict_group_presets_table["groups"])
         )
+
+        if group in groups_diff:
+            rowPosition = self.table.native.rowCount()
+            self.table.native.insertRow(rowPosition)
+            self.table.native.setItem(rowPosition, 0, QtW.Qself.tableWidgetItem(group))
+            wdg = self.groups_and_presets._set_widget(group, [preset])
+            self.table.native.setCellWidget(rowPosition, 1, wdg.native)
+            logger.debug(f"{group} group added")
+
+        else:
+            for row in range(self.table.shape[0]):
+                gp, wdg = self.table.data[row]
+                if isinstance(wdg, ComboBox) and group == gp:
+                    wdg_items = list(wdg.choices)
+                    prs = list(self._mmc.getAvailableConfigs(group))
+                    preset_diff = list(set(wdg_items) ^ set(prs))
+                    for p in preset_diff:
+                        wdg_items.append(str(p))
+                        logger.debug(f"{p} preset added to {group} group")
+                        wdg.choices = wdg_items
+
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+        self._update_objectives_combobox()
+        self._update_channels_combobox()
+
+    def _update_objectives_combobox(self):
+        # populate objective combobox when creating/modifying objective group
+        if self.objectives_cfg:
+            obj_gp_list = [
+                self.objective_comboBox.itemText(i)
+                for i in range(self.objective_comboBox.count())
+            ]
+            obj_cfg_list = list(self._mmc.getAvailableConfigs(self.objectives_cfg))
+            obj_gp_list.sort()
+            obj_cfg_list.sort()
+
+            if obj_gp_list != obj_cfg_list:
+                self._refresh_objective_options()
+
+    def _update_channels_combobox(self):
+        # populate gui channel combobox when creating/modifying the channel group
+        if not self._mmc.getChannelGroup():
+            self._refresh_channel_list()
+        else:
+            channel_list = list(
+                self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
+            )
+            cbox_list = [
+                self.snap_channel_comboBox.itemText(i)
+                for i in range(self.snap_channel_comboBox.count())
+            ]
+            channel_list.sort()
+            cbox_list.sort()
+            if channel_list != cbox_list:
+                self._refresh_channel_list()
 
     def _edit_group_presets(self):
         if hasattr(self, "create_gp_ps_widget"):
             self.create_gp_ps_widget.close()
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
+            self.edit_gp_ps_widget.new_group_preset.connect(
+                self._update_group_preset_table_edit
+            )
         self.edit_gp_ps_widget._reset_comboboxes()
         try:
             (
@@ -357,16 +386,112 @@ class MainWindow(QtW.QWidget, _MainUI):
             ) = self.groups_and_presets._edit_selected_group_preset()
             self.edit_gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
             self.edit_gp_ps_widget.show()
-            self.edit_gp_ps_widget.create_btn.clicked.connect(
-                self.groups_and_presets._add_to_table
-            )
+
         except TypeError:
-            # if no row is selected
             pass
 
+    def _update_group_preset_table_edit(self, group: str, preset: str):
+        logger.debug(f"signal recived: {group}, {preset}")
+
+        groups_list = list(self._mmc.getAvailableConfigGroups())
+        groups_diff = list(
+            set(groups_list) ^ set(self.dict_group_presets_table["groups"])
+        )
+
+        if group in groups_diff:
+            rowPosition = self.table.native.rowCount()
+            self.table.native.insertRow(rowPosition)
+            self.table.native.setItem(rowPosition, 0, QtW.Qself.tableWidgetItem(group))
+            wdg = self.groups_and_presets._set_widget(group, [preset])
+            self.table.native.setCellWidget(rowPosition, 1, wdg.native)
+            logger.debug(f"{group} group added")
+
+        else:
+            for row in range(self.table.shape[0]):
+                gp, wdg = self.table.data[row]
+                if isinstance(wdg, ComboBox) and group == gp:
+                    wdg_items = list(wdg.choices)
+                    prs = list(self._mmc.getAvailableConfigs(group))
+                    preset_diff = list(set(wdg_items) ^ set(prs))
+                    for p in preset_diff:
+                        wdg_items.append(str(p))
+                        logger.debug(f"{p} preset added to {group} group")
+                        wdg.choices = wdg_items
+
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+        self._update_objectives_combobox()
+        self._update_channels_combobox()
+
+        self.edit_gp_ps_widget.close()
+
     def _open_rename_widget(self):
-        if self.groups_and_presets.tb.native.selectedIndexes():
-            self.groups_and_presets._open_rename_widget()
+        self._rw = RenameGroupPreset(self)
+        self._rw.button.clicked.connect(self._rename_group_preset)
+        # populate the rename widget with the group/preset to rename
+        self.old_g, self.old_p = self._populate_rename_widget(self.table)
+        self._rw.show()
+
+    def _populate_rename_widget(self, table):
+        selected_row = [r.row() for r in table.native.selectedIndexes()]
+        print(selected_row)
+
+        if not selected_row or len(selected_row) > 1:
+            warnings.warn("Select one row!")
+            return
+
+        groupname = table.data[selected_row[0]][0]
+        wdg = table.data[selected_row[0]][1]
+
+        if isinstance(wdg, ComboBox):
+            curr_preset = wdg.value
+        else:
+            curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
+
+        self._rw.gp_lineedit.value = groupname
+        self._rw.ps_lineedit.value = curr_preset
+
+        return groupname, curr_preset
+
+    def _rename_group_preset(self):
+
+        channel_group = self._mmc.getChannelGroup()
+
+        new_g = self._rw.gp_lineedit.value
+        new_p = self._rw.ps_lineedit.value
+
+        self._rw.close()
+
+        self._mmc.renameConfigGroup(self.old_g, new_g)
+        self._mmc.renameConfig(new_g, self.old_p, new_p)
+
+        for row in range(self.table.shape[0]):
+            gp, _ = self.table.data[row]
+
+            if gp == self.old_g:
+
+                self.table.native.removeCellWidget(row, 0)
+                self.table.native.setItem(row, 0, QtW.QTableWidgetItem(new_g))
+
+                wdg_items = self._mmc.getAvailableConfigs(new_g)
+
+                new_wdg = self.groups_and_presets._set_widget(new_g, wdg_items)
+
+                with blockSignals(new_wdg.native):
+                    self.table.native.removeCellWidget(row, 1)
+                    self.table.native.setCellWidget(row, 1, new_wdg.native)
+                    new_wdg.value = new_p
+
+                # update current channel group if == gp
+                if gp == channel_group:  # cannot use mmc.getChannelGroup since empty
+                    self._set_channel_group(new_g)
+                # update current objective group if == gp
+                if gp == self.objectives_cfg:
+                    self.objectives_cfg = new_g
+                    self._add_objective_to_gui(new_p, wdg_items)
+
+        logger.debug(f"{self.old_g}-{self.old_p} renamed in {new_g}-{new_p}")
+
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
     def _save_cfg(self):
         current_cfg_path = Path(self.cfg_LineEdit.text())
@@ -381,12 +506,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
+        self.illumination_Button.setEnabled(enabled)
         self.camera_groupBox.setEnabled(enabled)
         self.XY_groupBox.setEnabled(enabled)
         self.Z_groupBox.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.crop_Button.setEnabled(enabled)
+        self.tabWidget.setEnabled(enabled)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -451,7 +578,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
@@ -467,15 +593,22 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
         self.cfg_LineEdit.setText(str(file_dir[0]))
         self.max_min_val_label.setText("None")
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
+        # disable gui
+        self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
+        self.groups_and_presets.populate_table()
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+
+        # enable gui
+        self._set_enabled(True)
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -633,7 +766,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_channel_list()
         self._refresh_positions()
 
-        self.groups_and_presets._add_to_table()
+        self.groups_and_presets.populate_table()
 
     def bit_changed(self):
         if self.bit_comboBox.count() > 0:
@@ -662,9 +795,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._change_channel_cbox_in_table(self._mmc.getChannelGroup(), newChannel)
 
     def _change_channel_cbox_in_table(self, channel_group: str, channel_preset: str):
-        table = self.groups_and_presets.tb
-        for row in range(table.shape[0]):
-            group, wdg = table.data[row]
+        for row in range(self.table.shape[0]):
+            group, wdg = self.table.data[row]
             if group == channel_group and wdg.get_value() != channel_preset:
                 with blockSignals(wdg.native):
                     wdg.value = channel_preset  # -> configSet
@@ -708,9 +840,8 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _change_objective_cbox_in_table(
         self, objective_group: str, objective_preset: str
     ):
-        table = self.groups_and_presets.tb
-        for row in range(table.shape[0]):
-            group, wdg = table.data[row]
+        for row in range(self.table.shape[0]):
+            group, wdg = self.table.data[row]
             if group == objective_group and wdg.get_value() != objective_preset:
                 with blockSignals(wdg.native):
                     wdg.value = objective_preset  # -> configSet

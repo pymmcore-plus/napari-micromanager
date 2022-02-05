@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from loguru import logger
 from magicgui.widgets import (
     ComboBox,
     Container,
     FloatSlider,
-    Label,
     LineEdit,
     PushButton,
     Slider,
@@ -17,6 +16,8 @@ from magicgui.widgets import (
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout
+
+from ._util import blockSignals
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
@@ -40,12 +41,13 @@ class MainTable(Table):
 
 class GroupPresetWidget(QtW.QWidget):
 
-    update_table = Signal(str)
     table_wdg_changed = Signal(str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
         self._mmc = mmcore
+
+        self.dict_table_data = {}
 
         self.tb = MainTable(self._mmc)
         self.tb.column_headers = ("Groups", "Presets")
@@ -83,11 +85,8 @@ class GroupPresetWidget(QtW.QWidget):
         self.setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self.group_presets_widget.native)
 
-        logger.debug("FIRST ADD TO TABLE")
-        self._add_to_table()
-
-    def _add_to_table(self):
-        logger.debug("_add_to_table")
+    def populate_table(self):
+        logger.debug("populate_table")
         groups = self._mmc.getAvailableConfigGroups()
         data = []
         for group in groups:
@@ -117,17 +116,15 @@ class GroupPresetWidget(QtW.QWidget):
                         val = float(preset)
                     elif isinstance(wdg, LineEdit):
                         val = str(preset)
-                    wdg.value = val
-                    self._mmc.setProperty(dev, prop, val)  # -> propertyChanged
+
+                    with blockSignals(wdg.native):
+                        wdg.value = val
 
             else:
                 preset = self._mmc.getCurrentConfigFromCache(group)
                 if preset:
-                    wdg.value = preset
-                    logger.debug(f"CHECKBOX: {wdg}")
-                    self._mmc.setConfig(group, preset)  # -> configSet
-
-        self.update_table.emit("update_table")
+                    with blockSignals(wdg.native):
+                        wdg.value = preset
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -142,12 +139,10 @@ class GroupPresetWidget(QtW.QWidget):
         dev, prop, val, count = self._get_cfg_data(group, presets[0])
 
         if len(presets) > 1:
-            wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[dev, prop])
+            wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
             if count > 1 or self._mmc.getAllowedPropertyValues(dev, prop):
-                wdg = ComboBox(
-                    choices=presets, name=f"{presets}", annotation=[dev, prop]
-                )
+                wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
                 if isinstance(val_type, float):
@@ -195,8 +190,8 @@ class GroupPresetWidget(QtW.QWidget):
             group = self.tb.data[row_idx, 0]
             self.tb.native.removeRow(row_idx)
             self._mmc.deleteConfigGroup(group)
-            logger.debug(f"group {group} deleted!")  # logger
-            self._update_group_table_status()
+            logger.debug(f"group {group} deleted!")
+            # self._update_group_table_status()
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
@@ -221,8 +216,6 @@ class GroupPresetWidget(QtW.QWidget):
                 self.tb.native.removeRow(row_idx)
                 logger.debug(f"group {group} deleted!")
 
-            self._update_group_table_status()
-
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
 
@@ -245,36 +238,23 @@ class GroupPresetWidget(QtW.QWidget):
             f"{key[0]}-{key[1]}" for key in self._mmc.getConfigData(groupname, _to_find)
         ]
 
-    def _open_rename_widget(self):
-        if not hasattr(self, "rw"):
-            rw = RenameGroupPreset(self._mmc, self.tb, self._add_to_table, self)
-        rw.show()
-
 
 class RenameGroupPreset(QDialog):
-    def __init__(
-        self, mmcore: RemoteMMCore, table: Table, add_to_table: Callable, parent=None
-    ):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._mmc = mmcore
-        self.tb = table
-        self.add_to_table = add_to_table
-
-        self.gp_label = Label(label="Group:")
         self.gp_lineedit = LineEdit()
-        self.ps_label = Label(label="Preset:")
         self.ps_lineedit = LineEdit()
-        self._get_group_and_preset_names()
-
         self.button = PushButton(text="Rename")
-        self.button.clicked.connect(self._rename)
 
         self.group = Container(
-            widgets=[self.gp_label, self.gp_lineedit], labels=True, layout="horizontal"
+            widgets=[self.gp_lineedit], label="Group:", labels=True, layout="horizontal"
         )
         self.preset = Container(
-            widgets=[self.ps_label, self.ps_lineedit], labels=True, layout="horizontal"
+            widgets=[self.ps_lineedit],
+            label="Preset:",
+            labels=True,
+            layout="horizontal",
         )
         self.main = Container(
             widgets=[self.group, self.preset, self.button],
@@ -284,36 +264,3 @@ class RenameGroupPreset(QDialog):
 
         self.setLayout(QVBoxLayout())
         self.layout().addWidget(self.main.native)
-
-    def _get_group_and_preset_names(self):
-        selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
-
-        if not selected_row or len(selected_row) > 1:
-            return
-
-        self.groupname = self.tb.data[selected_row[0], 0]
-        wdg = self.tb.data[selected_row[0], 1]
-
-        if isinstance(wdg, ComboBox):
-            self.curr_preset = wdg.value
-        else:
-            self.curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
-
-        self.gp_label.value = f"{self.groupname}  ->"
-        self.ps_label.value = f"{self.curr_preset}  ->"
-        self.gp_lineedit.value = self.groupname
-        self.ps_lineedit.value = self.curr_preset
-
-    def _rename(self):
-        self._mmc.renameConfigGroup(self.groupname, self.gp_lineedit.value)
-        self._mmc.renameConfig(
-            self.gp_lineedit.value, self.curr_preset, self.ps_lineedit.value
-        )
-        logger.debug(
-            f"Renamed: {self.groupname}.{self.curr_preset} -> "
-            f"{self.gp_lineedit.value}.{self.ps_lineedit.value}"
-        )
-
-        self.add_to_table()
-
-        self.close()
