@@ -488,7 +488,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _populate_rename_widget(self, table):
         selected_row = [r.row() for r in table.native.selectedIndexes()]
-        print(selected_row)
 
         if not selected_row or len(selected_row) > 1:
             warnings.warn("Select one row!")
@@ -552,8 +551,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         current_cfg_path = Path(self.cfg_LineEdit.text())
         f_name = current_cfg_path.stem
         parent_path = current_cfg_path.parent
-        print(current_cfg_path)
-        print(parent_path)
         path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
             self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
         )
