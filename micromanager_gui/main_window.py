@@ -12,7 +12,7 @@ from magicgui.widgets import ComboBox, FloatSlider, LineEdit, Slider
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 from qtpy import uic
-from qtpy.QtCore import QSize, QTimer, Signal
+from qtpy.QtCore import QSize, Qt, QTimer, Signal
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
@@ -323,6 +323,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             logger.debug(f"{group} group added")
 
         else:
+            # row  =
+
             for row in range(self.table.shape[0]):
                 gp, wdg = self.table.data[row]
                 if isinstance(wdg, ComboBox) and group == gp:
@@ -374,6 +376,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.create_gp_ps_widget.close()
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
+            self.edit_gp_ps_widget.group_le.native.setReadOnly(True)
+            self.edit_gp_ps_widget.preset_le.native.setReadOnly(True)
             self.edit_gp_ps_widget.new_group_preset.connect(
                 self._update_group_preset_table_edit
             )
@@ -393,36 +397,87 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _update_group_preset_table_edit(self, group: str, preset: str):
         logger.debug(f"signal recived: {group}, {preset}")
 
-        groups_list = list(self._mmc.getAvailableConfigGroups())
-        groups_diff = list(
-            set(groups_list) ^ set(self.dict_group_presets_table["groups"])
-        )
+        dev_prop_val_new = [
+            (f"{key[0]}.{key[1]}", key[2])
+            for key in self._mmc.getConfigData(group, preset)
+        ]
+        dev_prop_new = [x[0] for x in dev_prop_val_new]
 
-        if group in groups_diff:
-            rowPosition = self.table.native.rowCount()
-            self.table.native.insertRow(rowPosition)
-            self.table.native.setItem(rowPosition, 0, QtW.Qself.tableWidgetItem(group))
-            wdg = self.groups_and_presets._set_widget(group, [preset])
-            self.table.native.setCellWidget(rowPosition, 1, wdg.native)
-            logger.debug(f"{group} group added")
+        presets = self._mmc.getAvailableConfigs(group)
+        for p in presets:
 
-        else:
-            for row in range(self.table.shape[0]):
-                gp, wdg = self.table.data[row]
-                if isinstance(wdg, ComboBox) and group == gp:
-                    wdg_items = list(wdg.choices)
-                    prs = list(self._mmc.getAvailableConfigs(group))
-                    preset_diff = list(set(wdg_items) ^ set(prs))
-                    for p in preset_diff:
-                        wdg_items.append(str(p))
-                        logger.debug(f"{p} preset added to {group} group")
-                        wdg.choices = wdg_items
+            if p == preset:
+                continue
+
+            dev_prop_old = [
+                f"{key[0]}.{key[1]}" for key in self._mmc.getConfigData(group, p)
+            ]
+
+            diff = list(set(dev_prop_new) ^ set(dev_prop_old))
+
+            for d in diff:
+                if d not in dev_prop_old:
+                    self._update_preset(
+                        group,
+                        preset,
+                        dev_prop_val_new,
+                        dev_prop_new,
+                        p,
+                        dev_prop_old,
+                        d,
+                    )
+                else:
+                    for prs in presets:
+                        if prs == preset:
+                            continue
+                        self._mmc.deleteConfig(group, prs)
+
+                        for tup in dev_prop_val_new:
+                            dev = tup[0].split(".")[0]
+                            prop = tup[0].split(".")[1]
+                            val = tup[1]
+                            self._mmc.defineConfig(group, prs, dev, prop, val)
+
+                    self._create_and_add_widget(group, preset)
+                    self._get_dict_group_presets_table_data(
+                        self.dict_group_presets_table
+                    )
+                    self.edit_gp_ps_widget.close()
+                    return
 
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
-        self._update_objectives_combobox()
-        self._update_channels_combobox()
 
         self.edit_gp_ps_widget.close()
+
+    def _update_preset(
+        self, group, preset, dev_prop_val_new, dev_prop_new, p, dev_prop_old, d
+    ):
+        if [x for x in dev_prop_old if x in dev_prop_new]:
+            dev = d.split(".")[0]
+            prop = d.split(".")[1]
+            val = [item[1] for item in dev_prop_val_new if item[0] == d][0]
+            self._mmc.defineConfig(group, p, dev, prop, val)
+        else:
+            self._delete_preset_and_recreate(group, preset, dev_prop_val_new, p, d)
+
+    def _delete_preset_and_recreate(self, group, preset, dev_prop_val_new, p, d):
+        self._mmc.deleteConfig(group, p)
+        for i in dev_prop_val_new:
+            dev = i[0].split(".")[0]
+            prop = i[0].split(".")[1]
+            val = [item[1] for item in dev_prop_val_new if item[0] == d][0]
+            self._mmc.defineConfig(group, p, dev, prop, val)
+        self._create_and_add_widget(group, preset)
+
+    def _create_and_add_widget(self, group, preset):
+        wdg_items = self._mmc.getAvailableConfigs(group)
+        new_wdg = self.groups_and_presets._set_widget(group, wdg_items)
+        matching_items = self.table.native.findItems(group, Qt.MatchContains)
+        row = matching_items[0].row()
+        with blockSignals(new_wdg.native):
+            self.table.native.removeCellWidget(row, 1)
+            self.table.native.setCellWidget(row, 1, new_wdg.native)
+            new_wdg.value = preset
 
     def _open_rename_widget(self):
         self._rw = RenameGroupPreset(self)
