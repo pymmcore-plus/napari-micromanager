@@ -19,6 +19,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QDialog, QHBoxLayout
 
+from ._util import blockSignals
 from .prop_browser import iter_dev_props
 
 if TYPE_CHECKING:
@@ -282,7 +283,11 @@ class GroupConfigurations(QDialog):
                 combobox.value = False
 
     def _set_checkboxes_status(
-        self, groupname: str, presetname: str, item_to_find_list: list
+        self,
+        groupname: str,
+        presetname: str,
+        item_to_find: list,
+        item_to_find_list: list,
     ):
 
         self.cbox_show.value = False
@@ -294,15 +299,23 @@ class GroupConfigurations(QDialog):
             return
 
         matched_item_row = []
-        for item_to_find in item_to_find_list:
-            matching_items = self.pt.native.findItems(item_to_find, Qt.MatchContains)
+        for it in item_to_find_list:
+            matching_items = self.pt.native.findItems(it, Qt.MatchContains)
             matched_item_row.append(matching_items[0].row())
 
         if not matched_item_row:
             return
 
         for row in matched_item_row:
-            wdg = self.pt.data[row, 1]
-            wdg.value = True
+            checkbox = self.pt.data[row][1]
+            checkbox.value = True
+            dev_prop = self.pt.data[row][2]
+            for item in item_to_find:
+                if dev_prop in item:
+                    val = item[1]
+                    break
+            wdg = self.pt.data[row][3]
+            with blockSignals(wdg.native):
+                wdg.value = val
 
         self.cbox_show.value = True

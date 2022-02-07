@@ -41,7 +41,11 @@ class MainTable(Table):
 
 class GroupPresetWidget(QtW.QWidget):
 
+    # to disable the logger
+    logger.disable(__name__)
+
     table_wdg_changed = Signal(str)
+    group_preset_deleted = Signal(str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
@@ -154,6 +158,9 @@ class GroupPresetWidget(QtW.QWidget):
                         name=f"{presets}",
                         annotation=[dev, prop],
                     )
+                    self._mmc.setProperty(
+                        wdg.annotation[0], wdg.annotation[1], wdg.value
+                    )
                 else:
                     wdg = Slider(
                         value=int(val),
@@ -163,10 +170,14 @@ class GroupPresetWidget(QtW.QWidget):
                         name=f"{presets}",
                         annotation=[dev, prop],
                     )
+                    self._mmc.setProperty(
+                        wdg.annotation[0], wdg.annotation[1], wdg.value
+                    )
             else:
                 wdg = LineEdit(
                     value=str(val), name=f"{presets}", annotation=[dev, prop]
                 )
+                self._mmc.setProperty(wdg.annotation[0], wdg.annotation[1], wdg.value)
 
         @wdg.changed.connect
         def _on_change(value: Any):
@@ -191,7 +202,7 @@ class GroupPresetWidget(QtW.QWidget):
             self.tb.native.removeRow(row_idx)
             self._mmc.deleteConfigGroup(group)
             logger.debug(f"group {group} deleted!")
-            # self._update_group_table_status()
+            self.group_preset_deleted.emit(group)
 
     def _delete_selected_preset(self):  # sourcery skip: merge-duplicate-blocks
         selected_rows = {r.row() for r in self.tb.native.selectedIndexes()}
@@ -209,12 +220,13 @@ class GroupPresetWidget(QtW.QWidget):
                     self._mmc.deleteConfig(group, preset)
                     logger.debug(f"group {group}.{wdg.value} deleted!")
                     wdg.del_choice(wdg.value)
-
             else:
                 preset = ""
                 self._mmc.deleteConfigGroup(group)
                 self.tb.native.removeRow(row_idx)
                 logger.debug(f"group {group} deleted!")
+
+            self.group_preset_deleted.emit(group)
 
     def _edit_selected_group_preset(self):
         selected_row = [r.row() for r in self.tb.native.selectedIndexes()]
@@ -229,13 +241,16 @@ class GroupPresetWidget(QtW.QWidget):
             curr_preset = wdg.value
         else:
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
-        item_to_find_list = self._create_item_list(groupname, curr_preset)
 
-        return groupname, curr_preset, item_to_find_list
+        item_to_find = self._find_items(groupname, curr_preset)
+        item_to_find_list = [x[0] for x in item_to_find]
 
-    def _create_item_list(self, groupname, _to_find):
+        return groupname, curr_preset, item_to_find, item_to_find_list
+
+    def _find_items(self, groupname, _to_find):
         return [
-            f"{key[0]}-{key[1]}" for key in self._mmc.getConfigData(groupname, _to_find)
+            (f"{key[0]}-{key[1]}", key[2])
+            for key in self._mmc.getConfigData(groupname, _to_find)
         ]
 
 

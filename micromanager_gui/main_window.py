@@ -116,6 +116,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         super().__init__()
         self.setup_ui()
 
+        # to disable the logger
+        logger.disable(__name__)
+
         self.viewer = viewer
         self.streaming_timer = None
 
@@ -123,12 +126,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         self.dict_group_presets_table = {}
-        #     "groups": [],
-        #     "presets": [],
-        #     "current_preset": [],
-        #     "device": [],
-        #     "property": [],
-        # }
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
@@ -143,11 +140,25 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.tabWidget.tabBar().moveTab(1, 0)
         self.table = self.groups_and_presets.tb
+        # connect GroupPresetWidget buttons
+        self.groups_and_presets.new_btn.clicked.connect(
+            self._create_group_presets
+        )  # + group/preset
+        self.groups_and_presets.edit_btn.clicked.connect(
+            self._edit_group_presets
+        )  # edit group/preset
+        self.groups_and_presets.rename_btn.clicked.connect(
+            self._open_rename_widget
+        )  # rename group/preset
+        self.groups_and_presets.save_cfg_btn.clicked.connect(
+            self._save_cfg
+        )  # save group/preset .cfg
         # connect signals from groups and presets tab
         self.groups_and_presets.table_wdg_changed.connect(self._change_channel_main_gui)
         self.groups_and_presets.table_wdg_changed.connect(
             self._change_objective_main_gui
         )
+        self.groups_and_presets.group_preset_deleted.connect(self._refresh_if_deleted)
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
@@ -163,7 +174,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # connect mmcore signals
         sig = self._mmc.events
-
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
@@ -177,6 +187,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
         self.browse_cfg_Button.clicked.connect(self.browse_cfg)
+
+        self.illumination_Button.clicked.connect(self.illumination)
+        self.properties_Button.clicked.connect(self._show_prop_browser)
+
         self.left_Button.clicked.connect(self.stage_x_left)
         self.right_Button.clicked.connect(self.stage_x_right)
         self.y_up_Button.clicked.connect(self.stage_y_up)
@@ -186,23 +200,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.snap_Button.clicked.connect(self.snap)
         self.live_Button.clicked.connect(self.toggle_live)
-
-        self.illumination_Button.clicked.connect(self.illumination)
-        self.properties_Button.clicked.connect(self._show_prop_browser)
-
-        # connect GroupPresetWidget
-        self.groups_and_presets.new_btn.clicked.connect(
-            self._create_group_presets
-        )  # + group/preset
-        self.groups_and_presets.edit_btn.clicked.connect(
-            self._edit_group_presets
-        )  # edit group/preset
-        self.groups_and_presets.rename_btn.clicked.connect(
-            self._open_rename_widget
-        )  # rename group/preset
-        self.groups_and_presets.save_cfg_btn.clicked.connect(
-            self._save_cfg
-        )  # save group/preset .cfg
 
         # connect comboBox
         self.objective_comboBox.currentTextChanged.connect(
@@ -225,6 +222,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
 
+        # connect napari signal to update_max_min()
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
@@ -237,17 +235,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
             logger.debug(f"CFG SET: {groupName} -> {configName}")
-
             if groupName == self.objectives_cfg:
                 self._update_pixel_size()
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
-            # logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+            logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
 
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
+
+    def _refresh_if_deleted(self, group: str):
+        if group == self.objectives_cfg:
+            self._refresh_objective_options()
+        if group == self._mmc.getChannelGroup() or not self._mmc.getChannelGroup():
+            self._refresh_channel_list()
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -291,23 +295,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             group, wdg = self.table.data[row]
 
             if isinstance(wdg, WDG_TYPE):
-                for _ in wdg.choices:
-                    dc.setdefault("None", {}).setdefault("None", {}).setdefault(
-                        "None", {}
-                    ).setdefault("dev_prop_val", []).append(
-                        (wdg.annotation[0], wdg.annotation[1])
-                    )
+                dc.setdefault(group, {}).setdefault(wdg.name, {}).setdefault(
+                    "dev_prop_val", []
+                ).append((wdg.annotation[0], wdg.annotation[1]))
             else:
                 for p in wdg.choices:
                     dev_prop_val = [
                         (key[0], key[1], key[2])
                         for key in self._mmc.getConfigData(group, p)
                     ]
-                    dc.setdefault(str(group), {}).setdefault(
-                        str(wdg.get_value()), {}
-                    ).setdefault(str(p), {}).setdefault("dev_prop_val", []).append(
-                        dev_prop_val
-                    )
+                    dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
+                        "dev_prop_val", []
+                    ).append(dev_prop_val)
 
     def _update_group_preset_table(self, group: str, preset: str):
         logger.debug(f"[create] signal recived: {group}, {preset}")
@@ -344,7 +343,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _update_objectives_combobox(self):
         # populate objective combobox when creating/modifying objective group
-        if self.objectives_cfg:
+        if not self.objectives_cfg:
+            self._refresh_objective_options()
+        else:
             obj_gp_list = [
                 self.objective_comboBox.itemText(i)
                 for i in range(self.objective_comboBox.count())
@@ -389,8 +390,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 group,
                 preset,
                 _to_find,
+                _to_find_list,
             ) = self.groups_and_presets._edit_selected_group_preset()
-            self.edit_gp_ps_widget._set_checkboxes_status(group, preset, _to_find)
+            self.edit_gp_ps_widget._set_checkboxes_status(
+                group, preset, _to_find, _to_find_list
+            )
             self.edit_gp_ps_widget.show()
 
         except TypeError:
@@ -400,19 +404,14 @@ class MainWindow(QtW.QWidget, _MainUI):
         logger.debug(f"[edit] signal recived: {group}, {preset}")
 
         dev_prop_val_new = [
-            (f"{key[0]}.{key[1]}", key[2])
-            for key in self._mmc.getConfigData(group, preset)
+            (key[0], key[1], key[2]) for key in self._mmc.getConfigData(group, preset)
         ]
 
-        # use dict here
+        dpv_list = self.dict_group_presets_table[group][preset].get("dev_prop_val")[0]
+        if dpv_list == dev_prop_val_new:
+            return
 
-        for i in dev_prop_val_new:
-            dev = i[0].split(".")[0]
-            prop = i[0].split(".")[1]
-            print(f"dev: dev prop: {prop}, val: {i[1]}")
-            print("val from cache:", self._mmc.getPropertyFromCache(dev, prop))
-
-        dev_prop_new = [x[0] for x in dev_prop_val_new]
+        dev_prop_new = [(x[0], x[1]) for x in dev_prop_val_new]
 
         presets = self._mmc.getAvailableConfigs(group)
         for p in presets:
@@ -421,7 +420,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 continue
 
             dev_prop_old = [
-                f"{key[0]}.{key[1]}" for key in self._mmc.getConfigData(group, p)
+                (key[0], key[1]) for key in self._mmc.getConfigData(group, p)
             ]
 
             diff = list(set(dev_prop_new) ^ set(dev_prop_old))
@@ -444,9 +443,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                         self._mmc.deleteConfig(group, prs)
 
                         for tup in dev_prop_val_new:
-                            dev = tup[0].split(".")[0]
-                            prop = tup[0].split(".")[1]
-                            val = tup[1]
+                            dev = tup[0]
+                            prop = tup[1]
+                            val = tup[2]
                             self._mmc.defineConfig(group, prs, dev, prop, val)
 
                     self._create_and_add_widget(group, preset)
@@ -464,9 +463,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self, group, preset, dev_prop_val_new, dev_prop_new, p, dev_prop_old, d
     ):
         if [x for x in dev_prop_old if x in dev_prop_new]:
-            dev = d.split(".")[0]
-            prop = d.split(".")[1]
-            val = [item[1] for item in dev_prop_val_new if item[0] == d][0]
+            dev = d[0]
+            prop = d[1]
+            val = [
+                item[2]
+                for item in dev_prop_val_new
+                if (item[0] == dev and item[1] == prop)
+            ][0]
             self._mmc.defineConfig(group, p, dev, prop, val)
         else:
             self._delete_preset_and_recreate(group, preset, dev_prop_val_new, p, d)
@@ -474,9 +477,13 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _delete_preset_and_recreate(self, group, preset, dev_prop_val_new, p, d):
         self._mmc.deleteConfig(group, p)
         for i in dev_prop_val_new:
-            dev = i[0].split(".")[0]
-            prop = i[0].split(".")[1]
-            val = [item[1] for item in dev_prop_val_new if item[0] == d][0]
+            dev = i[0]
+            prop = i[1]
+            val = [
+                item[2]
+                for item in dev_prop_val_new
+                if (item[0] == dev and item[1] == prop)
+            ][0]
             self._mmc.defineConfig(group, p, dev, prop, val)
         self._create_and_add_widget(group, preset)
 
@@ -519,7 +526,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _rename_group_preset(self):
 
-        channel_group = self._mmc.getChannelGroup()
+        ch_group = self._mmc.getChannelGroup()
 
         new_g = self._rw.gp_lineedit.value
         new_p = self._rw.ps_lineedit.value
@@ -533,11 +540,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         row = matching_items[0].row()
         gp, _ = self.table.data[row]
 
-        if gp != self.old_g:
-            return
+        # if gp != self.old_g:
+        #     return
 
         self.table.native.removeCellWidget(row, 0)
         self.table.native.setItem(row, 0, QtW.QTableWidgetItem(new_g))
+
+        current_wdg = self.table.data[row][1]
 
         wdg_items = self._mmc.getAvailableConfigs(new_g)
 
@@ -546,10 +555,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         with blockSignals(new_wdg.native):
             self.table.native.removeCellWidget(row, 1)
             self.table.native.setCellWidget(row, 1, new_wdg.native)
-            new_wdg.value = new_p
-
-        # update current channel group if == gp
-        if gp == channel_group:  # cannot use mmc.getChannelGroup since empty
+            new_wdg.value = (
+                current_wdg.value if isinstance(new_wdg, WDG_TYPE) else new_p
+            )
+        # update current channel group if if == gp
+        if gp == ch_group:
             self._set_channel_group(new_g)
         # update current objective group if == gp
         if gp == self.objectives_cfg:

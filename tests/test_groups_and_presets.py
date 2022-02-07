@@ -29,23 +29,12 @@ def test_table_objective_and_channel_comboboxes(main_window: MainWindow):
     # test channel comboboxes
     # set channel_tab_cbox to "Rhodamine" -> it should change also snap_channel_comboBox
     _, channel_tab_cbox = mm_table.data[1]  # channel combobox in table
-    print("___________ComboBox:", channel_tab_cbox)
-    print("___________current text:", channel_tab_cbox.get_value())
     channel_tab_cbox.value = "Rhodamine"
-
-    # main_window._mmc.events.configSet.emit("Channel", "Rhodamine")  # FOR REMOTE????
-
-    print("___________ComboBox:", channel_tab_cbox)
-    print("___________new text:", channel_tab_cbox.get_value())
-    print("___________snap cbox text:", main_window.snap_channel_comboBox.currentText())
     assert main_window.snap_channel_comboBox.currentText() == "Rhodamine"
     assert channel_tab_cbox.get_value() == "Rhodamine"
 
     # set snap_channel_comboBox to "DAPI" -> it should change also channel_tab_cbox
     main_window.snap_channel_comboBox.setCurrentText("DAPI")
-    # main_window._mmc.events.configSet.emit("Channel", "DAPI")  # FOR REMOTE????
-    print("#############snap cbox:", main_window.snap_channel_comboBox.currentText())
-    print("#############tab cbox:", channel_tab_cbox.get_value())
     assert channel_tab_cbox.get_value() == "DAPI"
     assert main_window.snap_channel_comboBox.currentText() == "DAPI"
 
@@ -53,13 +42,11 @@ def test_table_objective_and_channel_comboboxes(main_window: MainWindow):
     # set objective_tab_cbox to "20X" -> it should change also objective_comboBox
     _, objective_tab_cbox = mm_table.data[3]
     objective_tab_cbox.value = "20X"
-    # main_window._mmc.events.configSet.emit("Objective", "20X")  # FOR REMOTE????
     assert main_window.objective_comboBox.currentText() == "20X"
     assert objective_tab_cbox.get_value() == "20X"
 
     # set objective_comboBox to "40X" -> it should change also objective_tab_cbox
     main_window.objective_comboBox.setCurrentText("40X")
-    # main_window._mmc.events.configSet.emit("Objective", "40X")  # FOR REMOTE????
     assert objective_tab_cbox.get_value() == "40X"
     assert main_window.objective_comboBox.currentText() == "40X"
 
@@ -117,7 +104,6 @@ def test_delete_preset(main_window: MainWindow):
         == objective_tab_cbox_items
     )
 
-    print("set 40X")
     objective_tab_cbox.value = "40X"
     # main_window._mmc.events.configSet.emit("Objective", "40X")  # FOR REMOTE????
     mm_table.native.setCurrentCell(3, 0)
