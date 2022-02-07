@@ -25,7 +25,6 @@ from .prop_browser import iter_dev_props
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
-TABLE_INDEX_LIST = []
 
 OTHER_DEVICES = (
     DeviceType.XYStageDevice,
@@ -79,20 +78,6 @@ def get_editor_widget(prop: PropertyItem) -> Widget:
         return LineEdit(value=prop.value, name=f"{prop.device}, {prop.name}")
 
 
-def create_group_checkboxes(pt: Table, index: int) -> Widget:
-    wdg = CheckBox(value=False, annotation=index)
-
-    @wdg.changed.connect
-    def _on_toggle():
-        if wdg.value:
-            TABLE_INDEX_LIST.append(wdg.annotation)
-        else:
-            idx = TABLE_INDEX_LIST.index(wdg.annotation)
-            TABLE_INDEX_LIST.pop(idx)
-
-    return wdg
-
-
 class PropTable(Table):
     def __init__(self, mmcore: "RemoteMMCore") -> None:
         super().__init__()
@@ -107,6 +92,8 @@ class PropTable(Table):
         self._filter_string = ""
         self.native.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
 
+        self.table_index_list = []
+
     def _update(self):
         data = []
         row_index = 0
@@ -114,7 +101,7 @@ class PropTable(Table):
             if p.read_only:
                 continue
             val = get_editor_widget(p)
-            c_box = create_group_checkboxes(self, row_index)
+            c_box = self.create_group_checkboxes(self, row_index)
             data.append([int(p.dev_type), c_box, f"{p.device}-{p.name}", val])
             row_index += 1
         self.value = {
@@ -149,6 +136,19 @@ class PropTable(Table):
             else:
                 self._refresh_visibilty()
 
+    def create_group_checkboxes(self, pt: Table, index: int) -> Widget:
+        wdg = CheckBox(value=False, annotation=index)
+
+        @wdg.changed.connect
+        def _on_toggle():
+            if wdg.value:
+                self.table_index_list.append(wdg.annotation)
+            else:
+                idx = self.table_index_list.index(wdg.annotation)
+                self.table_index_list.pop(idx)
+
+        return wdg
+
     @property
     def filter_string(self):
         return self._filter_string
@@ -181,6 +181,9 @@ def make_checkboxes(pt):
 
 
 class GroupConfigurations(QDialog):
+
+    # to disable the logger
+    logger.disable(__name__)
 
     new_group_preset = Signal(str, str)
 
@@ -253,7 +256,7 @@ class GroupConfigurations(QDialog):
 
         if not group_name or not preset_name:
             return
-        if not TABLE_INDEX_LIST:
+        if not self.pt.table_index_list:
             return
 
         if not self._mmcore.isGroupDefined(group_name):
@@ -262,7 +265,7 @@ class GroupConfigurations(QDialog):
         if self._mmcore.isConfigDefined(group_name, preset_name):
             self._mmcore.deleteConfig(group_name, preset_name)
 
-        for r in TABLE_INDEX_LIST:
+        for r in self.pt.table_index_list:
             _, _, dev_prop, wdg = self.pt.data[r]
             _split = dev_prop.split("-")
             dev = _split[0]
@@ -270,6 +273,7 @@ class GroupConfigurations(QDialog):
             val = wdg.value
 
             self._mmcore.defineConfig(group_name, preset_name, dev, prop, str(val))
+
         logger.debug(f"new group signal sent: {group_name}, {preset_name}")
         self.new_group_preset.emit(group_name, preset_name)
 
@@ -278,9 +282,9 @@ class GroupConfigurations(QDialog):
         self.group_le.value = ""
         self.preset_le.value = ""
         for r in range(self.pt.shape[0]):
-            _, combobox, _, _ = self.pt.data[r]
-            if combobox.value:
-                combobox.value = False
+            _, checkbox, _, _ = self.pt.data[r]
+            if checkbox.value:
+                checkbox.value = False
 
     def _set_checkboxes_status(
         self,

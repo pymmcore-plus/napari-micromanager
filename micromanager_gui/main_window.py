@@ -452,12 +452,14 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._get_dict_group_presets_table_data(
                         self.dict_group_presets_table
                     )
-                    self.edit_gp_ps_widget.close()
+                    if hasattr(self, "edit_gp_ps_widget"):
+                        self.edit_gp_ps_widget.close()
                     return
 
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
-        self.edit_gp_ps_widget.close()
+        if hasattr(self, "edit_gp_ps_widget"):
+            self.edit_gp_ps_widget.close()
 
     def _update_preset(
         self, group, preset, dev_prop_val_new, dev_prop_new, p, dev_prop_old, d
@@ -546,7 +548,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.table.native.removeCellWidget(row, 0)
         self.table.native.setItem(row, 0, QtW.QTableWidgetItem(new_g))
 
-        current_wdg = self.table.data[row][1]
+        current_wdg = self.table.data[row, 1]
 
         wdg_items = self._mmc.getAvailableConfigs(new_g)
 
@@ -802,6 +804,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         if not guessed_channel_list:
             self.snap_channel_comboBox.clear()
+            self.mda.clear_channel()
+            self.explorer.clear_channel()
             return
 
         if len(guessed_channel_list) == 1:
