@@ -52,8 +52,6 @@ def test_main_window_mda(main_window: MainWindow):
 def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
     import tempfile
 
-    print(main_window._mmc.getChannelGroup())
-
     do_save = True
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)
