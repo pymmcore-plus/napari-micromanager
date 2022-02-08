@@ -74,7 +74,6 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
 
         # 2 Channels
         # _mda.add_ch_Button.click() # ??? it doesnt send the signal!
-        # print(_mda.add_ch_Button.isChecked()) # ??? it doesnt send the signal!
         _mda.add_channel()
         _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
         _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
