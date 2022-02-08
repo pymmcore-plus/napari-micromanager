@@ -24,6 +24,7 @@ def main_window(qtbot, request):
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
     win._mmc.loadSystemConfiguration(config_path)
+    win._set_enabled(True)
 
     # fixture for group_and_preset tests -> works only if local
     win.groups_and_presets.populate_table()

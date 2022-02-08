@@ -64,7 +64,7 @@ def test_add_group_combobox_obj(main_window: MainWindow):
     objective_group, _ = mm_table.data[3]
     assert objective_group == "Objective"
     mm_table.native.setCurrentCell(3, 0)
-    gp_ps._delete_selected_group()
+    gp_ps.delete_gp_btn.native.click()
     assert "Objective" not in main_window._mmc.getAvailableConfigGroups()
 
     objective_comboBox_items = [
@@ -99,7 +99,7 @@ def test_add_group_combobox_obj(main_window: MainWindow):
     create_wdg.group_le.value = "Objectives"
     create_wdg.preset_le.value = "10X"
 
-    create_wdg._create_group_and_preset()
+    create_wdg.create_btn.native.click()
 
     assert "Objectives" in main_window._mmc.getAvailableConfigGroups()
 
@@ -117,7 +117,7 @@ def test_add_group_combobox_obj(main_window: MainWindow):
     create_wdg.group_le.value = "Objectives"
     create_wdg.preset_le.value = "20X"
 
-    create_wdg._create_group_and_preset()
+    create_wdg.create_btn.native.click()
 
     row = mm_table.native.rowCount()
     objective_group, objective_tab_cbox = mm_table.data[row - 1]
@@ -170,7 +170,7 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     objective_group, _ = mm_table.data[1]
     assert objective_group == "Channel"
     mm_table.native.setCurrentCell(1, 0)
-    gp_ps._delete_selected_group()
+    gp_ps.delete_gp_btn.native.click()
     assert "Channel" not in main_window._mmc.getAvailableConfigGroups()
     assert main_window._mmc.getChannelGroup() == ""
 
@@ -210,7 +210,7 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     create_wdg.group_le.value = "Channels"
     create_wdg.preset_le.value = "DAPI"
 
-    create_wdg._create_group_and_preset()
+    create_wdg.create_btn.native.click()
 
     assert "Channels" in main_window._mmc.getAvailableConfigGroups()
 
@@ -231,7 +231,7 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     create_wdg.group_le.value = "Channels"
     create_wdg.preset_le.value = "FITC"
 
-    create_wdg._create_group_and_preset()
+    create_wdg.create_btn.native.click()
 
     row = mm_table.native.rowCount()
     channel_group, channel_tab_cbox = mm_table.data[row - 1]
@@ -304,7 +304,7 @@ def test_add_group_slider(main_window: MainWindow):
     create_wdg.group_le.value = "Test"
     create_wdg.preset_le.value = "Slider"
 
-    create_wdg._create_group_and_preset()
+    create_wdg.create_btn.native.click()
 
     assert "Test" in main_window._mmc.getAvailableConfigGroups()
 
@@ -336,7 +336,7 @@ def test_delete_group(main_window: MainWindow):
     assert objective_group == "Objective"
 
     mm_table.native.setCurrentCell(3, 0)
-    gp_ps._delete_selected_group()
+    gp_ps.delete_gp_btn.native.click()
 
     assert mm_table.native.rowCount() == 4
     assert not list(main_window._mmc.getAvailableConfigs(objective_group))
@@ -353,7 +353,7 @@ def test_delete_group(main_window: MainWindow):
     assert channel_group == "Channel"
 
     mm_table.native.setCurrentCell(1, 0)
-    gp_ps._delete_selected_group()
+    gp_ps.delete_gp_btn.native.click()
 
     assert mm_table.native.rowCount() == 3
     assert main_window._mmc.getOrGuessChannelGroup() == []
@@ -388,7 +388,7 @@ def test_delete_preset_ch(main_window: MainWindow):
 
     channel_tab_cbox.value = "FITC"
     mm_table.native.setCurrentCell(1, 0)
-    gp_ps._delete_selected_preset()
+    gp_ps.delete_ps_btn.native.click()
 
     assert mm_table.native.rowCount() == 5
     assert list(main_window._mmc.getAvailableConfigs(channel_group)) == [
@@ -430,7 +430,7 @@ def test_delete_preset_obj(main_window: MainWindow):
 
     objective_tab_cbox.value = "40X"
     mm_table.native.setCurrentCell(3, 0)
-    gp_ps._delete_selected_preset()
+    gp_ps.delete_ps_btn.native.click()
 
     assert mm_table.native.rowCount() == 5
     assert list(main_window._mmc.getAvailableConfigs(objective_group)) == ["10X", "20X"]
@@ -499,7 +499,7 @@ def test_groups_and_presets_edit_add_prop(main_window: MainWindow):
     assert label_wdg.value == "Nikon 20X Plan Fluor ELWD"
 
     cfg_wdg.new_group_preset.connect(main_window._update_group_preset_table_edit)
-    cfg_wdg._create_group_and_preset()
+    cfg_wdg.create_btn.native.click()
 
     k_list_20x = [
         (k[0], k[1], k[2]) for k in main_window._mmc.getConfigData("Objective", "20X")
@@ -568,7 +568,7 @@ def test_groups_and_presets_edit_remove_prop(main_window: MainWindow):
     assert label_wdg.value == "Nikon 20X Plan Fluor ELWD"
 
     cfg_wdg.new_group_preset.connect(main_window._update_group_preset_table_edit)
-    cfg_wdg._create_group_and_preset()
+    cfg_wdg.create_btn.native.click()
 
     k_list_20x = [
         (k[0], k[1], k[2]) for k in main_window._mmc.getConfigData("Objective", "20X")
