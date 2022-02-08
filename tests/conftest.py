@@ -8,6 +8,7 @@ from napari import Viewer
 from pymmcore_plus import server
 from useq import MDASequence
 
+from micromanager_gui._group_and_presets_tab import RenameGroupPreset
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
@@ -27,6 +28,7 @@ def main_window(qtbot, request):
     # fixture for group_and_preset tests -> works only if local
     win.groups_and_presets.populate_table()
     win._get_dict_group_presets_table_data(win.dict_group_presets_table)
+    win._rw = RenameGroupPreset()
 
     try:
         yield win

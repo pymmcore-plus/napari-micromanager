@@ -6,8 +6,6 @@ import napari.viewer
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
 
-CAM_ROI_LAYER = "Camera_ROI"
-
 
 class CameraROI:
     def __init__(
@@ -22,6 +20,8 @@ class CameraROI:
 
         self.viewer = viewer
         super().__init__()
+
+        self.cam_roi_layer = "Camera_ROI"
 
         self.camera_roi_cbox = combobox
         self.camera_roi_cbox.clear()
@@ -67,7 +67,7 @@ class CameraROI:
 
     def add_roi_layer(self):
         return self.viewer.add_shapes(
-            name=CAM_ROI_LAYER,
+            name=self.cam_roi_layer,
             shape_type="rectangle",
             edge_color="green",
             opacity=0.5,
@@ -81,7 +81,7 @@ class CameraROI:
         self.crop_button.setEnabled(mode != "Full")
         if mode == "Full":
             for lay in self.viewer.layers:
-                if lay.name == CAM_ROI_LAYER:
+                if lay.name == self.cam_roi_layer:
                     self.viewer.layers.remove(lay)
             self.clear_roi_and_snap()
         elif mode == "ROI":
@@ -102,7 +102,7 @@ class CameraROI:
         )
 
         try:
-            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
+            cam_roi_layer = self.viewer.layers[self.cam_roi_layer]
             cam_roi_layer.data = crop_size
             cam_roi_layer.mode = "select"
         except KeyError:
@@ -112,7 +112,7 @@ class CameraROI:
 
     def camera_custom_crop(self):
         try:
-            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
+            cam_roi_layer = self.viewer.layers[self.cam_roi_layer]
             if cam_roi_layer.nshapes == 0:
                 cam_roi_layer.mode = "ADD_RECTANGLE"
             else:
@@ -122,7 +122,7 @@ class CameraROI:
 
     def _on_crop_pushed(self):
         try:
-            cam_roi_layer = self.viewer.layers[CAM_ROI_LAYER]
+            cam_roi_layer = self.viewer.layers[self.cam_roi_layer]
             self.crop(cam_roi_layer)
         except KeyError:
             self.make_rectangle_roi_layer()

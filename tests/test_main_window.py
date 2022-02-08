@@ -71,11 +71,13 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
         _mda.step_size_doubleSpinBox.setValue(1)
 
         # 2 Channels
-        _mda.add_ch_Button.click()
+        # _mda.add_ch_Button.click()
+        _mda.add_channel()
         _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
         _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
         if C:
-            _mda.add_ch_Button.click()
+            # _mda.add_ch_Button.click()
+            _mda.add_channel()
             _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
         if splitC:
             _mda.checkBox_split_channels.setChecked(True)
@@ -130,13 +132,14 @@ def test_crop_camera(main_window: MainWindow):
     assert not main_window.viewer.layers
 
     cbox = main_window.cam_roi_comboBox
-    cam_roi_btn = main_window.crop_Button
 
     text, div = ("1/4", 2)
 
     cbox.setCurrentText(text)
 
-    cam_roi_btn.click()
+    assert len(main_window.viewer.layers) == 2
+
+    main_window.cam_roi._on_crop_pushed()
 
     assert len(main_window.viewer.layers) == 1
 
