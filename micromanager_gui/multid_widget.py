@@ -202,6 +202,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
+            channel_group = self._mmc.getChannelGroup()
+            if not channel_group:
+                return
+
             idx = self.channel_tableWidget.rowCount()
             self.channel_tableWidget.insertRow(idx)
 
@@ -211,10 +215,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            channel_group = self._mmc.getChannelGroup()
-            if channel_group:
-                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-                self.channel_comboBox.addItems(channel_list)
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+            self.channel_comboBox.addItems(channel_list)
 
             self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
