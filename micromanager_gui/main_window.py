@@ -657,6 +657,10 @@ class MainWindow(QtW.QWidget, _MainUI):
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
 
+        with blockSignals(self.table.native):
+            self.table.native.clearContents()
+            self.table.native.setRowCount(0)
+
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.objective_comboBox,
