@@ -41,14 +41,16 @@ class MainTable(Table):
 
 class GroupPresetWidget(QtW.QWidget):
 
-    # to disable the logger
-    logger.disable(__name__)
-
     table_wdg_changed = Signal(str)
     group_preset_deleted = Signal(str)
 
     def __init__(self, mmcore: RemoteMMCore, parent=None):
         super().__init__(parent)
+
+        # to disable the logger
+        if parent and not parent.log:
+            logger.disable(__name__)
+
         self._mmc = mmcore
 
         self.dict_table_data = {}

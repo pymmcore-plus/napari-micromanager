@@ -112,12 +112,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     update_cbox_widget = Signal(str, str)
 
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True, log: logger = False):
         super().__init__()
         self.setup_ui()
 
         # to disable the logger
-        logger.disable(__name__)
+        self.log = log
+        if not self.log:
+            logger.disable(__name__)
 
         self.viewer = viewer
         self.streaming_timer = None
@@ -136,7 +138,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # tab widgets
         # create groups and presets tab
-        self.groups_and_presets = GroupPresetWidget(self._mmc)
+        self.groups_and_presets = GroupPresetWidget(self._mmc, self)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.tabWidget.tabBar().moveTab(1, 0)
         self.table = self.groups_and_presets.tb
@@ -234,13 +236,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
-            logger.debug(f"CFG SET: {groupName} -> {configName}")
+            logger.debug(f"config set: {groupName} -> {configName}")
             if groupName == self.objectives_cfg:
                 self._update_pixel_size()
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
-            logger.debug(f"PROP CHANGED: {dev}.{prop} -> {val}")
+            logger.debug(f"prop changed: {dev}.{prop} -> {val}")
 
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
