@@ -76,7 +76,6 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
         _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
         if C:
             _mda.add_ch_Button.click()
-            _mda.add_channel()
             _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
         if splitC:
             _mda.checkBox_split_channels.setChecked(True)
