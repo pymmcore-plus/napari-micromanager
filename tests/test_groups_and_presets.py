@@ -673,3 +673,32 @@ def test_groups_and_presets_rename_ch(main_window: MainWindow):
     assert list(main_window._mmc.getAvailableConfigs("Ch")) == list(
         channel_tab_cbox.choices
     )
+
+
+def test_groups_and_presets_save_cfg(main_window: MainWindow):
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as td:
+        tmp_path = Path(td)
+
+        gp_ps = main_window.groups_and_presets
+        mm_table = gp_ps.tb
+
+        row = mm_table.native.rowCount()
+        gp, _ = mm_table.data[row - 1]
+        assert gp == "System"
+        mm_table.native.setCurrentCell(row - 1, 0)
+        gp_ps.delete_gp_btn.native.click()
+
+        assert mm_table.native.rowCount() == 4
+
+        save_path = tmp_path / "new_cfg"
+        main_window._save_cfg(save_path)
+
+        assert [p.name for p in tmp_path.iterdir()] == ["new_cfg.cfg"]
+
+        main_window._mmc.unloadAllDevices()
+        main_window._mmc.loadSystemConfiguration(f"{tmp_path}/new_cfg.cfg")
+
+        assert "System" not in main_window._mmc.getAvailableConfigGroups()

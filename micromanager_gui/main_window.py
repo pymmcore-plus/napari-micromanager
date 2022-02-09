@@ -544,9 +544,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         row = matching_items[0].row()
         gp, _ = self.table.data[row]
 
-        # if gp != self.old_g:
-        #     return
-
         self.table.native.removeCellWidget(row, 0)
         self.table.native.setItem(row, 0, QtW.QTableWidgetItem(new_g))
 
@@ -574,14 +571,16 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
-    def _save_cfg(self):
-        current_cfg_path = Path(self.cfg_LineEdit.text())
-        f_name = current_cfg_path.stem
-        parent_path = current_cfg_path.parent
+    def _get_save_path(self):
         path_and_filename, _ = QtW.QFileDialog.getSaveFileName(
-            self, "Save cfg File", f"{parent_path} / {f_name}", "cfg File (*cfg)"
+            self, "Save cfg File", "", ""
         )
-        self._mmc.saveSystemConfiguration(f"{path_and_filename}")
+        return path_and_filename
+
+    def _save_cfg(self, path_and_filename: str):
+        if not path_and_filename:
+            path_and_filename = self._get_save_path()
+        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
