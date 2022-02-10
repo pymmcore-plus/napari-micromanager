@@ -20,7 +20,7 @@
       </size>
      </property>
      <property name="title">
-      <string>MIcro-Manager Configuration</string>
+      <string>Micro-Manager Configuration</string>
      </property>
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="2">
