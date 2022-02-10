@@ -57,6 +57,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="PlaceholderText">
+            <string>MMConfig_demo.cfg</string>
+        </property>
         <property name="readOnly">
          <bool>true</bool>
         </property>
