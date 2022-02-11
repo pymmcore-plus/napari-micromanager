@@ -447,7 +447,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap_channel_comboBox.setCurrentText(
                 self._mmc.getCurrentConfig(channel_group)
             )
-            self.events.availableChannelsChanged.emit(channel_list)
+            self.events.availableChannelsChanged.emit(tuple(channel_list))
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():

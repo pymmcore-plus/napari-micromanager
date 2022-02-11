@@ -14,6 +14,8 @@ from useq import MDASequence
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
+    from ._signals import main_window_events
+
 ICONS = Path(__file__).parent / "icons"
 
 
@@ -92,8 +94,9 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # metadata associated with a given experiment
     SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
-    def __init__(self, mmcore: RemoteMMCore, parent=None):
+    def __init__(self, mmcore: RemoteMMCore, events: main_window_events, parent=None):
         self._mmc = mmcore
+        self._main_window_events = events
         super().__init__(parent)
         self.setup_ui()
 
@@ -142,6 +145,17 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         mmcore.events.sequenceStarted.connect(self._on_mda_started)
         mmcore.events.sequenceFinished.connect(self._on_mda_finished)
         mmcore.events.sequencePauseToggled.connect(self._on_mda_paused)
+
+        self._main_window_events.availableChannelsChanged.connect(
+            self._refresh_channels
+        )
+        self._channels = []
+        self._n_channels = 0
+
+    def _refresh_channels(self, channels: list[str]):
+        self._channels = channels
+        self._auto_add_idx = 0
+        self._n_channels = len(channels)
 
     def _set_enabled(self, enabled: bool):
         self.save_groupBox.setEnabled(enabled)
@@ -206,17 +220,22 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.channel_tableWidget.insertRow(idx)
 
             # create a combo_box for channels in the table
-            self.channel_comboBox = QtW.QComboBox(self)
+            channel_comboBox = QtW.QComboBox(self)
             self.channel_exp_spinBox = QtW.QSpinBox(self)
             self.channel_exp_spinBox.setRange(0, 10000)
             self.channel_exp_spinBox.setValue(100)
 
-            channel_group = self._mmc.getChannelGroup()
-            if channel_group:
-                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-                self.channel_comboBox.addItems(channel_list)
+            channel_comboBox.addItems(self._channels)
 
-            self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
+            # Make a guess at the next channel to add
+            # ideally track what we've already added - but that gets complex
+            # because user can change each row after creation.
+            self._auto_add_idx += 1
+            channel_comboBox.setCurrentText(
+                self._channels[self._auto_add_idx % self._n_channels]
+            )
+
+            self.channel_tableWidget.setCellWidget(idx, 0, channel_comboBox)
             self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
 
     def remove_channel(self):
@@ -229,6 +248,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         # clear all positions
         self.channel_tableWidget.clearContents()
         self.channel_tableWidget.setRowCount(0)
+        self._auto_add_idx = 0
 
     def toggle_checkbox_save_pos(self):
         if (
