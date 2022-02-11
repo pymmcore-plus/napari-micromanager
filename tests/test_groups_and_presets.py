@@ -55,6 +55,73 @@ def test_table_objective_and_channel_comboboxes(main_window: MainWindow):
     assert main_window.objective_comboBox.currentText() == "40X"
 
 
+def test_add_group_with_sliders(main_window: MainWindow):
+
+    gp_ps = main_window.groups_and_presets
+    mm_table = gp_ps.tb
+
+    create_wdg = GroupConfigurations(main_window._mmc)
+    create_wdg.new_group_preset.connect(main_window._update_group_preset_table)
+    create_wdg._reset_comboboxes()
+
+    # add first group with slider
+    matching_items = create_wdg.pt.native.findItems(
+        "Camera-TestProperty1", Qt.MatchExactly
+    )
+    row = matching_items[0].row()
+
+    checkbox = create_wdg.pt.data[row, 1]
+    checkbox.value = True
+    assert checkbox.value
+    slider_wdg = create_wdg.pt.data[row, 3]
+    assert type(slider_wdg) == FloatSlider
+    slider_wdg.value = 0.10
+    assert slider_wdg.value == 0.10
+
+    total_true = 0
+    for r in range(create_wdg.pt.shape[0]):
+        _, combobox, _, _ = create_wdg.pt.data[r]
+        if combobox.value:
+            total_true += 1
+
+    assert total_true == 1
+
+    create_wdg.group_le.value = "Test"
+    create_wdg.preset_le.value = "t1"
+
+    create_wdg.create_btn.native.click()
+
+    assert mm_table.native.rowCount() == 6
+
+    assert "Test" in main_window._mmc.getAvailableConfigGroups()
+
+    dev_prop_val = [
+        (k[0], k[1], k[2]) for k in main_window._mmc.getConfigData("Test", "t1")
+    ]
+
+    assert len(dev_prop_val) == 1
+    assert ("Camera", "TestProperty1", "0.1") in dev_prop_val
+
+    table_row = mm_table.native.rowCount()
+    _, slider = mm_table.data[table_row - 1]
+    assert type(slider) == FloatSlider
+
+    # add second preset with different slider value slider
+    slider_wdg.value = -0.10
+    assert slider_wdg.value == -0.10
+
+    create_wdg.preset_le.value = "t2"
+
+    create_wdg.create_btn.native.click()
+
+    assert "t1" in list(main_window._mmc.getAvailableConfigs("Test"))
+    assert "t2" in list(main_window._mmc.getAvailableConfigs("Test"))
+
+    _, wdg = mm_table.data[table_row - 1]
+
+    assert type(wdg) == ComboBox
+
+
 def test_add_group_combobox_obj(main_window: MainWindow):
 
     gp_ps = main_window.groups_and_presets
