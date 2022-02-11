@@ -16,6 +16,7 @@ from qtpy.QtGui import QColor, QIcon
 from ._camera_roi import CameraROI
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
+from ._signals import main_window_events
 from ._util import (
     SelectDeviceFromCombobox,
     blockSignals,
@@ -105,6 +106,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         super().__init__()
         self.setup_ui()
 
+        self.events = main_window_events()
         self.viewer = viewer
         self.streaming_timer = None
 
@@ -123,7 +125,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             )
 
         # tab widgets
-        self.mda = MultiDWidget(self._mmc)
+        self.mda = MultiDWidget(self._mmc, self.events)
         self.explorer = ExploreSample(self.viewer, self._mmc)
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
@@ -445,6 +447,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap_channel_comboBox.setCurrentText(
                 self._mmc.getCurrentConfig(channel_group)
             )
+            self.events.availableChannelsChanged.emit(channel_list)
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
