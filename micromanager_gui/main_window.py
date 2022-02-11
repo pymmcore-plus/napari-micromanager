@@ -429,9 +429,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         for p in presets:
             if p == preset and len(presets) > 1:
                 continue
-            elif p == preset and len(presets) == 1:
-                # to work on it
-                continue
 
             dev_prop_val_old = [
                 (key[0], key[1], key[2]) for key in self._mmc.getConfigData(group, p)
