@@ -384,7 +384,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             else:
                 self._mmc.deleteConfig(group, preset)
-                print(self._mmc.getAvailableConfigs(group))
                 self._get_dict_group_presets_table_data(self.dict_group_presets_table)
                 self.create_gp_ps_widget.close()
                 warnings.warn(
