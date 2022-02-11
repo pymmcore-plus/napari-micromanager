@@ -306,7 +306,7 @@ class GroupConfigurations(QDialog):
 
         matched_item_row = []
         for it in item_to_find_list:
-            matching_items = self.pt.native.findItems(it, Qt.MatchContains)
+            matching_items = self.pt.native.findItems(it, Qt.MatchExactly)
             matched_item_row.append(matching_items[0].row())
 
         if not matched_item_row:
@@ -321,6 +321,11 @@ class GroupConfigurations(QDialog):
                     val = item[1]
                     break
             wdg = self.pt.data[row][3]
+
+            if isinstance(wdg, Slider):
+                val = int(val)
+            elif isinstance(wdg, FloatSlider):
+                val = float(val)
             with blockSignals(wdg.native):
                 wdg.value = val
 

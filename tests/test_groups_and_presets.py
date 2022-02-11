@@ -78,7 +78,7 @@ def test_add_group_combobox_obj(main_window: MainWindow):
     create_wdg.new_group_preset.connect(main_window._update_group_preset_table)
     create_wdg._reset_comboboxes()
 
-    matching_items = create_wdg.pt.native.findItems("Objective-Label", Qt.MatchContains)
+    matching_items = create_wdg.pt.native.findItems("Objective-Label", Qt.MatchExactly)
     row = matching_items[0].row()
 
     checkbox = create_wdg.pt.data[row, 1]
@@ -179,7 +179,7 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     create_wdg.new_group_preset.connect(main_window._update_group_preset_table)
     create_wdg._reset_comboboxes()
 
-    matching_items = create_wdg.pt.native.findItems("Dichroic-Label", Qt.MatchContains)
+    matching_items = create_wdg.pt.native.findItems("Dichroic-Label", Qt.MatchExactly)
     row = matching_items[0].row()
 
     checkbox = create_wdg.pt.data[row, 1]
@@ -189,7 +189,7 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     d_wdg.value = "400DCLP"
     assert d_wdg.value == "400DCLP"
 
-    matching_items = create_wdg.pt.native.findItems("Camera-Mode", Qt.MatchContains)
+    matching_items = create_wdg.pt.native.findItems("Camera-Mode", Qt.MatchExactly)
     row = matching_items[0].row()
 
     checkbox1 = create_wdg.pt.data[row, 1]
@@ -282,7 +282,7 @@ def test_add_group_slider(main_window: MainWindow):
     create_wdg._reset_comboboxes()
 
     matching_items = create_wdg.pt.native.findItems(
-        "Camera-TestProperty1", Qt.MatchContains
+        "Camera-TestProperty1", Qt.MatchExactly
     )
     row = matching_items[0].row()
 
@@ -471,7 +471,7 @@ def test_groups_and_presets_edit_add_prop(main_window: MainWindow):
 
     cfg_wdg._set_checkboxes_status(group, preset, _to_find, _to_find_list)
 
-    matching_items = cfg_wdg.pt.native.findItems("Objective-State", Qt.MatchContains)
+    matching_items = cfg_wdg.pt.native.findItems("Objective-State", Qt.MatchExactly)
     row = matching_items[0].row()
 
     checkbox = cfg_wdg.pt.data[row, 1]
@@ -479,7 +479,7 @@ def test_groups_and_presets_edit_add_prop(main_window: MainWindow):
     state_wdg = cfg_wdg.pt.data[row, 3]
     assert state_wdg.value == "3"
 
-    matching_items = cfg_wdg.pt.native.findItems("Objective-Label", Qt.MatchContains)
+    matching_items = cfg_wdg.pt.native.findItems("Objective-Label", Qt.MatchExactly)
     row = matching_items[0].row()
     checkbox = cfg_wdg.pt.data[row, 1]
     checkbox.value = True
@@ -536,7 +536,7 @@ def test_groups_and_presets_edit_remove_prop(main_window: MainWindow):
 
     cfg_wdg._set_checkboxes_status(group, preset, _to_find, _to_find_list)
 
-    matching_items = cfg_wdg.pt.native.findItems("Objective-State", Qt.MatchContains)
+    matching_items = cfg_wdg.pt.native.findItems("Objective-State", Qt.MatchExactly)
     row = matching_items[0].row()
 
     state_checkbox = cfg_wdg.pt.data[row, 1]
@@ -547,7 +547,7 @@ def test_groups_and_presets_edit_remove_prop(main_window: MainWindow):
     state_checkbox.value = False
     assert not state_checkbox.value
 
-    matching_items = cfg_wdg.pt.native.findItems("Objective-Label", Qt.MatchContains)
+    matching_items = cfg_wdg.pt.native.findItems("Objective-Label", Qt.MatchExactly)
     row = matching_items[0].row()
     label_checkbox = cfg_wdg.pt.data[row, 1]
     label_checkbox.value = True
