@@ -280,12 +280,32 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget.close()
-        if not hasattr(self, "create_gp_ps_widget"):
-            self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
-            self.create_gp_ps_widget.new_group_preset.connect(
-                self._update_group_preset_table
-            )
+        if hasattr(self, "create_gp_ps_widget"):
+            self.create_gp_ps_widget.close()
+
+        self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
+        self.create_gp_ps_widget.new_group_preset.connect(
+            self._update_group_preset_table
+        )
+
         self.create_gp_ps_widget._reset_comboboxes()
+        try:
+            (
+                gp,
+                pst,
+                _to_find,
+                _to_find_list,
+            ) = self.groups_and_presets._edit_selected_group_preset()
+
+            self.create_gp_ps_widget._set_checkboxes_status(
+                gp, pst, _to_find, _to_find_list
+            )
+            self.create_gp_ps_widget.group_le.value = gp
+            self.create_gp_ps_widget.preset_le.value = ""
+        except TypeError:
+            # if no row or row>1 selected
+            pass
+
         self.create_gp_ps_widget.show()
 
     def _get_dict_group_presets_table_data(self, dc: dict):
@@ -310,6 +330,15 @@ class MainWindow(QtW.QWidget, _MainUI):
                         "dev_prop_val", []
                     ).append(dev_prop_val)
 
+    def _check_preset_dev_prop_val(self, group, presets):
+        dpv = 0
+        for p in presets:
+            dev_prop_val = [
+                (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, p)
+            ]
+            dpv += len(dev_prop_val)
+        return dpv
+
     def _update_group_preset_table(self, group: str, preset: str):
         logger.debug(f"[create] signal recived: {group}, {preset}")
 
@@ -326,28 +355,42 @@ class MainWindow(QtW.QWidget, _MainUI):
             logger.debug(f"{group} group added")
 
         else:
-            matching_items = self.table.native.findItems(group, Qt.MatchExactly)
-            row = matching_items[0].row()
 
-            _, wdg = self.table.data[row]
-            if isinstance(wdg, ComboBox):
-                wdg_items = list(wdg.choices)
-                prs = list(self._mmc.getAvailableConfigs(group))
-                preset_diff = list(set(wdg_items) ^ set(prs))
-                for p in preset_diff:
-                    wdg_items.append(str(p))
-                    logger.debug(f"{p} preset added to {group} group")
-                    wdg.choices = wdg_items
+            presets = list(self._mmc.getAvailableConfigs(group))
+            n_dev_prop_val = self._check_preset_dev_prop_val(group, presets)
+            if len(presets) % n_dev_prop_val == 0 or n_dev_prop_val % len(presets) == 0:
+                matching_items = self.table.native.findItems(group, Qt.MatchExactly)
+                row = matching_items[0].row()
+
+                _, wdg = self.table.data[row]
+                if isinstance(wdg, ComboBox):
+                    wdg_items = list(wdg.choices)
+                    prs = list(self._mmc.getAvailableConfigs(group))
+                    preset_diff = list(set(wdg_items) ^ set(prs))
+                    for p in preset_diff:
+                        wdg_items.append(str(p))
+                        logger.debug(f"{p} preset added to {group} group")
+                        wdg.choices = wdg_items
+                else:
+                    prs = list(self._mmc.getAvailableConfigs(group))
+                    with blockSignals(self.table.native):
+                        self.table.native.removeRow(row)
+                    self.table.native.insertRow(row)
+                    self.table.native.setItem(row, 0, QtW.QTableWidgetItem(group))
+                    new_wdg = self.groups_and_presets._set_widget(group, prs)
+                    self.table.native.setCellWidget(row, 1, new_wdg.native)
+
+                logger.debug(f"{preset} preset added to {group} group.")
+
             else:
-                prs = list(self._mmc.getAvailableConfigs(group))
-                with blockSignals(self.table.native):
-                    self.table.native.removeRow(row)
-                self.table.native.insertRow(row)
-                self.table.native.setItem(row, 0, QtW.QTableWidgetItem(group))
-                new_wdg = self.groups_and_presets._set_widget(group, prs)
-                self.table.native.setCellWidget(row, 1, new_wdg.native)
-
-            logger.debug(f"{preset} preset added to {group} group.")
+                self._mmc.deleteConfig(group, preset)
+                print(self._mmc.getAvailableConfigs(group))
+                self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+                self.create_gp_ps_widget.close()
+                warnings.warn(
+                    "PRESETS from the same GROUP"
+                    "must have the same ('device', 'property')"
+                )
 
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
         self._update_objectives_combobox()
@@ -397,16 +440,20 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._update_group_preset_table_edit
             )
         self.edit_gp_ps_widget._reset_comboboxes()
-        (
-            group,
-            preset,
-            _to_find,
-            _to_find_list,
-        ) = self.groups_and_presets._edit_selected_group_preset()
-        self.edit_gp_ps_widget._set_checkboxes_status(
-            group, preset, _to_find, _to_find_list
-        )
-        self.edit_gp_ps_widget.show()
+        try:
+            (
+                group,
+                preset,
+                _to_find,
+                _to_find_list,
+            ) = self.groups_and_presets._edit_selected_group_preset()
+            self.edit_gp_ps_widget._set_checkboxes_status(
+                group, preset, _to_find, _to_find_list
+            )
+            self.edit_gp_ps_widget.show()
+        except TypeError:
+            # if no row or row>1 selected
+            pass
 
     def _update_group_preset_table_edit(self, group: str, preset: str):
         logger.debug(f"[edit] signal recived: {group}, {preset}")
