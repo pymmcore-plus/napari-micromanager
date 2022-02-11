@@ -157,8 +157,8 @@ class GroupPresetWidget(QtW.QWidget):
                         min=float(self._mmc.getPropertyLowerLimit(dev, prop)),
                         max=float(self._mmc.getPropertyUpperLimit(dev, prop)),
                         label=str(prop),
-                        name=f"{presets}",
-                        annotation=[dev, prop],
+                        name=f"{presets[0]}",
+                        annotation=[dev, prop, val],
                     )
                     self._mmc.setProperty(
                         wdg.annotation[0], wdg.annotation[1], wdg.value
@@ -169,15 +169,15 @@ class GroupPresetWidget(QtW.QWidget):
                         min=int(self._mmc.getPropertyLowerLimit(dev, prop)),
                         max=int(self._mmc.getPropertyUpperLimit(dev, prop)),
                         label=str(prop),
-                        name=f"{presets}",
-                        annotation=[dev, prop],
+                        name=f"{presets[0]}",
+                        annotation=[dev, prop, val],
                     )
                     self._mmc.setProperty(
                         wdg.annotation[0], wdg.annotation[1], wdg.value
                     )
             else:
                 wdg = LineEdit(
-                    value=str(val), name=f"{presets}", annotation=[dev, prop]
+                    value=str(val), name=f"{presets[0]}", annotation=[dev, prop, val]
                 )
                 self._mmc.setProperty(wdg.annotation[0], wdg.annotation[1], wdg.value)
 

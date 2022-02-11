@@ -299,7 +299,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             if isinstance(wdg, WDG_TYPE):
                 dc.setdefault(group, {}).setdefault(wdg.name, {}).setdefault(
                     "dev_prop_val", []
-                ).append((wdg.annotation[0], wdg.annotation[1]))
+                ).append((wdg.annotation[0], wdg.annotation[1], wdg.annotation[2]))
             else:
                 for p in wdg.choices:
                     dev_prop_val = [
@@ -387,20 +387,16 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._update_group_preset_table_edit
             )
         self.edit_gp_ps_widget._reset_comboboxes()
-        try:
-            (
-                group,
-                preset,
-                _to_find,
-                _to_find_list,
-            ) = self.groups_and_presets._edit_selected_group_preset()
-            self.edit_gp_ps_widget._set_checkboxes_status(
-                group, preset, _to_find, _to_find_list
-            )
-            self.edit_gp_ps_widget.show()
-
-        except TypeError:
-            pass
+        (
+            group,
+            preset,
+            _to_find,
+            _to_find_list,
+        ) = self.groups_and_presets._edit_selected_group_preset()
+        self.edit_gp_ps_widget._set_checkboxes_status(
+            group, preset, _to_find, _to_find_list
+        )
+        self.edit_gp_ps_widget.show()
 
     def _update_group_preset_table_edit(self, group: str, preset: str):
         logger.debug(f"[edit] signal recived: {group}, {preset}")
