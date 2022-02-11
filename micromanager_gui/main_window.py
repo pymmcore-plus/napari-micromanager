@@ -854,7 +854,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         group, wdg = self.table.data[row]
         if group == channel_group and wdg.get_value() != channel_preset:
             with blockSignals(wdg.native):
-                wdg.value = channel_preset  # -> configSet
+                wdg.value = channel_preset
 
     def _change_objective_main_gui(self, objective: str):
 
@@ -899,7 +899,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         group, wdg = self.table.data[row]
         if group == objective_group and wdg.get_value() != objective_preset:
             with blockSignals(wdg.native):
-                wdg.value = objective_preset  # -> configSet
+                wdg.value = objective_preset
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
