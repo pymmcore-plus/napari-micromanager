@@ -388,7 +388,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self.create_gp_ps_widget.close()
                 warnings.warn(
                     "PRESETS from the same GROUP"
-                    "must have the same ('device', 'property')"
+                    " must have the same ('device', 'property')"
                 )
 
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
