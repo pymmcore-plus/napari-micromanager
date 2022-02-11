@@ -329,7 +329,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             matching_items = self.table.native.findItems(group, Qt.MatchExactly)
             row = matching_items[0].row()
 
-            gp, wdg = self.table.data[row]
+            _, wdg = self.table.data[row]
             if isinstance(wdg, ComboBox):
                 wdg_items = list(wdg.choices)
                 prs = list(self._mmc.getAvailableConfigs(group))
