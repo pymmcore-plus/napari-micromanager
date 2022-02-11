@@ -287,6 +287,7 @@ class GroupConfigurations(QDialog):
             _, checkbox, _, _ = self.pt.data[r]
             if checkbox.value:
                 checkbox.value = False
+        self.cbox_show.value = False
 
     def _set_checkboxes_status(
         self,

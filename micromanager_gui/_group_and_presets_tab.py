@@ -59,7 +59,7 @@ class GroupPresetWidget(QtW.QWidget):
         self.tb.column_headers = ("Groups", "Presets")
         self.tb.show()
 
-        self.new_btn = PushButton(text="New")
+        self.new_btn = PushButton(text="New/Add")
         self.edit_btn = PushButton(text="Edit")
         self.rename_btn = PushButton(text="Rename")
         self.delete_gp_btn = PushButton(text="- Group")
