@@ -521,14 +521,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._rw = RenameGroupPreset(self)
         self._rw.button.clicked.connect(self._rename_group_preset)
         # populate the rename widget with the group/preset to rename
-        self.old_g, self.old_p = self._populate_rename_widget(self.table)
-        self._rw.show()
+        try:
+            self.old_g, self.old_p = self._populate_rename_widget(self.table)
+            self._rw.show()
+        except TypeError:
+            warnings.warn("Select one row!")
 
     def _populate_rename_widget(self, table):
         selected_row = [r.row() for r in table.native.selectedIndexes()]
 
         if not selected_row or len(selected_row) > 1:
-            warnings.warn("Select one row!")
             return
 
         groupname = table.data[selected_row[0]][0]
@@ -892,7 +894,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getChannelGroup(), newChannel
                 )  # -> configSet
 
-            self._change_channel_cbox_in_table(self._mmc.getChannelGroup(), newChannel)
+                self._change_channel_cbox_in_table(
+                    self._mmc.getChannelGroup(), newChannel
+                )
 
     def _change_channel_cbox_in_table(self, channel_group: str, channel_preset: str):
         matching_items = self.table.native.findItems(channel_group, Qt.MatchExactly)
