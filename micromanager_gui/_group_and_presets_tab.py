@@ -115,7 +115,6 @@ class GroupPresetWidget(QtW.QWidget):
                 )
 
                 if preset:
-                    # dev, prop = wdg.annotation
                     if isinstance(wdg, Slider):
                         val = int(preset)
                     elif isinstance(wdg, FloatSlider):

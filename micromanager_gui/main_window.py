@@ -303,7 +303,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.create_gp_ps_widget.group_le.value = gp
             self.create_gp_ps_widget.preset_le.value = ""
         except TypeError:
-            # if no row or row>1 selected
+            # if no row or row > 1 selected
             pass
 
         self.create_gp_ps_widget.show()
