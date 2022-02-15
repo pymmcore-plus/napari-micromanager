@@ -26,7 +26,7 @@ class MMObjectivesWidget(QtW.QWidget):
 
         # combobox in groupbox
         self.objective_groupBox_layout = QtW.QGridLayout()
-
+        self.objective_groupBox_layout.setSpacing(0)
         self.objective_comboBox = QtW.QComboBox()
         self.objective_groupBox.setMinimumSize(QtCore.QSize(160, 0))
         # self.objective_groupBox.setObjectName("objective_groupBox")

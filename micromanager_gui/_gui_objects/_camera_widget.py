@@ -28,6 +28,7 @@ class MMCameraWidget(QtW.QWidget):
 
         # define camera_groupBox layout
         self.camera_groupBox_layout = QtW.QGridLayout()
+        self.camera_groupBox_layout.setSpacing(0)
 
         # add to camera_groupBox layout:
         # bin widget and layout
