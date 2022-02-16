@@ -119,8 +119,9 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def illumination(self):
-        if not hasattr(self, "_illumination"):
-            self._illumination = IlluminationDialog(self._mmc, self)
+        if hasattr(self, "_illumination"):
+            self._illumination.close()
+        self._illumination = IlluminationDialog(self._mmc, self)
         self._illumination.show()
 
     def _show_prop_browser(self):
