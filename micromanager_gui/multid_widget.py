@@ -145,11 +145,25 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     def _set_enabled(self, enabled: bool):
         self.save_groupBox.setEnabled(enabled)
-        self.channel_groupBox.setEnabled(enabled)
         self.time_groupBox.setEnabled(enabled)
-        self.stack_groupBox.setEnabled(enabled)
-        self.stage_pos_groupBox.setEnabled(enabled)
         self.acquisition_order_comboBox.setEnabled(enabled)
+
+        if not self._mmc.getChannelGroup():
+            self.channel_groupBox.setEnabled(False)
+        else:
+            self.channel_groupBox.setEnabled(enabled)
+
+        if not self._mmc.getXYStageDevice():
+            self.stage_pos_groupBox.setChecked(False)
+            self.stage_pos_groupBox.setEnabled(False)
+        else:
+            self.stage_pos_groupBox.setEnabled(enabled)
+
+        if not self._mmc.getFocusDevice():
+            self.stack_groupBox.setChecked(False)
+            self.stack_groupBox.setEnabled(False)
+        else:
+            self.stack_groupBox.setEnabled(enabled)
 
     def _set_top(self):
         self.z_top_doubleSpinBox.setValue(self._mmc.getZPosition())
@@ -245,25 +259,31 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
+
+        if not self._mmc.getXYStageDevice():
+            return
+
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
             x = self._mmc.getXPosition()
             y = self._mmc.getYPosition()
-            z = self._mmc.getZPosition()
 
             x_txt = QtW.QTableWidgetItem(str(x))
             y_txt = QtW.QTableWidgetItem(str(y))
-            z_txt = QtW.QTableWidgetItem(str(z))
             x_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             y_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-            z_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
 
             idx = self.stage_tableWidget.rowCount()
             self.stage_tableWidget.insertRow(idx)
 
             self.stage_tableWidget.setItem(idx, 0, QtW.QTableWidgetItem(x_txt))
             self.stage_tableWidget.setItem(idx, 1, QtW.QTableWidgetItem(y_txt))
-            self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
+
+            if self._mmc.getFocusDevice():
+                z = self._mmc.getZPosition()
+                z_txt = QtW.QTableWidgetItem(str(z))
+                z_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
 
             self.toggle_checkbox_save_pos()
 
@@ -281,12 +301,15 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.toggle_checkbox_save_pos()
 
     def move_to_position(self):
+        if not self._mmc.getXYStageDevice():
+            return
         curr_row = self.stage_tableWidget.currentRow()
         x_val = self.stage_tableWidget.item(curr_row, 0).text()
         y_val = self.stage_tableWidget.item(curr_row, 1).text()
-        z_val = self.stage_tableWidget.item(curr_row, 2).text()
         self._mmc.setXYPosition(float(x_val), float(y_val))
-        self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
+        if self._mmc.getFocusDevice():
+            z_val = self.stage_tableWidget.item(curr_row, 2).text()
+            self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
 
     def set_multi_d_acq_dir(self):
         # set the directory
@@ -346,20 +369,36 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_pos_groupBox.isChecked()
             and self.stage_tableWidget.rowCount() > 0
         ):
-            for r in range(self.stage_tableWidget.rowCount()):
-                state["stage_positions"].append(
-                    {
-                        "x": float(self.stage_tableWidget.item(r, 0).text()),
-                        "y": float(self.stage_tableWidget.item(r, 1).text()),
-                        "z": float(self.stage_tableWidget.item(r, 2).text()),
-                    }
-                )
-        else:
+            if self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
+                for r in range(self.stage_tableWidget.rowCount()):
+                    state["stage_positions"].append(
+                        {
+                            "x": float(self.stage_tableWidget.item(r, 0).text()),
+                            "y": float(self.stage_tableWidget.item(r, 1).text()),
+                            "z": float(self.stage_tableWidget.item(r, 2).text()),
+                        }
+                    )
+            elif self._mmc.getXYStageDevice():
+                for r in range(self.stage_tableWidget.rowCount()):
+                    state["stage_positions"].append(
+                        {
+                            "x": float(self.stage_tableWidget.item(r, 0).text()),
+                            "y": float(self.stage_tableWidget.item(r, 1).text()),
+                        }
+                    )
+        elif self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
             state["stage_positions"].append(
                 {
                     "x": float(self._mmc.getXPosition()),
                     "y": float(self._mmc.getYPosition()),
                     "z": float(self._mmc.getZPosition()),
+                }
+            )
+        elif self._mmc.getXYStageDevice():
+            state["stage_positions"].append(
+                {
+                    "x": float(self._mmc.getXPosition()),
+                    "y": float(self._mmc.getYPosition()),
                 }
             )
 

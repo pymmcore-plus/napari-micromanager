@@ -261,6 +261,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.crop_Button.setEnabled(enabled)
         self.tabWidget.setEnabled(enabled)
 
+        self.mda._set_enabled(enabled)
+        self.explorer._set_enabled(enabled)
+
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
 
@@ -281,6 +284,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         with blockSignals(boxes):
             for box in boxes:
                 box.clear()
+
+        self.mda.clear_channel()
+        self.mda.clear_positions()
+        self.explorer.clear_channel()
 
         self.objectives_device = None
         self.objectives_cfg = None

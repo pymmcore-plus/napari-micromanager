@@ -168,13 +168,25 @@ class ExploreSample(QtW.QWidget):
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
-        self.scan_size_spinBox_r.setEnabled(enabled)
-        self.scan_size_spinBox_c.setEnabled(enabled)
-        self.ovelap_spinBox.setEnabled(enabled)
-        self.channel_explorer_groupBox.setEnabled(enabled)
-        self.move_to_Button.setEnabled(enabled)
-        self.start_scan_Button.setEnabled(enabled)
         self.save_explorer_groupBox.setEnabled(enabled)
+
+        if not self._mmc.getXYStageDevice():
+            self.scan_size_spinBox_r.setEnabled(False)
+            self.scan_size_spinBox_c.setEnabled(False)
+            self.ovelap_spinBox.setEnabled(False)
+            self.move_to_Button.setEnabled(False)
+            self.start_scan_Button.setEnabled(False)
+        else:
+            self.scan_size_spinBox_r.setEnabled(enabled)
+            self.scan_size_spinBox_c.setEnabled(enabled)
+            self.ovelap_spinBox.setEnabled(enabled)
+            self.move_to_Button.setEnabled(enabled)
+            self.start_scan_Button.setEnabled(enabled)
+
+        if not self._mmc.getChannelGroup():
+            self.channel_explorer_groupBox.setEnabled(False)
+        else:
+            self.channel_explorer_groupBox.setEnabled(enabled)
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
@@ -187,6 +199,10 @@ class ExploreSample(QtW.QWidget):
 
     # add, remove, clear channel table
     def add_channel(self):
+
+        if not self._mmc.getXYStageDevice():
+            return
+
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
@@ -310,6 +326,9 @@ class ExploreSample(QtW.QWidget):
         self.parent_path = Path(self.save_dir)
 
     def start_scan(self):
+
+        if not self._mmc.getXYStageDevice():
+            return
 
         self.pixel_size = self._mmc.getPixelSizeUm()
 
