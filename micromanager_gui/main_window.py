@@ -698,8 +698,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+        else:
+            self.XY_groupBox.setEnabled(False)
         if self._mmc.getFocusDevice():
             self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+        else:
+            self.Z_groupBox.setEnabled(False)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.x_lineEdit.setText(f"{x:.1f}")
