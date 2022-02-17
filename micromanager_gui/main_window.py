@@ -244,6 +244,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         def _on_prop_changed(dev, prop, val):
             logger.debug(f"prop changed: {dev}.{prop} -> {val}")
 
+            self._change_if_in_table(dev, prop, val)
+
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
@@ -815,6 +817,18 @@ class MainWindow(QtW.QWidget, _MainUI):
                     dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
                         "dev_prop_val", []
                     ).append(dev_prop_val)
+
+    def _change_if_in_table(self, dev, prop, val):
+        row = self.table.native.rowCount()
+        for r in range(row):
+            _, wdg = self.table.data[r]
+            if dev in wdg.annotation and prop in wdg.annotation:
+                if isinstance(wdg, Slider):
+                    val = int(val)
+                elif isinstance(wdg, FloatSlider):
+                    val = float(val)
+                with blockSignals(wdg.native):
+                    wdg.value = val
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
