@@ -12,6 +12,7 @@ from magicgui.widgets import (
     Widget,
 )
 from pymmcore_plus import DeviceType, PropertyType
+from qtpy import QtWidgets
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog, QHBoxLayout
 
@@ -78,9 +79,12 @@ class PropTable(Table):
         vh = self.native.verticalHeader()
         vh.setSectionResizeMode(vh.Fixed)
         vh.setDefaultSectionSize(24)
+        vh.setVisible(False)
         self._visible_dtypes = set(DeviceType)
         self._filter_string = ""
         self._show_read_only = True
+        self.native.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)
+        self.min_width = 500
 
     def _update(self):
         data = []
