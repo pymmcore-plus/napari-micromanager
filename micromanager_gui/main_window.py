@@ -262,6 +262,9 @@ class MainWindow(QtW.QWidget, _MainUI):
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
 
+        # disable gui
+        self._set_enabled(False)
+
         with blockSignals(self.table.native):
             self.table.native.clearContents()
             self.table.native.setRowCount(0)
