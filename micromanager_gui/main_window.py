@@ -122,6 +122,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
+        # disable gui
+        self._set_enabled(False)
+
         # connect mmcore signals
         sig = self._mmc.events
 
@@ -194,6 +197,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.snap_live_tab.setEnabled(enabled)
         self.snap_live_tab.setEnabled(enabled)
         self.crop_Button.setEnabled(enabled)
+        self.tabWidget.setEnabled(enabled)
+        self.illumination_Button.setEnabled(enabled)
+        self.properties_Button.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -272,6 +278,8 @@ class MainWindow(QtW.QWidget, _MainUI):
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
+        # disable gui
+        self._set_enabled(False)
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
@@ -293,9 +301,13 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
+        # disable gui
+        self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        # enable gui
+        self._set_enabled(True)
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
