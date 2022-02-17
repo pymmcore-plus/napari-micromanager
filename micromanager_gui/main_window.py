@@ -421,14 +421,12 @@ class MainWindow(MicroManagerWidget):
 
         if not xy_stage_devs:
             self.stages.XY_groupBox.setEnabled(False)
-            # self.stages.xy_device_comboBox.setEnabled(False)
         else:
             self.stages.XY_groupBox.setEnabled(True)
             self.stages.xy_device_comboBox.addItems(xy_stage_devs)
             self._set_xy_stage_device()
 
         if not focus_devs:
-            # self.stages.focus_device_comboBox.setEnabled(False)
             self.stages.Z_groupBox.setEnabled(False)
         else:
             self.stages.Z_groupBox.setEnabled(True)
