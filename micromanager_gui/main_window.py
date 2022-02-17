@@ -462,8 +462,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     # illumination
     def illumination(self):
-        if not hasattr(self, "_illumination"):
-            self._illumination = IlluminationDialog(self._mmc, self)
+        if hasattr(self, "_illumination"):
+            self._illumination.close()
+        self._illumination = IlluminationDialog(self._mmc, self)
         self._illumination.show()
 
     # property browser
@@ -822,6 +823,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         row = self.table.native.rowCount()
         for r in range(row):
             _, wdg = self.table.data[r]
+            if not wdg.annotation:
+                continue
             if dev in wdg.annotation and prop in wdg.annotation:
                 if isinstance(wdg, Slider):
                     val = int(val)
