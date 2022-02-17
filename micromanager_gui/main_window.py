@@ -64,6 +64,9 @@ class MainWindow(MicroManagerWidget):
         self.objectives_device = None
         self.objectives_cfg = None
 
+        # disable gui
+        self._set_enabled(False)
+
         # connect mmcore signals
         sig = self._mmc.events
 
@@ -141,6 +144,8 @@ class MainWindow(MicroManagerWidget):
         self.tab.snap_live_tab.setEnabled(enabled)
         self.tab.snap_live_tab.setEnabled(enabled)
         self.cam.crop_Button.setEnabled(enabled)
+        self.ill.illumination_Button.setEnabled(enabled)
+        self.tab.tabWidget.setEnabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -220,6 +225,8 @@ class MainWindow(MicroManagerWidget):
         self._mmc.unloadAllDevices()  # unload all devicies
         print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
+        self._set_enabled(False)
+
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.obj.objective_comboBox,
@@ -249,6 +256,8 @@ class MainWindow(MicroManagerWidget):
         self.cfg.load_cfg_Button.setEnabled(False)
         print("loading", self.cfg.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg.cfg_LineEdit.text())
+
+        self._set_enabled(True)
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -399,6 +408,10 @@ class MainWindow(MicroManagerWidget):
             self.stages.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_xyz_devices(self):
+
+        # since there is no offset control yet:
+        self.stages.offset_Z_groupBox.setEnabled(False)
+
         self.stages.focus_device_comboBox.clear()
         self.stages.xy_device_comboBox.clear()
 
@@ -407,14 +420,18 @@ class MainWindow(MicroManagerWidget):
         focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
 
         if not xy_stage_devs:
-            self.stages.xy_device_comboBox.setEnabled(False)
+            self.stages.XY_groupBox.setEnabled(False)
+            # self.stages.xy_device_comboBox.setEnabled(False)
         else:
+            self.stages.XY_groupBox.setEnabled(True)
             self.stages.xy_device_comboBox.addItems(xy_stage_devs)
             self._set_xy_stage_device()
 
         if not focus_devs:
-            self.stages.focus_device_comboBox.setEnabled(False)
+            # self.stages.focus_device_comboBox.setEnabled(False)
+            self.stages.Z_groupBox.setEnabled(False)
         else:
+            self.stages.Z_groupBox.setEnabled(True)
             self.stages.focus_device_comboBox.addItems(focus_devs)
             self._set_focus_device()
 
