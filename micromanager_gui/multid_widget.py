@@ -254,7 +254,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.checkBox_save_pos.setEnabled(True)
 
         else:
-            self.checkBox_save_pos.setCheckState(False)
+            self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
             self.checkBox_save_pos.setEnabled(False)
 
     # add, remove, clear, move_to positions table

@@ -200,11 +200,11 @@ class ExploreSample(QtW.QWidget):
     # add, remove, clear channel table
     def add_channel(self):
 
-        if not self._mmc.getXYStageDevice():
-            return
-
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
+
+            if not self._mmc.getXYStageDevice():
+                return
 
             channel_group = self._mmc.getChannelGroup()
             if not channel_group:
