@@ -277,7 +277,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
-        self.explorer._set_enabled(enabled)
+        if self._mmc.getXYStageDevice():
+            self.explorer._set_enabled(enabled)
+        else:
+            self.explorer._set_enabled(False)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
