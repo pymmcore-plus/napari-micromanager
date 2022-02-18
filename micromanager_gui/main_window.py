@@ -276,10 +276,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._set_enabled(True)
 
     def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
-        # disable gui
-        self._set_enabled(False)
+
+        current_cgf = self.cfg_LineEdit.text()
+
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        self.cfg_LineEdit.setText(str(file_dir[0]))
+        self.max_min_val_label.setText("None")
+        self.load_cfg_Button.setEnabled(True)
+
+        if not self.cfg_LineEdit.text():
+            self.cfg_LineEdit.setText(current_cgf)
+            self.load_cfg_Button.setEnabled(False)
+
+    def load_cfg(self):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
@@ -295,16 +304,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
-        self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_min_val_label.setText("None")
-        self.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
         # disable gui
         self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg_LineEdit.text())
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
         # enable gui
         self._set_enabled(True)
