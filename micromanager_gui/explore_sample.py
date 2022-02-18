@@ -169,20 +169,11 @@ class ExploreSample(QtW.QWidget):
 
     def _set_enabled(self, enabled):
         self.save_explorer_groupBox.setEnabled(enabled)
-
-        if not self._mmc.getXYStageDevice():
-            self.scan_size_spinBox_r.setEnabled(False)
-            self.scan_size_spinBox_c.setEnabled(False)
-            self.ovelap_spinBox.setEnabled(False)
-            self.move_to_Button.setEnabled(False)
-            self.start_scan_Button.setEnabled(False)
-        else:
-            self.scan_size_spinBox_r.setEnabled(enabled)
-            self.scan_size_spinBox_c.setEnabled(enabled)
-            self.ovelap_spinBox.setEnabled(enabled)
-            self.move_to_Button.setEnabled(enabled)
-            self.start_scan_Button.setEnabled(enabled)
-
+        self.scan_size_spinBox_r.setEnabled(enabled)
+        self.scan_size_spinBox_c.setEnabled(enabled)
+        self.ovelap_spinBox.setEnabled(enabled)
+        self.move_to_Button.setEnabled(enabled)
+        self.start_scan_Button.setEnabled(enabled)
         if not self._mmc.getChannelGroup():
             self.channel_explorer_groupBox.setEnabled(False)
         else:
