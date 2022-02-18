@@ -137,15 +137,31 @@ class MainWindow(MicroManagerWidget):
                 self.tab.snap_channel_comboBox.setCurrentText(configName)
 
     def _set_enabled(self, enabled):
-        self.obj.objective_groupBox.setEnabled(enabled)
-        self.cam.camera_groupBox.setEnabled(enabled)
-        self.stages.XY_groupBox.setEnabled(enabled)
-        self.stages.Z_groupBox.setEnabled(enabled)
+        if self.objectives_device:
+            self.obj.objective_groupBox.setEnabled(enabled)
+        else:
+            self.obj.objective_groupBox.setEnabled(False)
+        if self._mmc.getCameraDevice():
+            self.cam.camera_groupBox.setEnabled(enabled)
+            self.cam.crop_Button.setEnabled(enabled)
+        else:
+            self.cam.camera_groupBox.setEnabled(False)
+            self.cam.crop_Button.setEnabled(False)
+        if self._mmc.getXYStageDevice():
+            self.stages.XY_groupBox.setEnabled(enabled)
+        else:
+            self.stages.XY_groupBox.setEnabled(False)
+        if self._mmc.getFocusDevice():
+            self.stages.Z_groupBox.setEnabled(enabled)
+        else:
+            self.stages.Z_groupBox.setEnabled(False)
         self.tab.snap_live_tab.setEnabled(enabled)
         self.tab.snap_live_tab.setEnabled(enabled)
-        self.cam.crop_Button.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
         self.tab.tabWidget.setEnabled(enabled)
+
+        self.mda._set_enabled(enabled)
+        self.explorer._set_enabled(enabled)
 
     def _update_exp(self, exposure: float):
         self._mmc.setExposure(exposure)
@@ -547,9 +563,6 @@ class MainWindow(MicroManagerWidget):
         self._update_pixel_size()
 
     def update_viewer(self, data=None):
-        # TODO: - fix the fact that when you change the objective
-        #         the image translation is wrong
-        #       - are max and min_val_lineEdit updating in live mode?
         if data is None:
             try:
                 data = self._mmc.getLastImage()
