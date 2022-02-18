@@ -121,21 +121,6 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-    def illumination(self):
-        if hasattr(self, "_illumination"):
-            self._illumination.close()
-        self._illumination = IlluminationDialog(self._mmc, self)
-        self._illumination.show()
-
-    def _show_prop_browser(self):
-        pb = PropBrowser(self._mmc, self)
-        pb.exec()
-
-    def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._mmc.getOrGuessChannelGroup():
-            with blockSignals(self.tab.snap_channel_comboBox):
-                self.tab.snap_channel_comboBox.setCurrentText(configName)
-
     def _set_enabled(self, enabled):
         if self.objectives_device:
             self.obj.objective_groupBox.setEnabled(enabled)
@@ -165,18 +150,135 @@ class MainWindow(MicroManagerWidget):
         self.mda._set_enabled(enabled)
         self.explorer._set_enabled(enabled)
 
-    def _update_exp(self, exposure: float):
-        self._mmc.setExposure(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
+    def browse_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
+        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
-    def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.tab.exp_spinBox):
-            self.tab.exp_spinBox.setValue(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
+        self._set_enabled(False)
+
+        # clear spinbox/combobox without accidently setting properties
+        boxes = [
+            self.obj.objective_comboBox,
+            self.cam.bin_comboBox,
+            self.cam.bit_comboBox,
+            self.tab.snap_channel_comboBox,
+            self.stages.xy_device_comboBox,
+            self.stages.focus_device_comboBox,
+        ]
+        with blockSignals(boxes):
+            for box in boxes:
+                box.clear()
+
+        self.mda.clear_channel()
+        self.mda.clear_positions()
+        self.explorer.clear_channel()
+
+        self.objectives_device = None
+        self.objectives_cfg = None
+
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
+        self.tab.max_min_val_label.setText("None")
+        self.cfg.load_cfg_Button.setEnabled(True)
+
+    def load_cfg(self):
+        self.cfg.load_cfg_Button.setEnabled(False)
+        print("loading", self.cfg.cfg_LineEdit.text())
+        self._mmc.loadSystemConfiguration(self.cfg.cfg_LineEdit.text())
+
+        self._set_enabled(True)
+
+    def _refresh_options(self):
+        self._refresh_camera_options()
+        self._refresh_objective_options()
+        self._refresh_channel_list()
+        self._refresh_positions()
+        self._refresh_xyz_devices()
+
+    def update_viewer(self, data=None):
+        if data is None:
+            try:
+                data = self._mmc.getLastImage()
+            except (RuntimeError, IndexError):
+                # circular buffer empty
+                return
+        try:
+            preview_layer = self.viewer.layers["preview"]
+            preview_layer.data = data
+        except KeyError:
+            preview_layer = self.viewer.add_image(data, name="preview")
+
+        self.update_max_min()
+
+        if self.streaming_timer is None:
+            self.viewer.reset_view()
+
+    def update_max_min(self, event=None):
+
+        if self.tab.tabWidget.currentIndex() != 0:
+            return
+
+        min_max_txt = ""
+
+        for layer in self.viewer.layers.selection:
+
+            if isinstance(layer, napari.layers.Image) and layer.visible:
+
+                col = layer.colormap.name
+
+                if col not in QColor.colorNames():
+                    col = "gray"
+
+                # min and max of current slice
+                min_max_show = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
+
+        self.tab.max_min_val_label.setText(min_max_txt)
+
+    def snap(self):
+        self.stop_live()
+        try:
+            self._mmc.setConfig(
+                self._mmc.getChannelGroup(),
+                self.tab.snap_channel_comboBox.currentText(),
+            )
+        except ValueError:
+            pass
+        self._mmc.setExposure(self.tab.exp_spinBox.value())
+        self._mmc.snapImage()
+        self.update_viewer(self._mmc.getImage())
+
+    def start_live(self):
+        self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
+        self.streaming_timer = QTimer()
+        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.start(int(self.tab.exp_spinBox.value()))
+        self.tab.live_Button.setText("Stop")
+
+    def stop_live(self):
+        self._mmc.stopSequenceAcquisition()
+        if self.streaming_timer is not None:
+            self.streaming_timer.stop()
+            self.streaming_timer = None
+        self.tab.live_Button.setText("Live")
+        self.tab.live_Button.setIcon(CAM_ICON)
+
+    def toggle_live(self, event=None):
+        if self.streaming_timer is None:
+
+            ch_group = self._mmc.getChannelGroup()
+            if ch_group:
+                self._mmc.setConfig(
+                    ch_group, self.tab.snap_channel_comboBox.currentText()
+                )
+            else:
+                return
+
+            self.start_live()
+            self.tab.live_Button.setIcon(CAM_STOP_ICON)
+        else:
+            self.stop_live()
+            self.tab.live_Button.setIcon(CAM_ICON)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -239,67 +341,72 @@ class MainWindow(MicroManagerWidget):
         # reactivate gui when mda finishes.
         self._set_enabled(True)
 
-    def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
+    # exposure time
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
 
-        self._set_enabled(False)
+    def _on_exp_change(self, camera: str, exposure: float):
+        with blockSignals(self.tab.exp_spinBox):
+            self.tab.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
 
-        # clear spinbox/combobox without accidently setting properties
-        boxes = [
-            self.obj.objective_comboBox,
-            self.cam.bin_comboBox,
-            self.cam.bit_comboBox,
-            self.tab.snap_channel_comboBox,
-            self.stages.xy_device_comboBox,
-            self.stages.focus_device_comboBox,
-        ]
-        with blockSignals(boxes):
-            for box in boxes:
-                box.clear()
+    # illumination
+    def illumination(self):
+        if hasattr(self, "_illumination"):
+            self._illumination.close()
+        self._illumination = IlluminationDialog(self._mmc, self)
+        self._illumination.show()
 
-        self.mda.clear_channel()
-        self.mda.clear_positions()
-        self.explorer.clear_channel()
+    # property browser
+    def _show_prop_browser(self):
+        pb = PropBrowser(self._mmc, self)
+        pb.exec()
 
-        self.objectives_device = None
-        self.objectives_cfg = None
+    # channels
+    def _refresh_channel_list(self):
+        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "⁩", "cfg(*.cfg)")
-        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
-        self.tab.max_min_val_label.setText("None")
-        self.cfg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
-        self.cfg.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg.cfg_LineEdit.text())
-        self._mmc.loadSystemConfiguration(self.cfg.cfg_LineEdit.text())
-
-        self._set_enabled(True)
-
-    def _refresh_camera_options(self):
-        cam_device = self._mmc.getCameraDevice()
-        if not cam_device:
+        if not guessed_channel_list:
             return
-        cam_props = self._mmc.getDevicePropertyNames(cam_device)
-        if "Binning" in cam_props:
-            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            with blockSignals(self.cam.bin_comboBox):
-                self.cam.bin_comboBox.clear()
-                self.cam.bin_comboBox.addItems(bin_opts)
-                self.cam.bin_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "Binning")
-                )
 
-        if "PixelType" in cam_props:
-            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            with blockSignals(self.cam.bit_comboBox):
-                self.cam.bit_comboBox.clear()
-                self.cam.bit_comboBox.addItems(px_t)
-                self.cam.bit_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "PixelType")
-                )
+        if len(guessed_channel_list) == 1:
+            self._set_channel_group(guessed_channel_list[0])
+        else:
+            # if guessed_channel_list has more than 1 possible channel group,
+            # you can select the correct one through a combobox
+            ch = SelectDeviceFromCombobox(
+                guessed_channel_list,
+                "Select Channel Group:",
+                self,
+            )
+            ch.val_changed.connect(self._set_channel_group)
+            ch.show()
 
+    def _set_channel_group(self, guessed_channel: str):
+        channel_group = guessed_channel
+        self._mmc.setChannelGroup(channel_group)
+        channel_list = self._mmc.getAvailableConfigs(channel_group)
+        with blockSignals(self.tab.snap_channel_comboBox):
+            self.tab.snap_channel_comboBox.clear()
+            self.tab.snap_channel_comboBox.addItems(channel_list)
+            self.tab.snap_channel_comboBox.setCurrentText(
+                self._mmc.getCurrentConfig(channel_group)
+            )
+
+    def _on_config_set(self, groupName: str, configName: str):
+        if groupName == self._mmc.getOrGuessChannelGroup():
+            with blockSignals(self.tab.snap_channel_comboBox):
+                self.tab.snap_channel_comboBox.setCurrentText(configName)
+
+    def _channel_changed(self, newChannel: str):
+        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
+
+    # objectives
     def _refresh_objective_options(self):
 
         obj_dev_list = self._mmc.guessObjectiveDevices()
@@ -388,36 +495,37 @@ class MainWindow(MicroManagerWidget):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _refresh_channel_list(self):
-        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
-
-        if not guessed_channel_list:
+    def change_objective(self):
+        if self.obj.objective_comboBox.count() <= 0:
             return
 
-        if len(guessed_channel_list) == 1:
-            self._set_channel_group(guessed_channel_list[0])
-        else:
-            # if guessed_channel_list has more than 1 possible channel group,
-            # you can select the correct one through a combobox
-            ch = SelectDeviceFromCombobox(
-                guessed_channel_list,
-                "Select Channel Group:",
-                self,
-            )
-            ch.val_changed.connect(self._set_channel_group)
-            ch.show()
+        if self.objectives_device == "":
+            return
 
-    def _set_channel_group(self, guessed_channel: str):
-        channel_group = guessed_channel
-        self._mmc.setChannelGroup(channel_group)
-        channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with blockSignals(self.tab.snap_channel_comboBox):
-            self.tab.snap_channel_comboBox.clear()
-            self.tab.snap_channel_comboBox.addItems(channel_list)
-            self.tab.snap_channel_comboBox.setCurrentText(
-                self._mmc.getCurrentConfig(channel_group)
+        zdev = self._mmc.getFocusDevice()
+
+        currentZ = self._mmc.getZPosition()
+        self._mmc.setPosition(zdev, 0)
+        self._mmc.waitForDevice(zdev)
+
+        try:
+            self._mmc.setConfig(
+                self.objectives_cfg, self.obj.objective_comboBox.currentText()
+            )
+        except ValueError:
+            self._mmc.setProperty(
+                self.objectives_device,
+                "Label",
+                self.obj.objective_comboBox.currentText(),
             )
 
+        self._mmc.waitForDevice(self.objectives_device)
+        self._mmc.setPosition(zdev, currentZ)
+        self._mmc.waitForDevice(zdev)
+
+        self._update_pixel_size()
+
+    # stages
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
@@ -460,27 +568,6 @@ class MainWindow(MicroManagerWidget):
         if not self.stages.focus_device_comboBox.count():
             return
         self._mmc.setFocusDevice(self.stages.focus_device_comboBox.currentText())
-
-    def _refresh_options(self):
-        self._refresh_camera_options()
-        self._refresh_objective_options()
-        self._refresh_channel_list()
-        self._refresh_positions()
-        self._refresh_xyz_devices()
-
-    def bit_changed(self):
-        if self.cam.bit_comboBox.count() > 0:
-            bits = self.cam.bit_comboBox.currentText()
-            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
-
-    def bin_changed(self):
-        if self.cam.bin_comboBox.count() > 0:
-            bins = self.cam.bin_comboBox.currentText()
-            cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "Binning", bins)
-
-    def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.stages.x_lineEdit.setText(f"{x:.1f}")
@@ -534,117 +621,37 @@ class MainWindow(MicroManagerWidget):
         if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
-    def change_objective(self):
-        if self.obj.objective_comboBox.count() <= 0:
+    # camera
+    def _refresh_camera_options(self):
+        cam_device = self._mmc.getCameraDevice()
+        if not cam_device:
             return
-
-        if self.objectives_device == "":
-            return
-
-        zdev = self._mmc.getFocusDevice()
-
-        currentZ = self._mmc.getZPosition()
-        self._mmc.setPosition(zdev, 0)
-        self._mmc.waitForDevice(zdev)
-
-        try:
-            self._mmc.setConfig(
-                self.objectives_cfg, self.obj.objective_comboBox.currentText()
-            )
-        except ValueError:
-            self._mmc.setProperty(
-                self.objectives_device,
-                "Label",
-                self.obj.objective_comboBox.currentText(),
-            )
-
-        self._mmc.waitForDevice(self.objectives_device)
-        self._mmc.setPosition(zdev, currentZ)
-        self._mmc.waitForDevice(zdev)
-
-        self._update_pixel_size()
-
-    def update_viewer(self, data=None):
-        if data is None:
-            try:
-                data = self._mmc.getLastImage()
-            except (RuntimeError, IndexError):
-                # circular buffer empty
-                return
-        try:
-            preview_layer = self.viewer.layers["preview"]
-            preview_layer.data = data
-        except KeyError:
-            preview_layer = self.viewer.add_image(data, name="preview")
-
-        self.update_max_min()
-
-        if self.streaming_timer is None:
-            self.viewer.reset_view()
-
-    def update_max_min(self, event=None):
-
-        if self.tab.tabWidget.currentIndex() != 0:
-            return
-
-        min_max_txt = ""
-
-        for layer in self.viewer.layers.selection:
-
-            if isinstance(layer, napari.layers.Image) and layer.visible:
-
-                col = layer.colormap.name
-
-                if col not in QColor.colorNames():
-                    col = "gray"
-
-                # min and max of current slice
-                min_max_show = tuple(layer._calc_data_range(mode="slice"))
-                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
-
-        self.tab.max_min_val_label.setText(min_max_txt)
-
-    def snap(self):
-        self.stop_live()
-        try:
-            self._mmc.setConfig(
-                self._mmc.getChannelGroup(),
-                self.tab.snap_channel_comboBox.currentText(),
-            )
-        except ValueError:
-            pass
-        self._mmc.setExposure(self.tab.exp_spinBox.value())
-        self._mmc.snapImage()
-        self.update_viewer(self._mmc.getImage())
-
-    def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
-        self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.tab.exp_spinBox.value()))
-        self.tab.live_Button.setText("Stop")
-
-    def stop_live(self):
-        self._mmc.stopSequenceAcquisition()
-        if self.streaming_timer is not None:
-            self.streaming_timer.stop()
-            self.streaming_timer = None
-        self.tab.live_Button.setText("Live")
-        self.tab.live_Button.setIcon(CAM_ICON)
-
-    def toggle_live(self, event=None):
-        if self.streaming_timer is None:
-
-            ch_group = self._mmc.getChannelGroup()
-            if ch_group:
-                self._mmc.setConfig(
-                    ch_group, self.tab.snap_channel_comboBox.currentText()
+        cam_props = self._mmc.getDevicePropertyNames(cam_device)
+        if "Binning" in cam_props:
+            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
+            with blockSignals(self.cam.bin_comboBox):
+                self.cam.bin_comboBox.clear()
+                self.cam.bin_comboBox.addItems(bin_opts)
+                self.cam.bin_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "Binning")
                 )
-            else:
-                return
 
-            self.start_live()
-            self.tab.live_Button.setIcon(CAM_STOP_ICON)
-        else:
-            self.stop_live()
-            self.tab.live_Button.setIcon(CAM_ICON)
+        if "PixelType" in cam_props:
+            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
+            with blockSignals(self.cam.bit_comboBox):
+                self.cam.bit_comboBox.clear()
+                self.cam.bit_comboBox.addItems(px_t)
+                self.cam.bit_comboBox.setCurrentText(
+                    self._mmc.getProperty(cam_device, "PixelType")
+                )
+
+    def bit_changed(self):
+        if self.cam.bit_comboBox.count() > 0:
+            bits = self.cam.bit_comboBox.currentText()
+            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
+
+    def bin_changed(self):
+        if self.cam.bin_comboBox.count() > 0:
+            bins = self.cam.bin_comboBox.currentText()
+            cd = self._mmc.getCameraDevice()
+            self._mmc.setProperty(cd, "Binning", bins)
