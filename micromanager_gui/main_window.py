@@ -144,9 +144,13 @@ class MainWindow(MicroManagerWidget):
         if self._mmc.getCameraDevice():
             self.cam.camera_groupBox.setEnabled(enabled)
             self.cam.crop_Button.setEnabled(enabled)
+            self.tab.snap_live_tab.setEnabled(enabled)
+            self.tab.snap_live_tab.setEnabled(enabled)
         else:
             self.cam.camera_groupBox.setEnabled(False)
             self.cam.crop_Button.setEnabled(False)
+            self.tab.snap_live_tab.setEnabled(False)
+            self.tab.snap_live_tab.setEnabled(False)
         if self._mmc.getXYStageDevice():
             self.stages.XY_groupBox.setEnabled(enabled)
         else:
@@ -155,8 +159,6 @@ class MainWindow(MicroManagerWidget):
             self.stages.Z_groupBox.setEnabled(enabled)
         else:
             self.stages.Z_groupBox.setEnabled(False)
-        self.tab.snap_live_tab.setEnabled(enabled)
-        self.tab.snap_live_tab.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
         self.tab.tabWidget.setEnabled(enabled)
 
