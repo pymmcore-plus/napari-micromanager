@@ -266,7 +266,8 @@ class ExploreSample(QtW.QWidget):
         # get current position
         x_pos = float(self._mmc.getXPosition())
         y_pos = float(self._mmc.getYPosition())
-        z_pos = float(self._mmc.getZPosition())
+        if self._mmc.getFocusDevice():
+            z_pos = float(self._mmc.getZPosition())
 
         self.return_to_position_x = x_pos
         self.return_to_position_y = y_pos
@@ -303,7 +304,10 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size_c):
                     if c == 0:
                         y_pos -= increment_y
-                    list_pos_order.append([x_pos, y_pos, z_pos])
+                    if self._mmc.getFocusDevice():
+                        list_pos_order.append([x_pos, y_pos, z_pos])
+                    else:
+                        list_pos_order.append([x_pos, y_pos])
                     if col > 0:
                         col -= 1
                         x_pos -= increment_x
@@ -311,7 +315,10 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size_c):
                     if r > 0 and c == 0:
                         y_pos -= increment_y
-                    list_pos_order.append([x_pos, y_pos, z_pos])
+                    if self._mmc.getFocusDevice():
+                        list_pos_order.append([x_pos, y_pos, z_pos])
+                    else:
+                        list_pos_order.append([x_pos, y_pos])
                     if c < self.scan_size_c - 1:
                         x_pos += increment_x
 
