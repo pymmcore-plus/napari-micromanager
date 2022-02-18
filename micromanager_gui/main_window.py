@@ -251,14 +251,29 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._refresh_camera_options()
 
     def _set_enabled(self, enabled):
-        self.objective_groupBox.setEnabled(enabled)
+        if self.objectives_device:
+            self.objective_groupBox.setEnabled(enabled)
+        else:
+            self.objective_groupBox.setEnabled(False)
+        if self._mmc.getCameraDevice():
+            self.camera_groupBox.setEnabled(enabled)
+            self.crop_Button.setEnabled(enabled)
+            self.snap_live_tab.setEnabled(enabled)
+            self.snap_live_tab.setEnabled(enabled)
+        else:
+            self.camera_groupBox.setEnabled(False)
+            self.crop_Button.setEnabled(False)
+            self.snap_live_tab.setEnabled(False)
+            self.snap_live_tab.setEnabled(False)
+        if self._mmc.getXYStageDevice():
+            self.XY_groupBox.setEnabled(enabled)
+        else:
+            self.XY_groupBox.setEnabled(False)
+        if self._mmc.getFocusDevice():
+            self.Z_groupBox.setEnabled(enabled)
+        else:
+            self.Z_groupBox.setEnabled(False)
         self.illumination_Button.setEnabled(enabled)
-        self.camera_groupBox.setEnabled(enabled)
-        self.XY_groupBox.setEnabled(enabled)
-        self.Z_groupBox.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
-        self.snap_live_tab.setEnabled(enabled)
-        self.crop_Button.setEnabled(enabled)
         self.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
