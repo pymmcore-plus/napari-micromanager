@@ -244,11 +244,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         def _on_prop_changed(dev, prop, val):
             logger.debug(f"prop changed: {dev}.{prop} -> {val}")
 
-            self._change_if_in_table(dev, prop, val)
-
             # Camera gui options -> change gui widgets
             if dev == self._mmc.getCameraDevice():
                 self._refresh_camera_options()
+
+            # self._change_if_in_table(dev, prop, val)
 
     def _set_enabled(self, enabled):
         if self.objectives_device:
@@ -841,19 +841,19 @@ class MainWindow(QtW.QWidget, _MainUI):
                         "dev_prop_val", []
                     ).append(dev_prop_val)
 
-    def _change_if_in_table(self, dev, prop, val):
-        row = self.table.native.rowCount()
-        for r in range(row):
-            _, wdg = self.table.data[r]
-            if not wdg.annotation:
-                continue
-            if dev in wdg.annotation and prop in wdg.annotation:
-                if isinstance(wdg, Slider):
-                    val = int(val)
-                elif isinstance(wdg, FloatSlider):
-                    val = float(val)
-                with blockSignals(wdg.native):
-                    wdg.value = val
+    # def _change_if_in_table(self, dev, prop, val):
+    #     row = self.table.native.rowCount()
+    #     for r in range(row):
+    #         _, wdg = self.table.data[r]
+    #         if not wdg.annotation:
+    #             continue
+    #         if dev in wdg.annotation and prop in wdg.annotation:
+    #             if isinstance(wdg, Slider):
+    #                 val = int(val)
+    #             elif isinstance(wdg, FloatSlider):
+    #                 val = float(val)
+    #             with blockSignals(wdg.native):
+    #                 wdg.value = val
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
@@ -911,7 +911,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             logger.debug(f"{group} group added")
 
         else:
-
             presets = list(self._mmc.getAvailableConfigs(group))
             n_dev_prop_val = self._check_preset_dev_prop_val(group, presets)
             if len(presets) % n_dev_prop_val == 0 or n_dev_prop_val % len(presets) == 0:
