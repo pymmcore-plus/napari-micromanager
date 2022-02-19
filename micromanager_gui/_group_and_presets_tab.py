@@ -109,7 +109,7 @@ class GroupPresetWidget(QtW.QWidget):
 
             group, wdg = self.tb.data[row]
 
-            if isinstance(wdg, WDG_TYPE):
+            if isinstance(wdg, WDG_TYPE) or wdg.annotation:
                 preset = self._mmc.getPropertyFromCache(
                     wdg.annotation[0], wdg.annotation[1]
                 )
@@ -119,7 +119,7 @@ class GroupPresetWidget(QtW.QWidget):
                         val = int(preset)
                     elif isinstance(wdg, FloatSlider):
                         val = float(preset)
-                    elif isinstance(wdg, LineEdit):
+                    else:
                         val = str(preset)
 
                     with blockSignals(wdg.native):
@@ -146,7 +146,10 @@ class GroupPresetWidget(QtW.QWidget):
         if len(presets) > 1:
             wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
-            if count > 1 or self._mmc.getAllowedPropertyValues(dev, prop):
+            if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
+                prs = self._mmc.getAllowedPropertyValues(dev, prop)
+                wdg = ComboBox(choices=prs, name=f"{presets}", annotation=[dev, prop])
+            elif count > 1:  # or self._mmc.getAllowedPropertyValues(dev, prop):
                 wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
@@ -183,7 +186,12 @@ class GroupPresetWidget(QtW.QWidget):
         @wdg.changed.connect
         def _on_change(value: Any):
             if isinstance(wdg, ComboBox):
-                self._mmc.setConfig(group, value)  # -> configSet
+                if None in wdg.choices:
+                    wdg.del_choice(None)  # to remove if _on_configGroupChanged()
+                if wdg.annotation:
+                    self._mmc.setProperty(dev, prop, value)  # -> propertyChanged
+                else:
+                    self._mmc.setConfig(group, value)  # -> configSet
                 self.table_cbox_wdg_changed.emit(value)
             else:
                 if isinstance(wdg, FloatSlider):
@@ -235,13 +243,18 @@ class GroupPresetWidget(QtW.QWidget):
         if not selected_row or len(selected_row) > 1:
             return
 
-        groupname = self.tb.data[selected_row[0], 0]
-        wdg = self.tb.data[selected_row[0], 1]
+        groupname, wdg = self.tb.data[selected_row[0]]
 
         if isinstance(wdg, ComboBox):
-            curr_preset = wdg.value
+            if wdg.annotation:
+                curr_preset = list(self._mmc.getAvailableConfigs(groupname))[0]
+            else:
+                curr_preset = wdg.value
         else:
             curr_preset = wdg.name.translate({ord(c): None for c in "[]'"})
+
+        if not curr_preset:
+            return
 
         item_to_find = self._find_items(groupname, curr_preset)
         item_to_find_list = [x[0] for x in item_to_find]

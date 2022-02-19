@@ -162,6 +162,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets.table_cbox_wdg_changed.connect(
             self._change_objective_main_gui
         )
+        self.groups_and_presets.table_cbox_wdg_changed.connect(self.bit_changed)
+        self.groups_and_presets.table_cbox_wdg_changed.connect(self.bin_changed)
+
         self.groups_and_presets.group_preset_deleted.connect(self._refresh_if_deleted)
 
         # create mda and exporer tab
@@ -182,13 +185,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.systemConfigurationLoaded.connect(self._refresh_options)
+        # sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
+        sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
+        sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_camera_and_exposure_time)
         sig.configSet.connect(self._update_px_size)
+        sig.configGroupChanged.connect(self._on_configGroupChanged)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -211,8 +217,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objective_comboBox.currentTextChanged.connect(
             self._change_objective_main_gui
         )
-        self.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
-        self.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
+        self.bit_comboBox.currentTextChanged.connect(self.bit_changed)
+        self.bin_comboBox.currentTextChanged.connect(self.bin_changed)
         self.snap_channel_comboBox.currentTextChanged.connect(
             self._change_channel_main_gui
         )
@@ -236,27 +242,27 @@ class MainWindow(QtW.QWidget, _MainUI):
         @sig.pixelSizeChanged.connect
         def _on_px_size_changed(value):
             px_cfg = self._mmc.getCurrentPixelSizeConfig()
-            logger.debug(f"pixel config:{px_cfg} -> pixel size: {value}")
+            logger.debug(f"pixel configuration set:{px_cfg} -> pixel size: {value}")
 
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
-            logger.debug(f"config set: {groupName} -> {configName}")
+            logger.debug(f"configuration set: {groupName} -> {configName}")
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
-            logger.debug(f"prop changed: {dev}.{prop} -> {val}")
+            logger.debug(f"device.property changed: {dev}.{prop} -> {val}")
 
-            # self._change_if_in_table(dev, prop, val)
+        # @sig.channelGroupChanged.connect
+        # def _on_channel_group_changed(channel_group: str):
+        #     logger.debug(f"channel_group_changed: {channel_group} group")
+        #     ch = self._mmc.getCurrentConfig(channel_group)
+        #     self._change_channel_main_gui(ch)
 
         @sig.configGroupChanged.connect
         def _on_cfg_group_changed(group: str):
-            print(f"_on_cfg_group_changed: {group}")
+            logger.debug(f"cfg_group_changed: {group} group")
 
     def _set_enabled(self, enabled):
-        if self.objectives_device:
-            self.objective_groupBox.setEnabled(enabled)
-        else:
-            self.objective_groupBox.setEnabled(False)
         if self._mmc.getCameraDevice():
             self.camera_groupBox.setEnabled(enabled)
             self.crop_Button.setEnabled(enabled)
@@ -275,6 +281,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.Z_groupBox.setEnabled(enabled)
         else:
             self.Z_groupBox.setEnabled(False)
+
+        self.objective_groupBox.setEnabled(enabled)
         self.illumination_Button.setEnabled(enabled)
         self.tabWidget.setEnabled(enabled)
 
@@ -321,7 +329,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.load_cfg_Button.setEnabled(False)
         self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
         logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
-        self.groups_and_presets.populate_table()
+        self._refresh_options()
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
         # enable gui
         self._set_enabled(True)
@@ -529,17 +537,15 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getChannelGroup(), newChannel
                 )  # -> configSet
 
-                self._change_channel_cbox_in_table(
-                    self._mmc.getChannelGroup(), newChannel
-                )
+                self._change_cbox_if_in_table(self._mmc.getChannelGroup(), newChannel)
 
-    def _change_channel_cbox_in_table(self, channel_group: str, channel_preset: str):
-        matching_items = self.table.native.findItems(channel_group, Qt.MatchExactly)
+    def _change_cbox_if_in_table(self, group: str, preset: str):
+        matching_items = self.table.native.findItems(group, Qt.MatchExactly)
         row = matching_items[0].row()
         group, wdg = self.table.data[row]
-        if group == channel_group and wdg.get_value() != channel_preset:
+        if group == group and wdg.get_value() != preset:
             with blockSignals(wdg.native):
-                wdg.value = channel_preset
+                wdg.value = preset
 
     def _update_channels_combobox(self):
         # populate gui channel combobox when creating/modifying the channel group
@@ -667,7 +673,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self.objectives_cfg, self.objective_comboBox.currentText()
                 )  # -> configSet
 
-            self._change_objective_cbox_in_table(self.objectives_cfg, objective)
+            self._change_cbox_if_in_table(self.objectives_cfg, objective)
 
         else:
             objective_list = [
@@ -682,16 +688,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 )  # -> propertyChanged
 
         self._update_pixel_size()
-
-    def _change_objective_cbox_in_table(
-        self, objective_group: str, objective_preset: str
-    ):
-        matching_items = self.table.native.findItems(objective_group, Qt.MatchExactly)
-        row = matching_items[0].row()
-        group, wdg = self.table.data[row]
-        if group == objective_group and wdg.get_value() != objective_preset:
-            with blockSignals(wdg.native):
-                wdg.value = objective_preset
 
     def _update_objectives_combobox(self):
         # populate objective combobox when creating/modifying objective group
@@ -708,6 +704,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             if obj_gp_list != obj_cfg_list:
                 self._refresh_objective_options()
+
+    def _on_objective_dev_prop_val_changed(self, dev: str, prop: str, val: str):
+        if dev == self.objectives_device:
+            self._set_objectives(dev)
+            if self.objectives_cfg:
+                current_obj = self._mmc.getCurrentConfig(self.objectives_cfg)
+                self._change_objective_cbox_in_table(self.objectives_cfg, current_obj)
 
     def _update_px_size(self, group: str, preset: str):
         if group == self.objectives_cfg:
@@ -775,6 +778,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self.snap_on_click_z_checkBox.isChecked():
             self.snap()
 
+    def _on_stages_dev_prop_val_changed(self, dev: str, prop: str, val: str):
+        if dev in [self._mmc.getXYStageDevice(), self._mmc.getXYStageDevice()]:
+            self._refresh_positions()
+
     # camera
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
@@ -799,16 +806,63 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
-    def bit_changed(self):
-        if self.bit_comboBox.count() > 0:
-            bits = self.bit_comboBox.currentText()
-            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
+    def bit_changed(self, value: str):
 
-    def bin_changed(self):
-        if self.bin_comboBox.count() > 0:
-            bins = self.bin_comboBox.currentText()
+        if self.bit_comboBox.count() <= 0:
+            return
+
+        items = [
+            self.bit_comboBox.itemText(i) for i in range(self.bit_comboBox.count())
+        ]
+
+        if value not in items:
+            return
+
+        bits = self.bit_comboBox.currentText()
+
+        if value != bits:
+            with blockSignals(self.bit_comboBox):
+                self.bit_comboBox.setCurrentText(value)
+        else:
             cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "Binning", bins)
+            self._mmc.setProperty(cd, "PixelType", bits)  # -> propertyChanged
+
+        self._change_if_in_table(value, items)
+
+    def bin_changed(self, value: str):
+        if self.bin_comboBox.count() <= 0:
+            return
+
+        items = [
+            self.bin_comboBox.itemText(i) for i in range(self.bin_comboBox.count())
+        ]
+
+        if value not in items:
+            return
+
+        bins = self.bin_comboBox.currentText()
+
+        if value != bins:
+            with blockSignals(self.bin_comboBox):
+                self.bin_comboBox.setCurrentText(value)
+        else:
+            cd = self._mmc.getCameraDevice()
+            self._mmc.setProperty(cd, "Binning", bins)  # -> propertyChanged
+
+        self._change_if_in_table(value, items)
+
+    def _change_if_in_table(self, value: str, items: list):
+        for row in range(self.table.shape[0]):
+            _, wdg = self.table.data[row]
+            if set(wdg.choices) != set(items):
+                continue
+            print(set(wdg.choices), set(items))
+            print(set(wdg.choices) == set(items))
+            print(value, wdg.value)
+            if value != wdg.value:
+                with blockSignals(wdg.native):
+                    wdg.value = value
+                    print("new:", wdg.value)
 
     def _update_camera_and_exposure_time(self, dev: str, prop: str, val: str):
         if dev == self._mmc.getCameraDevice():
@@ -816,8 +870,12 @@ class MainWindow(QtW.QWidget, _MainUI):
             if prop in {"Binning", "PixelType"}:
                 self._refresh_camera_options()
             # change exposure spinbox
-            if self.exp_spinBox.value() != float(val):
-                self.exp_spinBox.setValue(float(val))
+            try:
+                if self.exp_spinBox.value() != float(val):
+                    self.exp_spinBox.setValue(float(val))
+            except ValueError:
+                # if val cannot be converted to float
+                pass
 
     # exposure time
     def _update_exp(self, exposure: float):
@@ -846,15 +904,53 @@ class MainWindow(QtW.QWidget, _MainUI):
                 dc.setdefault(group, {}).setdefault(wdg.name, {}).setdefault(
                     "dev_prop_val", []
                 ).append((wdg.annotation[0], wdg.annotation[1], wdg.annotation[2]))
+
             else:
-                for p in wdg.choices:
+
+                if None in wdg.choices:
+                    wdg.del_choice(None)  # to remove if _on_configGroupChanged()
+
+                try:
+                    for p in wdg.choices:
+                        dev_prop_val = [
+                            (key[0], key[1], key[2])
+                            for key in self._mmc.getConfigData(group, p)
+                        ]
+
+                        dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
+                            "dev_prop_val", []
+                        ).append(dev_prop_val)
+                except ValueError:
+                    p = list(self._mmc.getAvailableConfigs(group))
                     dev_prop_val = [
                         (key[0], key[1], key[2])
-                        for key in self._mmc.getConfigData(group, p)
+                        for key in self._mmc.getConfigData(group, p[0])
                     ]
                     dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
                         "dev_prop_val", []
                     ).append(dev_prop_val)
+
+    def _on_configGroupChanged(self, group: str):
+        pass
+        # print('group', group)
+        # print('ConfigFromCache() ->', self._mmc.getCurrentConfigFromCache(group))
+        # if self._mmc.getCurrentConfigFromCache(group):
+        #     print('             return')
+        #     return
+        # print('             none')
+        # matching_item = self.table.native.findItems(group, Qt.MatchExactly)
+        # row = matching_item[0].row()
+        # _, wdg = self.table.data[row]
+        # if isinstance(wdg, WDG_TYPE) or wdg.annotation:
+        #     print(wdg)
+        # else:
+        #     if None not in wdg.choices:
+        #         wdg.native.addItem("")
+        #     print('choices:', wdg.choices)
+        #     with blockSignals(wdg.native):
+        #         wdg.value = None
+        #         print('wdg.value:', wdg.value)
+        # print("____________")
 
     # def _change_if_in_table(self, dev, prop, val):
     #     row = self.table.native.rowCount()
@@ -993,7 +1089,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _update_group_preset_table_edit(self, group: str, preset: str):
         logger.debug(f"[edit] signal recived: {group}, {preset}")
-
         dev_prop_val_new = [
             (key[0], key[1], key[2]) for key in self._mmc.getConfigData(group, preset)
         ]
@@ -1042,9 +1137,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             prop = i[1]
             val = i[2]
             self._mmc.defineConfig(group, p, dev, prop, val)
-        self._create_and_add_widget(group, p, preset)
+        self._create_and_add_widget(group, preset)
 
-    def _create_and_add_widget(self, group, preset, current_preset):
+    def _create_and_add_widget(self, group, current_preset):
         wdg_items = self._mmc.getAvailableConfigs(group)
         new_wdg = self.groups_and_presets._set_widget(group, wdg_items)
         matching_items = self.table.native.findItems(group, Qt.MatchExactly)
@@ -1053,6 +1148,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.table.native.removeCellWidget(row, 1)
             self.table.native.setCellWidget(row, 1, new_wdg.native)
             new_wdg.value = current_preset
+            print("current_preset", current_preset)
 
     def _open_rename_widget(self):
         self._rw = RenameGroupPreset(self)
