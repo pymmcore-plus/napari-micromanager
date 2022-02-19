@@ -176,10 +176,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _set_enabled(self, enabled):
-        if self.objectives_device:
-            self.objective_groupBox.setEnabled(enabled)
-        else:
-            self.objective_groupBox.setEnabled(False)
         if self._mmc.getCameraDevice():
             self.camera_groupBox.setEnabled(enabled)
             self.crop_Button.setEnabled(enabled)
@@ -198,6 +194,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.Z_groupBox.setEnabled(enabled)
         else:
             self.Z_groupBox.setEnabled(False)
+        
+        self.objective_groupBox.setEnabled(enabled)
         self.illumination_Button.setEnabled(enabled)
         self.tabWidget.setEnabled(enabled)
 
