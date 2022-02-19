@@ -5,7 +5,7 @@ from qtpy.QtWidgets import QDialog, QVBoxLayout
 
 from .prop_browser import get_editor_widget, iter_dev_props
 
-LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # for testing
+LIGHT_LIST = re.compile("(Intensity|Power|test)s?", re.IGNORECASE)  # test for testing
 
 
 class IlluminationDialog(QDialog):

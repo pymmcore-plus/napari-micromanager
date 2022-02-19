@@ -156,8 +156,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._save_cfg
         )  # save group/preset .cfg
         # connect signals from groups and presets tab
-        self.groups_and_presets.table_wdg_changed.connect(self._change_channel_main_gui)
-        self.groups_and_presets.table_wdg_changed.connect(
+        self.groups_and_presets.table_cbox_wdg_changed.connect(
+            self._change_channel_main_gui
+        )
+        self.groups_and_presets.table_cbox_wdg_changed.connect(
             self._change_objective_main_gui
         )
         self.groups_and_presets.group_preset_deleted.connect(self._refresh_if_deleted)
@@ -185,6 +187,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
+        sig.propertyChanged.connect(self._update_camera_and_exposure_time)
+        sig.configSet.connect(self._update_px_size)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -237,18 +241,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
             logger.debug(f"config set: {groupName} -> {configName}")
-            if groupName == self.objectives_cfg:
-                self._update_pixel_size()
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
             logger.debug(f"prop changed: {dev}.{prop} -> {val}")
 
-            # Camera gui options -> change gui widgets
-            if dev == self._mmc.getCameraDevice():
-                self._refresh_camera_options()
-
             # self._change_if_in_table(dev, prop, val)
+
+        @sig.configGroupChanged.connect
+        def _on_cfg_group_changed(group: str):
+            print(f"_on_cfg_group_changed: {group}")
 
     def _set_enabled(self, enabled):
         if self.objectives_device:
@@ -283,15 +285,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.explorer._set_enabled(False)
 
     def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
+        current_cgf = self.cfg_LineEdit.text()
 
-        # disable gui
-        self._set_enabled(False)
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        self.cfg_LineEdit.setText(str(file_dir[0]))
+        self.max_min_val_label.setText("None")
+        self.load_cfg_Button.setEnabled(True)
 
-        with blockSignals(self.table.native):
-            self.table.native.clearContents()
-            self.table.native.setRowCount(0)
+        if not self.cfg_LineEdit.text():
+            self.cfg_LineEdit.setText(current_cgf)
+            self.load_cfg_Button.setEnabled(False)
 
+    def load_cfg(self):
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.objective_comboBox,
@@ -310,12 +315,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_min_val_label.setText("None")
-        self.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
         # disable gui
         self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
@@ -323,7 +323,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
         self.groups_and_presets.populate_table()
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
-
         # enable gui
         self._set_enabled(True)
 
@@ -470,20 +469,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
-
-    # exposure time
-    def _update_exp(self, exposure: float):
-        self._mmc.setExposure(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.exp_spinBox):
-            self.exp_spinBox.setValue(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
 
     # illumination
     def illumination(self):
@@ -724,6 +709,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             if obj_gp_list != obj_cfg_list:
                 self._refresh_objective_options()
 
+    def _update_px_size(self, group: str, preset: str):
+        if group == self.objectives_cfg:
+            self._update_pixel_size()
+
     # stages
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
@@ -820,6 +809,29 @@ class MainWindow(QtW.QWidget, _MainUI):
             bins = self.bin_comboBox.currentText()
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)
+
+    def _update_camera_and_exposure_time(self, dev: str, prop: str, val: str):
+        if dev == self._mmc.getCameraDevice():
+            # change camera gui widgets
+            if prop in {"Binning", "PixelType"}:
+                self._refresh_camera_options()
+            # change exposure spinbox
+            if self.exp_spinBox.value() != float(val):
+                self.exp_spinBox.setValue(float(val))
+
+    # exposure time
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
+    def _on_exp_change(self, camera: str, exposure: float):
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
 
     # groups and presets
     def _get_dict_group_presets_table_data(self, dc: dict):
