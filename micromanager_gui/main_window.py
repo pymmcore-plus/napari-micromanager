@@ -185,16 +185,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        # sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-        sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
-        sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
-        sig.propertyChanged.connect(self._update_camera_and_exposure_time)
         sig.configSet.connect(self._update_px_size)
         sig.configGroupChanged.connect(self._on_configGroupChanged)
+        sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
+        sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
+        sig.propertyChanged.connect(self._update_camera_props)
+        sig.propertyChanged.connect(self._update_exp_time_val)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -710,7 +710,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._set_objectives(dev)
             if self.objectives_cfg:
                 current_obj = self._mmc.getCurrentConfig(self.objectives_cfg)
-                self._change_objective_cbox_in_table(self.objectives_cfg, current_obj)
+                self._change_cbox_if_in_table(self.objectives_cfg, current_obj)
 
     def _update_px_size(self, group: str, preset: str):
         if group == self.objectives_cfg:
@@ -779,7 +779,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.snap()
 
     def _on_stages_dev_prop_val_changed(self, dev: str, prop: str, val: str):
-        if dev in [self._mmc.getXYStageDevice(), self._mmc.getXYStageDevice()]:
+        if dev in [self._mmc.getXYStageDevice(), self._mmc.getFocusDevice()]:
             self._refresh_positions()
 
     # camera
@@ -827,7 +827,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "PixelType", bits)  # -> propertyChanged
 
-        self._change_if_in_table(value, items)
+        self._change_item_if_in_table(value, items)
 
     def bin_changed(self, value: str):
         if self.bin_comboBox.count() <= 0:
@@ -849,9 +849,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             cd = self._mmc.getCameraDevice()
             self._mmc.setProperty(cd, "Binning", bins)  # -> propertyChanged
 
-        self._change_if_in_table(value, items)
+        self._change_item_if_in_table(value, items)
 
-    def _change_if_in_table(self, value: str, items: list):
+    def _change_item_if_in_table(self, value: str, items: list):
         for row in range(self.table.shape[0]):
             _, wdg = self.table.data[row]
             if set(wdg.choices) != set(items):
@@ -864,18 +864,9 @@ class MainWindow(QtW.QWidget, _MainUI):
                     wdg.value = value
                     print("new:", wdg.value)
 
-    def _update_camera_and_exposure_time(self, dev: str, prop: str, val: str):
-        if dev == self._mmc.getCameraDevice():
-            # change camera gui widgets
-            if prop in {"Binning", "PixelType"}:
-                self._refresh_camera_options()
-            # change exposure spinbox
-            try:
-                if self.exp_spinBox.value() != float(val):
-                    self.exp_spinBox.setValue(float(val))
-            except ValueError:
-                # if val cannot be converted to float
-                pass
+    def _update_camera_props(self, dev: str, prop: str, val: str):
+        if dev == self._mmc.getCameraDevice() and prop in {"Binning", "PixelType"}:
+            self._refresh_camera_options()
 
     # exposure time
     def _update_exp(self, exposure: float):
@@ -890,6 +881,16 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
+
+    def _update_exp_time_val(self, dev: str, prop: str, val: str):
+        if dev == self._mmc.getCameraDevice():
+            # change exposure spinbox
+            try:
+                if self.exp_spinBox.value() != float(val):
+                    self.exp_spinBox.setValue(float(val))
+            except ValueError:
+                # if val cannot be converted to float
+                pass
 
     # groups and presets
     def _get_dict_group_presets_table_data(self, dc: dict):
