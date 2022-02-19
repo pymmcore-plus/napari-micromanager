@@ -194,7 +194,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.Z_groupBox.setEnabled(enabled)
         else:
             self.Z_groupBox.setEnabled(False)
-        
+
         self.objective_groupBox.setEnabled(enabled)
         self.illumination_Button.setEnabled(enabled)
         self.tabWidget.setEnabled(enabled)
