@@ -92,6 +92,9 @@ def test_add_group_with_sliders(main_window: MainWindow):
     create_wdg.create_btn.native.click()
 
     assert mm_table.native.rowCount() == 6
+    gp, wdg = mm_table.data[5]
+    assert gp == "Test"
+    assert type(wdg) == FloatSlider
 
     assert "Test" in main_window._mmc.getAvailableConfigGroups()
 

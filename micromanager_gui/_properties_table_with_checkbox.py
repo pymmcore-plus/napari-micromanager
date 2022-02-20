@@ -256,8 +256,11 @@ class GroupConfigurations(QDialog):
         group_name = self.group_le.value
         preset_name = self.preset_le.value
 
-        if not group_name or not preset_name:
+        if not group_name:
             return
+        if not preset_name:
+            preset_name = "None"
+
         if not self.pt.table_index_list:
             return
 

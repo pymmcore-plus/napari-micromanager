@@ -23,12 +23,8 @@ def main_window(qtbot, request):
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote", log=False)
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
-    win._mmc.loadSystemConfiguration(config_path)
-    win._set_enabled(True)
-
-    # fixture for group_and_preset tests -> works only if local
-    win.groups_and_presets.populate_table()
-    win._get_dict_group_presets_table_data(win.dict_group_presets_table)
+    win.cfg_LineEdit.setText(config_path)
+    win.load_cfg()
     win._rw = RenameGroupPreset()
 
     try:

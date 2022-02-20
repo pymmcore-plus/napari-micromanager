@@ -17,7 +17,7 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
 from ._group_and_presets_tab import GroupPresetWidget, RenameGroupPreset
-from ._illumination import LIGHT_LIST, IlluminationDialog
+from ._illumination import IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
 from ._util import (
@@ -194,10 +194,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.configSet.connect(self._update_px_size)
         sig.configGroupChanged.connect(self._on_configGroupChanged)
         sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
-        sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_camera_props)
         sig.propertyChanged.connect(self._update_exp_time_val)
-        sig.propertyChanged.connect(self._change_ill_if_in_table)
+        sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
+        sig.propertyChanged.connect(self._change_if_in_table)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -263,11 +263,9 @@ class MainWindow(QtW.QWidget, _MainUI):
         def log_exp_changed(camera: str, exposure: float):
             logger.debug(f"{camera} exposure changed to {exposure} ms")
 
-        # @sig.channelGroupChanged.connect
-        # def _on_channel_group_changed(channel_group: str):
-        #     logger.debug(f"channel_group_changed: {channel_group} group")
-        #     ch = self._mmc.getCurrentConfig(channel_group)
-        #     self._change_channel_main_gui(ch)
+        @sig.channelGroupChanged.connect
+        def _on_channel_group_changed(channel_group: str):
+            logger.debug(f"channel_group_changed. new channel group: {channel_group}")
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
@@ -492,21 +490,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._illumination = IlluminationDialog(self._mmc, self)
         # self._illumination.show()
         self._illumination.exec()
-
-    def _change_ill_if_in_table(self, dev: str, prop: str, val):
-        if LIGHT_LIST.search(prop) and self._mmc.hasPropertyLimits(dev, prop):
-            for row in range(self.table.shape[0]):
-                _, wdg = self.table.data[row]
-                if not wdg.annotation:
-                    continue
-                if dev != wdg.annotation[0]:
-                    continue
-                val = float(val)
-                if prop == wdg.annotation[1] and "{:.2f}".format(
-                    wdg.value
-                ) != "{:.2f}".format(val):
-                    with blockSignals(wdg.native):
-                        wdg.value = float(val)
 
     # property browser
     def _show_prop_browser(self):
@@ -877,6 +860,8 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _change_item_if_in_table(self, value: str, items: list):
         for row in range(self.table.shape[0]):
             _, wdg = self.table.data[row]
+            if not isinstance(wdg, ComboBox):
+                continue
             if set(wdg.choices) != set(items):
                 continue
             if value != wdg.value:
@@ -906,7 +891,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             return
         for prp in exp_prop:
             # change exposure if in table
-            self._change_exp_if_in_table(camera, prp, exposure)
+            self._change_if_in_table(camera, prp, exposure)
 
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
@@ -921,23 +906,10 @@ class MainWindow(QtW.QWidget, _MainUI):
                     with blockSignals(self.exp_spinBox):
                         self.exp_spinBox.setValue(float(val))
                     # change exposure if in table
-                    self._change_exp_if_in_table(dev, prop, float(val))
+                    self._change_if_in_table(dev, prop, val)
             except ValueError:
                 # if val cannot be converted to float
                 pass
-
-    def _change_exp_if_in_table(self, dev: str, prop: str, val: float):
-        for row in range(self.table.shape[0]):
-            _, wdg = self.table.data[row]
-            if not wdg.annotation:
-                continue
-            if dev != wdg.annotation[0]:
-                continue
-            if prop == wdg.annotation[1] and "{:.2f}".format(
-                wdg.value
-            ) != "{:.2f}".format(val):
-                with blockSignals(wdg.native):
-                    wdg.value = float(val)
 
     # groups and presets
     def _get_dict_group_presets_table_data(self, dc: dict):
@@ -979,41 +951,24 @@ class MainWindow(QtW.QWidget, _MainUI):
                         "dev_prop_val", []
                     ).append(dev_prop_val)
 
-    def _on_configGroupChanged(self, group: str):
-        pass
-        # print('group', group)
-        # print('ConfigFromCache() ->', self._mmc.getCurrentConfigFromCache(group))
-        # if self._mmc.getCurrentConfigFromCache(group):
-        #     print('             return')
-        #     return
-        # print('             none')
-        # matching_item = self.table.native.findItems(group, Qt.MatchExactly)
-        # row = matching_item[0].row()
-        # _, wdg = self.table.data[row]
-        # if isinstance(wdg, WDG_TYPE) or wdg.annotation:
-        #     print(wdg)
-        # else:
-        #     if None not in wdg.choices:
-        #         wdg.native.addItem("")
-        #     print('choices:', wdg.choices)
-        #     with blockSignals(wdg.native):
-        #         wdg.value = None
-        #         print('wdg.value:', wdg.value)
-        # print("____________")
-
-    # def _change_if_in_table(self, dev, prop, val):
-    #     row = self.table.native.rowCount()
-    #     for r in range(row):
-    #         _, wdg = self.table.data[r]
-    #         if not wdg.annotation:
-    #             continue
-    #         if dev in wdg.annotation and prop in wdg.annotation:
-    #             if isinstance(wdg, Slider):
-    #                 val = int(val)
-    #             elif isinstance(wdg, FloatSlider):
-    #                 val = float(val)
-    #             with blockSignals(wdg.native):
-    #                 wdg.value = val
+    def _change_if_in_table(self, dev, prop, val):
+        row = self.table.native.rowCount()
+        for r in range(row):
+            _, wdg = self.table.data[r]
+            if not wdg:
+                continue
+            if not wdg.annotation:
+                continue
+            if dev != wdg.annotation[0]:
+                continue
+            if prop == wdg.annotation[1]:
+                if isinstance(wdg, Slider):
+                    val = int(val)
+                elif isinstance(wdg, FloatSlider):
+                    val = float(val)
+                if val != wdg.value:
+                    with blockSignals(wdg.native):
+                        wdg.value = val
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
