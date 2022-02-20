@@ -189,7 +189,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
         sig.configSet.connect(self._update_px_size)
-        sig.configGroupChanged.connect(self._on_configGroupChanged)
         sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_camera_props)
         sig.propertyChanged.connect(self._update_exp_time_val)
