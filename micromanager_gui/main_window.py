@@ -84,9 +84,6 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
-        # set some defaults
-        self.cfg_LineEdit.setText("MMConfig_demo.cfg")
-
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -124,9 +121,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 "`python -m pymmcore_plus.install` or install manually and set "
                 "MICROMANAGER_PATH."
             )
-
-        # set default config path
-        self.cfg_LineEdit.setText(str(Path(adapter_path) / "MMConfig_demo.cfg"))
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
@@ -306,8 +300,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def load_cfg(self):
         self.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg_LineEdit.text())
-        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        cfg = self.cfg_LineEdit.text()
+        if cfg == "":
+            cfg = "MMConfig_demo.cfg"
+        self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
