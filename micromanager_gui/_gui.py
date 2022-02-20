@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from qtpy import QtWidgets as QtW
 
 from ._gui_objects._camera_widget import MMCameraWidget
@@ -10,9 +8,6 @@ from ._gui_objects._mm_configuration_widget import MMConfigurationWidget
 from ._gui_objects._objective_widget import MMObjectivesWidget
 from ._gui_objects._tab_widget import MMTabWidget
 from ._gui_objects._xyz_stages import MMStagesWidget
-
-TEST_CFG = Path(__file__).parent.parent / "tests" / "test_config.cfg"
-print(TEST_CFG)
 
 
 class MicroManagerWidget(QtW.QWidget):
@@ -42,8 +37,6 @@ class MicroManagerWidget(QtW.QWidget):
 
         # set main_layout layout
         self.setLayout(self.main_layout)
-
-        self.mm_configuration.cfg_LineEdit.setText(str(TEST_CFG))
 
     def add_mm_objectives_illumination_camera_widget(self):
 

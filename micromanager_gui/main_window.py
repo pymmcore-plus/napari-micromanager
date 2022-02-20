@@ -186,9 +186,11 @@ class MainWindow(MicroManagerWidget):
 
     def load_cfg(self):
         self.cfg.load_cfg_Button.setEnabled(False)
-        print("loading", self.cfg.cfg_LineEdit.text())
-        self._mmc.loadSystemConfiguration(self.cfg.cfg_LineEdit.text())
-
+        cfg = self.cfg.cfg_LineEdit.text()
+        if cfg == "":
+            cfg = "MMConfig_demo.cfg"
+            self.cfg.cfg_LineEdit.setText(cfg)
+        self._mmc.loadSystemConfiguration(cfg)
         self._set_enabled(True)
 
     def _refresh_options(self):
