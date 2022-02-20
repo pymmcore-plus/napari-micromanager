@@ -89,9 +89,6 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
-        # set some defaults
-        self.cfg_LineEdit.setText("demo")
-
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -332,7 +329,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         # disable gui
         self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
-        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+        cfg = self.cfg_LineEdit.text()
+        if cfg == "":
+            cfg = "MMConfig_demo.cfg"
+        self._mmc.loadSystemConfiguration(cfg)
         logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
         self._refresh_options()
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
