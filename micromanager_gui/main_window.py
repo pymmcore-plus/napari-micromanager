@@ -883,9 +883,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         with blockSignals(self.exp_spinBox):
             self.exp_spinBox.setValue(exposure)
 
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-
         props = self._mmc.getDevicePropertyNames(camera)
         exp_prop = [p for p in props if self.EXP.search(p)]
         if not exp_prop:
@@ -893,6 +890,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         for prp in exp_prop:
             # change exposure if in table
             self._change_exp_if_in_table(camera, prp, exposure)
+
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _update_exp_time_val(self, dev: str, prop: str, val: str):
         # change exposure spinbox
