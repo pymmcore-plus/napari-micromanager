@@ -122,10 +122,6 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _set_enabled(self, enabled):
-        if self.objectives_device:
-            self.obj.objective_groupBox.setEnabled(enabled)
-        else:
-            self.obj.objective_groupBox.setEnabled(False)
         if self._mmc.getCameraDevice():
             self.cam.camera_groupBox.setEnabled(enabled)
             self.cam.crop_Button.setEnabled(enabled)
@@ -136,14 +132,18 @@ class MainWindow(MicroManagerWidget):
             self.cam.crop_Button.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
+
         if self._mmc.getXYStageDevice():
             self.stages.XY_groupBox.setEnabled(enabled)
         else:
             self.stages.XY_groupBox.setEnabled(False)
+
         if self._mmc.getFocusDevice():
             self.stages.Z_groupBox.setEnabled(enabled)
         else:
             self.stages.Z_groupBox.setEnabled(False)
+
+        self.obj.objective_groupBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
         self.tab.tabWidget.setEnabled(enabled)
 
@@ -191,6 +191,7 @@ class MainWindow(MicroManagerWidget):
             cfg = "MMConfig_demo.cfg"
             self.cfg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
+        self._refresh_options()
         self._set_enabled(True)
 
     def _refresh_options(self):
