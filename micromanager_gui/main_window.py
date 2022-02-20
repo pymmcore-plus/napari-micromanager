@@ -131,10 +131,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
 
-        self.cfg_LineEdit.setText(
-            str(Path(__file__).parent.parent / "tests" / "test_config.cfg")
-        )
-
         # tab widgets
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc, self)
@@ -331,6 +327,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         cfg = self.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
+            self.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
         logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
         self._refresh_options()
