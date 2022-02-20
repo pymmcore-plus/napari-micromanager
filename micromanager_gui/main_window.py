@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -85,6 +84,9 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
+        # set some defaults
+        self.cfg_LineEdit.setText("MMConfig_demo.cfg")
+
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -102,9 +104,7 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(
-        self, viewer: napari.viewer.Viewer, remote=bool(os.getenv("MM_REMOTE"))
-    ):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
         super().__init__()
         self.setup_ui()
 
@@ -115,8 +115,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
-        _v = bool(os.getenv("MM_VERBOSE"))
-        self._mmc = RemoteMMCore(verbose=_v) if remote else CMMCorePlus()
+        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         adapter_path = find_micromanager()
         if not adapter_path:
