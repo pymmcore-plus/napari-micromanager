@@ -17,7 +17,7 @@ from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
 from ._group_and_presets_tab import GroupPresetWidget, RenameGroupPreset
-from ._illumination import IlluminationDialog
+from ._illumination import LIGHT_LIST, IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
 from ._util import (
@@ -197,6 +197,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_camera_props)
         sig.propertyChanged.connect(self._update_exp_time_val)
+        sig.propertyChanged.connect(self._change_ill_if_in_table)
 
         # connect buttons
         self.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -489,7 +490,23 @@ class MainWindow(QtW.QWidget, _MainUI):
         if hasattr(self, "_illumination"):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
-        self._illumination.show()
+        # self._illumination.show()
+        self._illumination.exec()
+
+    def _change_ill_if_in_table(self, dev: str, prop: str, val):
+        if LIGHT_LIST.search(prop) and self._mmc.hasPropertyLimits(dev, prop):
+            for row in range(self.table.shape[0]):
+                _, wdg = self.table.data[row]
+                if not wdg.annotation:
+                    continue
+                if dev != wdg.annotation[0]:
+                    continue
+                val = float(val)
+                if prop == wdg.annotation[1] and "{:.2f}".format(
+                    wdg.value
+                ) != "{:.2f}".format(val):
+                    with blockSignals(wdg.native):
+                        wdg.value = float(val)
 
     # property browser
     def _show_prop_browser(self):
