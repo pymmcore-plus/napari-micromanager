@@ -129,6 +129,8 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.dict_group_presets_table = {}
 
+        self.EXP = re.compile("(Exp(osure)?)s?", re.IGNORECASE)
+
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
 
@@ -252,15 +254,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         def _on_prop_changed(dev, prop, val):
             logger.debug(f"device.property changed: {dev}.{prop} -> {val}")
 
+        @sig.configGroupChanged.connect
+        def _on_cfg_group_changed(group: str):
+            logger.debug(f"cfg_group_changed: {group} group")
+
+        @sig.exposureChanged.connect
+        def log_exp_changed(camera: str, exposure: float):
+            logger.debug(f"{camera} exposure changed to {exposure} ms")
+
         # @sig.channelGroupChanged.connect
         # def _on_channel_group_changed(channel_group: str):
         #     logger.debug(f"channel_group_changed: {channel_group} group")
         #     ch = self._mmc.getCurrentConfig(channel_group)
         #     self._change_channel_main_gui(ch)
-
-        @sig.configGroupChanged.connect
-        def _on_cfg_group_changed(group: str):
-            logger.debug(f"cfg_group_changed: {group} group")
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
@@ -856,13 +862,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             _, wdg = self.table.data[row]
             if set(wdg.choices) != set(items):
                 continue
-            print(set(wdg.choices), set(items))
-            print(set(wdg.choices) == set(items))
-            print(value, wdg.value)
             if value != wdg.value:
                 with blockSignals(wdg.native):
                     wdg.value = value
-                    print("new:", wdg.value)
 
     def _update_camera_props(self, dev: str, prop: str, val: str):
         if dev == self._mmc.getCameraDevice() and prop in {"Binning", "PixelType"}:
@@ -877,20 +879,46 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
+        # change exposure spinbox
         with blockSignals(self.exp_spinBox):
             self.exp_spinBox.setValue(exposure)
+
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
 
+        props = self._mmc.getDevicePropertyNames(camera)
+        exp_prop = [p for p in props if self.EXP.search(p)]
+        if not exp_prop:
+            return
+        for prp in exp_prop:
+            # change exposure if in table
+            self._change_exp_if_in_table(camera, prp, exposure)
+
     def _update_exp_time_val(self, dev: str, prop: str, val: str):
-        if dev == self._mmc.getCameraDevice():
-            # change exposure spinbox
+        # change exposure spinbox
+        if dev == self._mmc.getCameraDevice() and self.EXP.search(prop):
             try:
                 if self.exp_spinBox.value() != float(val):
-                    self.exp_spinBox.setValue(float(val))
+                    with blockSignals(self.exp_spinBox):
+                        self.exp_spinBox.setValue(float(val))
+                    # change exposure if in table
+                    self._change_exp_if_in_table(dev, prop, float(val))
             except ValueError:
                 # if val cannot be converted to float
                 pass
+
+    def _change_exp_if_in_table(self, dev: str, prop: str, val: float):
+        for row in range(self.table.shape[0]):
+            _, wdg = self.table.data[row]
+            if not wdg.annotation:
+                continue
+            if dev != wdg.annotation[0]:
+                continue
+            if prop == wdg.annotation[1] and "{:.2f}".format(
+                wdg.value
+            ) != "{:.2f}".format(val):
+                with blockSignals(wdg.native):
+                    wdg.value = float(val)
 
     # groups and presets
     def _get_dict_group_presets_table_data(self, dc: dict):
@@ -921,6 +949,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                         dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
                             "dev_prop_val", []
                         ).append(dev_prop_val)
+
                 except ValueError:
                     p = list(self._mmc.getAvailableConfigs(group))
                     dev_prop_val = [
@@ -1149,7 +1178,6 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.table.native.removeCellWidget(row, 1)
             self.table.native.setCellWidget(row, 1, new_wdg.native)
             new_wdg.value = current_preset
-            print("current_preset", current_preset)
 
     def _open_rename_widget(self):
         self._rw = RenameGroupPreset(self)
