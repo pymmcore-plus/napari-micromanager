@@ -100,7 +100,7 @@ class _MainUI:
 
 
 class MainWindow(QtW.QWidget, _MainUI):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
         super().__init__()
         self.setup_ui()
 
@@ -111,7 +111,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_cfg = None
 
         # create connection to mmcore server or process-local variant
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+        self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
