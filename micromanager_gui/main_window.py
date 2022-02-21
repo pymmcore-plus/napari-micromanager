@@ -542,10 +542,12 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._change_cbox_if_in_table(self._mmc.getChannelGroup(), newChannel)
 
     def _change_cbox_if_in_table(self, group: str, preset: str):
+        if not group or not preset:
+            return
         matching_items = self.table.native.findItems(group, Qt.MatchExactly)
         row = matching_items[0].row()
-        group, wdg = self.table.data[row]
-        if group == group and wdg.get_value() != preset:
+        gp, wdg = self.table.data[row]
+        if group == gp and wdg.value != preset:
             with blockSignals(wdg.native):
                 wdg.value = preset
 
@@ -854,6 +856,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._change_item_if_in_table(value, items)
 
     def _change_item_if_in_table(self, value: str, items: list):
+        if not value or not items:
+            return
         for row in range(self.table.shape[0]):
             _, wdg = self.table.data[row]
             if not isinstance(wdg, ComboBox):
@@ -948,6 +952,8 @@ class MainWindow(QtW.QWidget, _MainUI):
                     ).append(dev_prop_val)
 
     def _change_if_in_table(self, dev, prop, val):
+        if not dev or not prop or not val:
+            return
         row = self.table.native.rowCount()
         for r in range(row):
             _, wdg = self.table.data[r]

@@ -94,6 +94,8 @@ class GroupPresetWidget(QtW.QWidget):
     def populate_table(self):
         logger.debug("populate_table")
         groups = self._mmc.getAvailableConfigGroups()
+        if not groups:
+            return
         data = []
         for group in groups:
             presets = self._mmc.getAvailableConfigs(group)

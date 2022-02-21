@@ -125,6 +125,35 @@ def test_add_group_with_sliders(main_window: MainWindow):
     assert type(wdg) == ComboBox
 
 
+def test_test_add_group_without_preset(main_window: MainWindow):
+    gp_ps = main_window.groups_and_presets
+    mm_table = gp_ps.tb
+
+    create_wdg = GroupConfigurations(main_window._mmc)
+    create_wdg.new_group_preset.connect(main_window._update_group_preset_table)
+    create_wdg._reset_comboboxes()
+
+    matching_items = create_wdg.pt.native.findItems("Camera-Binning", Qt.MatchExactly)
+    row = matching_items[0].row()
+
+    checkbox = create_wdg.pt.data[row, 1]
+    checkbox.value = True
+    assert checkbox.value
+    cbox_wdg = create_wdg.pt.data[row, 3]
+    assert type(cbox_wdg) == ComboBox
+
+    create_wdg.group_le.value = "Bin"
+    create_wdg.preset_le.value = ""
+
+    create_wdg.create_btn.native.click()
+
+    assert mm_table.native.rowCount() == 6
+    gp, wdg = mm_table.data[5]
+    assert gp == "Bin"
+    assert type(wdg) == ComboBox
+    assert set(wdg.choices) == {"1", "2", "4", "8"}
+
+
 def test_add_group_combobox_obj(main_window: MainWindow):
 
     gp_ps = main_window.groups_and_presets
