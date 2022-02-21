@@ -10,6 +10,7 @@ import numpy as np
 from loguru import logger
 from magicgui.widgets import ComboBox, FloatSlider, LineEdit, Slider
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt, QTimer, Signal
@@ -130,6 +131,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
+
+        adapter_path = find_micromanager()
+        if not adapter_path:
+            raise RuntimeError(
+                "Could not find micromanager adapters. Please run "
+                "`python -m pymmcore_plus.install` or install manually and set "
+                "MICROMANAGER_PATH."
+            )
 
         # tab widgets
         # create groups and presets tab
