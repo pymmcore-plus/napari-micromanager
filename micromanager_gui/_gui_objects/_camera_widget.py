@@ -34,6 +34,7 @@ class MMCameraWidget(QtW.QWidget):
         # bin widget and layout
         self.bin_wdg = QtW.QWidget()
         self.bin_layout = QtW.QGridLayout()
+        self.bin_layout.setContentsMargins(0, 0, 0, 0)
         # label bin in layout
         self.bin_label = QtW.QLabel(text="Binning:")
         self.bin_label.setMaximumWidth(65)
@@ -50,6 +51,7 @@ class MMCameraWidget(QtW.QWidget):
         # bit widget and layout
         self.bit_wdg = QtW.QWidget()
         self.bit_layout = QtW.QGridLayout()
+        self.bit_layout.setContentsMargins(0, 0, 0, 0)
         # label bit in groupbox r1 c0
         self.bit_label = QtW.QLabel(text="Bit Depth:")
         self.bit_label.setMaximumWidth(65)
@@ -66,6 +68,7 @@ class MMCameraWidget(QtW.QWidget):
         # cam_px widget and layout
         self.cam_px_wdg = QtW.QWidget()
         self.cam_px_layout = QtW.QGridLayout()
+        self.cam_px_layout.setContentsMargins(0, 0, 0, 0)
         # label px in groupbox r0 c2
         self.cam_px_label = QtW.QLabel(text="Pixel (µm):")
         self.cam_px_label.setMaximumWidth(70)
@@ -82,6 +85,7 @@ class MMCameraWidget(QtW.QWidget):
         # camera roi widget and layout
         self.cam_roi_wdg = QtW.QWidget()
         self.cam_roi_wdg_layout = QtW.QGridLayout()
+        self.cam_roi_wdg_layout.setContentsMargins(0, 0, 0, 0)
         # camera roi label in cam_roi_wdg
         self.cam_roi_label = QtW.QLabel(text="ROI:")
         self.cam_roi_label.setMaximumWidth(30)
