@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -6,25 +5,11 @@ import numpy as np
 import pytest
 from useq import MDASequence
 
-import micromanager_gui
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
-
-
-if not os.getenv("MICROMANAGER_PATH"):
-    try:
-        root = Path(micromanager_gui.__file__)
-        mm_path = list(root.parent.glob("Micro-Manager*"))[0]
-        os.environ["MICROMANAGER_PATH"] = str(mm_path)
-    except IndexError:
-        raise AssertionError(
-            "MICROMANAGER_PATH env var was not set, and Micro-Manager "
-            "installation was not found in this package.  Please run "
-            "`python micromanager_gui/install_mm.py"
-        )
 
 
 def test_main_window_mda(main_window: MainWindow):
