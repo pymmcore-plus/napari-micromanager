@@ -290,16 +290,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.explorer._set_enabled(False)
 
     def browse_cfg(self):
-        current_cgf = self.cfg_LineEdit.text()
-
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        self.cfg_LineEdit.setText(str(file_dir[0]))
-        self.max_min_val_label.setText("None")
-        self.load_cfg_Button.setEnabled(True)
-
-        if not self.cfg_LineEdit.text():
-            self.cfg_LineEdit.setText(current_cgf)
-            self.load_cfg_Button.setEnabled(False)
+        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        if filename:
+            self.cfg_LineEdit.setText(filename)
+            self.max_min_val_label.setText("None")
+            self.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
         # clear spinbox/combobox without accidently setting properties
