@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
@@ -83,9 +84,6 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
-        # set some defaults
-        self.cfg_LineEdit.setText("demo")
-
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -115,6 +113,14 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         # create connection to mmcore server or process-local variant
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
+
+        adapter_path = find_micromanager()
+        if not adapter_path:
+            raise RuntimeError(
+                "Could not find micromanager adapters. Please run "
+                "`python -m pymmcore_plus.install` or install manually and set "
+                "MICROMANAGER_PATH."
+            )
 
         # tab widgets
         self.mda = MultiDWidget(self._mmc)
@@ -244,7 +250,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         # disable gui
         self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
-        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
+
+        cfg = self.cfg_LineEdit.text()
+        if cfg == "":
+            cfg = "MMConfig_demo.cfg"
+        self._mmc.loadSystemConfiguration(cfg)
         # enable gui
         self._set_enabled(True)
 
