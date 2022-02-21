@@ -258,11 +258,17 @@ class GroupConfigurations(QDialog):
 
         if not group_name:
             return
-        if not preset_name:
-            preset_name = "None"
 
         if not self.pt.table_index_list:
             return
+
+        if not preset_name:
+
+            pst = self._mmcore.getAvailableConfigs(group_name)
+            n = sum("NewPreset" in p for p in pst)
+            preset_name = (
+                "None" if len(self.pt.table_index_list) == 1 else f"NewPreset_{n}"
+            )
 
         if not self._mmcore.isGroupDefined(group_name):
             self._mmcore.defineConfigGroup(group_name)

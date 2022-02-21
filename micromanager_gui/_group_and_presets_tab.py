@@ -156,7 +156,9 @@ class GroupPresetWidget(QtW.QWidget):
                     )
                 else:
                     wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
-            elif count > 1:  # or self._mmc.getAllowedPropertyValues(dev, prop):
+            elif count > 1:
+                if "None" in presets:
+                    presets = ["NewPreset_0"]
                 wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
@@ -252,6 +254,9 @@ class GroupPresetWidget(QtW.QWidget):
 
         groupname, wdg = self.tb.data[selected_row[0]]
 
+        if "None" in wdg.name:
+            return
+
         if isinstance(wdg, ComboBox):
             if wdg.annotation:
                 curr_preset = list(self._mmc.getAvailableConfigs(groupname))[0]
@@ -265,6 +270,9 @@ class GroupPresetWidget(QtW.QWidget):
 
         item_to_find = self._find_items(groupname, curr_preset)
         item_to_find_list = [x[0] for x in item_to_find]
+
+        if curr_preset == "None":
+            curr_preset = ""
 
         return groupname, curr_preset, item_to_find, item_to_find_list
 
