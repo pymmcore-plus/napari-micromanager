@@ -83,9 +83,6 @@ class _MainUI:
     def setup_ui(self):
         uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
 
-        # set some defaults
-        self.cfg_LineEdit.setText("demo")
-
         # button icons
         for attr, icon in [
             ("left_Button", "left_arrow_1_green.svg"),
@@ -308,8 +305,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         # disable gui
         self._set_enabled(False)
         self.load_cfg_Button.setEnabled(False)
-        self._mmc.loadSystemConfiguration(self.cfg_LineEdit.text())
-        # enable gui
+        cfg = self.cfg_LineEdit.text()
+        if cfg == "":
+            cfg = "MMConfig_demo.cfg"
+            self.cfg_LineEdit.setText(cfg)
+        self._mmc.loadSystemConfiguration(cfg)
         self._set_enabled(True)
 
     def _refresh_camera_options(self):
