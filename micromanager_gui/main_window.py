@@ -135,7 +135,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc, self)
         self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
-        self.tabWidget.tabBar().moveTab(1, 0)
         self.table = self.groups_and_presets.tb
         # connect GroupPresetWidget buttons
         self.groups_and_presets.new_btn.clicked.connect(
@@ -185,6 +184,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
         sig.configSet.connect(self._update_px_size)
+        sig.configGroupChanged.connect(self._on_configGroupChanged)
         sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_camera_props)
         sig.propertyChanged.connect(self._update_exp_time_val)
@@ -812,7 +812,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def bit_changed(self, value: str):
 
-        if self.bit_comboBox.count() <= 0:
+        if self.bit_comboBox.count() == 0:
             return
 
         items = [
@@ -834,7 +834,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._change_item_if_in_table(value, items)
 
     def bin_changed(self, value: str):
-        if self.bin_comboBox.count() <= 0:
+        if self.bin_comboBox.count() == 0:
             return
 
         items = [
@@ -927,9 +927,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
             else:
 
-                if None in wdg.choices:
-                    wdg.del_choice(None)  # to remove if _on_configGroupChanged()
-
                 try:
                     for p in wdg.choices:
                         dev_prop_val = [
@@ -971,6 +968,18 @@ class MainWindow(QtW.QWidget, _MainUI):
                 if val != wdg.value:
                     with blockSignals(wdg.native):
                         wdg.value = val
+
+    def _on_configGroupChanged(self, group: str):
+        if self._mmc.getCurrentConfigFromCache(group):
+            return
+        row = self.table.native.rowCount()
+        for r in range(row):
+            gp, wdg = self.table.data[r]
+            if not wdg:
+                continue
+            if group == gp:
+                with blockSignals(wdg.native):
+                    wdg.value = "_____"
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
@@ -1113,6 +1122,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 group, preset, _to_find, _to_find_list
             )
             self.edit_gp_ps_widget.show()
+
         except TypeError:
             # if no row or row>1 selected
             pass

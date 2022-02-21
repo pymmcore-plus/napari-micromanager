@@ -17,8 +17,6 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout
 
-from ._util import blockSignals
-
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
@@ -124,14 +122,13 @@ class GroupPresetWidget(QtW.QWidget):
                     else:
                         val = str(preset)
 
-                    with blockSignals(wdg.native):
-                        wdg.value = val
+                    wdg.value = val
 
             else:
                 preset = self._mmc.getCurrentConfigFromCache(group)
                 if preset:
-                    with blockSignals(wdg.native):
-                        wdg.value = preset
+
+                    wdg.value = preset
 
     def _get_cfg_data(self, group, preset):
         for n, key in enumerate(self._mmc.getConfigData(group, preset)):
@@ -145,10 +142,15 @@ class GroupPresetWidget(QtW.QWidget):
 
         dev, prop, val, count = self._get_cfg_data(group, presets[0])
 
-        if len(presets) > 1:
+        if "_____" not in presets:
+            presets.append("_____")
+
+        # if len(presets) > 1:
+        if len(presets) > 2:
             wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
-            if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
+            if count == 2 and self._mmc.getAllowedPropertyValues(dev, prop):
+                # if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
                 if "None" in presets:
                     prs = self._mmc.getAllowedPropertyValues(dev, prop)
                     wdg = ComboBox(
@@ -194,14 +196,14 @@ class GroupPresetWidget(QtW.QWidget):
 
         @wdg.changed.connect
         def _on_change(value: Any):
+
             if isinstance(wdg, ComboBox):
-                if None in wdg.choices:
-                    wdg.del_choice(None)  # to remove if _on_configGroupChanged()
-                if wdg.annotation:
-                    self._mmc.setProperty(dev, prop, value)  # -> propertyChanged
-                else:
-                    self._mmc.setConfig(group, value)  # -> configSet
-                self.table_cbox_wdg_changed.emit(value)
+                if value != "_____":
+                    if wdg.annotation:
+                        self._mmc.setProperty(dev, prop, value)  # -> propertyChanged
+                    else:
+                        self._mmc.setConfig(group, value)  # -> configSet
+                    self.table_cbox_wdg_changed.emit(value)
             else:
                 if isinstance(wdg, FloatSlider):
                     v = float(value)
