@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
+from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
@@ -52,6 +53,15 @@ class MainWindow(MicroManagerWidget):
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
 
+        adapter_path = find_micromanager()
+        if not adapter_path:
+            raise RuntimeError(
+                "Could not find micromanager adapters. Please run "
+                "`python -m pymmcore_plus.install` or install manually and set "
+                "MICROMANAGER_PATH."
+            )
+
+        # tab widgets
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
 
