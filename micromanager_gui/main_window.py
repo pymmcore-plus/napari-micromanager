@@ -302,8 +302,8 @@ class MainWindow(QtW.QWidget, _MainUI):
         cfg = self.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
+            self.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
-        # enable gui
         self._set_enabled(True)
 
     def _refresh_camera_options(self):
