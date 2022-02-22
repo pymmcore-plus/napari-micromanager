@@ -18,6 +18,8 @@ class MMConfigurationWidget(QtW.QWidget):
     def setup_gui(self):
 
         self.main_layout = QtW.QGridLayout()
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         # cfg groupbox in widget
         self.cfg_groupBox = QtW.QGroupBox()
         self.cfg_groupBox.setTitle("Camera")
