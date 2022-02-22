@@ -96,7 +96,7 @@ class GroupPresetWidget(QtW.QWidget):
             return
         data = []
         for group in groups:
-            presets = self._mmc.getAvailableConfigs(group)
+            presets = list(self._mmc.getAvailableConfigs(group))
             wdg = self._set_widget(group, presets)
             data.append([group, wdg])
         self.tb.value = {"data": data, "index": [], "columns": ["Groups", "Presets"]}
@@ -145,12 +145,15 @@ class GroupPresetWidget(QtW.QWidget):
         if "_____" not in presets:
             presets.append("_____")
 
-        # if len(presets) > 1:
+        if "_____" in presets and presets[-1] != "_____":
+            idx = presets.index("_____")
+            presets.pop(idx)
+            presets.append("_____")
+
         if len(presets) > 2:
             wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
-            if count == 2 and self._mmc.getAllowedPropertyValues(dev, prop):
-                # if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
+            if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
                 if "None" in presets:
                     prs = self._mmc.getAllowedPropertyValues(dev, prop)
                     wdg = ComboBox(

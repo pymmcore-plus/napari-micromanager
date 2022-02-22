@@ -9,7 +9,7 @@ def test_table_objective_and_channel_comboboxes(main_window: MainWindow):
 
     assert main_window.tabWidget.count() == 4
     assert main_window.tabWidget.currentIndex() == 0
-    assert main_window.tabWidget.tabText(0) == "Groups and Presets"
+    assert main_window.tabWidget.tabText(1) == "Groups and Presets"
 
     channel_group = main_window._mmc.getOrGuessChannelGroup()
     assert channel_group == ["Channel"]
@@ -237,16 +237,18 @@ def test_add_group_combobox_obj(main_window: MainWindow):
     assert ("Objective", "Label", "Nikon 10X S Fluor") in obj_1
     assert ("Objective", "Label", "Nikon 20X Plan Fluor ELWD") in obj_2
 
-    assert list(main_window._mmc.getAvailableConfigs("Objectives")) == list(
-        objective_tab_cbox.choices
-    )
+    available_obj = list(main_window._mmc.getAvailableConfigs("Objectives"))
+    available_obj.append("_____")
+    assert available_obj == list(objective_tab_cbox.choices)
 
     objective_comboBox_items = [
         main_window.objective_comboBox.itemText(i)
         for i in range(main_window.objective_comboBox.count())
     ]
 
-    assert objective_comboBox_items == list(objective_tab_cbox.choices)
+    choices = list(objective_tab_cbox.choices)
+    choices.pop(-1)
+    assert objective_comboBox_items == choices
 
     objective_tab_cbox.value = "20X"
     assert (
@@ -353,14 +355,15 @@ def test_add_group_combobox_ch(main_window: MainWindow):
     assert ("Dichroic", "Label", "Q505LP") in ch_2
     assert ("Camera", "Mode", "Artificial Waves") in ch_2
 
-    assert list(main_window._mmc.getAvailableConfigs("Channels")) == list(
-        channel_tab_cbox.choices
-    )
+    choices = list(channel_tab_cbox.choices)
+    choices.pop(-1)
+    assert list(main_window._mmc.getAvailableConfigs("Channels")) == choices
 
     snap_channel_comboBox_items = [
         main_window.snap_channel_comboBox.itemText(i)
         for i in range(main_window.snap_channel_comboBox.count())
     ]
+    snap_channel_comboBox_items.append("_____")
     assert snap_channel_comboBox_items == list(channel_tab_cbox.choices)
 
     channel_tab_cbox.value = "FITC"
@@ -472,15 +475,12 @@ def test_delete_preset_ch(main_window: MainWindow):
     # objective_group, objective_tab_cbox = mm_table.data[3]
     channel_group, channel_tab_cbox = mm_table.data[1]
     # objective_tab_cbox_items = objective_tab_cbox.choices
-    channel_tab_cbox_items = channel_tab_cbox.choices
+    channel_tab_cbox_items = list(channel_tab_cbox.choices)
     assert channel_group == "Channel"
-    assert list(channel_tab_cbox_items) == [
-        "Cy5",
-        "DAPI",
-        "FITC",
-        "Rhodamine",
-    ]
 
+    assert channel_tab_cbox_items == ["Cy5", "DAPI", "FITC", "Rhodamine", "_____"]
+
+    channel_tab_cbox_items.pop(-1)
     assert list(main_window._mmc.getAvailableConfigs(channel_group)) == list(
         channel_tab_cbox_items
     )
@@ -497,11 +497,7 @@ def test_delete_preset_ch(main_window: MainWindow):
     ]
 
     objective_tab_cbox_items = channel_tab_cbox.choices
-    assert list(objective_tab_cbox_items) == [
-        "Cy5",
-        "DAPI",
-        "Rhodamine",
-    ]
+    assert list(objective_tab_cbox_items) == ["Cy5", "DAPI", "Rhodamine", "_____"]
     snap_channel_comboBox_items = [
         main_window.snap_channel_comboBox.itemText(i)
         for i in range(main_window.snap_channel_comboBox.count())
@@ -520,9 +516,11 @@ def test_delete_preset_obj(main_window: MainWindow):
     assert mm_table.native.rowCount() == 5
 
     objective_group, objective_tab_cbox = mm_table.data[3]
-    objective_tab_cbox_items = objective_tab_cbox.choices
+    objective_tab_cbox_items = list(objective_tab_cbox.choices)
     assert objective_group == "Objective"
-    assert list(objective_tab_cbox_items) == ["10X", "20X", "40X"]
+    assert objective_tab_cbox_items == ["10X", "20X", "40X", "_____"]
+
+    objective_tab_cbox_items.pop(-1)
     assert list(main_window._mmc.getAvailableConfigs(objective_group)) == list(
         objective_tab_cbox_items
     )
@@ -534,8 +532,8 @@ def test_delete_preset_obj(main_window: MainWindow):
     assert mm_table.native.rowCount() == 5
     assert list(main_window._mmc.getAvailableConfigs(objective_group)) == ["10X", "20X"]
 
-    objective_tab_cbox_items = objective_tab_cbox.choices
-    assert list(objective_tab_cbox_items) == ["10X", "20X"]
+    objective_tab_cbox_items = list(objective_tab_cbox.choices)
+    assert objective_tab_cbox_items == ["10X", "20X", "_____"]
     objective_comboBox_items = [
         main_window.objective_comboBox.itemText(i)
         for i in range(main_window.objective_comboBox.count())
@@ -721,9 +719,9 @@ def test_groups_and_presets_rename_obj(main_window: MainWindow):
     assert list(main_window._mmc.getAvailableConfigs("Obj")) == objective_comboBox_items
 
     _, objective_tab_cbox = mm_table.data[3]
-    assert list(main_window._mmc.getAvailableConfigs("Obj")) == list(
-        objective_tab_cbox.choices
-    )
+    choices = list(objective_tab_cbox.choices)
+    choices.pop(-1)
+    assert list(main_window._mmc.getAvailableConfigs("Obj")) == choices
 
 
 def test_groups_and_presets_rename_ch(main_window: MainWindow):
@@ -769,9 +767,9 @@ def test_groups_and_presets_rename_ch(main_window: MainWindow):
     )
 
     _, channel_tab_cbox = mm_table.data[1]
-    assert list(main_window._mmc.getAvailableConfigs("Ch")) == list(
-        channel_tab_cbox.choices
-    )
+    choices = list(channel_tab_cbox.choices)
+    choices.pop(-1)
+    assert list(main_window._mmc.getAvailableConfigs("Ch")) == choices
 
 
 def test_groups_and_presets_save_cfg(main_window: MainWindow):

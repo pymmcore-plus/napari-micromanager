@@ -602,7 +602,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             current_obj = self._mmc.getCurrentConfig(obj_cfg)
         else:
             current_obj = self._mmc.getState(obj_dev)
-            presets = self._mmc.getStateLabels(obj_dev)
+            presets = list(self._mmc.getStateLabels(obj_dev))
         self._add_objective_to_gui(current_obj, presets)
 
     def _get_objective_device(self, obj_device: str):
@@ -630,10 +630,15 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = obj_device
         return self.objectives_device, None, None
 
-    def _add_objective_to_gui(self, current_obj, presets):
+    def _add_objective_to_gui(self, current_obj, presets: list):
         with blockSignals(self.objective_comboBox):
             self.objective_comboBox.clear()
+
+            if "_____" in presets:
+                presets.pop(-1)
+
             self.objective_comboBox.addItems(presets)
+
             if isinstance(current_obj, int):
                 self.objective_comboBox.setCurrentIndex(current_obj)
             else:
@@ -1071,6 +1076,13 @@ class MainWindow(QtW.QWidget, _MainUI):
                             wdg_items.append(str(p))
                             logger.debug(f"{p} preset added to {group} group")
                             wdg.choices = wdg_items
+
+                        if "_____" in wdg.choices and wdg.choices[-1] != "_____":
+                            wdg.del_choice("_____")
+                            items = list(wdg.choices)
+                            items.append("_____")
+                            wdg.choices = items
+
                     else:
                         prs = list(self._mmc.getAvailableConfigs(group))
                         with blockSignals(self.table.native):
@@ -1190,7 +1202,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._create_and_add_widget(group, preset)
 
     def _create_and_add_widget(self, group, current_preset):
-        wdg_items = self._mmc.getAvailableConfigs(group)
+        wdg_items = list(self._mmc.getAvailableConfigs(group))
         new_wdg = self.groups_and_presets._set_widget(group, wdg_items)
         matching_items = self.table.native.findItems(group, Qt.MatchExactly)
         row = matching_items[0].row()
@@ -1249,7 +1261,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         current_wdg = self.table.data[row, 1]
 
-        wdg_items = self._mmc.getAvailableConfigs(new_g)
+        wdg_items = list(self._mmc.getAvailableConfigs(new_g))
 
         new_wdg = self.groups_and_presets._set_widget(new_g, wdg_items)
 
