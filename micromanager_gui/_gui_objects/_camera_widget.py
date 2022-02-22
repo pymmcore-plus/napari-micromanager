@@ -36,12 +36,11 @@ class MMCameraWidget(QtW.QWidget):
         self.bin_layout = QtW.QGridLayout()
         self.bin_layout.setContentsMargins(0, 0, 0, 0)
         # label bin in layout
-        self.bin_label = QtW.QLabel(text="Binning:")
+        self.bin_label = QtW.QLabel(text="Binning:  ")
         self.bin_label.setMaximumWidth(65)
         self.bin_layout.addWidget(self.bin_label, 0, 0)
         # combobox bin in layout
         self.bin_comboBox = QtW.QComboBox()
-        # self.bin_comboBox.setMaximumWidth(75)
         self.bin_layout.addWidget(self.bin_comboBox, 0, 1)
         # set bin_wdg layout
         self.bin_wdg.setLayout(self.bin_layout)
@@ -58,7 +57,6 @@ class MMCameraWidget(QtW.QWidget):
         self.bit_layout.addWidget(self.bit_label, 0, 0)
         # combobox bit in groupbox r1 c1
         self.bit_comboBox = QtW.QComboBox()
-        # self.bit_comboBox.setMaximumWidth(75)
         self.bit_layout.addWidget(self.bit_comboBox, 0, 1)
         # set bit_wdg layout
         self.bit_wdg.setLayout(self.bit_layout)
@@ -75,7 +73,6 @@ class MMCameraWidget(QtW.QWidget):
         self.cam_px_layout.addWidget(self.cam_px_label, 0, 0)
         # doublespinbox px in groupbox r0 c3
         self.px_size_doubleSpinBox = QtW.QDoubleSpinBox()
-        # self.px_size_doubleSpinBox.setMaximumWidth(120)
         self.cam_px_layout.addWidget(self.px_size_doubleSpinBox, 0, 1)
         # set bit_wdg layout
         self.cam_px_wdg.setLayout(self.cam_px_layout)
