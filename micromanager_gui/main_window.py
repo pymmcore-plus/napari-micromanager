@@ -49,6 +49,7 @@ class MainWindow(MicroManagerWidget):
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
         self.ill = self.mm_illumination
+        self.prop_btn = self.mm_prop_browser
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
@@ -104,7 +105,7 @@ class MainWindow(MicroManagerWidget):
         self.tab.live_Button.clicked.connect(self.toggle_live)
 
         self.ill.illumination_Button.clicked.connect(self.illumination)
-        self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
+        self.prop_btn.properties_Button.clicked.connect(self._show_prop_browser)
 
         self.stages.focus_device_comboBox.currentTextChanged.connect(
             self._set_focus_device
@@ -131,14 +132,20 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
+        self.cam_group.setEnabled(True)
+
     def _set_enabled(self, enabled):
+
+        self.prop_btn.properties_Button.setEnabled(enabled)
+
         if self._mmc.getCameraDevice():
-            self.cam.camera_groupBox.setEnabled(enabled)
+            self._camera_group_wdg(enabled)
             self.cam.crop_Button.setEnabled(enabled)
             self.tab.snap_live_tab.setEnabled(enabled)
             self.tab.snap_live_tab.setEnabled(enabled)
         else:
-            self.cam.camera_groupBox.setEnabled(False)
+            self._camera_group_wdg(False)
+            self.cam_group.setEnabled(False)
             self.cam.crop_Button.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
@@ -155,13 +162,19 @@ class MainWindow(MicroManagerWidget):
 
         self.obj.objective_groupBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
-        self.tab.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
             self.explorer._set_enabled(enabled)
         else:
             self.explorer._set_enabled(False)
+
+    def _camera_group_wdg(self, enabled):
+        self.cam.bin_comboBox.setEnabled(enabled)
+        self.cam.bit_comboBox.setEnabled(enabled)
+        self.cam.px_size_doubleSpinBox.setEnabled(enabled)
+        self.cam.cam_roi_comboBox.setEnabled(enabled)
+        self.cam.crop_Button.setEnabled(enabled)
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
@@ -375,7 +388,7 @@ class MainWindow(MicroManagerWidget):
         if hasattr(self, "_illumination"):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
-        self._illumination.show()
+        self._illumination.exec()
 
     # property browser
     def _show_prop_browser(self):

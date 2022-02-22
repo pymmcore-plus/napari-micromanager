@@ -1,4 +1,3 @@
-from qtpy import QtCore
 from qtpy import QtWidgets as QtW
 
 
@@ -27,11 +26,9 @@ class MMObjectivesWidget(QtW.QWidget):
         # combobox in groupbox
         self.objective_groupBox_layout = QtW.QGridLayout()
         self.objective_groupBox_layout.setSpacing(0)
-        self.objective_groupBox_layout.setContentsMargins(3, 8, 3, 3)
+        self.objective_groupBox_layout.setContentsMargins(9, 9, 9, 9)
         self.objective_comboBox = QtW.QComboBox()
-        self.objective_groupBox.setMinimumSize(QtCore.QSize(160, 0))
-        # self.objective_groupBox.setObjectName("objective_groupBox")
-
+        self.objective_comboBox.setMinimumSize(160, 0)
         self.objective_groupBox_layout.addWidget(self.objective_comboBox, 0, 0)
         self.objective_groupBox.setLayout(self.objective_groupBox_layout)
 
