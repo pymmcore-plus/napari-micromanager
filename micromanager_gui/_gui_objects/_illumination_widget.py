@@ -26,6 +26,7 @@ class MMIlluminationWidget(QtW.QWidget):
         # PushButton in groupbox
         self.illumination_groupBox_layout = QtW.QGridLayout()
         self.illumination_groupBox_layout.setSpacing(0)
+        self.illumination_groupBox_layout.setContentsMargins(3, 8, 3, 3)
         self.illumination_Button = QtW.QPushButton(text="Illumination")
         self.illumination_groupBox.setMinimumSize(QtCore.QSize(160, 0))
 

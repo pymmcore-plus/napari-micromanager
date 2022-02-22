@@ -48,6 +48,7 @@ class MicroManagerWidget(QtW.QWidget):
 
         # create objectives and illumination widget
         wdg_2 = QtW.QWidget()
+        wdg_2.setMaximumHeight(135)
         wdg_2_layout = QtW.QGridLayout()
         wdg_2_layout.setContentsMargins(0, 0, 0, 0)
         wdg_2_layout.setSpacing(0)

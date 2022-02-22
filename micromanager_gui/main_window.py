@@ -165,7 +165,6 @@ class MainWindow(MicroManagerWidget):
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
         self._set_enabled(False)
 
