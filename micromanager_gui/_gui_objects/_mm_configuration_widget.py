@@ -22,6 +22,7 @@ class MMConfigurationWidget(QtW.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         # cfg groupbox in widget
         self.cfg_groupBox = QtW.QGroupBox()
+        self.cfg_groupBox.setMinimumHeight(70)
         self.cfg_groupBox.setTitle("Camera")
         self.main_layout.addWidget(self.cfg_groupBox, 0, 0)
         self.setLayout(self.main_layout)

@@ -75,6 +75,7 @@ class MicroManagerWidget(QtW.QWidget):
 
         # main objectives, illumination and camera widget
         wdg = QtW.QWidget()
+        wdg.setMinimumHeight(80)
         wdg_layout = QtW.QGridLayout()
         wdg_layout.setContentsMargins(0, 0, 0, 0)
         wdg_layout.setHorizontalSpacing(0)
