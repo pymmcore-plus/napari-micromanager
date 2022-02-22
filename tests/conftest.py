@@ -22,7 +22,8 @@ def main_window(qtbot, request):
     viewer = Viewer(show=False)
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
-    win._mmc.loadSystemConfiguration(config_path)
+    win.cfg.cfg_LineEdit.setText(config_path)
+    win.load_cfg()
 
     win._set_enabled(True)
 
