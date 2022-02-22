@@ -624,15 +624,15 @@ class MainWindow(MicroManagerWidget):
             self.snap()
 
     def stage_z_up(self):
-        self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, float(self.stages.z_step_size_doubleSpinBox.value())
+        self._mmc.setRelativePosition(
+            float(self.stages.z_step_size_doubleSpinBox.value())
         )
         if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
-        self._mmc.setRelativeXYZPosition(
-            0.0, 0.0, -float(self.stages.z_step_size_doubleSpinBox.value())
+        self._mmc.setRelativePosition(
+            -float(self.stages.z_step_size_doubleSpinBox.value())
         )
         if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
