@@ -132,10 +132,6 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
     def _set_enabled(self, enabled):
-        self.cam_group.setEnabled(True)
-        self.stages_coll.setEnabled(True)
-        self.obj.objective_groupBox.setEnabled(enabled)
-        self.ill.illumination_Button.setEnabled(enabled)
 
         if self._mmc.getCameraDevice():
             self._camera_group_wdg(enabled)
@@ -158,6 +154,11 @@ class MainWindow(MicroManagerWidget):
             self.stages.Z_groupBox.setEnabled(enabled)
         else:
             self.stages.Z_groupBox.setEnabled(False)
+
+        self.cam_group.setEnabled(True)
+        self.stages_coll.setEnabled(True)
+        self.obj.objective_groupBox.setEnabled(enabled)
+        self.ill.illumination_Button.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
