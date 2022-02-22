@@ -131,9 +131,11 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        self.cam_group.setEnabled(True)
-
     def _set_enabled(self, enabled):
+        self.cam_group.setEnabled(True)
+        self.stages_coll.setEnabled(True)
+        self.obj.objective_groupBox.setEnabled(enabled)
+        self.ill.illumination_Button.setEnabled(enabled)
 
         if self._mmc.getCameraDevice():
             self._camera_group_wdg(enabled)
@@ -157,9 +159,6 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stages.Z_groupBox.setEnabled(False)
 
-        self.obj.objective_groupBox.setEnabled(enabled)
-        self.ill.illumination_Button.setEnabled(enabled)
-
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
             self.explorer._set_enabled(enabled)
@@ -174,9 +173,13 @@ class MainWindow(MicroManagerWidget):
         self.cam.crop_Button.setEnabled(enabled)
 
     def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
+        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        if filename:
+            self.cfg.cfg_LineEdit.setText(filename)
+            self.tab.max_min_val_label.setText("None")
+            self.cfg.load_cfg_Button.setEnabled(True)
 
-        self._set_enabled(False)
+    def load_cfg(self):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
@@ -184,8 +187,6 @@ class MainWindow(MicroManagerWidget):
             self.cam.bin_comboBox,
             self.cam.bit_comboBox,
             self.tab.snap_channel_comboBox,
-            self.stages.xy_device_comboBox,
-            self.stages.focus_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -198,17 +199,13 @@ class MainWindow(MicroManagerWidget):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
-        self.tab.max_min_val_label.setText("None")
-        self.cfg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
+        # disable gui
+        self._set_enabled(False)
         self.cfg.load_cfg_Button.setEnabled(False)
         cfg = self.cfg.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
-            self.cfg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
         self._refresh_options()
         self._set_enabled(True)

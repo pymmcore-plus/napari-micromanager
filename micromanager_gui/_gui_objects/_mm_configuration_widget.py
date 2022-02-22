@@ -31,6 +31,7 @@ class MMConfigurationWidget(QtW.QWidget):
 
         # add to cfg_groupBox layout:
         self.cfg_LineEdit = QtW.QLineEdit()
+        self.cfg_LineEdit.setPlaceholderText("MMConfig_demo.cfg")
         self.browse_cfg_Button = QtW.QPushButton(text="...")
         self.load_cfg_Button = QtW.QPushButton(text="Load")
         self.properties_Button = QtW.QPushButton(text="Prop")
