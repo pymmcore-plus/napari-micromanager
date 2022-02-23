@@ -9,7 +9,7 @@ import numpy as np
 from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QTimer
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
 
 from ._camera_roi import CameraROI
@@ -375,6 +375,9 @@ class MainWindow(MicroManagerWidget):
         if hasattr(self, "_illumination"):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
+        self._illumination.setWindowFlags(
+            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+        )
         self._illumination.show()
 
     # property browser
