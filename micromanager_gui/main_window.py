@@ -488,8 +488,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         if hasattr(self, "_illumination"):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
-        # self._illumination.show()
-        self._illumination.exec()
+        self._illumination.setWindowFlags(
+            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+        )
+        self._illumination.show()
 
     # property browser
     def _show_prop_browser(self):
@@ -998,6 +1000,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.create_gp_ps_widget.close()
 
         self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
+        self.create_gp_ps_widget.setWindowFlags(
+            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+        )
         self.create_gp_ps_widget.new_group_preset.connect(
             self._update_group_preset_table
         )
@@ -1118,6 +1123,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.create_gp_ps_widget.close()
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
+            self.edit_gp_ps_widget.setWindowFlags(
+                Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+            )
             self.edit_gp_ps_widget.group_le.native.setReadOnly(True)
             self.edit_gp_ps_widget.preset_le.native.setReadOnly(True)
             self.edit_gp_ps_widget.new_group_preset.connect(
@@ -1209,6 +1217,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _open_rename_widget(self):
         self._rw = RenameGroupPreset(self)
+        self._rw.setWindowFlags(
+            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+        )
         self._rw.button.clicked.connect(self._rename_group_preset)
         # populate the rename widget with the group/preset to rename
         try:
