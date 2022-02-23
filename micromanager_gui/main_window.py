@@ -489,7 +489,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
         self._illumination.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint
+            Qt.Window
+            | Qt.WindowTitleHint
+            | Qt.WindowStaysOnTopHint
+            | Qt.WindowCloseButtonHint
         )
         self._illumination.show()
 
@@ -1001,7 +1004,10 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self.create_gp_ps_widget = GroupConfigurations(self._mmc, self)
         self.create_gp_ps_widget.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint
+            Qt.Window
+            | Qt.WindowTitleHint
+            | Qt.WindowStaysOnTopHint
+            | Qt.WindowCloseButtonHint
         )
         self.create_gp_ps_widget.new_group_preset.connect(
             self._update_group_preset_table
@@ -1124,7 +1130,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not hasattr(self, "edit_gp_ps_widget"):
             self.edit_gp_ps_widget = GroupConfigurations(self._mmc, self)
             self.edit_gp_ps_widget.setWindowFlags(
-                Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint
+                Qt.Window
+                | Qt.WindowTitleHint
+                | Qt.WindowStaysOnTopHint
+                | Qt.WindowCloseButtonHint
             )
             self.edit_gp_ps_widget.group_le.native.setReadOnly(True)
             self.edit_gp_ps_widget.preset_le.native.setReadOnly(True)
