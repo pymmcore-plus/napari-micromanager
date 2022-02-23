@@ -825,11 +825,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
-    def bit_changed(self,  group: str, value: str=None):
+    def bit_changed(self, group: str, value: str = None):
 
         if not value:
             value = group
-        
+
         if self.bit_comboBox.count() == 0:
             return
 
@@ -839,11 +839,13 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         if value not in items:
             try:
-                dev_prop_val = [(k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)]
+                dev_prop_val = [
+                    (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)
+                ]
                 for d, p, v in dev_prop_val:
                     self._update_camera_props(d, p, v)
             except ValueError:
-                pass                   
+                pass
             return
 
         bits = self.bit_comboBox.currentText()
@@ -857,7 +859,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self._change_item_if_in_table(value, items)
 
-    def bin_changed(self, group: str, value: str=None):
+    def bin_changed(self, group: str, value: str = None):
 
         if not value:
             value = group
@@ -871,7 +873,9 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         if value not in items:
             try:
-                dev_prop_val = [(k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)]
+                dev_prop_val = [
+                    (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)
+                ]
                 for d, p, v in dev_prop_val:
                     self._update_camera_props(d, p, v)
             except ValueError:
