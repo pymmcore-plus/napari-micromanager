@@ -532,7 +532,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.getCurrentConfig(channel_group)
             )
 
-    def _change_channel_main_gui(self, newChannel: str):
+    def _change_channel_main_gui(self, group: str, newChannel: str):
         if self._mmc.getChannelGroup() and newChannel in list(
             self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
         ):
@@ -668,7 +668,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _change_objective_main_gui(self, objective: str):
+    def _change_objective_main_gui(self, group: str, objective: str):
 
         if self.objective_comboBox.count() <= 0:
             return
@@ -822,8 +822,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
 
-    def bit_changed(self, value: str):
+    def bit_changed(self,  group: str, value: str=None):
 
+        if not value:
+            value = group
+        
         if self.bit_comboBox.count() == 0:
             return
 
@@ -832,6 +835,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         ]
 
         if value not in items:
+            try:
+                dev_prop_val = [(k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)]
+                for d, p, v in dev_prop_val:
+                    self._update_camera_props(d, p, v)
+            except ValueError:
+                pass                   
             return
 
         bits = self.bit_comboBox.currentText()
@@ -845,7 +854,11 @@ class MainWindow(QtW.QWidget, _MainUI):
 
         self._change_item_if_in_table(value, items)
 
-    def bin_changed(self, value: str):
+    def bin_changed(self, group: str, value: str=None):
+
+        if not value:
+            value = group
+
         if self.bin_comboBox.count() == 0:
             return
 
@@ -854,6 +867,12 @@ class MainWindow(QtW.QWidget, _MainUI):
         ]
 
         if value not in items:
+            try:
+                dev_prop_val = [(k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)]
+                for d, p, v in dev_prop_val:
+                    self._update_camera_props(d, p, v)
+            except ValueError:
+                pass
             return
 
         bins = self.bin_comboBox.currentText()
@@ -1299,7 +1318,11 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _save_cfg(self, path_and_filename: str):
         if not path_and_filename:
             path_and_filename = self._get_save_path()
-        self._mmc.saveSystemConfiguration(f"{path_and_filename}.cfg")
+        if ".cfg" in path_and_filename:
+            savename = path_and_filename
+        else:
+            savename = f"{path_and_filename}.cfg"
+        self._mmc.saveSystemConfiguration(savename)
 
     def _refresh_if_deleted(self, group: str):
         if group == self.objectives_cfg:
