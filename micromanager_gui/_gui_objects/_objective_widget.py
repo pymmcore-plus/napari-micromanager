@@ -5,7 +5,6 @@ class MMObjectivesWidget(QtW.QWidget):
     """
     Contains the following objects:
 
-    objective_groupBox: QtW.QGroupBox
     objective_comboBox: QtW.QLineEdit
     """
 
@@ -16,21 +15,19 @@ class MMObjectivesWidget(QtW.QWidget):
     def setup_gui(self):
 
         self.main_layout = QtW.QGridLayout()
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # groupbox in widget
-        self.objective_groupBox = QtW.QGroupBox()
-        self.objective_groupBox.setTitle("Objectives")
-        self.main_layout.addWidget(self.objective_groupBox, 0, 0)
-        self.setLayout(self.main_layout)
+        # label
+        self.obj_label = QtW.QLabel(text="Objectives:")
+        self.obj_label.setMaximumWidth(80)
+        self.main_layout.addWidget(self.obj_label, 0, 0)
 
-        # combobox in groupbox
-        self.objective_groupBox_layout = QtW.QGridLayout()
-        self.objective_groupBox_layout.setSpacing(0)
-        self.objective_groupBox_layout.setContentsMargins(9, 9, 9, 9)
+        # combobox
         self.objective_comboBox = QtW.QComboBox()
-        self.objective_comboBox.setMinimumSize(160, 0)
-        self.objective_groupBox_layout.addWidget(self.objective_comboBox, 0, 0)
-        self.objective_groupBox.setLayout(self.objective_groupBox_layout)
+        self.main_layout.addWidget(self.objective_comboBox, 0, 1)
+
+        self.setLayout(self.main_layout)
 
 
 if __name__ == "__main__":

@@ -73,12 +73,11 @@ class MicroManagerWidget(QtW.QWidget):
 
     def add_mm_objectives_and_illumination_widgets(self):
 
-        # main objectives, illumination and camera widget
-        wdg = QtW.QWidget()
-        wdg.setMinimumHeight(80)
+        wdg = QtW.QGroupBox()
+        wdg.setMinimumHeight(50)
         wdg_layout = QtW.QGridLayout()
-        wdg_layout.setContentsMargins(0, 0, 0, 0)
-        wdg_layout.setHorizontalSpacing(0)
+        wdg_layout.setContentsMargins(5, 0, 5, 0)
+        wdg_layout.setHorizontalSpacing(30)
         wdg_layout.setVerticalSpacing(0)
 
         wdg_layout.addWidget(self.mm_objectives, 0, 0)

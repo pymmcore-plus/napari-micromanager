@@ -157,7 +157,7 @@ class MainWindow(MicroManagerWidget):
 
         self.cam_group.setEnabled(True)
         self.stages_coll.setEnabled(True)
-        self.obj.objective_groupBox.setEnabled(enabled)
+        self.obj.objective_comboBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)

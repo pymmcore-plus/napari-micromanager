@@ -16,22 +16,20 @@ class MMIlluminationWidget(QtW.QWidget):
     def setup_gui(self):
 
         self.main_layout = QtW.QGridLayout()
-        # groupbox in widget
-        self.illumination_groupBox = QtW.QGroupBox()
-        # self.illumination_groupBox.setMaximumWidth(115)
-        self.illumination_groupBox.setTitle("Illumination")
-        self.main_layout.addWidget(self.illumination_groupBox, 0, 0)
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # label
+        self.obj_label = QtW.QLabel(text="Illumination:")
+        self.obj_label.setMaximumWidth(80)
+        self.main_layout.addWidget(self.obj_label, 0, 0)
+
+        # pushbutton
+        self.illumination_Button = QtW.QPushButton(text="Light Sources Control")
+        self.illumination_Button.setMaximumSize(140, 25)
+
+        self.main_layout.addWidget(self.illumination_Button, 0, 1)
         self.setLayout(self.main_layout)
-
-        # PushButton in groupbox
-        self.illumination_groupBox_layout = QtW.QGridLayout()
-        self.illumination_groupBox_layout.setSpacing(0)
-        self.illumination_groupBox_layout.setContentsMargins(9, 9, 9, 9)
-        self.illumination_Button = QtW.QPushButton(text="Light Sources")
-        # self.illumination_Button.setMaximumSize(110, 50)
-
-        self.illumination_groupBox_layout.addWidget(self.illumination_Button, 0, 0)
-        self.illumination_groupBox.setLayout(self.illumination_groupBox_layout)
 
 
 if __name__ == "__main__":
