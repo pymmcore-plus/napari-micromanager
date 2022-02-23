@@ -387,7 +387,7 @@ class MainWindow(MicroManagerWidget):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
         self._illumination.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint
+            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint
         )
         self._illumination.show()
 
