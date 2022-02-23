@@ -12,8 +12,8 @@ from ._gui_objects._tab_widget import MMTabWidget
 from ._gui_objects._xyz_stages import MMStagesWidget
 
 
-# class MicroManagerWidget(QtW.QWidget):
-class MicroManagerWidget(QtW.QMainWindow):
+class MicroManagerWidget(QtW.QWidget):
+    # class MicroManagerWidget(QtW.QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -27,7 +27,7 @@ class MicroManagerWidget(QtW.QMainWindow):
 
     def create_gui(self):
 
-        w = QtW.QWidget()
+        # w = QtW.QWidget()
 
         # main widget
         # self.setMinimumWidth(600)
@@ -72,9 +72,9 @@ class MicroManagerWidget(QtW.QMainWindow):
         self.main_layout.addWidget(obj_ill, 1, 0)
 
         # set main_layout layout
-        # self.setLayout(self.main_layout)
-        w.setLayout(self.main_layout)
-        self.setCentralWidget(w)
+        self.setLayout(self.main_layout)
+        # w.setLayout(self.main_layout)
+        # self.setCentralWidget(w)
 
     def add_mm_objectives_and_illumination_widgets(self):
 
