@@ -20,7 +20,7 @@ class MMCameraWidget(QtW.QWidget):
     def setup_gui(self):
 
         self.main_layout = QtW.QGridLayout()
-        self.main_layout.setVerticalSpacing(10)
+        self.main_layout.setVerticalSpacing(15)
         self.main_layout.setHorizontalSpacing(10)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
