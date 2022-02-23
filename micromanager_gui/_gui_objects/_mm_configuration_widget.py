@@ -8,7 +8,6 @@ class MMConfigurationWidget(QtW.QWidget):
     cfg_LineEdit: QtW.QLineEdit
     browse_cfg_Button: QtW.QPushButton
     load_cfg_Button: QtW.QPushButton
-    properties_Button: QtW.QPushButton
     """
 
     def __init__(self):
@@ -35,12 +34,11 @@ class MMConfigurationWidget(QtW.QWidget):
         self.cfg_LineEdit.setPlaceholderText("MMConfig_demo.cfg")
         self.browse_cfg_Button = QtW.QPushButton(text="...")
         self.load_cfg_Button = QtW.QPushButton(text="Load")
-        self.properties_Button = QtW.QPushButton(text="Properties")
+        self.load_cfg_Button.setMinimumWidth(60)
         # widgets in in cfg_groupBox layout
         self.cfg_groupBox_layout.addWidget(self.cfg_LineEdit, 0, 0)
         self.cfg_groupBox_layout.addWidget(self.browse_cfg_Button, 0, 1)
         self.cfg_groupBox_layout.addWidget(self.load_cfg_Button, 0, 2)
-        self.cfg_groupBox_layout.addWidget(self.properties_Button, 0, 3)
         # set cfg_groupBox layout
         self.cfg_groupBox.setLayout(self.cfg_groupBox_layout)
 

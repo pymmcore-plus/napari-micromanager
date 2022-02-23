@@ -8,6 +8,7 @@ from ._gui_objects._camera_widget import MMCameraWidget
 from ._gui_objects._illumination_widget import MMIlluminationWidget
 from ._gui_objects._mm_configuration_widget import MMConfigurationWidget
 from ._gui_objects._objective_widget import MMObjectivesWidget
+from ._gui_objects._property_browser_widget import MMPropertyBrowserWidget
 from ._gui_objects._tab_widget import MMTabWidget
 from ._gui_objects._xyz_stages import MMStagesWidget
 
@@ -21,6 +22,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.mm_configuration = MMConfigurationWidget()
         self.mm_objectives = MMObjectivesWidget()
         self.mm_illumination = MMIlluminationWidget()
+        self.mm_pb = MMPropertyBrowserWidget()
         self.mm_camera = MMCameraWidget()
         self.mm_xyz_stages = MMStagesWidget()
         self.mm_tab = MMTabWidget()
@@ -83,12 +85,13 @@ class MicroManagerWidget(QtW.QWidget):
         wdg = QtW.QGroupBox()
         wdg.setMinimumHeight(50)
         wdg_layout = QtW.QGridLayout()
-        wdg_layout.setContentsMargins(5, 0, 5, 0)
-        wdg_layout.setHorizontalSpacing(10)
+        wdg_layout.setContentsMargins(5, 0, 0, 0)
+        wdg_layout.setHorizontalSpacing(0)
         wdg_layout.setVerticalSpacing(0)
 
         wdg_layout.addWidget(self.mm_objectives, 0, 0)
         wdg_layout.addWidget(self.mm_illumination, 0, 1)
+        wdg_layout.addWidget(self.mm_pb, 0, 2)
 
         wdg.setLayout(wdg_layout)
 

@@ -16,7 +16,7 @@ class MMObjectivesWidget(QtW.QWidget):
 
         self.main_layout = QtW.QGridLayout()
         self.main_layout.setSpacing(0)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setContentsMargins(0, 0, 15, 0)
 
         # label
         self.obj_label = QtW.QLabel(text="Objectives:")
@@ -25,6 +25,7 @@ class MMObjectivesWidget(QtW.QWidget):
 
         # combobox
         self.objective_comboBox = QtW.QComboBox()
+        self.objective_comboBox.setMinimumWidth(200)
         self.main_layout.addWidget(self.objective_comboBox, 0, 1)
 
         self.setLayout(self.main_layout)

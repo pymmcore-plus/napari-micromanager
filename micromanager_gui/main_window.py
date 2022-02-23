@@ -49,6 +49,7 @@ class MainWindow(MicroManagerWidget):
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
         self.ill = self.mm_illumination
+        self.pb = self.mm_pb
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
@@ -104,7 +105,8 @@ class MainWindow(MicroManagerWidget):
         self.tab.live_Button.clicked.connect(self.toggle_live)
 
         self.ill.illumination_Button.clicked.connect(self.illumination)
-        self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
+        # self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
+        self.pb.properties_Button.clicked.connect(self._show_prop_browser)
 
         self.stages.focus_device_comboBox.currentTextChanged.connect(
             self._set_focus_device
@@ -157,6 +159,7 @@ class MainWindow(MicroManagerWidget):
 
         self.cam_group.setEnabled(True)
         self.stages_coll.setEnabled(True)
+        self.pb.properties_Button.setEnabled(enabled)
         self.obj.objective_comboBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
 
