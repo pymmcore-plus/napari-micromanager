@@ -5,7 +5,6 @@ class MMIlluminationWidget(QtW.QWidget):
     """
     Contains the following objects:
 
-    illumination_groupBox: QtW.QGroupBox
     illumination_Button: QtW.QLineEdit
     """
 
