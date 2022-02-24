@@ -110,7 +110,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     update_cbox_widget = Signal(str, str)
 
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True, log: logger = False):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=False, log: logger = False):
         super().__init__()
         self.setup_ui()
 
@@ -535,7 +535,11 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.getCurrentConfig(channel_group)
             )
 
-    def _change_channel_main_gui(self, group: str, newChannel: str):
+    def _change_channel_main_gui(self, group: str, newChannel: str=None):
+
+        if not newChannel:
+            newChannel = group
+
         if self._mmc.getChannelGroup() and newChannel in list(
             self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
         ):
@@ -671,7 +675,10 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _change_objective_main_gui(self, group: str, objective: str):
+    def _change_objective_main_gui(self, group: str, objective: str=None):
+
+        if not objective:
+            objective = group
 
         if self.objective_comboBox.count() <= 0:
             return
