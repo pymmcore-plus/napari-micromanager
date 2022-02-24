@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from napari.qt.threading import thread_worker
 from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, QTimer
 from qtpy.QtGui import QColor, QIcon
+from superqt.utils import create_worker
 
 from ._camera_roi import CameraROI
 from ._illumination import IlluminationDialog
@@ -605,13 +605,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.stop_live()
 
         # snap in a thread so we don't freeze UI when using process local mmc
-        @thread_worker(
-            connect={"finished": lambda: self.update_viewer(self._mmc.getImage())}
+        create_worker(
+            self._mmc.snapImage,
+            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
+            _start_thread=True,
         )
-        def snap_worker():
-            self._mmc.snapImage()
-
-        snap_worker()
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
