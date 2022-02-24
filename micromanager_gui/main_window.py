@@ -535,7 +535,7 @@ class MainWindow(QtW.QWidget, _MainUI):
                 self._mmc.getCurrentConfig(channel_group)
             )
 
-    def _change_channel_main_gui(self, group: str, newChannel: str=None):
+    def _change_channel_main_gui(self, group: str, newChannel: str = None):
 
         if not newChannel:
             newChannel = group
@@ -679,7 +679,7 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.setPixelSizeConfig(px_cgf_name)
         # if it does't match, px size is set to 0.0
 
-    def _change_objective_main_gui(self, group: str, objective: str=None):
+    def _change_objective_main_gui(self, group: str, objective: str = None):
 
         if not objective:
             objective = group
