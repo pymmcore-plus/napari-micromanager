@@ -5,7 +5,7 @@ class MMObjectivesWidget(QtW.QWidget):
     """
     Contains the following objects:
 
-    objective_comboBox: QtW.QLineEdit
+    objective_comboBox: QtW.QComboBox
     """
 
     def __init__(self):
