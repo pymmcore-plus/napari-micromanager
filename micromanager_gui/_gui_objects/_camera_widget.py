@@ -73,6 +73,7 @@ class MMCameraWidget(QtW.QWidget):
         self.cam_px_layout.addWidget(self.cam_px_label, 0, 0)
         # doublespinbox px in groupbox r0 c3
         self.px_size_doubleSpinBox = QtW.QDoubleSpinBox()
+        self.px_size_doubleSpinBox.setMinimum(1.0)
         self.px_size_doubleSpinBox.setMinimumWidth(70)
         self.px_size_doubleSpinBox.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
         self.cam_px_layout.addWidget(self.px_size_doubleSpinBox, 0, 1)
