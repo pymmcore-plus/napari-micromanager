@@ -11,6 +11,7 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
+from superqt.utils import create_worker
 
 from ._camera_roi import CameraROI
 from ._gui import MicroManagerWidget
@@ -37,12 +38,13 @@ CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
 CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
+
 class MainWindow(MicroManagerWidget):
     def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+
         super().__init__()
 
         self.viewer = viewer
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         self.create_gui()  # create gui from _main_gui.py
 
@@ -52,6 +54,13 @@ class MainWindow(MicroManagerWidget):
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
+
+        # create connection to mmcore server or process-local variant
+        if mmc is not None:
+            self._mmc = mmc
+        else:
+            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
+
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -669,6 +678,7 @@ class MainWindow(MicroManagerWidget):
                 self.cam.bit_comboBox.setCurrentText(
                     self._mmc.getProperty(cam_device, "PixelType")
                 )
+
 
     def bit_changed(self):
         if self.cam.bit_comboBox.count() > 0:
