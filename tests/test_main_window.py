@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -6,25 +5,11 @@ import numpy as np
 import pytest
 from useq import MDASequence
 
-import micromanager_gui
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
-
-
-if not os.getenv("MICROMANAGER_PATH"):
-    try:
-        root = Path(micromanager_gui.__file__)
-        mm_path = list(root.parent.glob("Micro-Manager*"))[0]
-        os.environ["MICROMANAGER_PATH"] = str(mm_path)
-    except IndexError:
-        raise AssertionError(
-            "MICROMANAGER_PATH env var was not set, and Micro-Manager "
-            "installation was not found in this package.  Please run "
-            "`python micromanager_gui/install_mm.py"
-        )
 
 
 def test_main_window_mda(main_window: MainWindow):
@@ -123,3 +108,51 @@ def test_refresh_safety(main_window: MainWindow):
     assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
+
+
+def test_crop_camera(main_window: MainWindow):
+
+    assert not main_window.viewer.layers
+
+    cbox = main_window.cam_roi_comboBox
+    cam_roi_btn = main_window.crop_Button
+
+    text, div = ("1/4", 2)
+
+    cbox.setCurrentText(text)
+
+    cam_roi_btn.click()
+
+    assert len(main_window.viewer.layers) == 1
+
+    crop_layer = main_window.viewer.layers[-1]
+    assert crop_layer.data.shape == (512 // div, 512 // div)
+
+    cbox.setCurrentText("Full")
+    crop_layer = main_window.viewer.layers[-1]
+    assert crop_layer.data.shape == (512, 512)
+
+
+def test_objective_device_and_px_size(main_window: MainWindow):
+    mmc = main_window._mmc
+
+    # set 10x objective
+    main_window.objective_comboBox.setCurrentText("10X")
+    assert main_window.objective_comboBox.currentText() == "10X"
+    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+
+    # delete objective group configuration
+    mmc.deleteConfigGroup("Objective")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert main_window.objective_comboBox.currentText() == "Nikon 10X S Fluor"
+
+    # delete pixel size configuration
+    mmc.deletePixelSizeConfig("Res10x")
+
+    # refresh objective options
+    main_window._refresh_objective_options()
+
+    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"

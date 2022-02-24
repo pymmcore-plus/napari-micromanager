@@ -62,6 +62,9 @@ class ExploreSample(QtW.QWidget):
 
         self.pixel_size = 0
 
+        self.return_to_position_x = None
+        self.return_to_position_y = None
+
         # connect buttons
         self.add_ch_explorer_Button.clicked.connect(self.add_channel)
         self.remove_ch_explorer_Button.clicked.connect(self.remove_channel)
@@ -142,6 +145,16 @@ class ExploreSample(QtW.QWidget):
         seq_uid = sequence.uid
 
         if meta.mode == "explorer":
+            if (
+                self.return_to_position_x is not None
+                and self.return_to_position_y is not None
+            ):
+                self._mmc.setXYPosition(
+                    self.return_to_position_x, self.return_to_position_y
+                )
+                self.return_to_position_x = None
+                self.return_to_position_y = None
+
             layergroups = defaultdict(set)
             for lay in self.viewer.layers:
                 if lay.metadata.get("uid") == seq_uid:
@@ -186,10 +199,10 @@ class ExploreSample(QtW.QWidget):
             self.channel_explorer_exp_spinBox.setRange(0, 10000)
             self.channel_explorer_exp_spinBox.setValue(100)
 
-            if "Channel" not in self._mmc.getAvailableConfigGroups():
-                raise ValueError("Could not find 'Channel' in the ConfigGroups")
-            channel_list = list(self._mmc.getAvailableConfigs("Channel"))
-            self.channel_explorer_comboBox.addItems(channel_list)
+            channel_group = self._mmc.getChannelGroup()
+            if channel_group:
+                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+                self.channel_explorer_comboBox.addItems(channel_list)
 
             self.channel_explorer_tableWidget.setCellWidget(
                 idx, 0, self.channel_explorer_comboBox
@@ -236,6 +249,9 @@ class ExploreSample(QtW.QWidget):
         x_pos = float(self._mmc.getXPosition())
         y_pos = float(self._mmc.getYPosition())
         z_pos = float(self._mmc.getZPosition())
+
+        self.return_to_position_x = x_pos
+        self.return_to_position_y = y_pos
 
         # calculate initial scan position
         _, _, width, height = self._mmc.getROI(self._mmc.getCameraDevice())
