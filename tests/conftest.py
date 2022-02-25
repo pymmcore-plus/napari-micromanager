@@ -25,6 +25,7 @@ def main_window(qtbot, request):
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
     win.cfg_LineEdit.setText(config_path)
     win.load_cfg()
+    win._set_enabled(True)
     win._rw = RenameGroupPreset()
 
     try:

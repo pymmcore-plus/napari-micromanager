@@ -109,12 +109,19 @@ def test_refresh_safety(main_window: MainWindow):
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
 
+    assert main_window.stages.xy_device_comboBox.count() == 1
+    assert main_window.stages.xy_device_comboBox.currentText() == "XY"
+
+    assert main_window.stages.focus_device_comboBox.count() == 1
+    assert main_window.stages.focus_device_comboBox.currentText() == "Z"
+
 
 def test_crop_camera(main_window: MainWindow):
 
     assert not main_window.viewer.layers
 
-    cbox = main_window.cam_roi_comboBox
+    cbox = main_window.cam.cam_roi_comboBox
+    cam_roi_btn = main_window.cam.crop_Button
 
     text, div = ("1/4", 2)
 
@@ -122,7 +129,7 @@ def test_crop_camera(main_window: MainWindow):
 
     assert len(main_window.viewer.layers) == 2
 
-    main_window.crop_Button.click()
+    cam_roi_btn.click()
 
     assert len(main_window.viewer.layers) == 1
 
@@ -138,9 +145,12 @@ def test_objective_device_and_px_size(main_window: MainWindow):
     mmc = main_window._mmc
 
     # set 10x objective
-    main_window.objective_comboBox.setCurrentText("10X")
-    assert main_window.objective_comboBox.currentText() == "10X"
+    main_window.obj.objective_comboBox.setCurrentText("10X")
+    assert main_window.obj.objective_comboBox.currentText() == "10X"
     assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+    assert main_window.cam.px_size_doubleSpinBox.value() == 1.0
+
+    main_window.cam.px_size_doubleSpinBox.setValue(6.5)
 
     # delete objective group configuration
     mmc.deleteConfigGroup("Objective")
@@ -148,7 +158,7 @@ def test_objective_device_and_px_size(main_window: MainWindow):
     # refresh objective options
     main_window._refresh_objective_options()
 
-    assert main_window.objective_comboBox.currentText() == "Nikon 10X S Fluor"
+    assert main_window.obj.objective_comboBox.currentText() == "Nikon 10X S Fluor"
 
     # delete pixel size configuration
     mmc.deletePixelSizeConfig("Res10x")

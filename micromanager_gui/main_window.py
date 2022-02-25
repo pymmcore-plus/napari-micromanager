@@ -9,15 +9,16 @@ import napari
 import numpy as np
 from loguru import logger
 from magicgui.widgets import ComboBox, FloatSlider, LineEdit, Slider
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
-from qtpy import uic
-from qtpy.QtCore import QSize, Qt, QTimer, Signal
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
+from superqt.utils import create_worker
 
 from ._camera_roi import CameraROI
 from ._group_and_presets_tab import GroupPresetWidget, RenameGroupPreset
+from ._gui import MicroManagerWidget
 from ._illumination import IlluminationDialog
 from ._properties_table_with_checkbox import GroupConfigurations
 from ._saving import save_sequence
@@ -43,76 +44,16 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 WDG_TYPE = (FloatSlider, Slider, LineEdit)
 
 
-class _MainUI:
-    UI_FILE = str(Path(__file__).parent / "_ui" / "micromanager_gui.ui")
+class MainWindow(MicroManagerWidget):
+    def __init__(
+        self,
+        viewer: napari.viewer.Viewer,
+        remote=False,
+        mmc: CMMCorePlus | RemoteMMCore = None,
+        log: logger = False,
+    ):
 
-    # The UI_FILE above contains these objects:
-    cfg_LineEdit: QtW.QLineEdit
-    browse_cfg_Button: QtW.QPushButton
-    load_cfg_Button: QtW.QPushButton
-    objective_groupBox: QtW.QGroupBox
-    objective_comboBox: QtW.QComboBox
-    camera_groupBox: QtW.QGroupBox
-    bin_comboBox: QtW.QComboBox
-    bit_comboBox: QtW.QComboBox
-    position_groupBox: QtW.QGroupBox
-    x_lineEdit: QtW.QLineEdit
-    y_lineEdit: QtW.QLineEdit
-    z_lineEdit: QtW.QLineEdit
-    stage_groupBox: QtW.QGroupBox
-    XY_groupBox: QtW.QGroupBox
-    Z_groupBox: QtW.QGroupBox
-    left_Button: QtW.QPushButton
-    right_Button: QtW.QPushButton
-    y_up_Button: QtW.QPushButton
-    y_down_Button: QtW.QPushButton
-    up_Button: QtW.QPushButton
-    down_Button: QtW.QPushButton
-    xy_step_size_SpinBox: QtW.QSpinBox
-    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    tabWidget: QtW.QTabWidget
-    snap_live_tab: QtW.QWidget
-    multid_tab: QtW.QWidget
-    snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: QtW.QComboBox
-    exp_spinBox: QtW.QDoubleSpinBox
-    snap_Button: QtW.QPushButton
-    live_Button: QtW.QPushButton
-    max_min_val_label: QtW.QLabel
-    px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    properties_Button: QtW.QPushButton
-    cam_roi_comboBox: QtW.QComboBox
-    crop_Button: QtW.QPushButton
-    illumination_Button: QtW.QPushButton
-    snap_on_click_xy_checkBox: QtW.QCheckBox
-    snap_on_click_z_checkBox: QtW.QCheckBox
-
-    def setup_ui(self):
-        uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
-
-        # button icons
-        for attr, icon in [
-            ("left_Button", "left_arrow_1_green.svg"),
-            ("right_Button", "right_arrow_1_green.svg"),
-            ("y_up_Button", "up_arrow_1_green.svg"),
-            ("y_down_Button", "down_arrow_1_green.svg"),
-            ("up_Button", "up_arrow_1_green.svg"),
-            ("down_Button", "down_arrow_1_green.svg"),
-            ("snap_Button", "cam.svg"),
-            ("live_Button", "vcam.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
-
-
-class MainWindow(QtW.QWidget, _MainUI):
-
-    update_cbox_widget = Signal(str, str)
-
-    def __init__(self, viewer: napari.viewer.Viewer, remote=False, log: logger = False):
         super().__init__()
-        self.setup_ui()
 
         # to disable the logger
         self.log = log
@@ -120,17 +61,25 @@ class MainWindow(QtW.QWidget, _MainUI):
             logger.disable(__name__)
 
         self.viewer = viewer
-        self.streaming_timer = None
 
-        self.objectives_device = None
-        self.objectives_cfg = None
+        self.create_gui()  # create gui from _main_gui.py
+
+        self.cfg = self.mm_configuration
+        self.obj = self.mm_objectives
+        self.ill = self.mm_illumination
+        self.cam = self.mm_camera
+        self.stages = self.mm_xyz_stages
+        self.tab = self.mm_tab
 
         self.dict_group_presets_table = {}
 
         self.EXP = re.compile("(Exp(osure)?)s?", re.IGNORECASE)
 
         # create connection to mmcore server or process-local variant
-        self._mmc = RemoteMMCore(verbose=False) if remote else CMMCorePlus()
+        if mmc is not None:
+            self._mmc = mmc
+        else:
+            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -165,19 +114,26 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.groups_and_presets.table_cbox_wdg_changed.connect(
             self._change_objective_main_gui
         )
-        self.groups_and_presets.table_cbox_wdg_changed.connect(self.bit_changed)
-        self.groups_and_presets.table_cbox_wdg_changed.connect(self.bin_changed)
-
         self.groups_and_presets.group_preset_deleted.connect(self._refresh_if_deleted)
 
         # create mda and exporer tab
         self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
-        self.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tabWidget.addTab(self.explorer, "Sample Explorer")
 
-        self.tabWidget.setMovable(True)
-        self.tabWidget.setCurrentIndex(0)
+        # add mda and explorer tabs to mm_tab widget
+        self.tab.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab.tabWidget.addTab(self.explorer, "Sample Explorer")
+
+        self.streaming_timer = None
+        self.available_focus_devs = []
+        self.objectives_device = None
+        self.objectives_cfg = None
+
+        # disable gui
+        self._set_enabled(False)
+
+        self.tab.tabWidget.setMovable(True)
+        self.tab.tabWidget.setCurrentIndex(0)
 
         # disable gui
         self._set_enabled(False)
@@ -201,39 +157,40 @@ class MainWindow(QtW.QWidget, _MainUI):
         sig.propertyChanged.connect(self._change_if_in_table)
 
         # connect buttons
-        self.load_cfg_Button.clicked.connect(self.load_cfg)
-        self.browse_cfg_Button.clicked.connect(self.browse_cfg)
+        self.cfg.load_cfg_Button.clicked.connect(self.load_cfg)
+        self.cfg.browse_cfg_Button.clicked.connect(self.browse_cfg)
+        self.stages.left_Button.clicked.connect(self.stage_x_left)
+        self.stages.right_Button.clicked.connect(self.stage_x_right)
+        self.stages.y_up_Button.clicked.connect(self.stage_y_up)
+        self.stages.y_down_Button.clicked.connect(self.stage_y_down)
+        self.stages.up_Button.clicked.connect(self.stage_z_up)
+        self.stages.down_Button.clicked.connect(self.stage_z_down)
 
-        self.illumination_Button.clicked.connect(self.illumination)
-        self.properties_Button.clicked.connect(self._show_prop_browser)
+        self.tab.snap_Button.clicked.connect(self.snap)
+        self.tab.live_Button.clicked.connect(self.toggle_live)
 
-        self.left_Button.clicked.connect(self.stage_x_left)
-        self.right_Button.clicked.connect(self.stage_x_right)
-        self.y_up_Button.clicked.connect(self.stage_y_up)
-        self.y_down_Button.clicked.connect(self.stage_y_down)
-        self.up_Button.clicked.connect(self.stage_z_up)
-        self.down_Button.clicked.connect(self.stage_z_down)
+        self.ill.illumination_Button.clicked.connect(self.illumination)
+        self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
 
-        self.snap_Button.clicked.connect(self.snap)
-        self.live_Button.clicked.connect(self.toggle_live)
+        self.stages.focus_device_comboBox.currentTextChanged.connect(
+            self._set_focus_device
+        )
 
         # connect comboBox
-        self.objective_comboBox.currentTextChanged.connect(
+        self.obj.objective_comboBox.currentTextChanged.connect(
             self._change_objective_main_gui
         )
-        self.bit_comboBox.currentTextChanged.connect(self.bit_changed)
-        self.bin_comboBox.currentTextChanged.connect(self.bin_changed)
-        self.snap_channel_comboBox.currentTextChanged.connect(
+        self.tab.snap_channel_comboBox.currentTextChanged.connect(
             self._change_channel_main_gui
         )
 
         self.cam_roi = CameraROI(
-            self.viewer, self._mmc, self.cam_roi_comboBox, self.crop_Button
+            self.viewer, self._mmc, self.cam.cam_roi_comboBox, self.cam.crop_Button
         )
 
         # connect spinboxes
-        self.exp_spinBox.valueChanged.connect(self._update_exp)
-        self.exp_spinBox.setKeyboardTracking(False)
+        self.tab.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.tab.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         self._refresh_options()
@@ -270,27 +227,29 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
-            self.camera_groupBox.setEnabled(enabled)
-            self.crop_Button.setEnabled(enabled)
-            self.snap_live_tab.setEnabled(enabled)
-            self.snap_live_tab.setEnabled(enabled)
+            self.cam.camera_groupBox.setEnabled(enabled)
+            self.cam.crop_Button.setEnabled(enabled)
+            self.tab.snap_live_tab.setEnabled(enabled)
+            self.tab.snap_live_tab.setEnabled(enabled)
         else:
-            self.camera_groupBox.setEnabled(False)
-            self.crop_Button.setEnabled(False)
-            self.snap_live_tab.setEnabled(False)
-            self.snap_live_tab.setEnabled(False)
-        if self._mmc.getXYStageDevice():
-            self.XY_groupBox.setEnabled(enabled)
-        else:
-            self.XY_groupBox.setEnabled(False)
-        if self._mmc.getFocusDevice():
-            self.Z_groupBox.setEnabled(enabled)
-        else:
-            self.Z_groupBox.setEnabled(False)
+            self.cam.camera_groupBox.setEnabled(False)
+            self.cam.crop_Button.setEnabled(False)
+            self.tab.snap_live_tab.setEnabled(False)
+            self.tab.snap_live_tab.setEnabled(False)
 
-        self.objective_groupBox.setEnabled(enabled)
-        self.illumination_Button.setEnabled(enabled)
-        self.tabWidget.setEnabled(enabled)
+        if self._mmc.getXYStageDevice():
+            self.stages.XY_groupBox.setEnabled(enabled)
+        else:
+            self.stages.XY_groupBox.setEnabled(False)
+
+        if self._mmc.getFocusDevice():
+            self.stages.Z_groupBox.setEnabled(enabled)
+        else:
+            self.stages.Z_groupBox.setEnabled(False)
+
+        self.obj.objective_groupBox.setEnabled(enabled)
+        self.ill.illumination_Button.setEnabled(enabled)
+        self.tab.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -299,19 +258,18 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.explorer._set_enabled(False)
 
     def browse_cfg(self):
-        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        if filename:
-            self.cfg_LineEdit.setText(filename)
-            self.max_min_val_label.setText("None")
-            self.load_cfg_Button.setEnabled(True)
+        self._mmc.unloadAllDevices()  # unload all devicies
 
-    def load_cfg(self):
+        self._set_enabled(False)
+
         # clear spinbox/combobox without accidently setting properties
         boxes = [
-            self.objective_comboBox,
-            self.bin_comboBox,
-            self.bit_comboBox,
-            self.snap_channel_comboBox,
+            self.obj.objective_comboBox,
+            self.cam.bin_comboBox,
+            self.cam.bit_comboBox,
+            self.tab.snap_channel_comboBox,
+            self.stages.xy_device_comboBox,
+            self.stages.focus_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -324,19 +282,19 @@ class MainWindow(QtW.QWidget, _MainUI):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        self._mmc.unloadAllDevices()  # unload all devicies
-        # disable gui
-        self._set_enabled(False)
-        self.load_cfg_Button.setEnabled(False)
-        cfg = self.cfg_LineEdit.text()
+        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
+        self.tab.max_min_val_label.setText("None")
+        self.cfg.load_cfg_Button.setEnabled(True)
+
+    def load_cfg(self):
+        self.cfg.load_cfg_Button.setEnabled(False)
+        cfg = self.cfg.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
-            self.cfg_LineEdit.setText(cfg)
+            self.cfg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
-        logger.debug(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
         self._refresh_options()
-        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
-        # enable gui
         self._set_enabled(True)
 
     def _refresh_options(self):
@@ -344,6 +302,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
+        self._refresh_xyz_devices()
 
         self.groups_and_presets.populate_table()
 
@@ -367,7 +326,7 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def update_max_min(self, event=None):
 
-        if self.tabWidget.currentIndex() != 1:
+        if self.tab.tabWidget.currentIndex() != 0:
             return
 
         min_max_txt = ""
@@ -385,42 +344,49 @@ class MainWindow(QtW.QWidget, _MainUI):
                 min_max_show = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-        self.max_min_val_label.setText(min_max_txt)
+        self.tab.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
-        self._mmc.snapImage()
-        self.update_viewer(self._mmc.getImage())
+
+        # snap in a thread so we don't freeze UI when using process local mmc
+        create_worker(
+            self._mmc.snapImage,
+            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
+            _start_thread=True,
+        )
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.exp_spinBox.value())
+        self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.exp_spinBox.value()))
-        self.live_Button.setText("Stop")
+        self.streaming_timer.start(int(self.tab.exp_spinBox.value()))
+        self.tab.live_Button.setText("Stop")
 
     def stop_live(self):
         self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.live_Button.setText("Live")
-        self.live_Button.setIcon(CAM_ICON)
+        self.tab.live_Button.setText("Live")
+        self.tab.live_Button.setIcon(CAM_ICON)
 
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
             ch_group = self._mmc.getChannelGroup()
             if ch_group:
-                self._mmc.setConfig(ch_group, self.snap_channel_comboBox.currentText())
+                self._mmc.setConfig(
+                    ch_group, self.tab.snap_channel_comboBox.currentText()
+                )
             else:
                 return
 
             self.start_live()
-            self.live_Button.setIcon(CAM_STOP_ICON)
+            self.tab.live_Button.setIcon(CAM_STOP_ICON)
         else:
             self.stop_live()
-            self.live_Button.setIcon(CAM_ICON)
+            self.tab.live_Button.setIcon(CAM_ICON)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -482,6 +448,45 @@ class MainWindow(QtW.QWidget, _MainUI):
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
+
+    # exposure time
+    def _update_exp(self, exposure: float):
+        self._mmc.setExposure(exposure)
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
+    def _on_exp_change(self, camera: str, exposure: float):
+        # change exposure spinbox
+        with blockSignals(self.exp_spinBox):
+            self.exp_spinBox.setValue(exposure)
+
+        props = self._mmc.getDevicePropertyNames(camera)
+        exp_prop = [p for p in props if self.EXP.search(p)]
+        if not exp_prop:
+            return
+        for prp in exp_prop:
+            # change exposure if in table
+            self._change_if_in_table(camera, prp, exposure)
+
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
+
+    def _update_exp_time_val(self, dev: str, prop: str, val: str):
+        # change exposure spinbox
+        if dev == self._mmc.getCameraDevice() and self.EXP.search(prop):
+            try:
+                if self.exp_spinBox.value() != float(val):
+                    with blockSignals(self.exp_spinBox):
+                        self.exp_spinBox.setValue(float(val))
+                    # change exposure if in table
+                    self._change_if_in_table(dev, prop, val)
+            except ValueError:
+                # if val cannot be converted to float
+                pass
 
     # illumination
     def illumination(self):
@@ -580,6 +585,11 @@ class MainWindow(QtW.QWidget, _MainUI):
             if channel_list != cbox_list:
                 self._refresh_channel_list()
 
+    # def _on_config_set(self, groupName: str, configName: str):
+    #     if groupName == self._mmc.getOrGuessChannelGroup():
+    #         with blockSignals(self.tab.snap_channel_comboBox):
+    #             self.tab.snap_channel_comboBox.setCurrentText(configName)
+
     # objectives
     def _refresh_objective_options(self):
 
@@ -649,9 +659,9 @@ class MainWindow(QtW.QWidget, _MainUI):
             self.objective_comboBox.addItems(presets)
 
             if isinstance(current_obj, int):
-                self.objective_comboBox.setCurrentIndex(current_obj)
+                self.obj.objective_comboBox.setCurrentIndex(current_obj)
             else:
-                self.objective_comboBox.setCurrentText(current_obj)
+                self.obj.objective_comboBox.setCurrentText(current_obj)
             self._update_pixel_size()
             return
 
@@ -666,10 +676,10 @@ class MainWindow(QtW.QWidget, _MainUI):
         if match:
             mag = int(match.groups()[0])
 
-            if self.px_size_doubleSpinBox.value() == 1.0:
+            if self.cam.px_size_doubleSpinBox.value() == 1.0:
                 return
 
-            image_pixel_size = self.px_size_doubleSpinBox.value() / mag
+            image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
             px_cgf_name = f"px_size_{curr_obj}"
             # set image pixel sixe (x,y) for the newly created pixel size config
             self._mmc.definePixelSizeConfig(
@@ -684,7 +694,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         if not objective:
             objective = group
 
-        if self.objective_comboBox.count() <= 0:
+        if self.obj.objective_comboBox.count() <= 0:
             return
         if self.objectives_device == "":
             return
@@ -693,26 +703,26 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._mmc.getAvailableConfigs(self.objectives_cfg)
         ):
 
-            if objective != self.objective_comboBox.currentText():
-                with blockSignals(self.objective_comboBox):
-                    self.objective_comboBox.setCurrentText(objective)
+            if objective != self.obj.objective_comboBox.currentText():
+                with blockSignals(self.obj.objective_comboBox):
+                    self.obj.objective_comboBox.setCurrentText(objective)
             else:
                 self._mmc.setConfig(
-                    self.objectives_cfg, self.objective_comboBox.currentText()
+                    self.objectives_cfg, self.obj.objective_comboBox.currentText()
                 )  # -> configSet
 
             self._change_cbox_if_in_table(self.objectives_cfg, objective)
 
         else:
             objective_list = [
-                self.objective_comboBox.itemText(i)
-                for i in range(self.objective_comboBox.count())
+                self.obj.objective_comboBox.itemText(i)
+                for i in range(self.obj.objective_comboBox.count())
             ]
             if objective in objective_list:
                 self._mmc.setProperty(
                     self.objectives_device,
                     "Label",
-                    self.objective_comboBox.currentText(),
+                    self.obj.objective_comboBox.currentText(),
                 )  # -> propertyChanged
 
         self._update_pixel_size()
@@ -723,8 +733,8 @@ class MainWindow(QtW.QWidget, _MainUI):
             self._refresh_objective_options()
         else:
             obj_gp_list = [
-                self.objective_comboBox.itemText(i)
-                for i in range(self.objective_comboBox.count())
+                self.obj.objective_comboBox.itemText(i)
+                for i in range(self.obj.objective_comboBox.count())
             ]
             obj_cfg_list = list(self._mmc.getAvailableConfigs(self.objectives_cfg))
             obj_gp_list.sort()
@@ -740,9 +750,9 @@ class MainWindow(QtW.QWidget, _MainUI):
     def _on_objective_dev_prop_val_changed(self, dev: str, prop: str, val: str):
         if dev == self.objectives_device:
             current_obj = self._mmc.getCurrentConfig(self.objectives_cfg)
-            if current_obj != self.objective_comboBox.currentText():
-                with blockSignals(self.objective_comboBox):
-                    self.objective_comboBox.setCurrentText(current_obj)
+            if current_obj != self.obj.objective_comboBox.currentText():
+                with blockSignals(self.obj.objective_comboBox):
+                    self.obj.objective_comboBox.setCurrentText(current_obj)
             if self.objectives_cfg:
                 self._change_cbox_if_in_table(self.objectives_cfg, current_obj)
 
@@ -755,210 +765,106 @@ class MainWindow(QtW.QWidget, _MainUI):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
-            self.XY_groupBox.setEnabled(True)
+            self.stages.XY_groupBox.setEnabled(True)
         else:
-            self.XY_groupBox.setEnabled(False)
+            self.stages.XY_groupBox.setEnabled(False)
         if self._mmc.getFocusDevice():
-            self.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
-            self.Z_groupBox.setEnabled(True)
+            self.stages.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+            self.stages.Z_groupBox.setEnabled(True)
         else:
-            self.Z_groupBox.setEnabled(False)
+            self.stages.Z_groupBox.setEnabled(False)
+
+    def _refresh_xyz_devices(self):
+
+        # since there is no offset control yet:
+        self.stages.offset_Z_groupBox.setEnabled(False)
+
+        self.stages.focus_device_comboBox.clear()
+        self.stages.xy_device_comboBox.clear()
+
+        xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
+
+        focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
+
+        if not xy_stage_devs:
+            self.stages.XY_groupBox.setEnabled(False)
+        else:
+            self.stages.XY_groupBox.setEnabled(True)
+            self.stages.xy_device_comboBox.addItems(xy_stage_devs)
+            self._set_xy_stage_device()
+
+        if not focus_devs:
+            self.stages.Z_groupBox.setEnabled(False)
+        else:
+            self.stages.Z_groupBox.setEnabled(True)
+            self.stages.focus_device_comboBox.addItems(focus_devs)
+            self._set_focus_device()
+
+    def _set_xy_stage_device(self):
+        if not self.stages.xy_device_comboBox.count():
+            return
+        self._mmc.setXYStageDevice(self.stages.xy_device_comboBox.currentText())
+
+    def _set_focus_device(self):
+        if not self.stages.focus_device_comboBox.count():
+            return
+        self._mmc.setFocusDevice(self.stages.focus_device_comboBox.currentText())
 
     def _on_xy_stage_position_changed(self, name, x, y):
-        self.x_lineEdit.setText(f"{x:.1f}")
-        self.y_lineEdit.setText(f"{y:.1f}")
+        self.stages.x_lineEdit.setText(f"{x:.1f}")
+        self.stages.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
-            self.z_lineEdit.setText(f"{value:.1f}")
+            self.stages.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
-        self._mmc.setRelativeXYPosition(-float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        self._mmc.setRelativeXYPosition(
+            -float(self.stages.xy_step_size_SpinBox.value()), 0.0
+        )
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_x_right(self):
-        self._mmc.setRelativeXYPosition(float(self.xy_step_size_SpinBox.value()), 0.0)
-        if self.snap_on_click_xy_checkBox.isChecked():
+        self._mmc.setRelativeXYPosition(
+            float(self.stages.xy_step_size_SpinBox.value()), 0.0
+        )
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            float(self.xy_step_size_SpinBox.value()),
+            float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            -float(self.xy_step_size_SpinBox.value()),
+            -float(self.stages.xy_step_size_SpinBox.value()),
         )
-        if self.snap_on_click_xy_checkBox.isChecked():
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_up(self):
-        self._mmc.setRelativePosition(float(self.z_step_size_doubleSpinBox.value()))
-        if self.snap_on_click_z_checkBox.isChecked():
+        self._mmc.setRelativePosition(
+            float(self.stages.z_step_size_doubleSpinBox.value())
+        )
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
-        self._mmc.setRelativePosition(-float(self.z_step_size_doubleSpinBox.value()))
-        if self.snap_on_click_z_checkBox.isChecked():
+        self._mmc.setRelativePosition(
+            -float(self.stages.z_step_size_doubleSpinBox.value())
+        )
+        if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def _on_stages_dev_prop_val_changed(self, dev: str, prop: str, val: str):
         if dev in [self._mmc.getXYStageDevice(), self._mmc.getFocusDevice()]:
             self._refresh_positions()
-
-    # camera
-    def _refresh_camera_options(self):
-        cam_device = self._mmc.getCameraDevice()
-        if not cam_device:
-            return
-        cam_props = self._mmc.getDevicePropertyNames(cam_device)
-        if "Binning" in cam_props:
-            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            with blockSignals(self.bin_comboBox):
-                self.bin_comboBox.clear()
-                self.bin_comboBox.addItems(bin_opts)
-                self.bin_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "Binning")
-                )
-
-        if "PixelType" in cam_props:
-            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            with blockSignals(self.bit_comboBox):
-                self.bit_comboBox.clear()
-                self.bit_comboBox.addItems(px_t)
-                self.bit_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "PixelType")
-                )
-
-    def bit_changed(self, group: str, value: str = None):
-
-        if not value:
-            value = group
-
-        if self.bit_comboBox.count() == 0:
-            return
-
-        items = [
-            self.bit_comboBox.itemText(i) for i in range(self.bit_comboBox.count())
-        ]
-
-        if value not in items:
-            try:
-                dev_prop_val = [
-                    (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)
-                ]
-                for d, p, v in dev_prop_val:
-                    self._update_camera_props(d, p, v)
-            except ValueError:
-                pass
-            return
-
-        bits = self.bit_comboBox.currentText()
-
-        if value != bits:
-            with blockSignals(self.bit_comboBox):
-                self.bit_comboBox.setCurrentText(value)
-        else:
-            cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "PixelType", bits)  # -> propertyChanged
-
-        self._change_item_if_in_table(value, items)
-
-    def bin_changed(self, group: str, value: str = None):
-
-        if not value:
-            value = group
-
-        if self.bin_comboBox.count() == 0:
-            return
-
-        items = [
-            self.bin_comboBox.itemText(i) for i in range(self.bin_comboBox.count())
-        ]
-
-        if value not in items:
-            try:
-                dev_prop_val = [
-                    (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, value)
-                ]
-                for d, p, v in dev_prop_val:
-                    self._update_camera_props(d, p, v)
-            except ValueError:
-                pass
-            return
-
-        bins = self.bin_comboBox.currentText()
-
-        if value != bins:
-            with blockSignals(self.bin_comboBox):
-                self.bin_comboBox.setCurrentText(value)
-        else:
-            cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "Binning", bins)  # -> propertyChanged
-
-        self._change_item_if_in_table(value, items)
-
-    def _change_item_if_in_table(self, value: str, items: list):
-        if not value or not items:
-            return
-        for row in range(self.table.shape[0]):
-            _, wdg = self.table.data[row]
-            if not isinstance(wdg, ComboBox):
-                continue
-            if set(wdg.choices) != set(items):
-                continue
-            if value != wdg.value:
-                with blockSignals(wdg.native):
-                    wdg.value = value
-
-    def _update_camera_props(self, dev: str, prop: str, val: str):
-        if dev == self._mmc.getCameraDevice() and prop in {"Binning", "PixelType"}:
-            self._refresh_camera_options()
-
-    # exposure time
-    def _update_exp(self, exposure: float):
-        self._mmc.setExposure(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    def _on_exp_change(self, camera: str, exposure: float):
-        # change exposure spinbox
-        with blockSignals(self.exp_spinBox):
-            self.exp_spinBox.setValue(exposure)
-
-        props = self._mmc.getDevicePropertyNames(camera)
-        exp_prop = [p for p in props if self.EXP.search(p)]
-        if not exp_prop:
-            return
-        for prp in exp_prop:
-            # change exposure if in table
-            self._change_if_in_table(camera, prp, exposure)
-
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    def _update_exp_time_val(self, dev: str, prop: str, val: str):
-        # change exposure spinbox
-        if dev == self._mmc.getCameraDevice() and self.EXP.search(prop):
-            try:
-                if self.exp_spinBox.value() != float(val):
-                    with blockSignals(self.exp_spinBox):
-                        self.exp_spinBox.setValue(float(val))
-                    # change exposure if in table
-                    self._change_if_in_table(dev, prop, val)
-            except ValueError:
-                # if val cannot be converted to float
-                pass
 
     # groups and presets
     def _get_dict_group_presets_table_data(self, dc: dict):
@@ -1207,7 +1113,6 @@ class MainWindow(QtW.QWidget, _MainUI):
         if dpv_list == dev_prop_val_new:
             if hasattr(self, "edit_gp_ps_widget"):
                 self.edit_gp_ps_widget.close()
-            return
 
         dev_prop_new = [(x[0], x[1]) for x in dev_prop_val_new]
 
@@ -1354,3 +1259,16 @@ class MainWindow(QtW.QWidget, _MainUI):
         if group == self._mmc.getChannelGroup() or not self._mmc.getChannelGroup():
             self._refresh_channel_list()
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+
+    # def _change_item_if_in_table(self, value: str, items: list):
+    #     if not value or not items:
+    #         return
+    #     for row in range(self.table.shape[0]):
+    #         _, wdg = self.table.data[row]
+    #         if not isinstance(wdg, ComboBox):
+    #             continue
+    #         if set(wdg.choices) != set(items):
+    #             continue
+    #         if value != wdg.value:
+    #             with blockSignals(wdg.native):
+    #                 wdg.value = value
