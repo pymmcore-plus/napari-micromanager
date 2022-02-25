@@ -60,7 +60,6 @@ class MMCameraWidget(QtW.QWidget):
         self.cam_roi_wdg_layout.addWidget(self.cam_roi_label, 0, 0)
         # combobox in cam_roi_wdg
         self.cam_roi_comboBox = QtW.QComboBox()
-        self.cam_roi_comboBox.setEditable(True)
         self.cam_roi_comboBox.setMinimumWidth(70)
         self.cam_roi_wdg_layout.addWidget(self.cam_roi_comboBox, 0, 1)
         # pushbutton in cam_roi_wdg
