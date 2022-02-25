@@ -20,7 +20,7 @@ class MMIlluminationWidget(QtW.QWidget):
 
         # pushbutton
         self.illumination_Button = QtW.QPushButton(text="Light Sources Control")
-        self.illumination_Button.setMaximumSize(140, 25)
+        self.illumination_Button.setMaximumSize(150, 25)
 
         self.main_layout.addWidget(self.illumination_Button)
         self.setLayout(self.main_layout)

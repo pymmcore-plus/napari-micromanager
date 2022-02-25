@@ -15,13 +15,13 @@ class MMShuttersWidget(QtW.QWidget):
     def setup_gui(self):
 
         self.main_layout = QtW.QGridLayout()
-        self.main_layout.setVerticalSpacing(0)
-        self.main_layout.setHorizontalSpacing(8)
-        self.main_layout.setContentsMargins(0, 0, 15, 0)
+        self.main_layout.setHorizontalSpacing(5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # label
         self.shutter_label = QtW.QLabel(text="Shutters:")
         self.shutter_label.setMaximumWidth(80)
+        self.shutter_label.setMinimumWidth(80)
         self.main_layout.addWidget(self.shutter_label, 0, 0)
 
         # combobox

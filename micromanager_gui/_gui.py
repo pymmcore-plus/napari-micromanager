@@ -42,17 +42,13 @@ class MicroManagerWidget(QtW.QWidget):
         # add all widgets to main_layout
         self.main_layout.addWidget(self.mm_configuration, 0, 0)
 
-        # add camera collapsible
+        # add camera
         self.cam_group = QtW.QGroupBox()
+        # self.cam_group.setTitle("Camera")
         self.cam_group_layout = QtW.QGridLayout()
         self.cam_group_layout.setSpacing(0)
-        self.cam_group_layout.setContentsMargins(1, 0, 1, 1)
-        self.camera_coll = QCollapsible(title="Camera")
-        self.camera_coll.layout().setSpacing(0)
-        self.camera_coll.layout().setContentsMargins(0, 0, 5, 10)
-        self.camera_coll.addWidget(self.mm_camera)
-        self.camera_coll.expand(animate=False)
-        self.cam_group_layout.addWidget(self.camera_coll)
+        self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
+        self.cam_group_layout.addWidget(self.mm_camera)
         self.cam_group.setLayout(self.cam_group_layout)
         self.main_layout.addWidget(self.cam_group, 3, 0)
 
@@ -75,22 +71,14 @@ class MicroManagerWidget(QtW.QWidget):
         obj_prop = self.add_mm_objectives_and_properties_widgets()
         self.main_layout.addWidget(obj_prop, 1, 0)
 
-        # add illumination collapsible
+        # add illumination
         self.ill_group = QtW.QGroupBox()
         self.ill_group_layout = QtW.QGridLayout()
         self.ill_group_layout.setSpacing(0)
         self.ill_group_layout.setContentsMargins(1, 0, 1, 1)
-
-        self.ill_coll = QCollapsible(title="Illumination")
-        self.ill_coll.layout().setSpacing(0)
-        self.ill_coll.layout().setContentsMargins(0, 0, 5, 10)
         ill_shutter = self.add_ill_and_shutter_widgets()
-        self.ill_coll.addWidget(ill_shutter)
-        self.ill_coll.expand(animate=False)
-
-        self.ill_group_layout.addWidget(self.ill_coll)
+        self.ill_group_layout.addWidget(ill_shutter)
         self.ill_group.setLayout(self.ill_group_layout)
-
         self.main_layout.addWidget(self.ill_group, 2, 0)
 
         # set main_layout layout
@@ -101,7 +89,7 @@ class MicroManagerWidget(QtW.QWidget):
         wdg = QtW.QGroupBox()
         wdg.setMinimumHeight(50)
         wdg_layout = QtW.QGridLayout()
-        wdg_layout.setContentsMargins(5, 0, 5, 0)
+        wdg_layout.setContentsMargins(5, 5, 5, 5)
         wdg_layout.setHorizontalSpacing(0)
         wdg_layout.setVerticalSpacing(0)
 
@@ -116,7 +104,7 @@ class MicroManagerWidget(QtW.QWidget):
 
         wdg = QtW.QWidget()
         wdg_layout = QtW.QGridLayout()
-        wdg_layout.setContentsMargins(5, 0, 0, 0)
+        wdg_layout.setContentsMargins(5, 5, 5, 5)
         wdg_layout.setHorizontalSpacing(0)
         wdg_layout.setVerticalSpacing(0)
 
