@@ -30,6 +30,27 @@ You can install `napari-micromanager` via [pip]:
 
     pip install napari-micromanager
 
+### Getting micromanager adapters:
+
+The easiest way to get the micromanager adapters is to use:
+
+```
+python -m pymmcore_plus.install
+```
+
+this will install micromanager to the pymmcore_plus folder in your site-package; use this to see where:
+
+```
+python -c "from pymmcore_plus import _util; print(_util.find_micromanager())"
+```
+
+alternatively, you can direct pymmcore_plus to your own micromanager installation with the `MICROMANAGER_PATH`
+environment variable:
+
+```
+export MICROMANAGER_PATH='/path/to/Micro-Manager-...'
+```
+
 ## Contributing
 
 Contributions are very welcome. Tests can be run with [tox], please ensure
@@ -45,7 +66,7 @@ python launch-dev.py
 Alternatively you can run:
 
 ```bash
-napari -w micromanager
+napari -w napari-micromanager
 ```
 
 ## License

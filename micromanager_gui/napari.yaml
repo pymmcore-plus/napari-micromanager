@@ -1,0 +1,10 @@
+name: napari-micromanager
+schema_version: 0.1.0
+contributions:
+  commands:
+  - id: napari-micromanager.MainWindow
+    title: Create Main Window
+    python_name: micromanager_gui.main_window:MainWindow
+  widgets:
+  - command: napari-micromanager.MainWindow
+    display_name: Main Window
