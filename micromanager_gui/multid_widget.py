@@ -370,36 +370,20 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
             self.stage_pos_groupBox.isChecked()
             and self.stage_tableWidget.rowCount() > 0
         ):
-            if self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
-                for r in range(self.stage_tableWidget.rowCount()):
-                    state["stage_positions"].append(
-                        {
-                            "x": float(self.stage_tableWidget.item(r, 0).text()),
-                            "y": float(self.stage_tableWidget.item(r, 1).text()),
-                            "z": float(self.stage_tableWidget.item(r, 2).text()),
-                        }
-                    )
-            elif self._mmc.getXYStageDevice():
-                for r in range(self.stage_tableWidget.rowCount()):
-                    state["stage_positions"].append(
-                        {
-                            "x": float(self.stage_tableWidget.item(r, 0).text()),
-                            "y": float(self.stage_tableWidget.item(r, 1).text()),
-                        }
-                    )
-        elif self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
+            for r in range(self.stage_tableWidget.rowCount()):
+                state["stage_positions"].append(
+                    {
+                        "x": float(self.stage_tableWidget.item(r, 0).text()),
+                        "y": float(self.stage_tableWidget.item(r, 1).text()),
+                        "z": float(self.stage_tableWidget.item(r, 2).text()),
+                    }
+                )
+        else:
             state["stage_positions"].append(
                 {
                     "x": float(self._mmc.getXPosition()),
                     "y": float(self._mmc.getYPosition()),
                     "z": float(self._mmc.getZPosition()),
-                }
-            )
-        elif self._mmc.getXYStageDevice():
-            state["stage_positions"].append(
-                {
-                    "x": float(self._mmc.getXPosition()),
-                    "y": float(self._mmc.getYPosition()),
                 }
             )
 
