@@ -520,7 +520,7 @@ class MainWindow(MicroManagerWidget):
         if match:
             mag = int(match.groups()[0])
 
-            if self.px_size_doubleSpinBox.value() == 1.0:
+            if self.cam.px_size_doubleSpinBox.value() == 1.0:
                 return
 
             image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
