@@ -92,7 +92,7 @@ class MainWindow(MicroManagerWidget):
         # tab widgets
         # create groups and presets tab
         self.groups_and_presets = GroupPresetWidget(self._mmc, self)
-        self.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
+        self.tab.tabWidget.addTab(self.groups_and_presets, "Groups and Presets")
         self.table = self.groups_and_presets.tb
         # connect GroupPresetWidget buttons
         self.groups_and_presets.new_btn.clicked.connect(
@@ -151,7 +151,6 @@ class MainWindow(MicroManagerWidget):
         sig.configSet.connect(self._update_px_size)
         sig.configGroupChanged.connect(self._on_configGroupChanged)
         sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
-        sig.propertyChanged.connect(self._update_camera_props)
         sig.propertyChanged.connect(self._update_exp_time_val)
         sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
         sig.propertyChanged.connect(self._change_if_in_table)
@@ -298,7 +297,6 @@ class MainWindow(MicroManagerWidget):
         self._set_enabled(True)
 
     def _refresh_options(self):
-        self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
@@ -459,8 +457,8 @@ class MainWindow(MicroManagerWidget):
 
     def _on_exp_change(self, camera: str, exposure: float):
         # change exposure spinbox
-        with blockSignals(self.exp_spinBox):
-            self.exp_spinBox.setValue(exposure)
+        with blockSignals(self.tab.exp_spinBox):
+            self.tab.exp_spinBox.setValue(exposure)
 
         props = self._mmc.getDevicePropertyNames(camera)
         exp_prop = [p for p in props if self.EXP.search(p)]
@@ -479,9 +477,9 @@ class MainWindow(MicroManagerWidget):
         # change exposure spinbox
         if dev == self._mmc.getCameraDevice() and self.EXP.search(prop):
             try:
-                if self.exp_spinBox.value() != float(val):
-                    with blockSignals(self.exp_spinBox):
-                        self.exp_spinBox.setValue(float(val))
+                if self.tab.exp_spinBox.value() != float(val):
+                    with blockSignals(self.tab.exp_spinBox):
+                        self.tab.exp_spinBox.setValue(float(val))
                     # change exposure if in table
                     self._change_if_in_table(dev, prop, val)
             except ValueError:
@@ -511,7 +509,7 @@ class MainWindow(MicroManagerWidget):
         guessed_channel_list = self._mmc.getOrGuessChannelGroup()
 
         if not guessed_channel_list:
-            self.snap_channel_comboBox.clear()
+            self.tab.snap_channel_comboBox.clear()
             self.mda.clear_channel()
             self.explorer.clear_channel()
             return
@@ -533,10 +531,10 @@ class MainWindow(MicroManagerWidget):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-        with blockSignals(self.snap_channel_comboBox):
-            self.snap_channel_comboBox.clear()
-            self.snap_channel_comboBox.addItems(channel_list)
-            self.snap_channel_comboBox.setCurrentText(
+        with blockSignals(self.tab.snap_channel_comboBox):
+            self.tab.snap_channel_comboBox.clear()
+            self.tab.snap_channel_comboBox.addItems(channel_list)
+            self.tab.snap_channel_comboBox.setCurrentText(
                 self._mmc.getCurrentConfig(channel_group)
             )
 
@@ -549,9 +547,9 @@ class MainWindow(MicroManagerWidget):
             self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
         ):
 
-            if newChannel != self.snap_channel_comboBox.currentText():
-                with blockSignals(self.snap_channel_comboBox):
-                    self.snap_channel_comboBox.setCurrentText(newChannel)
+            if newChannel != self.tab.snap_channel_comboBox.currentText():
+                with blockSignals(self.tab.snap_channel_comboBox):
+                    self.tab.snap_channel_comboBox.setCurrentText(newChannel)
             else:
                 self._mmc.setConfig(
                     self._mmc.getChannelGroup(), newChannel
@@ -577,8 +575,8 @@ class MainWindow(MicroManagerWidget):
                 self._mmc.getAvailableConfigs(self._mmc.getChannelGroup())
             )
             cbox_list = [
-                self.snap_channel_comboBox.itemText(i)
-                for i in range(self.snap_channel_comboBox.count())
+                self.tab.snap_channel_comboBox.itemText(i)
+                for i in range(self.tab.snap_channel_comboBox.count())
             ]
             channel_list.sort()
             cbox_list.sort()
@@ -597,7 +595,7 @@ class MainWindow(MicroManagerWidget):
         # e.g. ['TiNosePiece']
 
         if not obj_dev_list:
-            self.objective_comboBox.clear()
+            self.obj.objective_comboBox.clear()
             return
 
         if len(obj_dev_list) == 1:
@@ -650,13 +648,13 @@ class MainWindow(MicroManagerWidget):
         return self.objectives_device, None, None
 
     def _add_objective_to_gui(self, current_obj, presets: list):
-        with blockSignals(self.objective_comboBox):
-            self.objective_comboBox.clear()
+        with blockSignals(self.obj.objective_comboBox):
+            self.obj.objective_comboBox.clear()
 
             if "_____" in presets:
                 presets.pop(-1)
 
-            self.objective_comboBox.addItems(presets)
+            self.obj.objective_comboBox.addItems(presets)
 
             if isinstance(current_obj, int):
                 self.obj.objective_comboBox.setCurrentIndex(current_obj)
