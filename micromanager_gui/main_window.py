@@ -13,6 +13,7 @@ from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker
 
+from ._autofocus import AutofocusDevice
 from ._camera_roi import CameraROI
 from ._gui import MicroManagerWidget
 from ._illumination import IlluminationDialog
@@ -82,9 +83,10 @@ class MainWindow(MicroManagerWidget):
         self.tab.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         self.streaming_timer = None
-        self.available_focus_devs = []
         self.objectives_device = None
         self.objectives_cfg = None
+        self.available_focus_devs = []
+        self.autofocus_z_stage = None
 
         # disable gui
         self._set_enabled(False)
@@ -99,8 +101,10 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._refresh_options)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
+        sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
+        sig.propertyChanged.connect(self._on_offset_status_changed)
 
         # connect buttons
         self.cfg.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -111,6 +115,8 @@ class MainWindow(MicroManagerWidget):
         self.stages.y_down_Button.clicked.connect(self.stage_y_down)
         self.stages.up_Button.clicked.connect(self.stage_z_up)
         self.stages.down_Button.clicked.connect(self.stage_z_down)
+        self.stages.offset_up_Button.clicked.connect(self.offset_up)
+        self.stages.offset_down_Button.clicked.connect(self.offset_down)
 
         self.tab.snap_Button.clicked.connect(self.snap)
         self.tab.live_Button.clicked.connect(self.toggle_live)
@@ -127,6 +133,12 @@ class MainWindow(MicroManagerWidget):
         self.cam.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
         self.cam.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.tab.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        self.stages.focus_device_comboBox.currentTextChanged.connect(
+            self._set_focus_device
+        )
+        self.stages.offset_device_comboBox.currentTextChanged.connect(
+            self._set_autofocus_device
+        )
 
         self.cam_roi = CameraROI(
             self.viewer, self._mmc, self.cam.cam_roi_comboBox, self.cam.crop_Button
@@ -165,6 +177,11 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stages.Z_groupBox.setEnabled(False)
 
+        if self._mmc.getAutoFocusDevice():
+            self.stages.offset_Z_groupBox.setEnabled(enabled)
+        else:
+            self.stages.offset_Z_groupBox.setEnabled(False)
+
         self.obj.objective_groupBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
         self.tab.tabWidget.setEnabled(enabled)
@@ -188,6 +205,7 @@ class MainWindow(MicroManagerWidget):
             self.tab.snap_channel_comboBox,
             self.stages.xy_device_comboBox,
             self.stages.focus_device_comboBox,
+            self.stages.offset_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -199,6 +217,8 @@ class MainWindow(MicroManagerWidget):
 
         self.objectives_device = None
         self.objectives_cfg = None
+        self.available_focus_devs = []
+        self.autofocus_z_stage = None
 
         file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
         self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
@@ -569,15 +589,15 @@ class MainWindow(MicroManagerWidget):
 
     def _refresh_xyz_devices(self):
 
-        # since there is no offset control yet:
-        self.stages.offset_Z_groupBox.setEnabled(False)
-
         self.stages.focus_device_comboBox.clear()
         self.stages.xy_device_comboBox.clear()
+        self.stages.offset_device_comboBox.clear()
 
         xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
 
         focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
+
+        offset_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.AutoFocusDevice))
 
         if not xy_stage_devs:
             self.stages.XY_groupBox.setEnabled(False)
@@ -593,6 +613,12 @@ class MainWindow(MicroManagerWidget):
             self.stages.focus_device_comboBox.addItems(focus_devs)
             self._set_focus_device()
 
+        if not offset_devs:
+            self.stages.offset_device_comboBox.setEnabled(False)
+        else:
+            self.stages.offset_device_comboBox.addItems(offset_devs)
+            self._set_autofocus_device()
+
     def _set_xy_stage_device(self):
         if not self.stages.xy_device_comboBox.count():
             return
@@ -602,6 +628,41 @@ class MainWindow(MicroManagerWidget):
         if not self.stages.focus_device_comboBox.count():
             return
         self._mmc.setFocusDevice(self.stages.focus_device_comboBox.currentText())
+
+    def _set_autofocus_device(self):
+        if not self.stages.offset_device_comboBox.count():
+            return
+        self.autofocus_z_stage = AutofocusDevice.set(
+            self.stages.offset_device_comboBox.currentText(), self._mmc
+        )
+        # remove autofocus offset device if in the combobox of focus devices
+        # e.g. "TIPSFOffset" for Nikon PFS
+        if self.stages.focus_device_comboBox.count() > 1:
+            focus_cbox_items = list(self.stages.focus_device_comboBox.itemText())
+            if self.autofocus_z_stage.offset_device in focus_cbox_items:
+                self.stages.focus_device_comboBox.removeItem(
+                    self.stages.focus_device_comboBox.findText(
+                        self.autofocus_z_stage.offset_device
+                    )
+                )
+        self._mmc.setAutoFocusDevice(self.stages.offset_device_comboBox.currentText())
+        self._on_offset_status_changed()
+
+    def _on_offset_status_changed(self):
+        if (
+            not self.autofocus_z_stage
+            or self.autofocus_z_stage
+            and not self.autofocus_z_stage.isEngaged()
+        ):
+            self.stages.offset_Z_groupBox.setEnabled(False)
+            self.stages.Z_groupBox.setEnabled(True)
+        else:
+            autofocus_dev = self.autofocus_z_stage.autofocus_device
+            if self.autofocus_z_stage.isLocked() or self.autofocus_z_stage.isFocusing(
+                autofocus_dev
+            ):
+                self.stages.offset_Z_groupBox.setEnabled(True)
+                self.stages.Z_groupBox.setEnabled(False)
 
     def _on_xy_stage_position_changed(self, name, x, y):
         self.stages.x_lineEdit.setText(f"{x:.1f}")
@@ -654,6 +715,28 @@ class MainWindow(MicroManagerWidget):
         )
         if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
+
+    def offset_up(self):
+        if self._mmc.isContinuousFocusLocked():
+            offset_dev = self.autofocus_z_stage.offset_device
+            current_offset = self.autofocus_z_stage.get_position(offset_dev)
+            new_offset = current_offset + float(
+                self.stages.offset_z_step_size_doubleSpinBox.value()
+            )
+            self.autofocus_z_stage.set_offset(offset_dev, new_offset)
+            if self.stages.snap_on_click_checkBox.isChecked():
+                self.snap()
+
+    def offset_down(self):
+        if self._mmc.isContinuousFocusLocked():
+            offset_dev = self.autofocus_z_stage.offset_device
+            current_offset = self.autofocus_z_stage.get_position(offset_dev)
+            new_offset = current_offset - float(
+                self.stages.offset_z_step_size_doubleSpinBox.value()
+            )
+            self.autofocus_z_stage.set_offset(offset_dev, new_offset)
+            if self.stages.snap_on_click_checkBox.isChecked():
+                self.snap()
 
     # camera
     def _refresh_camera_options(self):

@@ -11,6 +11,8 @@ from qtpy.QtGui import QIcon
 from typing_extensions import Literal
 from useq import MDASequence
 
+from ._autofocus import AutofocusDevice
+
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
@@ -286,6 +288,17 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 z_txt = QtW.QTableWidgetItem(str(z))
                 z_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
+
+            if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
+                autofocus_dev = AutofocusDevice.set(
+                    self._mmc.getAutoFocusDevice(), self._mmc
+                )
+                autofocus_dev.get_position()
+                z_offset_txt = QtW.QTableWidgetItem(str(autofocus_dev.get_position()))
+                z_offset_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                self.stage_tableWidget.setItem(
+                    idx, 3, QtW.QTableWidgetItem(z_offset_txt)
+                )
 
             self.toggle_checkbox_save_pos()
 
