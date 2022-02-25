@@ -377,7 +377,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         else:
             self.stage_pos_groupBox.setChecked(False)
 
-    def _get_state_dict(self) -> dict:
+    def get_state(self) -> MDASequence:
+        """Get current state of widget as a useq.MDASequence."""
         state = {
             "axis_order": self.acquisition_order_comboBox.currentText(),
             "channels": [],
@@ -444,7 +445,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 }
             )
 
-        return state
+        return MDASequence(**state)
 
     def _on_run_clicked(self):
 
@@ -466,7 +467,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         ):
             raise ValueError("Select a filename and a valid directory.")
 
-        experiment = MDASequence(**self._get_state_dict())
+        experiment = self.get_state()
 
         self.SEQUENCE_META[experiment] = SequenceMeta(
             mode="mda",

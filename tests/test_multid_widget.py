@@ -10,7 +10,10 @@ def test_multid_load_state(qtbot, global_mmcore):
     assert wdg.channel_tableWidget.rowCount() == 0
     assert not wdg.time_groupBox.isChecked()
     sequence = MDASequence(
-        channels=["Cy5", {"config": "FITC", "exposure": 50}],
+        channels=[
+            {"config": "Cy5", "exposure": 20},
+            {"config": "FITC", "exposure": 50},
+        ],
         time_plan={"interval": 2, "loops": 5},
         z_plan={"range": 4, "step": 0.5},
         axis_order="tpcz",
@@ -20,3 +23,6 @@ def test_multid_load_state(qtbot, global_mmcore):
     assert wdg.stage_tableWidget.rowCount() == 2
     assert wdg.channel_tableWidget.rowCount() == 2
     assert wdg.time_groupBox.isChecked()
+
+    # round trip
+    assert wdg.get_state() == sequence
