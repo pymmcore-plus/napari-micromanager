@@ -5,13 +5,21 @@ from typing import Tuple
 import numpy as np
 import pytest
 from napari import Viewer
-from pymmcore_plus import server
+from pymmcore_plus import CMMCorePlus, server
 from useq import MDASequence
 
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
 ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
+
+
+@pytest.fixture
+def global_mmcore():
+    mmc = CMMCorePlus.instance()
+    if len(mmc.getLoadedDevices()) < 2:
+        mmc.loadSystemConfiguration()
+    return mmc
 
 
 @pytest.fixture(params=["local", "remote"])
