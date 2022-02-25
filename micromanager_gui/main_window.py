@@ -11,6 +11,7 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
+from superqt.utils import create_worker
 
 from ._camera_roi import CameraROI
 from ._gui import MicroManagerWidget
@@ -38,7 +39,12 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MicroManagerWidget):
-    def __init__(self, viewer: napari.viewer.Viewer, remote=True):
+    def __init__(
+        self,
+        viewer: napari.viewer.Viewer,
+        remote=False,
+        mmc: CMMCorePlus | RemoteMMCore = None,
+    ):
         super().__init__()
 
         self.viewer = viewer
@@ -53,6 +59,12 @@ class MainWindow(MicroManagerWidget):
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
+
+        # create connection to mmcore server or process-local variant
+        if mmc is not None:
+            self._mmc = mmc
+        else:
+            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -256,16 +268,13 @@ class MainWindow(MicroManagerWidget):
 
     def snap(self):
         self.stop_live()
-        try:
-            self._mmc.setConfig(
-                self._mmc.getChannelGroup(),
-                self.tab.snap_channel_comboBox.currentText(),
-            )
-        except ValueError:
-            pass
-        self._mmc.setExposure(self.tab.exp_spinBox.value())
-        self._mmc.snapImage()
-        self.update_viewer(self._mmc.getImage())
+
+        # snap in a thread so we don't freeze UI when using process local mmc
+        create_worker(
+            self._mmc.snapImage,
+            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
+            _start_thread=True,
+        )
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
