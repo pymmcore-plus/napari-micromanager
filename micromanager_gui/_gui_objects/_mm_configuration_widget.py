@@ -27,7 +27,7 @@ class MMConfigurationWidget(QtW.QWidget):
 
         # define camera_groupBox layout
         self.cfg_groupBox_layout = QtW.QGridLayout()
-        self.cfg_groupBox_layout.setContentsMargins(5, 7, 5, 3)
+        self.cfg_groupBox_layout.setContentsMargins(5, 9, 5, 3)
 
         # add to cfg_groupBox layout:
         self.cfg_LineEdit = QtW.QLineEdit()
