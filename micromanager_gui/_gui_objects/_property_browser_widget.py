@@ -1,11 +1,11 @@
 from qtpy import QtWidgets as QtW
 
 
-class MMIlluminationWidget(QtW.QWidget):
+class MMPropertyBrowserWidget(QtW.QWidget):
     """
     Contains the following objects:
 
-    illumination_Button: QtW.QLineEdit
+    properties_Button: QtW.QPushButton
     """
 
     def __init__(self):
@@ -19,10 +19,10 @@ class MMIlluminationWidget(QtW.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # pushbutton
-        self.illumination_Button = QtW.QPushButton(text="Light Sources Control")
-        self.illumination_Button.setMaximumSize(150, 25)
+        self.properties_Button = QtW.QPushButton(text="Open Property Browser")
+        self.properties_Button.setMaximumSize(150, 25)
+        self.main_layout.addWidget(self.properties_Button)
 
-        self.main_layout.addWidget(self.illumination_Button)
         self.setLayout(self.main_layout)
 
 
@@ -30,6 +30,6 @@ if __name__ == "__main__":
     import sys
 
     app = QtW.QApplication(sys.argv)
-    win = MMIlluminationWidget()
+    win = MMPropertyBrowserWidget()
     win.show()
     sys.exit(app.exec_())

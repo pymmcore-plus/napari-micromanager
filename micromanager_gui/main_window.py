@@ -52,7 +52,6 @@ class MainWindow(MicroManagerWidget):
         mmc: CMMCorePlus | RemoteMMCore = None,
         log: logger = False,
     ):
-
         super().__init__()
 
         # to disable the logger
@@ -67,6 +66,7 @@ class MainWindow(MicroManagerWidget):
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
         self.ill = self.mm_illumination
+        self.pb = self.mm_pb
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
@@ -169,7 +169,7 @@ class MainWindow(MicroManagerWidget):
         self.tab.live_Button.clicked.connect(self.toggle_live)
 
         self.ill.illumination_Button.clicked.connect(self.illumination)
-        self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
+        self.pb.properties_Button.clicked.connect(self._show_prop_browser)
 
         self.stages.focus_device_comboBox.currentTextChanged.connect(
             self._set_focus_device
@@ -225,13 +225,15 @@ class MainWindow(MicroManagerWidget):
             logger.debug(f"channel_group_changed. new channel group: {channel_group}")
 
     def _set_enabled(self, enabled):
+
         if self._mmc.getCameraDevice():
-            self.cam.camera_groupBox.setEnabled(enabled)
+            self._camera_group_wdg(enabled)
             self.cam.crop_Button.setEnabled(enabled)
             self.tab.snap_live_tab.setEnabled(enabled)
             self.tab.snap_live_tab.setEnabled(enabled)
         else:
-            self.cam.camera_groupBox.setEnabled(False)
+            self._camera_group_wdg(False)
+            self.cam_group.setEnabled(False)
             self.cam.crop_Button.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
@@ -246,9 +248,11 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stages.Z_groupBox.setEnabled(False)
 
-        self.obj.objective_groupBox.setEnabled(enabled)
+        self.cam_group.setEnabled(True)
+        self.stages_coll.setEnabled(True)
+        self.pb.properties_Button.setEnabled(enabled)
+        self.obj.objective_comboBox.setEnabled(enabled)
         self.ill.illumination_Button.setEnabled(enabled)
-        self.tab.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -256,19 +260,24 @@ class MainWindow(MicroManagerWidget):
         else:
             self.explorer._set_enabled(False)
 
-    def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
+    def _camera_group_wdg(self, enabled):
+        self.cam.px_size_doubleSpinBox.setEnabled(enabled)
+        self.cam.cam_roi_comboBox.setEnabled(enabled)
+        self.cam.crop_Button.setEnabled(enabled)
 
-        self._set_enabled(False)
+    def browse_cfg(self):
+        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        if filename:
+            self.cfg.cfg_LineEdit.setText(filename)
+            self.tab.max_min_val_label.setText("None")
+            self.cfg.load_cfg_Button.setEnabled(True)
+
+    def load_cfg(self):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.obj.objective_comboBox,
-            self.cam.bin_comboBox,
-            self.cam.bit_comboBox,
             self.tab.snap_channel_comboBox,
-            self.stages.xy_device_comboBox,
-            self.stages.focus_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -281,17 +290,13 @@ class MainWindow(MicroManagerWidget):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        self.cfg.cfg_LineEdit.setText(str(file_dir[0]))
-        self.tab.max_min_val_label.setText("None")
-        self.cfg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
+        # disable gui
+        self._set_enabled(False)
         self.cfg.load_cfg_Button.setEnabled(False)
         cfg = self.cfg.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
-            self.cfg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
         self._refresh_options()
         self._set_enabled(True)
