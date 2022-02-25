@@ -151,6 +151,7 @@ class MainWindow(MicroManagerWidget):
             self.tab.snap_live_tab.setEnabled(enabled)
         else:
             self._camera_group_wdg(False)
+            self.cam_group.setEnabled(False)
             self.cam.crop_Button.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
             self.tab.snap_live_tab.setEnabled(False)
@@ -165,6 +166,7 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stages.Z_groupBox.setEnabled(False)
 
+        self.cam_group.setEnabled(True)
         self.stages_coll.setEnabled(True)
         self.pb.properties_Button.setEnabled(enabled)
         self.obj.objective_comboBox.setEnabled(enabled)
