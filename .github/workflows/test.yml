@@ -12,13 +12,13 @@ on:
 
 jobs:
   test:
-    name: ${{ matrix.platform }} py${{ matrix.python-version }}
+    name: py${{ matrix.python-version }} ${{ matrix.backend }} ${{ matrix.platform }}
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-latest]
-        python-version: [3.8, 3.9, '3.10']
+        python-version: ["3.8", "3.9", "3.10"]
         backend: [pyside2, pyqt5]
 
     steps:
@@ -29,7 +29,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # strategy borrowed from vispy for installing opengl libs on windows
       - name: Install Windows OpenGL
         if: runner.os == 'Windows'
         run: |
@@ -39,16 +38,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[testing,${{ matrix.backend }}]
+          python -m pip install tox tox-gh-actions
 
-      - name: Install Micro-Manager
-        run: python -m pymmcore_plus.install
-
-      - name: Test
-        run: pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
+      - name: Test with tox
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: python -m tox
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          BACKEND: ${{ matrix.backend }}
 
       - name: Coverage
         uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
 
   deploy:
     name: Deploy
