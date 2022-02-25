@@ -21,13 +21,13 @@ class MMConfigurationWidget(QtW.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         # cfg groupbox in widget
         self.cfg_groupBox = QtW.QGroupBox()
-        self.cfg_groupBox.setMinimumHeight(65)
-        self.cfg_groupBox.setTitle("Camera")
+        # self.cfg_groupBox.setMinimumHeight(65)
+        self.cfg_groupBox.setTitle("Micro-Manager Configuration")
         self.main_layout.addWidget(self.cfg_groupBox, 0, 0)
-        self.setLayout(self.main_layout)
 
         # define camera_groupBox layout
         self.cfg_groupBox_layout = QtW.QGridLayout()
+        self.cfg_groupBox_layout.setContentsMargins(5, 7, 5, 3)
 
         # add to cfg_groupBox layout:
         self.cfg_LineEdit = QtW.QLineEdit()
@@ -41,6 +41,8 @@ class MMConfigurationWidget(QtW.QWidget):
         self.cfg_groupBox_layout.addWidget(self.load_cfg_Button, 0, 2)
         # set cfg_groupBox layout
         self.cfg_groupBox.setLayout(self.cfg_groupBox_layout)
+
+        self.setLayout(self.main_layout)
 
 
 if __name__ == "__main__":

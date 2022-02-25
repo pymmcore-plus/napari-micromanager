@@ -25,7 +25,7 @@ class MMObjectivesWidget(QtW.QWidget):
 
         # combobox
         self.objective_comboBox = QtW.QComboBox()
-        self.objective_comboBox.setMinimumWidth(200)
+        self.objective_comboBox.setMinimumWidth(250)
         self.main_layout.addWidget(self.objective_comboBox, 0, 1)
 
         self.setLayout(self.main_layout)

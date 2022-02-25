@@ -105,7 +105,6 @@ class MainWindow(MicroManagerWidget):
         self.tab.live_Button.clicked.connect(self.toggle_live)
 
         self.ill.illumination_Button.clicked.connect(self.illumination)
-        # self.cfg.properties_Button.clicked.connect(self._show_prop_browser)
         self.pb.properties_Button.clicked.connect(self._show_prop_browser)
 
         self.stages.focus_device_comboBox.currentTextChanged.connect(
@@ -114,8 +113,6 @@ class MainWindow(MicroManagerWidget):
 
         # connect comboBox
         self.obj.objective_comboBox.currentIndexChanged.connect(self.change_objective)
-        self.cam.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
-        self.cam.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.tab.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
 
         self.cam_roi = CameraROI(
@@ -170,8 +167,6 @@ class MainWindow(MicroManagerWidget):
             self.explorer._set_enabled(False)
 
     def _camera_group_wdg(self, enabled):
-        self.cam.bin_comboBox.setEnabled(enabled)
-        self.cam.bit_comboBox.setEnabled(enabled)
         self.cam.px_size_doubleSpinBox.setEnabled(enabled)
         self.cam.cam_roi_comboBox.setEnabled(enabled)
         self.cam.crop_Button.setEnabled(enabled)
@@ -188,8 +183,6 @@ class MainWindow(MicroManagerWidget):
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.obj.objective_comboBox,
-            self.cam.bin_comboBox,
-            self.cam.bit_comboBox,
             self.tab.snap_channel_comboBox,
         ]
         with blockSignals(boxes):
@@ -215,7 +208,7 @@ class MainWindow(MicroManagerWidget):
         self._set_enabled(True)
 
     def _refresh_options(self):
-        self._refresh_camera_options()
+        # self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
@@ -387,7 +380,10 @@ class MainWindow(MicroManagerWidget):
             self._illumination.close()
         self._illumination = IlluminationDialog(self._mmc, self)
         self._illumination.setWindowFlags(
-            Qt.Window | Qt.WindowTitleHint | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint
+            Qt.Window
+            | Qt.WindowTitleHint
+            | Qt.WindowStaysOnTopHint
+            | Qt.WindowCloseButtonHint
         )
         self._illumination.show()
 
@@ -517,7 +513,7 @@ class MainWindow(MicroManagerWidget):
 
             if self.px_size_doubleSpinBox.value() == 1.0:
                 return
-            
+
             image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
             px_cgf_name = f"px_size_{curr_obj}"
             # set image pixel sixe (x,y) for the newly created pixel size config
@@ -653,38 +649,3 @@ class MainWindow(MicroManagerWidget):
         )
         if self.stages.snap_on_click_checkBox.isChecked():
             self.snap()
-
-    # camera
-    def _refresh_camera_options(self):
-        cam_device = self._mmc.getCameraDevice()
-        if not cam_device:
-            return
-        cam_props = self._mmc.getDevicePropertyNames(cam_device)
-        if "Binning" in cam_props:
-            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            with blockSignals(self.cam.bin_comboBox):
-                self.cam.bin_comboBox.clear()
-                self.cam.bin_comboBox.addItems(bin_opts)
-                self.cam.bin_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "Binning")
-                )
-
-        if "PixelType" in cam_props:
-            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            with blockSignals(self.cam.bit_comboBox):
-                self.cam.bit_comboBox.clear()
-                self.cam.bit_comboBox.addItems(px_t)
-                self.cam.bit_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "PixelType")
-                )
-
-    def bit_changed(self):
-        if self.cam.bit_comboBox.count() > 0:
-            bits = self.cam.bit_comboBox.currentText()
-            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
-
-    def bin_changed(self):
-        if self.cam.bin_comboBox.count() > 0:
-            bins = self.cam.bin_comboBox.currentText()
-            cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "Binning", bins)
