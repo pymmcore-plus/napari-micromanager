@@ -226,10 +226,6 @@ class MainWindow(QtW.QWidget, _MainUI):
                 f"{self._mmc.getCurrentPixelSizeConfig()} \npixel size: {value}"
             )
 
-        @sig.configSet.connect
-        def _on_cfg_set(group: str, preset: str):
-            print(f"New group cfg set: {group} -> {preset}")
-
     def illumination(self):
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationDialog(self._mmc, self)
@@ -329,7 +325,6 @@ class MainWindow(QtW.QWidget, _MainUI):
 
     def browse_cfg(self):
         self._mmc.unloadAllDevices()  # unload all devicies
-        print(f"Loaded Devices: {self._mmc.getLoadedDevices()}")
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
