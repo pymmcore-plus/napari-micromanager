@@ -656,7 +656,7 @@ class MainWindow(MicroManagerWidget):
         with blockSignals(self.obj.objective_comboBox):
             self.obj.objective_comboBox.clear()
 
-            if "_____" in presets:
+            if "" in presets:
                 presets.pop(-1)
 
             self.obj.objective_comboBox.addItems(presets)
@@ -937,7 +937,7 @@ class MainWindow(MicroManagerWidget):
                 continue
             if group == gp:
                 with blockSignals(wdg.native):
-                    wdg.value = "_____"
+                    wdg.value = ""
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
@@ -972,7 +972,7 @@ class MainWindow(MicroManagerWidget):
             self.create_gp_ps_widget.preset_le.value = ""
 
         except TypeError:
-            # if no row selected or row > 1 selected or wdg.name = "None"
+            # if no row selected or row > 1 selected or wdg.name = "noPreset"
             self.table.native.clearSelection()
 
         self.create_gp_ps_widget.show()
@@ -993,15 +993,18 @@ class MainWindow(MicroManagerWidget):
         from_dict = [g for g in groups_list if self.dict_group_presets_table.get(g)]
         groups_diff = list(set(groups_list) ^ set(from_dict))
 
+        if not preset:
+            preset = "noPreset"
+
         if group in groups_diff:
             self._new_wdg(group, [preset])
 
         else:
             presets = list(self._mmc.getAvailableConfigs(group))
-            if "None" in presets:
+            if "noPreset" in presets:
                 if len(presets) > 1:
-                    self._mmc.deleteConfig(group, "None")
-                    idx = presets.index("None")
+                    self._mmc.deleteConfig(group, "noPreset")
+                    idx = presets.index("noPreset")
                     presets.pop(idx)
                 matching_items = self.table.native.findItems(group, Qt.MatchExactly)
                 row = matching_items[0].row()
@@ -1027,10 +1030,10 @@ class MainWindow(MicroManagerWidget):
                             logger.debug(f"{p} preset added to {group} group")
                             wdg.choices = wdg_items
 
-                        if "_____" in wdg.choices and wdg.choices[-1] != "_____":
-                            wdg.del_choice("_____")
+                        if "" in wdg.choices and wdg.choices[-1] != "":
+                            wdg.del_choice("")
                             items = list(wdg.choices)
-                            items.append("_____")
+                            items.append("")
                             wdg.choices = items
 
                     else:

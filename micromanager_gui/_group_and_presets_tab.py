@@ -142,28 +142,33 @@ class GroupPresetWidget(QtW.QWidget):
 
         dev, prop, val, count = self._get_cfg_data(group, presets[0])
 
-        if "_____" not in presets:
-            presets.append("_____")
+        if "" not in presets:
+            presets.append("")
 
-        if "_____" in presets and presets[-1] != "_____":
-            idx = presets.index("_____")
+        if "" in presets and presets[-1] != "":
+            idx = presets.index("")
             presets.pop(idx)
-            presets.append("_____")
+            presets.append("")
 
         if len(presets) > 2:
+            print("len > 2")
             wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
             if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
-                if "None" in presets:
+                print("count == 1")
+                if "noPreset" in presets:
                     prs = self._mmc.getAllowedPropertyValues(dev, prop)
+                    print("     if noPreset ->", prs)
                     wdg = ComboBox(
                         choices=prs, name=f"{presets}", annotation=[dev, prop]
                     )
                 else:
                     wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif count > 1:
-                if "None" in presets:
+                print("count > 1")
+                if "noPreset" in presets:
                     presets = ["NewPreset_0"]
+                    print("     if noPreset ->", presets)
                 wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
@@ -201,7 +206,7 @@ class GroupPresetWidget(QtW.QWidget):
         def _on_change(value: Any):
 
             if isinstance(wdg, ComboBox):
-                if value != "_____":
+                if value != "":
                     if wdg.annotation:
                         self._mmc.setProperty(dev, prop, value)  # -> propertyChanged
                     else:
@@ -259,7 +264,8 @@ class GroupPresetWidget(QtW.QWidget):
 
         groupname, wdg = self.tb.data[selected_row[0]]
 
-        if "None" in wdg.name:
+        # if "None" in wdg.name:
+        if "noPreset" in wdg.name:
             return
 
         if isinstance(wdg, ComboBox):
@@ -275,9 +281,6 @@ class GroupPresetWidget(QtW.QWidget):
 
         item_to_find = self._find_items(groupname, curr_preset)
         item_to_find_list = [x[0] for x in item_to_find]
-
-        if curr_preset == "None":
-            curr_preset = ""
 
         return groupname, curr_preset, item_to_find, item_to_find_list
 

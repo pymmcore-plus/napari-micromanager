@@ -267,7 +267,7 @@ class GroupConfigurations(QDialog):
             pst = self._mmcore.getAvailableConfigs(group_name)
             n = sum("NewPreset" in p for p in pst)
             preset_name = (
-                "None" if len(self.pt.table_index_list) == 1 else f"NewPreset_{n}"
+                "noPreset" if len(self.pt.table_index_list) == 1 else f"NewPreset_{n}"
             )
 
         if not self._mmcore.isGroupDefined(group_name):
