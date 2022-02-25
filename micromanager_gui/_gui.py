@@ -32,7 +32,6 @@ class MicroManagerWidget(QtW.QWidget):
     def create_gui(self):
 
         # main widget
-        # self.setMinimumWidth(600)
         self.main_layout = QtW.QGridLayout()
         self.main_layout.setContentsMargins(10, 0, 10, 0)
         self.main_layout.setVerticalSpacing(3)
@@ -42,47 +41,61 @@ class MicroManagerWidget(QtW.QWidget):
         # add all widgets to main_layout
         self.main_layout.addWidget(self.mm_configuration, 0, 0)
 
-        # add camera
-        self.cam_group = QtW.QGroupBox()
-        # self.cam_group.setTitle("Camera")
-        self.cam_group_layout = QtW.QGridLayout()
-        self.cam_group_layout.setSpacing(0)
-        self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
-        self.cam_group_layout.addWidget(self.mm_camera)
-        self.cam_group.setLayout(self.cam_group_layout)
-        self.main_layout.addWidget(self.cam_group, 3, 0)
+        # add microscope collapsible
+        self.mic_group = QtW.QGroupBox()
+        self.mic_group_layout = QtW.QGridLayout()
+        self.mic_group_layout.setSpacing(0)
+        self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
+
+        self.mic_coll = QCollapsible(title="Microscope")
+        self.mic_coll.layout().setSpacing(0)
+        self.mic_coll.layout().setContentsMargins(0, 0, 5, 10)
+
+        # add objective, property browser, illumination and camera widgets
+        obj_prop = self.add_mm_objectives_and_properties_widgets()
+        ill_shutter = self.add_ill_and_shutter_widgets()
+        cam = self.add_camera_widget()
+        self.mic_coll.addWidget(obj_prop)
+        self.mic_coll.addWidget(ill_shutter)
+        self.mic_coll.addWidget(cam)
+        self.mic_coll.expand(animate=False)
+
+        self.mic_group_layout.addWidget(self.mic_coll)
+        self.mic_group.setLayout(self.mic_group_layout)
+        self.main_layout.addWidget(self.mic_group, 1, 0)
 
         # add stages collapsible
         self.stages_group = QtW.QGroupBox()
         self.stages_group_layout = QtW.QGridLayout()
         self.stages_group_layout.setSpacing(0)
         self.stages_group_layout.setContentsMargins(1, 0, 1, 1)
+
         self.stages_coll = QCollapsible(title="Stages")
         self.stages_coll.layout().setSpacing(0)
         self.stages_coll.layout().setContentsMargins(0, 0, 5, 10)
         self.stages_coll.addWidget(self.mm_xyz_stages)
         self.stages_coll.expand(animate=False)
+
         self.stages_group_layout.addWidget(self.stages_coll)
         self.stages_group.setLayout(self.stages_group_layout)
-        self.main_layout.addWidget(self.stages_group, 4, 0)
+        self.main_layout.addWidget(self.stages_group, 2, 0)
 
-        self.main_layout.addWidget(self.mm_tab, 5, 0)
-
-        obj_prop = self.add_mm_objectives_and_properties_widgets()
-        self.main_layout.addWidget(obj_prop, 1, 0)
-
-        # add illumination
-        self.ill_group = QtW.QGroupBox()
-        self.ill_group_layout = QtW.QGridLayout()
-        self.ill_group_layout.setSpacing(0)
-        self.ill_group_layout.setContentsMargins(1, 0, 1, 1)
-        ill_shutter = self.add_ill_and_shutter_widgets()
-        self.ill_group_layout.addWidget(ill_shutter)
-        self.ill_group.setLayout(self.ill_group_layout)
-        self.main_layout.addWidget(self.ill_group, 2, 0)
+        # add tab widget
+        self.main_layout.addWidget(self.mm_tab, 3, 0)
 
         # set main_layout layout
         self.setLayout(self.main_layout)
+
+    def add_camera_widget(self):
+        # add camera
+        self.cam_group = QtW.QGroupBox()
+        self.cam_group_layout = QtW.QGridLayout()
+        self.cam_group_layout.setSpacing(0)
+        self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
+        self.cam_group_layout.addWidget(self.mm_camera)
+        self.cam_group.setLayout(self.cam_group_layout)
+
+        return self.cam_group
 
     def add_mm_objectives_and_properties_widgets(self):
 
@@ -102,7 +115,7 @@ class MicroManagerWidget(QtW.QWidget):
 
     def add_ill_and_shutter_widgets(self):
 
-        wdg = QtW.QWidget()
+        wdg = QtW.QGroupBox()
         wdg_layout = QtW.QGridLayout()
         wdg_layout.setContentsMargins(5, 5, 5, 5)
         wdg_layout.setHorizontalSpacing(0)
