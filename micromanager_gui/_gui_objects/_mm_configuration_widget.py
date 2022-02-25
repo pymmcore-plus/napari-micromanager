@@ -21,7 +21,7 @@ class MMConfigurationWidget(QtW.QWidget):
         self.main_layout = QtW.QGridLayout()
         # cfg groupbox in widget
         self.cfg_groupBox = QtW.QGroupBox()
-        self.cfg_groupBox.setTitle("Camera")
+        self.cfg_groupBox.setTitle("Micro-Manager Configuration")
         self.main_layout.addWidget(self.cfg_groupBox, 0, 0)
         self.setLayout(self.main_layout)
 
