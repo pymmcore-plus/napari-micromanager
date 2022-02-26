@@ -139,7 +139,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
-    
+
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
             self._set_enabled(True)
