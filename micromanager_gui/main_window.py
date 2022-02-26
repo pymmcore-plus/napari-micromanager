@@ -149,7 +149,7 @@ class MainWindow(MicroManagerWidget):
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
         sig.configSet.connect(self._update_px_size)
-        sig.configGroupChanged.connect(self._on_configGroupChanged)
+        # sig.configGroupChanged.connect(self._on_configGroupChanged)
         sig.propertyChanged.connect(self._on_objective_dev_prop_val_changed)
         sig.propertyChanged.connect(self._update_exp_time_val)
         sig.propertyChanged.connect(self._on_stages_dev_prop_val_changed)
@@ -207,6 +207,8 @@ class MainWindow(MicroManagerWidget):
         @sig.configSet.connect
         def _on_config_set(groupName: str, configName: str):
             logger.debug(f"configuration set: {groupName} -> {configName}")
+
+            self._find_and_hide(groupName, configName)
 
         @sig.propertyChanged.connect
         def _on_prop_changed(dev, prop, val):
@@ -308,6 +310,7 @@ class MainWindow(MicroManagerWidget):
         self._refresh_xyz_devices()
 
         self.groups_and_presets.populate_table()
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
     def update_viewer(self, data=None):
         if data is None:
@@ -587,11 +590,6 @@ class MainWindow(MicroManagerWidget):
             cbox_list.sort()
             if channel_list != cbox_list:
                 self._refresh_channel_list()
-
-    # def _on_config_set(self, groupName: str, configName: str):
-    #     if groupName == self._mmc.getOrGuessChannelGroup():
-    #         with blockSignals(self.tab.snap_channel_comboBox):
-    #             self.tab.snap_channel_comboBox.setCurrentText(configName)
 
     # objectives
     def _refresh_objective_options(self):
@@ -887,11 +885,12 @@ class MainWindow(MicroManagerWidget):
 
                 try:
                     for p in wdg.choices:
+                        if not p:
+                            continue
                         dev_prop_val = [
                             (key[0], key[1], key[2])
                             for key in self._mmc.getConfigData(group, p)
                         ]
-
                         dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
                             "dev_prop_val", []
                         ).append(dev_prop_val)
@@ -902,7 +901,7 @@ class MainWindow(MicroManagerWidget):
                         (key[0], key[1], key[2])
                         for key in self._mmc.getConfigData(group, p[0])
                     ]
-                    dc.setdefault(str(group), {}).setdefault(str(p), {}).setdefault(
+                    dc.setdefault(str(group), {}).setdefault(str(p[0]), {}).setdefault(
                         "dev_prop_val", []
                     ).append(dev_prop_val)
 
@@ -926,18 +925,6 @@ class MainWindow(MicroManagerWidget):
                 if val != wdg.value:
                     with blockSignals(wdg.native):
                         wdg.value = val
-
-    def _on_configGroupChanged(self, group: str):
-        if self._mmc.getCurrentConfigFromCache(group):
-            return
-        row = self.table.native.rowCount()
-        for r in range(row):
-            gp, wdg = self.table.data[r]
-            if not wdg:
-                continue
-            if group == gp:
-                with blockSignals(wdg.native):
-                    wdg.value = ""
 
     def _create_group_presets(self):
         if hasattr(self, "edit_gp_ps_widget"):
@@ -1266,6 +1253,59 @@ class MainWindow(MicroManagerWidget):
             self._refresh_channel_list()
         self._get_dict_group_presets_table_data(self.dict_group_presets_table)
 
+    def _find_and_hide(self, group: str, preset: str):  # on cfg changed
+
+        self._get_dict_group_presets_table_data(self.dict_group_presets_table)
+
+        if not self.dict_group_presets_table:
+            return
+
+        dev_prop_val = [
+            (k[0], k[1], k[2]) for k in self._mmc.getConfigData(group, preset)
+        ]
+
+        groups = list(self._mmc.getAvailableConfigGroups())
+        for g in groups:
+
+            if g == group:
+                continue
+
+            presets = list(self._mmc.getAvailableConfigs(g))
+            dpv_list = self.dict_group_presets_table[g][presets[0]].get("dev_prop_val")
+
+            if "noPreset" not in presets:
+                dpv_list = dpv_list[0]
+
+            for dpv in dpv_list:
+                dp = (dpv[0], dpv[1])
+
+                v = [x[2] for x in dev_prop_val if (x[0], x[1]) == dp]
+
+                if not v:
+                    continue
+                val = v[0]
+                if dpv[2] == val:
+                    continue
+                matching_item = self.table.native.findItems(g, Qt.MatchExactly)
+                row = matching_item[0].row()
+                _, wdg = self.table.data[row]
+
+                if isinstance(wdg, ComboBox):
+                    if "noPreset" in presets:
+                        choices = list(wdg.choices)
+                        if "" not in choices:
+                            choices.append("")
+                            wdg.choices = choices
+                    wdg.value = ""
+                else:
+                    if isinstance(wdg, FloatSlider):
+                        value = float(val)
+                    elif isinstance(wdg, Slider):
+                        value = int(val)
+                    else:
+                        value = str(val)
+                    wdg.value = value
+
     # def _change_item_if_in_table(self, value: str, items: list):
     #     if not value or not items:
     #         return
@@ -1278,3 +1318,15 @@ class MainWindow(MicroManagerWidget):
     #         if value != wdg.value:
     #             with blockSignals(wdg.native):
     #                 wdg.value = value
+
+    # def _on_configGroupChanged(self, group: str):
+    #     if self._mmc.getCurrentConfigFromCache(group):
+    #         return
+    #     row = self.table.native.rowCount()
+    #     for r in range(row):
+    #         gp, wdg = self.table.data[r]
+    #         if not wdg:
+    #             continue
+    #         if group == gp:
+    #             with blockSignals(wdg.native):
+    #                 wdg.value = ""

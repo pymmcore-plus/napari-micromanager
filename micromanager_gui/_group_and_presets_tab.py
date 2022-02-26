@@ -151,24 +151,19 @@ class GroupPresetWidget(QtW.QWidget):
             presets.append("")
 
         if len(presets) > 2:
-            print("len > 2")
             wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
         else:
             if count == 1 and self._mmc.getAllowedPropertyValues(dev, prop):
-                print("count == 1")
                 if "noPreset" in presets:
                     prs = self._mmc.getAllowedPropertyValues(dev, prop)
-                    print("     if noPreset ->", prs)
                     wdg = ComboBox(
                         choices=prs, name=f"{presets}", annotation=[dev, prop]
                     )
                 else:
                     wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif count > 1:
-                print("count > 1")
                 if "noPreset" in presets:
                     presets = ["NewPreset_0"]
-                    print("     if noPreset ->", presets)
                 wdg = ComboBox(choices=presets, name=f"{presets}", annotation=[])
             elif self._mmc.hasPropertyLimits(dev, prop):
                 val_type = self._mmc.getPropertyLowerLimit(dev, prop)
