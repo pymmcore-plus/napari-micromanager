@@ -147,11 +147,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.save_groupBox.setEnabled(enabled)
         self.time_groupBox.setEnabled(enabled)
         self.acquisition_order_comboBox.setEnabled(enabled)
-
-        if not self._mmc.getChannelGroup():
-            self.channel_groupBox.setEnabled(False)
-        else:
-            self.channel_groupBox.setEnabled(enabled)
+        self.channel_groupBox.setEnabled(enabled)
 
         if not self._mmc.getXYStageDevice():
             self.stage_pos_groupBox.setChecked(False)

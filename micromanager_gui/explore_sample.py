@@ -181,10 +181,7 @@ class ExploreSample(QtW.QWidget):
         self.ovelap_spinBox.setEnabled(enabled)
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
-        if not self._mmc.getChannelGroup():
-            self.channel_explorer_groupBox.setEnabled(False)
-        else:
-            self.channel_explorer_groupBox.setEnabled(enabled)
+        self.channel_explorer_groupBox.setEnabled(enabled)
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
