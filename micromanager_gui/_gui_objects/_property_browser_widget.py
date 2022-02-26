@@ -19,8 +19,8 @@ class MMPropertyBrowserWidget(QtW.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
         # pushbutton
-        self.properties_Button = QtW.QPushButton(text="Open Property Browser")
-        self.properties_Button.setMaximumSize(150, 25)
+        self.properties_Button = QtW.QPushButton(text="Property Browser")
+        self.properties_Button.setMaximumSize(135, 25)
         self.main_layout.addWidget(self.properties_Button)
 
         self.setLayout(self.main_layout)

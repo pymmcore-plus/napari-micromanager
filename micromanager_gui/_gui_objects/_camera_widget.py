@@ -24,6 +24,7 @@ class MMCameraWidget(QtW.QWidget):
         # cam_px widget and layout
         self.cam_px_wdg = QtW.QWidget()
         self.cam_px_layout = QtW.QGridLayout()
+        self.cam_px_layout.setContentsMargins(0, 0, 0, 0)
         # self.cam_px_layout.setSpacing(0)
         self.cam_px_layout.setVerticalSpacing(0)
         self.cam_px_layout.setHorizontalSpacing(5)
@@ -36,7 +37,7 @@ class MMCameraWidget(QtW.QWidget):
         self.cam_px_layout.addWidget(self.cam_px_label, 0, 0)
         # doublespinbox px in groupbox r0 c3
         self.px_size_doubleSpinBox = QtW.QDoubleSpinBox()
-        self.px_size_doubleSpinBox.setMaximumWidth(100)
+        self.px_size_doubleSpinBox.setMaximumWidth(120)
         self.px_size_doubleSpinBox.setMinimumWidth(60)
         self.px_size_doubleSpinBox.setMinimum(1.0)
         self.px_size_doubleSpinBox.setMinimumWidth(70)
