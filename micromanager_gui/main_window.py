@@ -539,6 +539,8 @@ class MainWindow(MicroManagerWidget):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+        if None not in channel_list:
+            channel_list.append("")
         with blockSignals(self.tab.snap_channel_comboBox):
             self.tab.snap_channel_comboBox.clear()
             self.tab.snap_channel_comboBox.addItems(channel_list)
@@ -1273,7 +1275,7 @@ class MainWindow(MicroManagerWidget):
             presets = list(self._mmc.getAvailableConfigs(g))
             dpv_list = self.dict_group_presets_table[g][presets[0]].get("dev_prop_val")
 
-            if "noPreset" not in presets:
+            if not isinstance(dpv_list[0], tuple):  # if sliders or lineEdit
                 dpv_list = dpv_list[0]
 
             for dpv in dpv_list:
