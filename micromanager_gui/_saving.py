@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from tifffile import imsave
+import tifffile
 
 from ._util import ensure_unique
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
-    imsave(str(file), data.astype(dtype), imagej=data.ndim <= 5)
+    tifffile.imwrite(str(file), data.astype(dtype), imagej=data.ndim <= 5)
 
 
 def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
