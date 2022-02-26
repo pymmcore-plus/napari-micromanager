@@ -38,15 +38,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install tox tox-gh-actions
+          python -m pip install -e .[testing,${{ matrix.backend }}]
 
-      - name: Test with tox
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: python -m tox
-        env:
-          PLATFORM: ${{ matrix.platform }}
-          BACKEND: ${{ matrix.backend }}
+      - name: Install Micro-Manager
+        run: python -m pymmcore_plus.install
+
+      - name: Test
+        run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v2
