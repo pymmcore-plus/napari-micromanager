@@ -94,7 +94,7 @@ class MainWindow(MicroManagerWidget):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.systemConfigurationLoaded.connect(self._refresh_options)
+        sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
@@ -140,6 +140,11 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+    def _on_system_cfg_loaded(self):
+        if len(self._mmc.getLoadedDevices()) > 1:
+            self._set_enabled(True)
+            self._refresh_options()
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
@@ -210,8 +215,6 @@ class MainWindow(MicroManagerWidget):
             cfg = "MMConfig_demo.cfg"
             self.cfg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
-        self._refresh_options()
-        self._set_enabled(True)
 
     def _refresh_options(self):
         self._refresh_camera_options()
