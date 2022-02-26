@@ -29,6 +29,8 @@ class MicroManagerWidget(QtW.QWidget):
         self.mm_xyz_stages = MMStagesWidget()
         self.mm_tab = MMTabWidget()
 
+        self.create_gui()
+
     def create_gui(self):
 
         # main widget

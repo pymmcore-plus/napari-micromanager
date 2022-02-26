@@ -50,8 +50,6 @@ class MainWindow(MicroManagerWidget):
         self.viewer = viewer
         self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
-        self.create_gui()  # create gui from _main_gui.py
-
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
         self.ill = self.mm_illumination
