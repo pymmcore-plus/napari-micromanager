@@ -88,7 +88,7 @@ class MicroManagerWidget(QtW.QWidget):
 
     def add_camera_widget(self):
         # add camera
-        self.cam_group = QtW.QGroupBox()
+        self.cam_group = QtW.QWidget()
         self.cam_group_layout = QtW.QGridLayout()
         self.cam_group_layout.setSpacing(0)
         self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
@@ -99,11 +99,10 @@ class MicroManagerWidget(QtW.QWidget):
 
     def add_mm_objectives_and_properties_widgets(self):
 
-        wdg = QtW.QGroupBox()
-        wdg.setMinimumHeight(50)
+        wdg = QtW.QWidget()
         wdg_layout = QtW.QGridLayout()
         wdg_layout.setContentsMargins(5, 5, 5, 5)
-        wdg_layout.setHorizontalSpacing(0)
+        wdg_layout.setHorizontalSpacing(7)
         wdg_layout.setVerticalSpacing(0)
 
         wdg_layout.addWidget(self.mm_objectives, 0, 0)
@@ -115,10 +114,10 @@ class MicroManagerWidget(QtW.QWidget):
 
     def add_ill_and_shutter_widgets(self):
 
-        wdg = QtW.QGroupBox()
+        wdg = QtW.QWidget()
         wdg_layout = QtW.QGridLayout()
         wdg_layout.setContentsMargins(5, 5, 5, 5)
-        wdg_layout.setHorizontalSpacing(0)
+        wdg_layout.setHorizontalSpacing(7)
         wdg_layout.setVerticalSpacing(0)
 
         wdg_layout.addWidget(self.mm_shutters, 0, 0)
