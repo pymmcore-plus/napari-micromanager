@@ -222,7 +222,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
-        # self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
