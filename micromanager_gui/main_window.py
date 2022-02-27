@@ -130,6 +130,7 @@ class MainWindow(MicroManagerWidget):
         )
 
         # connect spinboxes
+        self.cam.px_size_doubleSpinBox.valueChanged.connect(self._update_pixel_size)
         self.tab.exp_spinBox.valueChanged.connect(self._update_exp)
         self.tab.exp_spinBox.setKeyboardTracking(False)
 
@@ -510,10 +511,19 @@ class MainWindow(MicroManagerWidget):
             self._update_pixel_size()
             return
 
-    def _update_pixel_size(self):
+    def _update_pixel_size(self, value: float = None):
+
+        current_px_size_cfg = self._mmc.getCurrentPixelSizeConfig()
+
         # if pixel size is already set -> return
-        if bool(self._mmc.getCurrentPixelSizeConfig()):
+        if current_px_size_cfg and not value:
             return
+
+        # if pixel size is already set but the camera px size is changed
+        # or if there is not a px size cfg
+        if current_px_size_cfg:
+            self._mmc.deletePixelSizeConfig(current_px_size_cfg)
+
         # if not, create and store a new pixel size config for the current objective.
         curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
         # get magnification info from the current objective label
@@ -521,10 +531,12 @@ class MainWindow(MicroManagerWidget):
         if match:
             mag = int(match.groups()[0])
 
-            if self.cam.px_size_doubleSpinBox.value() == 1.0:
+            # if self.cam.px_size_doubleSpinBox.value() == 1.0:
+            if value == 1.0:
                 return
 
-            image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
+            # image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
+            image_pixel_size = value / mag
             px_cgf_name = f"px_size_{curr_obj}"
             # set image pixel sixe (x,y) for the newly created pixel size config
             self._mmc.definePixelSizeConfig(
