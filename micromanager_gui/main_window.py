@@ -133,7 +133,8 @@ class MainWindow(MicroManagerWidget):
         self.tab.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
-        self._refresh_options()
+        if remote:
+            self._refresh_options()
 
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
