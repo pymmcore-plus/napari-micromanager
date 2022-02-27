@@ -30,7 +30,6 @@ def main_window(request, make_napari_viewer):
         viewer.close()
 
 
-
 @pytest.fixture
 def explorer_no_channel(main_window: MainWindow) -> ExplorerTuple:
 
