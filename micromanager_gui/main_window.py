@@ -81,7 +81,6 @@ class MainWindow(MicroManagerWidget):
         self.tab.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         self.streaming_timer = None
-        self.available_focus_devs = []
         self.objectives_device = None
         self.objectives_cfg = None
 
