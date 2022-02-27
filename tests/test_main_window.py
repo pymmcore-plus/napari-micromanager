@@ -158,9 +158,6 @@ def test_objective_device_and_px_size(main_window: MainWindow):
 
     assert main_window.obj.objective_comboBox.currentText() == "Nikon 10X S Fluor"
 
-    # delete pixel size configuration
-    mmc.deletePixelSizeConfig("Res10x")
-
     # refresh objective options
     main_window._refresh_objective_options()
 
