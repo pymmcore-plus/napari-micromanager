@@ -47,8 +47,13 @@ class MainWindow(MicroManagerWidget):
     ):
         super().__init__()
 
+        # create connection to mmcore server or process-local variant
+        if mmc is not None:
+            self._mmc = mmc
+        else:
+            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
+
         self.viewer = viewer
-        self._mmc = RemoteMMCore() if remote else CMMCorePlus()
 
         self.cfg = self.mm_configuration
         self.obj = self.mm_objectives
@@ -57,12 +62,6 @@ class MainWindow(MicroManagerWidget):
         self.cam = self.mm_camera
         self.stages = self.mm_xyz_stages
         self.tab = self.mm_tab
-
-        # create connection to mmcore server or process-local variant
-        if mmc is not None:
-            self._mmc = mmc
-        else:
-            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
 
         adapter_path = find_micromanager()
         if not adapter_path:
