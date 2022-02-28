@@ -575,8 +575,15 @@ class MainWindow(MicroManagerWidget):
         if self._mmc.getXYStageDevice():
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+            self.stage_wdg.XY_groupBox.setEnabled(True)
+        else:
+            self.stage_wdg.XY_groupBox.setEnabled(False)
+
         if self._mmc.getFocusDevice():
             self.stage_wdg.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+            self.stage_wdg.Z_groupBox.setEnabled(True)
+        else:
+            self.stage_wdg.Z_groupBox.setEnabled(False)
 
     def _refresh_xyz_devices(self):
 
