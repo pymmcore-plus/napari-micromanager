@@ -14,7 +14,7 @@ from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker
 
 from ._camera_roi import CameraROI
-from ._gui import MicroManagerWidget
+from ._gui_objects._mm_widget import MicroManagerWidget
 from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
-
+    from pymmcore_plus.core._signals.qcallback import QCoreCallback
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
@@ -55,14 +55,6 @@ class MainWindow(MicroManagerWidget):
 
         self.viewer = viewer
 
-        self.cfg = self.mm_configuration
-        self.obj = self.mm_objectives
-        self.ill = self.mm_illumination
-        self.pb = self.mm_pb
-        self.cam = self.mm_camera
-        self.stages = self.mm_xyz_stages
-        self.tab = self.mm_tab
-
         adapter_path = find_micromanager()
         if not adapter_path:
             raise RuntimeError(
@@ -76,18 +68,22 @@ class MainWindow(MicroManagerWidget):
         self.explorer = ExploreSample(self.viewer, self._mmc)
 
         # add mda and explorer tabs to mm_tab widget
-        self.tab.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tab.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        )
+        self.tab_wdg.setSizePolicy(sizepolicy)
 
-        self.streaming_timer = None
-        self.objectives_device = None
-        self.objectives_cfg = None
+        self.streaming_timer: QTimer | None = None
+        self.objectives_device: str | None = None
+        self.objectives_cfg: str | None = None
 
         # disable gui
         self._set_enabled(False)
 
         # connect mmcore signals
-        sig = self._mmc.events
+        sig: QCoreCallback = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
@@ -100,37 +96,41 @@ class MainWindow(MicroManagerWidget):
         sig.frameReady.connect(self._on_mda_frame)
 
         # connect buttons
-        self.cfg.load_cfg_Button.clicked.connect(self.load_cfg)
-        self.cfg.browse_cfg_Button.clicked.connect(self.browse_cfg)
-        self.stages.left_Button.clicked.connect(self.stage_x_left)
-        self.stages.right_Button.clicked.connect(self.stage_x_right)
-        self.stages.y_up_Button.clicked.connect(self.stage_y_up)
-        self.stages.y_down_Button.clicked.connect(self.stage_y_down)
-        self.stages.up_Button.clicked.connect(self.stage_z_up)
-        self.stages.down_Button.clicked.connect(self.stage_z_down)
-
-        self.tab.snap_Button.clicked.connect(self.snap)
-        self.tab.live_Button.clicked.connect(self.toggle_live)
-
-        self.ill.illumination_Button.clicked.connect(self.illumination)
-        self.pb.properties_Button.clicked.connect(self._show_prop_browser)
-
-        self.stages.focus_device_comboBox.currentTextChanged.connect(
-            self._set_focus_device
-        )
+        self.cfg_wdg.load_cfg_Button.clicked.connect(self.load_cfg)
+        self.cfg_wdg.browse_cfg_Button.clicked.connect(self.browse_cfg)
+        self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
+        self.stage_wdg.right_Button.clicked.connect(self.stage_x_right)
+        self.stage_wdg.y_up_Button.clicked.connect(self.stage_y_up)
+        self.stage_wdg.y_down_Button.clicked.connect(self.stage_y_down)
+        self.stage_wdg.up_Button.clicked.connect(self.stage_z_up)
+        self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
+        self.tab_wdg.snap_Button.clicked.connect(self.snap)
+        self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
+        self.illum_wdg.illumination_Button.clicked.connect(self.illumination)
+        self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
-        self.obj.objective_comboBox.currentIndexChanged.connect(self.change_objective)
-        self.tab.snap_channel_comboBox.currentTextChanged.connect(self._channel_changed)
+        self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
+            self._set_focus_device
+        )
+        self.obj_wdg.objective_comboBox.currentIndexChanged.connect(
+            self.change_objective
+        )
+        self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
+            self._channel_changed
+        )
 
         self.cam_roi = CameraROI(
-            self.viewer, self._mmc, self.cam.cam_roi_comboBox, self.cam.crop_Button
+            self.viewer,
+            self._mmc,
+            self.cam_wdg.cam_roi_comboBox,
+            self.cam_wdg.crop_Button,
         )
 
         # connect spinboxes
-        self.cam.px_size_doubleSpinBox.valueChanged.connect(self._update_pixel_size)
-        self.tab.exp_spinBox.valueChanged.connect(self._update_exp)
-        self.tab.exp_spinBox.setKeyboardTracking(False)
+        self.cam_wdg.px_size_doubleSpinBox.valueChanged.connect(self._update_pixel_size)
+        self.tab_wdg.exp_spinBox.valueChanged.connect(self._update_exp)
+        self.tab_wdg.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         if remote:
@@ -146,34 +146,26 @@ class MainWindow(MicroManagerWidget):
             self._refresh_options()
 
     def _set_enabled(self, enabled):
-
         if self._mmc.getCameraDevice():
             self._camera_group_wdg(enabled)
-            self.cam.crop_Button.setEnabled(enabled)
-            self.tab.snap_live_tab.setEnabled(enabled)
-            self.tab.snap_live_tab.setEnabled(enabled)
+            self.tab_wdg.snap_live_tab.setEnabled(enabled)
+            self.tab_wdg.snap_live_tab.setEnabled(enabled)
         else:
             self._camera_group_wdg(False)
-            self.cam_group.setEnabled(False)
-            self.cam.crop_Button.setEnabled(False)
-            self.tab.snap_live_tab.setEnabled(False)
-            self.tab.snap_live_tab.setEnabled(False)
+            self.tab_wdg.snap_live_tab.setEnabled(False)
+            self.tab_wdg.snap_live_tab.setEnabled(False)
 
         if self._mmc.getXYStageDevice():
-            self.stages.XY_groupBox.setEnabled(enabled)
+            self.stage_wdg.XY_groupBox.setEnabled(enabled)
         else:
-            self.stages.XY_groupBox.setEnabled(False)
+            self.stage_wdg.XY_groupBox.setEnabled(False)
 
         if self._mmc.getFocusDevice():
-            self.stages.Z_groupBox.setEnabled(enabled)
+            self.stage_wdg.Z_groupBox.setEnabled(enabled)
         else:
-            self.stages.Z_groupBox.setEnabled(False)
+            self.stage_wdg.Z_groupBox.setEnabled(False)
 
-        self.cam_group.setEnabled(True)
-        self.stages_coll.setEnabled(True)
-        self.pb.properties_Button.setEnabled(enabled)
-        self.obj.objective_comboBox.setEnabled(enabled)
-        self.ill.illumination_Button.setEnabled(enabled)
+        self.illum_wdg.illumination_Button.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -182,23 +174,26 @@ class MainWindow(MicroManagerWidget):
             self.explorer._set_enabled(False)
 
     def _camera_group_wdg(self, enabled):
-        self.cam.px_size_doubleSpinBox.setEnabled(enabled)
-        self.cam.cam_roi_comboBox.setEnabled(enabled)
-        self.cam.crop_Button.setEnabled(enabled)
+        self.cam_wdg.px_size_doubleSpinBox.setEnabled(enabled)
+        self.cam_wdg.cam_roi_comboBox.setEnabled(enabled)
+        self.cam_wdg.crop_Button.setEnabled(enabled)
+        self.prop_wdg.properties_Button.setEnabled(enabled)
 
     def browse_cfg(self):
         (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
         if filename:
-            self.cfg.cfg_LineEdit.setText(filename)
-            self.tab.max_min_val_label.setText("None")
-            self.cfg.load_cfg_Button.setEnabled(True)
+            self.cfg_wdg.cfg_LineEdit.setText(filename)
+            self.tab_wdg.max_min_val_label.setText("None")
+            self.cfg_wdg.load_cfg_Button.setEnabled(True)
 
     def load_cfg(self):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
-            self.obj.objective_comboBox,
-            self.tab.snap_channel_comboBox,
+            self.obj_wdg.objective_comboBox,
+            self.tab_wdg.snap_channel_comboBox,
+            self.stage_wdg.xy_device_comboBox,
+            self.stage_wdg.focus_device_comboBox,
         ]
         with blockSignals(boxes):
             for box in boxes:
@@ -214,10 +209,11 @@ class MainWindow(MicroManagerWidget):
         self._mmc.unloadAllDevices()  # unload all devicies
         # disable gui
         self._set_enabled(False)
-        self.cfg.load_cfg_Button.setEnabled(False)
-        cfg = self.cfg.cfg_LineEdit.text()
+        self.cfg_wdg.load_cfg_Button.setEnabled(False)
+        cfg = self.cfg_wdg.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
+            self.cfg_wdg.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
@@ -246,7 +242,7 @@ class MainWindow(MicroManagerWidget):
 
     def update_max_min(self, event=None):
 
-        if self.tab.tabWidget.currentIndex() != 0:
+        if self.tab_wdg.tabWidget.currentIndex() != 0:
             return
 
         min_max_txt = ""
@@ -264,7 +260,7 @@ class MainWindow(MicroManagerWidget):
                 min_max_show = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-        self.tab.max_min_val_label.setText(min_max_txt)
+        self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
         self.stop_live()
@@ -277,19 +273,19 @@ class MainWindow(MicroManagerWidget):
         )
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.tab.exp_spinBox.value())
+        self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.tab.exp_spinBox.value()))
-        self.tab.live_Button.setText("Stop")
+        self.streaming_timer.start(int(self.tab_wdg.exp_spinBox.value()))
+        self.tab_wdg.live_Button.setText("Stop")
 
     def stop_live(self):
         self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.tab.live_Button.setText("Live")
-        self.tab.live_Button.setIcon(CAM_ICON)
+        self.tab_wdg.live_Button.setText("Live")
+        self.tab_wdg.live_Button.setIcon(CAM_ICON)
 
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
@@ -297,16 +293,16 @@ class MainWindow(MicroManagerWidget):
             ch_group = self._mmc.getChannelGroup()
             if ch_group:
                 self._mmc.setConfig(
-                    ch_group, self.tab.snap_channel_comboBox.currentText()
+                    ch_group, self.tab_wdg.snap_channel_comboBox.currentText()
                 )
             else:
                 return
 
             self.start_live()
-            self.tab.live_Button.setIcon(CAM_STOP_ICON)
+            self.tab_wdg.live_Button.setIcon(CAM_STOP_ICON)
         else:
             self.stop_live()
-            self.tab.live_Button.setIcon(CAM_ICON)
+            self.tab_wdg.live_Button.setIcon(CAM_ICON)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -378,8 +374,8 @@ class MainWindow(MicroManagerWidget):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.tab.exp_spinBox):
-            self.tab.exp_spinBox.setValue(exposure)
+        with blockSignals(self.tab_wdg.exp_spinBox):
+            self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
 
@@ -425,17 +421,17 @@ class MainWindow(MicroManagerWidget):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with blockSignals(self.tab.snap_channel_comboBox):
-            self.tab.snap_channel_comboBox.clear()
-            self.tab.snap_channel_comboBox.addItems(channel_list)
-            self.tab.snap_channel_comboBox.setCurrentText(
+        with blockSignals(self.tab_wdg.snap_channel_comboBox):
+            self.tab_wdg.snap_channel_comboBox.clear()
+            self.tab_wdg.snap_channel_comboBox.addItems(channel_list)
+            self.tab_wdg.snap_channel_comboBox.setCurrentText(
                 self._mmc.getCurrentConfig(channel_group)
             )
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._mmc.getOrGuessChannelGroup():
-            with blockSignals(self.tab.snap_channel_comboBox):
-                self.tab.snap_channel_comboBox.setCurrentText(configName)
+            with blockSignals(self.tab_wdg.snap_channel_comboBox):
+                self.tab_wdg.snap_channel_comboBox.setCurrentText(configName)
 
     def _channel_changed(self, newChannel: str):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
@@ -499,13 +495,13 @@ class MainWindow(MicroManagerWidget):
         return self.objectives_device, None, None
 
     def _add_objective_to_gui(self, current_obj, presets):
-        with blockSignals(self.obj.objective_comboBox):
-            self.obj.objective_comboBox.clear()
-            self.obj.objective_comboBox.addItems(presets)
+        with blockSignals(self.obj_wdg.objective_comboBox):
+            self.obj_wdg.objective_comboBox.clear()
+            self.obj_wdg.objective_comboBox.addItems(presets)
             if isinstance(current_obj, int):
-                self.obj.objective_comboBox.setCurrentIndex(current_obj)
+                self.obj_wdg.objective_comboBox.setCurrentIndex(current_obj)
             else:
-                self.obj.objective_comboBox.setCurrentText(current_obj)
+                self.obj_wdg.objective_comboBox.setCurrentText(current_obj)
             self._update_pixel_size()
             return
 
@@ -545,7 +541,7 @@ class MainWindow(MicroManagerWidget):
         # if it does't match, px size is set to 0.0
 
     def change_objective(self):
-        if self.obj.objective_comboBox.count() <= 0:
+        if self.obj_wdg.objective_comboBox.count() <= 0:
             return
 
         if self.objectives_device == "":
@@ -559,13 +555,13 @@ class MainWindow(MicroManagerWidget):
 
         try:
             self._mmc.setConfig(
-                self.objectives_cfg, self.obj.objective_comboBox.currentText()
+                self.objectives_cfg, self.obj_wdg.objective_comboBox.currentText()
             )
         except ValueError:
             self._mmc.setProperty(
                 self.objectives_device,
                 "Label",
-                self.obj.objective_comboBox.currentText(),
+                self.obj_wdg.objective_comboBox.currentText(),
             )
 
         self._mmc.waitForDevice(self.objectives_device)
@@ -580,92 +576,92 @@ class MainWindow(MicroManagerWidget):
             x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
             self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
         if self._mmc.getFocusDevice():
-            self.stages.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+            self.stage_wdg.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
 
     def _refresh_xyz_devices(self):
 
         # since there is no offset control yet:
-        self.stages.offset_Z_groupBox.setEnabled(False)
+        self.stage_wdg.offset_Z_groupBox.setEnabled(False)
 
-        self.stages.focus_device_comboBox.clear()
-        self.stages.xy_device_comboBox.clear()
+        self.stage_wdg.focus_device_comboBox.clear()
+        self.stage_wdg.xy_device_comboBox.clear()
 
         xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
 
         focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
 
         if not xy_stage_devs:
-            self.stages.XY_groupBox.setEnabled(False)
+            self.stage_wdg.XY_groupBox.setEnabled(False)
         else:
-            self.stages.XY_groupBox.setEnabled(True)
-            self.stages.xy_device_comboBox.addItems(xy_stage_devs)
+            self.stage_wdg.XY_groupBox.setEnabled(True)
+            self.stage_wdg.xy_device_comboBox.addItems(xy_stage_devs)
             self._set_xy_stage_device()
 
         if not focus_devs:
-            self.stages.Z_groupBox.setEnabled(False)
+            self.stage_wdg.Z_groupBox.setEnabled(False)
         else:
-            self.stages.Z_groupBox.setEnabled(True)
-            self.stages.focus_device_comboBox.addItems(focus_devs)
+            self.stage_wdg.Z_groupBox.setEnabled(True)
+            self.stage_wdg.focus_device_comboBox.addItems(focus_devs)
             self._set_focus_device()
 
     def _set_xy_stage_device(self):
-        if not self.stages.xy_device_comboBox.count():
+        if not self.stage_wdg.xy_device_comboBox.count():
             return
-        self._mmc.setXYStageDevice(self.stages.xy_device_comboBox.currentText())
+        self._mmc.setXYStageDevice(self.stage_wdg.xy_device_comboBox.currentText())
 
     def _set_focus_device(self):
-        if not self.stages.focus_device_comboBox.count():
+        if not self.stage_wdg.focus_device_comboBox.count():
             return
-        self._mmc.setFocusDevice(self.stages.focus_device_comboBox.currentText())
+        self._mmc.setFocusDevice(self.stage_wdg.focus_device_comboBox.currentText())
 
     def _on_xy_stage_position_changed(self, name, x, y):
-        self.stages.x_lineEdit.setText(f"{x:.1f}")
-        self.stages.y_lineEdit.setText(f"{y:.1f}")
+        self.stage_wdg.x_lineEdit.setText(f"{x:.1f}")
+        self.stage_wdg.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack
-            self.stages.z_lineEdit.setText(f"{value:.1f}")
+            self.stage_wdg.z_lineEdit.setText(f"{value:.1f}")
 
     def stage_x_left(self):
         self._mmc.setRelativeXYPosition(
-            -float(self.stages.xy_step_size_SpinBox.value()), 0.0
+            -float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(
-            float(self.stages.xy_step_size_SpinBox.value()), 0.0
+            float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            float(self.stages.xy_step_size_SpinBox.value()),
+            float(self.stage_wdg.xy_step_size_SpinBox.value()),
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
             0.0,
-            -float(self.stages.xy_step_size_SpinBox.value()),
+            -float(self.stage_wdg.xy_step_size_SpinBox.value()),
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_up(self):
         self._mmc.setRelativePosition(
-            float(self.stages.z_step_size_doubleSpinBox.value())
+            float(self.stage_wdg.z_step_size_doubleSpinBox.value())
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
 
     def stage_z_down(self):
         self._mmc.setRelativePosition(
-            -float(self.stages.z_step_size_doubleSpinBox.value())
+            -float(self.stage_wdg.z_step_size_doubleSpinBox.value())
         )
-        if self.stages.snap_on_click_checkBox.isChecked():
+        if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()

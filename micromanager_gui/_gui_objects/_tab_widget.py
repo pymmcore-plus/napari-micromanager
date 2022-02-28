@@ -37,33 +37,40 @@ class MMTabWidget(QtW.QWidget):
 
     def setup_gui(self):
 
+        # main_layout
         self.main_layout = QtW.QGridLayout()
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # tabWidget
         self.tabWidget = QtW.QTabWidget()
         self.tabWidget.setMovable(True)
+        self.tabWidget_layout = QtW.QVBoxLayout()
 
+        sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        )
+        self.tabWidget.setSizePolicy(sizepolicy)
+
+        # snap_live_tab and layout
         self.snap_live_tab = QtW.QWidget()
         self.snap_live_tab_layout = QtW.QGridLayout()
 
-        # channel
+        # channel in snap_live_tab
         self.snap_channel_groupBox = QtW.QGroupBox()
         self.snap_channel_groupBox.setMaximumHeight(70)
         self.snap_channel_groupBox.setTitle("Channel")
-
-        self.snap_channel_groupBox_layout = QtW.QGridLayout()
+        self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
         self.snap_channel_comboBox = QtW.QComboBox()
-        self.snap_channel_groupBox_layout.addWidget(self.snap_channel_comboBox, 0, 0)
+        self.snap_channel_groupBox_layout.addWidget(self.snap_channel_comboBox)
         self.snap_channel_groupBox.setLayout(self.snap_channel_groupBox_layout)
-
         self.snap_live_tab_layout.addWidget(self.snap_channel_groupBox, 0, 0)
-        # exposure
+
+        # exposure in snap_live_tab
         self.exp_groupBox = QtW.QGroupBox()
         self.exp_groupBox.setMaximumHeight(70)
         self.exp_groupBox.setTitle("Exposure Time")
-
-        self.exp_groupBox_layout = QtW.QGridLayout()
+        self.exp_groupBox_layout = QtW.QHBoxLayout()
         self.exp_label = QtW.QLabel()
         self.exp_label.setText(" ms")
         self.exp_label.setMaximumWidth(30)
@@ -71,40 +78,35 @@ class MMTabWidget(QtW.QWidget):
         self.exp_spinBox.setAlignment(QtCore.Qt.AlignCenter)
         self.exp_spinBox.setMinimum(1.0)
         self.exp_spinBox.setMaximum(100000.0)
-        self.exp_groupBox_layout.addWidget(self.exp_spinBox, 0, 0)
-        self.exp_groupBox_layout.addWidget(self.exp_label, 0, 1)
+        self.exp_groupBox_layout.addWidget(self.exp_spinBox)
+        self.exp_groupBox_layout.addWidget(self.exp_label)
         self.exp_groupBox.setLayout(self.exp_groupBox_layout)
-
         self.snap_live_tab_layout.addWidget(self.exp_groupBox, 0, 1)
-        # snap/live
+
+        # snap/live in snap_live_tab
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
-        self.btn_wdg_layout = QtW.QGridLayout()
-
+        self.btn_wdg_layout = QtW.QHBoxLayout()
         self.snap_Button = QtW.QPushButton(text="Snap")
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
-        self.btn_wdg_layout.addWidget(self.snap_Button, 0, 0)
-
+        self.btn_wdg_layout.addWidget(self.snap_Button)
         self.live_Button = QtW.QPushButton(text="Live")
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.live_Button.setMaximumSize(QtCore.QSize(200, 50))
-        self.btn_wdg_layout.addWidget(self.live_Button, 0, 1)
-
+        self.btn_wdg_layout.addWidget(self.live_Button)
         self.btn_wdg.setLayout(self.btn_wdg_layout)
         self.snap_live_tab_layout.addWidget(self.btn_wdg, 1, 0, 1, 2)
-        # max min
-        self.max_min_wdg = QtW.QWidget()
-        self.max_min_wdg_layout = QtW.QGridLayout()
 
+        # max min in snap_live_tab
+        self.max_min_wdg = QtW.QWidget()
+        self.max_min_wdg_layout = QtW.QHBoxLayout()
         self.max_min_val_label_name = QtW.QLabel()
         self.max_min_val_label_name.setText("(min, max)")
         self.max_min_val_label_name.setMaximumWidth(70)
         self.max_min_val_label = QtW.QLabel()
-
-        self.max_min_wdg_layout.addWidget(self.max_min_val_label_name, 0, 0)
-        self.max_min_wdg_layout.addWidget(self.max_min_val_label, 0, 1)
-
+        self.max_min_wdg_layout.addWidget(self.max_min_val_label_name)
+        self.max_min_wdg_layout.addWidget(self.max_min_val_label)
         self.max_min_wdg.setLayout(self.max_min_wdg_layout)
         self.snap_live_tab_layout.addWidget(self.max_min_wdg, 2, 0, 1, 2)
 
@@ -116,10 +118,13 @@ class MMTabWidget(QtW.QWidget):
 
         # set snap_live_tab layout
         self.snap_live_tab.setLayout(self.snap_live_tab_layout)
-        # add tabWidget
-        self.tabWidget.addTab(self.snap_live_tab, "Snap/Live")
 
+        # add tabWidget
+        self.tabWidget.setLayout(self.tabWidget_layout)
+        self.tabWidget.addTab(self.snap_live_tab, "Snap/Live")
         self.main_layout.addWidget(self.tabWidget)
+
+        # Set main layout
         self.setLayout(self.main_layout)
 
 

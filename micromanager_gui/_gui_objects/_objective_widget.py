@@ -14,21 +14,23 @@ class MMObjectivesWidget(QtW.QWidget):
 
     def setup_gui(self):
 
-        self.main_layout = QtW.QGridLayout()
-        self.main_layout.setHorizontalSpacing(5)
+        # main_layout
+        self.main_layout = QtW.QHBoxLayout()
+        self.main_layout.setSpacing(5)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # label
+        # obj_label
         self.obj_label = QtW.QLabel(text="Objectives:")
         self.obj_label.setMinimumWidth(80)
         self.obj_label.setMaximumWidth(80)
-        self.main_layout.addWidget(self.obj_label, 0, 0)
+        self.main_layout.addWidget(self.obj_label)
 
-        # combobox
+        # objective_comboBox
         self.objective_comboBox = QtW.QComboBox()
         self.objective_comboBox.setMinimumWidth(285)
-        self.main_layout.addWidget(self.objective_comboBox, 0, 1)
+        self.main_layout.addWidget(self.objective_comboBox)
 
+        # Set main layout
         self.setLayout(self.main_layout)
 
 

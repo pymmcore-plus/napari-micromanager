@@ -14,15 +14,17 @@ class MMIlluminationWidget(QtW.QWidget):
 
     def setup_gui(self):
 
-        self.main_layout = QtW.QGridLayout()
+        # main_layout
+        self.main_layout = QtW.QHBoxLayout()
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # pushbutton
+        # illumination_Button
         self.illumination_Button = QtW.QPushButton(text="Light Sources")
         self.illumination_Button.setMaximumSize(135, 25)
-
         self.main_layout.addWidget(self.illumination_Button)
+
+        # Set main layout
         self.setLayout(self.main_layout)
 
 
