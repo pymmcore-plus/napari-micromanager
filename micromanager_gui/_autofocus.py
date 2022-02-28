@@ -1,8 +1,13 @@
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus, RemoteMMCore
 
 
 class AutofocusDevice:
-    def __init__(self, mmcore: CMMCorePlus or RemoteMMCore):
+    def __init__(self, mmcore: CMMCorePlus | RemoteMMCore = None):
         super().__init__()
         self._mmc = mmcore
 

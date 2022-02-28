@@ -79,7 +79,7 @@ class MainWindow(MicroManagerWidget):
         self.streaming_timer: QTimer | None = None
         self.objectives_device: str | None = None
         self.objectives_cfg: str | None = None
-        self.autofocus_z_stage: str | None = None
+        self.autofocus_z_stage: AutofocusDevice | None = None
 
         # disable gui
         self._set_enabled(False)
