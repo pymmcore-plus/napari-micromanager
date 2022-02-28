@@ -77,9 +77,6 @@ class MainWindow(MicroManagerWidget):
         # disable gui
         self._set_enabled(False)
 
-        # disable gui
-        self._set_enabled(False)
-
         # connect mmcore signals
         sig: QCoreCallback = self._mmc.events
 
