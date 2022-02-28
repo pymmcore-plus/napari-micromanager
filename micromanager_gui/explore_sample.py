@@ -138,6 +138,13 @@ class ExploreSample(QtW.QWidget):
         self.viewer.add_image(
             image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
         )
+
+        zoom_out_factor = (
+            self.scan_size_r
+            if self.scan_size_r >= self.scan_size_c
+            else self.scan_size_c
+        )
+        self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
@@ -174,10 +181,7 @@ class ExploreSample(QtW.QWidget):
         self.ovelap_spinBox.setEnabled(enabled)
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
-        if not self._mmc.getChannelGroup():
-            self.channel_explorer_groupBox.setEnabled(False)
-        else:
-            self.channel_explorer_groupBox.setEnabled(enabled)
+        self.channel_explorer_groupBox.setEnabled(enabled)
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
