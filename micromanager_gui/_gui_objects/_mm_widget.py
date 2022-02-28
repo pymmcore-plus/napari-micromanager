@@ -30,30 +30,6 @@ class MicroManagerWidget(QtW.QWidget):
 
         self.create_gui()
 
-        # # create objectives and illumination widget
-        # obj_illum = QtW.QWidget()
-        # obj_illum.setLayout(QtW.QVBoxLayout())
-        # obj_illum.layout().setContentsMargins(0, 0, 0, 0)
-        # obj_illum.layout().setSpacing(0)
-        # obj_illum.layout().addWidget(self.obj_wdg)
-        # obj_illum.layout().addWidget(self.illum_wdg)
-
-        # # main objectives, illumination and camera widget
-        # obj_cam_illum = QtW.QWidget()
-        # obj_cam_illum.setLayout(QtW.QHBoxLayout())
-        # obj_cam_illum.layout().setContentsMargins(0, 0, 0, 0)
-        # obj_cam_illum.layout().addWidget(obj_illum)
-        # obj_cam_illum.layout().addWidget(self.cam_wdg)
-
-        # # main widget
-        # self.setLayout(QtW.QVBoxLayout())
-        # self.layout().setContentsMargins(0, 0, 0, 0)
-        # self.layout().setSpacing(0)
-        # self.layout().addWidget(self.cfg_wdg)
-        # self.layout().addWidget(obj_cam_illum)
-        # self.layout().addWidget(self.stage_wdg)
-        # self.layout().addWidget(self.tab_wdg)
-
     def create_gui(self):
 
         # main widget
