@@ -6,13 +6,19 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>480</width>
-    <height>780</height>
+    <width>511</width>
+    <height>853</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
-    <width>480</width>
+    <width>0</width>
     <height>0</height>
    </size>
   </property>
@@ -22,16 +28,22 @@
   <layout class="QGridLayout" name="gridLayout_4">
    <item row="0" column="0">
     <widget class="QScrollArea" name="scrollArea">
+     <property name="sizeAdjustPolicy">
+      <enum>QAbstractScrollArea::AdjustIgnored</enum>
+     </property>
      <property name="widgetResizable">
       <bool>true</bool>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
      <widget class="QWidget" name="scrollAreaWidgetContents">
       <property name="geometry">
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>458</width>
-        <height>758</height>
+        <width>489</width>
+        <height>831</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout_8">

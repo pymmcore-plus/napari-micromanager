@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 
-UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
+UI_FILE = str(Path(__file__).parent / "_gui_objects" / "explore_sample.ui")
 
 
 def _channel_key(name: str, index: int) -> str:
@@ -138,6 +138,13 @@ class ExploreSample(QtW.QWidget):
         self.viewer.add_image(
             image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
         )
+
+        zoom_out_factor = (
+            self.scan_size_r
+            if self.scan_size_r >= self.scan_size_c
+            else self.scan_size_c
+        )
+        self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
