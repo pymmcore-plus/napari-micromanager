@@ -210,10 +210,7 @@ class MainWindow(MicroManagerWidget):
         # disable gui
         self._set_enabled(False)
         self.cfg_wdg.load_cfg_Button.setEnabled(False)
-        cfg = self.cfg_wdg.cfg_LineEdit.text()
-        if cfg == "":
-            cfg = "MMConfig_demo.cfg"
-            self.cfg_wdg.cfg_LineEdit.setText(cfg)
+        cfg = self.cfg_wdg.cfg_LineEdit.text() or "MMConfig_demo.cfg"
         self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
