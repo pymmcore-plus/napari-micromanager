@@ -4,7 +4,6 @@ from typing import Tuple
 
 import numpy as np
 import pytest
-from napari import Viewer
 from pymmcore_plus import CMMCorePlus, server
 from useq import MDASequence
 
@@ -23,19 +22,16 @@ def global_mmcore():
 
 
 @pytest.fixture(params=["local", "remote"])
-def main_window(qtbot, request):
+def main_window(request, make_napari_viewer):
     if request.param == "remote":
         server.try_kill_server()
 
-    viewer = Viewer(show=False)
+    viewer = make_napari_viewer()
     win = MainWindow(viewer=viewer, remote=request.param == "remote")
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
+    win.cfg_wdg.cfg_LineEdit.setText(config_path)
     win._mmc.loadSystemConfiguration(config_path)
-
-    try:
-        yield win
-    finally:
-        viewer.close()
+    return win
 
 
 @pytest.fixture
