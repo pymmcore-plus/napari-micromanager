@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -208,30 +209,26 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.pause_Button.setText("GO" if paused else "PAUSE")
 
     # add, remove, clear channel table
-    def add_channel(self):
-        dev_loaded = list(self._mmc.getLoadedDevices())
-        if len(dev_loaded) > 1:
+    def add_channel(self) -> bool:
+        if len(self._mmc.getLoadedDevices()) <= 1:
+            return False
 
-            channel_group = self._mmc.getChannelGroup()
-            if not channel_group:
-                return
+        idx = self.channel_tableWidget.rowCount()
+        self.channel_tableWidget.insertRow(idx)
 
-            idx = self.channel_tableWidget.rowCount()
-            self.channel_tableWidget.insertRow(idx)
+        # create a combo_box for channels in the table
+        channel_comboBox = QtW.QComboBox(self)
+        channel_exp_spinBox = QtW.QSpinBox(self)
+        channel_exp_spinBox.setRange(0, 10000)
+        channel_exp_spinBox.setValue(100)
 
-            # create a combo_box for channels in the table
-            self.channel_comboBox = QtW.QComboBox(self)
-            self.channel_exp_spinBox = QtW.QSpinBox(self)
-            self.channel_exp_spinBox.setRange(0, 10000)
-            self.channel_exp_spinBox.setValue(100)
+        if channel_group := self._mmc.getChannelGroup():
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+            channel_comboBox.addItems(channel_list)
 
-            channel_group = self._mmc.getChannelGroup()
-            if channel_group:
-                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-                self.channel_comboBox.addItems(channel_list)
-
-            self.channel_tableWidget.setCellWidget(idx, 0, self.channel_comboBox)
-            self.channel_tableWidget.setCellWidget(idx, 1, self.channel_exp_spinBox)
+        self.channel_tableWidget.setCellWidget(idx, 0, channel_comboBox)
+        self.channel_tableWidget.setCellWidget(idx, 1, channel_exp_spinBox)
+        return True
 
     def remove_channel(self):
         # remove selected position
@@ -257,33 +254,21 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
+        if len(self._mmc.getLoadedDevices()) > 1:
+            idx = self._add_position_row()
 
-        if not self._mmc.getXYStageDevice():
-            return
-
-        dev_loaded = list(self._mmc.getLoadedDevices())
-        if len(dev_loaded) > 1:
-            x = self._mmc.getXPosition()
-            y = self._mmc.getYPosition()
-
-            x_txt = QtW.QTableWidgetItem(str(x))
-            y_txt = QtW.QTableWidgetItem(str(y))
-            x_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-            y_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-
-            idx = self.stage_tableWidget.rowCount()
-            self.stage_tableWidget.insertRow(idx)
-
-            self.stage_tableWidget.setItem(idx, 0, QtW.QTableWidgetItem(x_txt))
-            self.stage_tableWidget.setItem(idx, 1, QtW.QTableWidgetItem(y_txt))
-
-            if self._mmc.getFocusDevice():
-                z = self._mmc.getZPosition()
-                z_txt = QtW.QTableWidgetItem(str(z))
-                z_txt.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-                self.stage_tableWidget.setItem(idx, 2, QtW.QTableWidgetItem(z_txt))
+            for c, ax in enumerate("XYZ"):
+                cur = getattr(self._mmc, f"get{ax}Position")()
+                item = QtW.QTableWidgetItem(str(cur))
+                item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+                self.stage_tableWidget.setItem(idx, c, item)
 
             self.toggle_checkbox_save_pos()
+
+    def _add_position_row(self) -> int:
+        idx = self.stage_tableWidget.rowCount()
+        self.stage_tableWidget.insertRow(idx)
+        return idx
 
     def remove_position(self):
         # remove selected position
@@ -316,7 +301,96 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.dir_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-    def _get_state_dict(self) -> dict:
+    def set_state(self, state: dict | MDASequence | str | Path) -> None:
+        """Set current state of MDA widget.
+
+        Parameters
+        ----------
+        state : Union[dict, MDASequence, str, Path]
+            MDASequence state in the form of a dict, MDASequence object, or a str or
+            Path pointing to a sequence.yaml file
+        """
+        if isinstance(state, (str, Path)):
+            state = MDASequence.parse_file(state)
+        elif isinstance(state, dict):
+            state = MDASequence(**state)
+        if not isinstance(state, MDASequence):
+            raise TypeError("state must be an MDASequence, dict, or yaml file")
+
+        self.acquisition_order_comboBox.setCurrentText(state.axis_order)
+
+        # set channel table
+        self.clear_channel()
+        if channel_group := self._mmc.getChannelGroup():
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+        else:
+            channel_list = []
+        for idx, ch in enumerate(state.channels):
+            if not self.add_channel():
+                break
+            if ch.config in channel_list:
+                self.channel_tableWidget.cellWidget(idx, 0).setCurrentText(ch.config)
+            else:
+                warnings.warn(
+                    f"Unrecognized channel: {ch.config!r}. "
+                    f"Valid channels include {channel_list}"
+                )
+            if ch.exposure:
+                self.channel_tableWidget.cellWidget(idx, 1).setValue(int(ch.exposure))
+
+        # set Z
+        if state.z_plan:
+            self.stack_groupBox.setChecked(True)
+            if hasattr(state.z_plan, "top") and hasattr(state.z_plan, "bottom"):
+                self.z_top_doubleSpinBox.setValue(state.z_plan.top)
+                self.z_bottom_doubleSpinBox.setValue(state.z_plan.bottom)
+                self.z_tabWidget.setCurrentIndex(0)
+            elif hasattr(state.z_plan, "above") and hasattr(state.z_plan, "below"):
+                self.above_doubleSpinBox.setValue(state.z_plan.above)
+                self.below_doubleSpinBox.setValue(state.z_plan.below)
+                self.z_tabWidget.setCurrentIndex(2)
+            elif hasattr(state.z_plan, "range"):
+                self.zrange_spinBox.setValue(int(state.z_plan.range))
+                self.z_tabWidget.setCurrentIndex(1)
+            if hasattr(state.z_plan, "step"):
+                self.step_size_doubleSpinBox.setValue(state.z_plan.step)
+        else:
+            self.stack_groupBox.setChecked(False)
+
+        # set time
+        # currently only `TIntervalLoops` is supported
+        if hasattr(state.time_plan, "interval") and hasattr(state.time_plan, "loops"):
+            self.time_groupBox.setChecked(True)
+            self.timepoints_spinBox.setValue(state.time_plan.loops)
+
+            sec = state.time_plan.interval.total_seconds()
+            if sec >= 60:
+                self.time_comboBox.setCurrentText("min")
+                self.interval_spinBox.setValue(sec // 60)
+            elif sec >= 1:
+                self.time_comboBox.setCurrentText("sec")
+                self.interval_spinBox.setValue(int(sec))
+            else:
+                self.time_comboBox.setCurrentText("ms")
+                self.interval_spinBox.setValue(int(sec * 1000))
+        else:
+            self.time_groupBox.setChecked(False)
+
+        # set stage positions
+        self.clear_positions()
+        if state.stage_positions:
+            self.stage_pos_groupBox.setChecked(True)
+            for idx, pos in enumerate(state.stage_positions):
+                self._add_position_row()
+                for c, ax in enumerate("xyz"):
+                    item = QtW.QTableWidgetItem(str(getattr(pos, ax)))
+                    item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+                    self.stage_tableWidget.setItem(idx, c, item)
+        else:
+            self.stage_pos_groupBox.setChecked(False)
+
+    def get_state(self) -> MDASequence:
+        """Get current state of widget as a useq.MDASequence."""
         state = {
             "axis_order": self.acquisition_order_comboBox.currentText(),
             "channels": [],
@@ -383,7 +457,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 }
             )
 
-        return state
+        return MDASequence(**state)
 
     def _on_run_clicked(self):
 
@@ -405,7 +479,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         ):
             raise ValueError("Select a filename and a valid directory.")
 
-        experiment = MDASequence(**self._get_state_dict())
+        experiment = self.get_state()
 
         self.SEQUENCE_META[experiment] = SequenceMeta(
             mode="mda",

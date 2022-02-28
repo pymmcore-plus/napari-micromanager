@@ -4,13 +4,21 @@ from typing import Tuple
 
 import numpy as np
 import pytest
-from pymmcore_plus import server
+from pymmcore_plus import CMMCorePlus, server
 from useq import MDASequence
 
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
 ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
+
+
+@pytest.fixture
+def global_mmcore():
+    mmc = CMMCorePlus.instance()
+    if len(mmc.getLoadedDevices()) < 2:
+        mmc.loadSystemConfiguration()
+    return mmc
 
 
 @pytest.fixture(params=["local", "remote"])
@@ -23,11 +31,7 @@ def main_window(request, make_napari_viewer):
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
     win.cfg_wdg.cfg_LineEdit.setText(config_path)
     win._mmc.loadSystemConfiguration(config_path)
-
-    try:
-        yield win
-    finally:
-        viewer.close()
+    return win
 
 
 @pytest.fixture
