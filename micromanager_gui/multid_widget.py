@@ -446,42 +446,27 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 "loops": self.timepoints_spinBox.value(),
             }
         # position settings
-        if (
-            self.stage_pos_groupBox.isChecked()
-            and self.stage_tableWidget.rowCount() > 0
-        ):
-            if self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
+        if self._mmc.getXYStageDevice():
+            if (
+                self.stage_pos_groupBox.isChecked()
+                and self.stage_tableWidget.rowCount() > 0
+            ):
                 for r in range(self.stage_tableWidget.rowCount()):
-                    state["stage_positions"].append(
-                        {
-                            "x": float(self.stage_tableWidget.item(r, 0).text()),
-                            "y": float(self.stage_tableWidget.item(r, 1).text()),
-                            "z": float(self.stage_tableWidget.item(r, 2).text()),
-                        }
-                    )
-            elif self._mmc.getXYStageDevice():
-                for r in range(self.stage_tableWidget.rowCount()):
-                    state["stage_positions"].append(
-                        {
-                            "x": float(self.stage_tableWidget.item(r, 0).text()),
-                            "y": float(self.stage_tableWidget.item(r, 1).text()),
-                        }
-                    )
-        elif self._mmc.getFocusDevice() and self._mmc.getXYStageDevice():
-            state["stage_positions"].append(
-                {
-                    "x": float(self._mmc.getXPosition()),
-                    "y": float(self._mmc.getYPosition()),
-                    "z": float(self._mmc.getZPosition()),
-                }
-            )
-        elif self._mmc.getXYStageDevice():
-            state["stage_positions"].append(
-                {
+                    pos = {
+                        "x": float(self.stage_tableWidget.item(r, 0).text()),
+                        "y": float(self.stage_tableWidget.item(r, 1).text()),
+                    }
+                    if self._mmc.getFocusDevice():
+                        pos["z"] = float(self.stage_tableWidget.item(r, 2).text())
+                    state["stage_positions"].append(pos)
+            else:
+                pos = {
                     "x": float(self._mmc.getXPosition()),
                     "y": float(self._mmc.getYPosition()),
                 }
-            )
+                if self._mmc.getFocusDevice():
+                    pos["z"] = float(self._mmc.getZPosition())
+                state["stage_positions"].append(pos)
 
         return MDASequence(**state)
 
