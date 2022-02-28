@@ -93,7 +93,7 @@ def test_saving_explorer(qtbot, explorer_two_channel: ExplorerTuple):
 
         main_win.viewer.add_image(np.random.rand(10, 10), name="preview")
 
-        layer_list = [lay for lay in main_win.viewer.layers]
+        layer_list = list(main_win.viewer.layers)
         assert len(layer_list) == 9
 
         save_sequence(sequence, layer_list, meta)
