@@ -138,7 +138,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         # to core may outlive the lifetime of this particular widget.
         sig.sequenceStarted.connect(self._on_mda_started)
         sig.sequenceFinished.connect(self._on_mda_finished)
-        sig.systemConfigurationLoaded.connect(self._refresh_options)
+        sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
@@ -194,6 +194,11 @@ class MainWindow(QtW.QWidget, _MainUI):
         if groupName == self._mmc.getOrGuessChannelGroup():
             with blockSignals(self.snap_channel_comboBox):
                 self.snap_channel_comboBox.setCurrentText(configName)
+
+    def _on_system_cfg_loaded(self):
+        if len(self._mmc.getLoadedDevices()) > 1:
+            self._set_enabled(True)
+            self._refresh_options()
 
     def _set_enabled(self, enabled):
         self.objective_groupBox.setEnabled(enabled)
@@ -311,9 +316,7 @@ class MainWindow(QtW.QWidget, _MainUI):
         cfg = self.cfg_LineEdit.text()
         if cfg == "":
             cfg = "MMConfig_demo.cfg"
-            self.cfg_LineEdit.setText(cfg)
         self._mmc.loadSystemConfiguration(cfg)
-        self._set_enabled(True)
 
     def _refresh_camera_options(self):
         cam_device = self._mmc.getCameraDevice()
