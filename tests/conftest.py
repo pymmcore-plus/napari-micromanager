@@ -31,7 +31,11 @@ def main_window(request, make_napari_viewer):
     config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
     win.cfg_wdg.cfg_LineEdit.setText(config_path)
     win._mmc.loadSystemConfiguration(config_path)
-    return win
+
+    try:
+        yield win
+    finally:
+        viewer.close()
 
 
 @pytest.fixture
