@@ -11,7 +11,7 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import create_worker
+from superqt.utils import create_worker, ensure_main_thread
 
 from ._camera_roi import CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
@@ -308,6 +308,7 @@ class MainWindow(MicroManagerWidget):
         """ "create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
+    @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
         meta = self.mda.SEQUENCE_META.get(event.sequence) or SequenceMeta()
 
