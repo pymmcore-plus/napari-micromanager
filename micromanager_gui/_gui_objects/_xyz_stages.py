@@ -13,7 +13,6 @@ class MMStagesWidget(QtW.QWidget):
     MM_XYZ_STAGE = str(Path(__file__).parent / "mm_xyz_stage.ui")
 
     # The MM_XYZ_STAGE above contains these objects:
-    stage_groupBox: QtW.QGroupBox
 
     XY_groupBox: QtW.QGroupBox
     xy_device_comboBox: QtW.QComboBox

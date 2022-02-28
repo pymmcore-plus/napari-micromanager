@@ -1,4 +1,3 @@
-from qtpy import QtCore
 from qtpy import QtWidgets as QtW
 
 
@@ -6,8 +5,7 @@ class MMObjectivesWidget(QtW.QWidget):
     """
     Contains the following objects:
 
-    objective_groupBox: QtW.QGroupBox
-    objective_comboBox: QtW.QLineEdit
+    objective_comboBox: QtW.QComboBox
     """
 
     def __init__(self):
@@ -16,24 +14,24 @@ class MMObjectivesWidget(QtW.QWidget):
 
     def setup_gui(self):
 
-        self.main_layout = QtW.QGridLayout()
+        # main_layout
+        self.main_layout = QtW.QHBoxLayout()
+        self.main_layout.setSpacing(5)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # groupbox in widget
-        self.objective_groupBox = QtW.QGroupBox()
-        self.objective_groupBox.setTitle("Objectives")
-        self.main_layout.addWidget(self.objective_groupBox, 0, 0)
-        self.setLayout(self.main_layout)
+        # obj_label
+        self.obj_label = QtW.QLabel(text="Objectives:")
+        self.obj_label.setMinimumWidth(80)
+        self.obj_label.setMaximumWidth(80)
+        self.main_layout.addWidget(self.obj_label)
 
-        # combobox in groupbox
-        self.objective_groupBox_layout = QtW.QGridLayout()
-        self.objective_groupBox_layout.setSpacing(0)
-        self.objective_groupBox_layout.setContentsMargins(3, 8, 3, 3)
+        # objective_comboBox
         self.objective_comboBox = QtW.QComboBox()
-        self.objective_groupBox.setMinimumSize(QtCore.QSize(160, 0))
-        # self.objective_groupBox.setObjectName("objective_groupBox")
+        self.objective_comboBox.setMinimumWidth(285)
+        self.main_layout.addWidget(self.objective_comboBox)
 
-        self.objective_groupBox_layout.addWidget(self.objective_comboBox, 0, 0)
-        self.objective_groupBox.setLayout(self.objective_groupBox_layout)
+        # Set main layout
+        self.setLayout(self.main_layout)
 
 
 if __name__ == "__main__":
