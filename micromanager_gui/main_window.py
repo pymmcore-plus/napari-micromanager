@@ -46,13 +46,14 @@ class MainWindow(MicroManagerWidget):
         mmc: CMMCorePlus | RemoteMMCore = None,
     ):
         super().__init__()
-        self.viewer = viewer
 
         # create connection to mmcore server or process-local variant
         if mmc is not None:
             self._mmc = mmc
         else:
             self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
+
+        self.viewer = viewer
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -69,6 +70,10 @@ class MainWindow(MicroManagerWidget):
         # add mda and explorer tabs to mm_tab widget
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        )
+        self.tab_wdg.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
         self.objectives_device: str | None = None
@@ -102,18 +107,15 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
         self.illum_wdg.illumination_Button.clicked.connect(self.illumination)
-        self.cfg_wdg.properties_Button.clicked.connect(self._show_prop_browser)
+        self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
+        # connect comboBox
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
             self._set_focus_device
         )
-
-        # connect comboBox
         self.obj_wdg.objective_comboBox.currentIndexChanged.connect(
             self.change_objective
         )
-        self.cam_wdg.bit_comboBox.currentIndexChanged.connect(self.bit_changed)
-        self.cam_wdg.bin_comboBox.currentIndexChanged.connect(self.bin_changed)
         self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
             self._channel_changed
         )
@@ -126,11 +128,13 @@ class MainWindow(MicroManagerWidget):
         )
 
         # connect spinboxes
+        self.cam_wdg.px_size_doubleSpinBox.valueChanged.connect(self._update_pixel_size)
         self.tab_wdg.exp_spinBox.valueChanged.connect(self._update_exp)
         self.tab_wdg.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
-        self._refresh_options()
+        if remote:
+            self._refresh_options()
 
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
@@ -143,13 +147,11 @@ class MainWindow(MicroManagerWidget):
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
-            self.cam_wdg.camera_groupBox.setEnabled(enabled)
-            self.cam_wdg.crop_Button.setEnabled(enabled)
+            self._camera_group_wdg(enabled)
             self.tab_wdg.snap_live_tab.setEnabled(enabled)
             self.tab_wdg.snap_live_tab.setEnabled(enabled)
         else:
-            self.cam_wdg.camera_groupBox.setEnabled(False)
-            self.cam_wdg.crop_Button.setEnabled(False)
+            self._camera_group_wdg(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
 
@@ -163,9 +165,7 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stage_wdg.Z_groupBox.setEnabled(False)
 
-        self.obj_wdg.objective_groupBox.setEnabled(enabled)
         self.illum_wdg.illumination_Button.setEnabled(enabled)
-        self.tab_wdg.tabWidget.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -173,16 +173,24 @@ class MainWindow(MicroManagerWidget):
         else:
             self.explorer._set_enabled(False)
 
-    def browse_cfg(self):
-        self._mmc.unloadAllDevices()  # unload all devicies
+    def _camera_group_wdg(self, enabled):
+        self.cam_wdg.px_size_doubleSpinBox.setEnabled(enabled)
+        self.cam_wdg.cam_roi_comboBox.setEnabled(enabled)
+        self.cam_wdg.crop_Button.setEnabled(enabled)
+        self.prop_wdg.properties_Button.setEnabled(enabled)
 
-        self._set_enabled(False)
+    def browse_cfg(self):
+        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
+        if filename:
+            self.cfg_wdg.cfg_LineEdit.setText(filename)
+            self.tab_wdg.max_min_val_label.setText("None")
+            self.cfg_wdg.load_cfg_Button.setEnabled(True)
+
+    def load_cfg(self):
 
         # clear spinbox/combobox without accidently setting properties
         boxes = [
             self.obj_wdg.objective_comboBox,
-            self.cam_wdg.bin_comboBox,
-            self.cam_wdg.bit_comboBox,
             self.tab_wdg.snap_channel_comboBox,
             self.stage_wdg.xy_device_comboBox,
             self.stage_wdg.focus_device_comboBox,
@@ -198,12 +206,9 @@ class MainWindow(MicroManagerWidget):
         self.objectives_device = None
         self.objectives_cfg = None
 
-        file_dir = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        self.cfg_wdg.cfg_LineEdit.setText(str(file_dir[0]))
-        self.tab_wdg.max_min_val_label.setText("None")
-        self.cfg_wdg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
+        self._mmc.unloadAllDevices()  # unload all devicies
+        # disable gui
+        self._set_enabled(False)
         self.cfg_wdg.load_cfg_Button.setEnabled(False)
         cfg = self.cfg_wdg.cfg_LineEdit.text()
         if cfg == "":
@@ -211,7 +216,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
-        self._refresh_camera_options()
         self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
@@ -500,10 +504,19 @@ class MainWindow(MicroManagerWidget):
             self._update_pixel_size()
             return
 
-    def _update_pixel_size(self):
+    def _update_pixel_size(self, value: float = None):
+
+        current_px_size_cfg = self._mmc.getCurrentPixelSizeConfig()
+
         # if pixel size is already set -> return
-        if bool(self._mmc.getCurrentPixelSizeConfig()):
+        if current_px_size_cfg and not value:
             return
+
+        # if pixel size is already set but the camera px size is changed
+        # or if there is not a px size cfg
+        if current_px_size_cfg:
+            self._mmc.deletePixelSizeConfig(current_px_size_cfg)
+
         # if not, create and store a new pixel size config for the current objective.
         curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
         # get magnification info from the current objective label
@@ -511,10 +524,12 @@ class MainWindow(MicroManagerWidget):
         if match:
             mag = int(match.groups()[0])
 
-            if self.cam_wdg.px_size_doubleSpinBox.value() == 1.0:
+            # if self.cam.px_size_doubleSpinBox.value() == 1.0:
+            if value == 1.0:
                 return
 
-            image_pixel_size = self.cam_wdg.px_size_doubleSpinBox.value() / mag
+            # image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
+            image_pixel_size = value / mag
             px_cgf_name = f"px_size_{curr_obj}"
             # set image pixel sixe (x,y) for the newly created pixel size config
             self._mmc.definePixelSizeConfig(
@@ -656,38 +671,3 @@ class MainWindow(MicroManagerWidget):
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
-
-    # camera
-    def _refresh_camera_options(self):
-        cam_device = self._mmc.getCameraDevice()
-        if not cam_device:
-            return
-        cam_props = self._mmc.getDevicePropertyNames(cam_device)
-        if "Binning" in cam_props:
-            bin_opts = self._mmc.getAllowedPropertyValues(cam_device, "Binning")
-            with blockSignals(self.cam_wdg.bin_comboBox):
-                self.cam_wdg.bin_comboBox.clear()
-                self.cam_wdg.bin_comboBox.addItems(bin_opts)
-                self.cam_wdg.bin_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "Binning")
-                )
-
-        if "PixelType" in cam_props:
-            px_t = self._mmc.getAllowedPropertyValues(cam_device, "PixelType")
-            with blockSignals(self.cam_wdg.bit_comboBox):
-                self.cam_wdg.bit_comboBox.clear()
-                self.cam_wdg.bit_comboBox.addItems(px_t)
-                self.cam_wdg.bit_comboBox.setCurrentText(
-                    self._mmc.getProperty(cam_device, "PixelType")
-                )
-
-    def bit_changed(self):
-        if self.cam_wdg.bit_comboBox.count() > 0:
-            bits = self.cam_wdg.bit_comboBox.currentText()
-            self._mmc.setProperty(self._mmc.getCameraDevice(), "PixelType", bits)
-
-    def bin_changed(self):
-        if self.cam_wdg.bin_comboBox.count() > 0:
-            bins = self.cam_wdg.bin_comboBox.currentText()
-            cd = self._mmc.getCameraDevice()
-            self._mmc.setProperty(cd, "Binning", bins)

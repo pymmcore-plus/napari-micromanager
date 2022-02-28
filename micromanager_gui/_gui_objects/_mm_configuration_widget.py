@@ -4,12 +4,10 @@ from qtpy import QtWidgets as QtW
 class MMConfigurationWidget(QtW.QWidget):
     """
     Contains the following objects:
-
     cfg_groupBox: QtW.QGroupBox
     cfg_LineEdit: QtW.QLineEdit
     browse_cfg_Button: QtW.QPushButton
     load_cfg_Button: QtW.QPushButton
-    properties_Button: QtW.QPushButton
     """
 
     def __init__(self):
@@ -18,29 +16,37 @@ class MMConfigurationWidget(QtW.QWidget):
 
     def setup_gui(self):
 
-        self.main_layout = QtW.QGridLayout()
-        # cfg groupbox in widget
+        # main_layout
+        self.main_layout = QtW.QHBoxLayout()
+        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # cfg_groupBox and layout
         self.cfg_groupBox = QtW.QGroupBox()
         self.cfg_groupBox.setTitle("Micro-Manager Configuration")
-        self.main_layout.addWidget(self.cfg_groupBox, 0, 0)
-        self.setLayout(self.main_layout)
+        self.cfg_groupBox_layout = QtW.QHBoxLayout()
+        self.cfg_groupBox_layout.setContentsMargins(5, 9, 5, 3)
 
-        # define camera_groupBox layout
-        self.cfg_groupBox_layout = QtW.QGridLayout()
-
-        # add to cfg_groupBox layout:
+        # cfg_LineEdit
         self.cfg_LineEdit = QtW.QLineEdit()
         self.cfg_LineEdit.setPlaceholderText("MMConfig_demo.cfg")
+
+        # browse_cfg_Button
         self.browse_cfg_Button = QtW.QPushButton(text="...")
+
+        # load_cfg_Button
         self.load_cfg_Button = QtW.QPushButton(text="Load")
-        self.properties_Button = QtW.QPushButton(text="Prop")
-        # widgets in in cfg_groupBox layout
-        self.cfg_groupBox_layout.addWidget(self.cfg_LineEdit, 0, 0)
-        self.cfg_groupBox_layout.addWidget(self.browse_cfg_Button, 0, 1)
-        self.cfg_groupBox_layout.addWidget(self.load_cfg_Button, 0, 2)
-        self.cfg_groupBox_layout.addWidget(self.properties_Button, 0, 3)
-        # set cfg_groupBox layout
+        self.load_cfg_Button.setMinimumWidth(60)
+
+        # add widgets
+        self.cfg_groupBox_layout.addWidget(self.cfg_LineEdit)
+        self.cfg_groupBox_layout.addWidget(self.browse_cfg_Button)
+        self.cfg_groupBox_layout.addWidget(self.load_cfg_Button)
         self.cfg_groupBox.setLayout(self.cfg_groupBox_layout)
+        self.main_layout.addWidget(self.cfg_groupBox)
+
+        # Set main layout
+        self.setLayout(self.main_layout)
 
 
 if __name__ == "__main__":

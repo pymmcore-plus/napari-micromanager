@@ -213,6 +213,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         if len(self._mmc.getLoadedDevices()) <= 1:
             return False
 
+        channel_group = self._mmc.getChannelGroup()
+        if not channel_group:
+            return
+
         idx = self.channel_tableWidget.rowCount()
         self.channel_tableWidget.insertRow(idx)
 
@@ -254,10 +258,16 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
 
     # add, remove, clear, move_to positions table
     def add_position(self):
+
+        if not self._mmc.getXYStageDevice():
+            return
+
         if len(self._mmc.getLoadedDevices()) > 1:
             idx = self._add_position_row()
 
             for c, ax in enumerate("XYZ"):
+                if not self._mmc.getFocusDevice() and ax == "Z":
+                    continue
                 cur = getattr(self._mmc, f"get{ax}Position")()
                 item = QtW.QTableWidgetItem(str(cur))
                 item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
