@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
 
 
-UI_FILE = str(Path(__file__).parent / "_ui" / "explore_sample.ui")
+UI_FILE = str(Path(__file__).parent / "_gui_objects" / "explore_sample.ui")
 
 
 def _channel_key(name: str, index: int) -> str:
@@ -138,6 +138,13 @@ class ExploreSample(QtW.QWidget):
         self.viewer.add_image(
             image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
         )
+
+        zoom_out_factor = (
+            self.scan_size_r
+            if self.scan_size_r >= self.scan_size_c
+            else self.scan_size_c
+        )
+        self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
@@ -168,13 +175,13 @@ class ExploreSample(QtW.QWidget):
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
+        self.save_explorer_groupBox.setEnabled(enabled)
         self.scan_size_spinBox_r.setEnabled(enabled)
         self.scan_size_spinBox_c.setEnabled(enabled)
         self.ovelap_spinBox.setEnabled(enabled)
-        self.channel_explorer_groupBox.setEnabled(enabled)
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
-        self.save_explorer_groupBox.setEnabled(enabled)
+        self.channel_explorer_groupBox.setEnabled(enabled)
 
     def _refresh_positions(self):
         if self._mmc.getXYStageDevice():
@@ -189,6 +196,13 @@ class ExploreSample(QtW.QWidget):
     def add_channel(self):
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
+
+            if not self._mmc.getXYStageDevice():
+                return
+
+            channel_group = self._mmc.getChannelGroup()
+            if not channel_group:
+                return
 
             idx = self.channel_explorer_tableWidget.rowCount()
             self.channel_explorer_tableWidget.insertRow(idx)
@@ -248,7 +262,8 @@ class ExploreSample(QtW.QWidget):
         # get current position
         x_pos = float(self._mmc.getXPosition())
         y_pos = float(self._mmc.getYPosition())
-        z_pos = float(self._mmc.getZPosition())
+        if self._mmc.getFocusDevice():
+            z_pos = float(self._mmc.getZPosition())
 
         self.return_to_position_x = x_pos
         self.return_to_position_y = y_pos
@@ -285,7 +300,10 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size_c):
                     if c == 0:
                         y_pos -= increment_y
-                    list_pos_order.append([x_pos, y_pos, z_pos])
+                    if self._mmc.getFocusDevice():
+                        list_pos_order.append([x_pos, y_pos, z_pos])
+                    else:
+                        list_pos_order.append([x_pos, y_pos])
                     if col > 0:
                         col -= 1
                         x_pos -= increment_x
@@ -293,7 +311,10 @@ class ExploreSample(QtW.QWidget):
                 for c in range(self.scan_size_c):
                     if r > 0 and c == 0:
                         y_pos -= increment_y
-                    list_pos_order.append([x_pos, y_pos, z_pos])
+                    if self._mmc.getFocusDevice():
+                        list_pos_order.append([x_pos, y_pos, z_pos])
+                    else:
+                        list_pos_order.append([x_pos, y_pos])
                     if c < self.scan_size_c - 1:
                         x_pos += increment_x
 
