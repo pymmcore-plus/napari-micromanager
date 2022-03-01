@@ -85,8 +85,6 @@ class MainWindow(MicroManagerWidget):
         sig.frameReady.connect(self._on_mda_frame)
 
         # connect buttons
-        self.cfg_wdg.load_cfg_Button.clicked.connect(self.load_cfg)
-        self.cfg_wdg.browse_cfg_Button.clicked.connect(self.browse_cfg)
         self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
         self.stage_wdg.right_Button.clicked.connect(self.stage_x_right)
         self.stage_wdg.y_up_Button.clicked.connect(self.stage_y_up)
@@ -163,40 +161,6 @@ class MainWindow(MicroManagerWidget):
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
         self.prop_wdg.properties_Button.setEnabled(enabled)
-
-    def browse_cfg(self):
-        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        if filename:
-            self.cfg_wdg.cfg_LineEdit.setText(filename)
-            self.tab_wdg.max_min_val_label.setText("None")
-            self.cfg_wdg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
-
-        # clear spinbox/combobox without accidently setting properties
-        boxes = [
-            self.obj_wdg.objective_comboBox,
-            self.tab_wdg.snap_channel_comboBox,
-            self.stage_wdg.xy_device_comboBox,
-            self.stage_wdg.focus_device_comboBox,
-        ]
-        with blockSignals(boxes):
-            for box in boxes:
-                box.clear()
-
-        self.mda.clear_channel()
-        self.mda.clear_positions()
-        self.explorer.clear_channel()
-
-        _core.STATE.objective_device = None
-        _core.STATE.objectives_cfg = None
-
-        self._mmc.unloadAllDevices()  # unload all devicies
-        # disable gui
-        self._set_enabled(False)
-        self.cfg_wdg.load_cfg_Button.setEnabled(False)
-        cfg = self.cfg_wdg.cfg_LineEdit.text() or "MMConfig_demo.cfg"
-        self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
         self._refresh_objective_options()
