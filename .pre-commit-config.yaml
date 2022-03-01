@@ -8,6 +8,7 @@ repos:
     rev: v2.31.0
     hooks:
       - id: pyupgrade
+        args: ["--py38-plus", "--keep-runtime-typing"]
   - repo: https://github.com/myint/autoflake
     rev: v1.4
     hooks:

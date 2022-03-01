@@ -1,82 +1,45 @@
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
+from .. import _core
+
+policy_max = QtW.QSizePolicy.Policy.Maximum
+
 
 class MMCameraWidget(QtW.QWidget):
-    """
-    Contains the following objects:
-
-    camera_groupBox: QtW.QGroupBox
-    bin_comboBox: QtW.QComboBox
-    bit_comboBox: QtW.QComboBox
-    px_size_doubleSpinBox: QtW.QDoubleSpinBox
-    cam_roi_comboBox: QtW.QComboBox
-    crop_Button: QtW.QPushButton
-    """
+    """A Widget to control camera ROI and pixel size."""
 
     def __init__(self):
         super().__init__()
-        self.setup_gui()
 
-    def setup_gui(self):
+        self.cam_roi_combo = QtW.QComboBox()
+        self.crop_btn = QtW.QPushButton("Crop")
+        self.px_size_spinbox = QtW.QDoubleSpinBox()
+        self.px_size_spinbox.setMinimum(1.0)
+        center = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter
+        self.px_size_spinbox.setAlignment(center)
 
-        # main_layout
-        self.main_layout = QtW.QHBoxLayout()
-        self.main_layout.setSpacing(5)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        # cam_roi_wdg and layout
-        self.cam_roi_wdg = QtW.QWidget()
-        self.cam_roi_wdg_layout = QtW.QHBoxLayout()
-        self.cam_roi_wdg_layout.setSpacing(5)
-        self.cam_roi_wdg_layout.setContentsMargins(0, 0, 0, 0)
-        # cam_roi_label
-        self.cam_roi_label = QtW.QLabel(text="Camera ROI:")
-        self.cam_roi_label.setMaximumWidth(80)
-        self.cam_roi_label.setMinimumWidth(80)
-        self.cam_roi_wdg_layout.addWidget(self.cam_roi_label)
-        # cam_roi_comboBox
-        self.cam_roi_comboBox = QtW.QComboBox()
-        self.cam_roi_comboBox.setMinimumWidth(70)
-        self.cam_roi_wdg_layout.addWidget(self.cam_roi_comboBox)
-        # crop_Button
-        self.crop_Button = QtW.QPushButton(text="Crop")
-        self.crop_Button.setMaximumWidth(60)
-        self.cam_roi_wdg_layout.addWidget(self.crop_Button)
-        # set cam_roi_wdg layout add to main_layout
-        self.cam_roi_wdg.setLayout(self.cam_roi_wdg_layout)
-        self.main_layout.addWidget(self.cam_roi_wdg)
+        cam_px_label = QtW.QLabel("Camera Pixel (µm):")
+        cam_px_label.setSizePolicy(policy_max, policy_max)
+        roi_label = QtW.QLabel("Camera ROI:")
+        roi_label.setSizePolicy(policy_max, policy_max)
 
-        # cam_px_wdg and layout
-        self.cam_px_wdg = QtW.QWidget()
-        self.cam_px_layout = QtW.QHBoxLayout()
-        self.cam_px_layout.setContentsMargins(0, 0, 0, 0)
-        self.cam_px_layout.setSpacing(5)
-        self.cam_px_layout.setContentsMargins(0, 0, 0, 0)
-        # cam_px_label
-        self.cam_px_label = QtW.QLabel(text="Camera Pixel (µm):")
-        self.cam_px_label.setMaximumWidth(120)
-        self.cam_px_label.setMinimumWidth(120)
-        self.cam_px_layout.addWidget(self.cam_px_label)
-        # px_size_doubleSpinBox
-        self.px_size_doubleSpinBox = QtW.QDoubleSpinBox()
-        self.px_size_doubleSpinBox.setMaximumWidth(120)
-        self.px_size_doubleSpinBox.setMinimumWidth(60)
-        self.px_size_doubleSpinBox.setMinimum(1.0)
-        self.px_size_doubleSpinBox.setMinimumWidth(70)
-        self.px_size_doubleSpinBox.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
-        self.cam_px_layout.addWidget(self.px_size_doubleSpinBox)
-        # set cam_px_wdg layout add to main_layout
-        self.cam_px_wdg.setLayout(self.cam_px_layout)
-        self.main_layout.addWidget(self.cam_px_wdg)
+        layout = QtW.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(roi_label)
+        layout.addWidget(self.cam_roi_combo)
+        layout.addWidget(self.crop_btn)
+        layout.addWidget(cam_px_label)
+        layout.addWidget(self.px_size_spinbox)
+        self.setLayout(layout)
 
-        # set main layout
-        self.setLayout(self.main_layout)
+        self.px_size_spinbox.valueChanged.connect(_core.update_pixel_size)
 
+    def setEnabled(self, enabled: bool) -> None:
+        self.cam_roi_combo.setEnabled(enabled)
+        self.crop_btn.setEnabled(enabled)
+        self.px_size_spinbox.setEnabled(enabled)
 
-if __name__ == "__main__":
-    import sys
-
-    app = QtW.QApplication(sys.argv)
-    win = MMCameraWidget()
-    win.show()
-    sys.exit(app.exec_())
+    def _update_pixel_size(self):
+        """Update core pixel size config using the current pixel size spinbox."""
+        _core.update_pixel_size(self.px_size_spinbox.value())
