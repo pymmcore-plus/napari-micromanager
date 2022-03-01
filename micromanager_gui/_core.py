@@ -9,7 +9,7 @@ from pymmcore_plus import CMMCorePlus
 
 MAG_PATTERN = re.compile(r"(\d{1,3})[xX]")
 RESOLUTION_ID_PREFIX = "px_size_"
-_SESSION_CORE = None
+_SESSION_CORE: Optional[CMMCorePlus] = None
 
 
 def get_core_singleton(remote=False) -> CMMCorePlus:
@@ -23,7 +23,7 @@ def get_core_singleton(remote=False) -> CMMCorePlus:
         if remote:
             from pymmcore_plus import RemoteMMCore
 
-            _SESSION_CORE = RemoteMMCore()
+            _SESSION_CORE = RemoteMMCore()  # type: ignore  # it has the same interface.
         else:
             _SESSION_CORE = CMMCorePlus.instance()
     return _SESSION_CORE

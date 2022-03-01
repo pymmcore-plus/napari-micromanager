@@ -5,8 +5,8 @@ from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
+from ._config_widget import MMConfigurationWidget
 from ._illumination_widget import MMIlluminationWidget
-from ._mm_configuration_widget import MMConfigurationWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
