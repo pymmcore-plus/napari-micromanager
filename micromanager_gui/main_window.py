@@ -97,7 +97,7 @@ class MainWindow(MicroManagerWidget):
         sig.channelGroupChanged.connect(self._refresh_channel_list)
         sig.exposureChanged.connect(self._on_exp_change)
         sig.frameReady.connect(self._on_mda_frame)
-        sig.propertyChanged.connect(self._on_offset_status_changed)
+        sig.propertyChanged.connect(self._on_property_changed)
 
         # connect buttons
         self.cfg_wdg.load_cfg_Button.clicked.connect(self.load_cfg)
@@ -146,6 +146,14 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+    def _on_property_changed(self, dev_name: str, prop_name: str, value: str):
+        # TODO: this has to be tested on the microscope
+        if self.autofocus_z_stage and dev_name in [
+            self.autofocus_z_stage.offset_device,
+            self.autofocus_z_stage.autofocus_device,
+        ]:
+            self._on_offset_status_changed()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
@@ -638,7 +646,7 @@ class MainWindow(MicroManagerWidget):
     def _set_autofocus_device(self):
         if not self.stage_wdg.offset_device_comboBox.count():
             return
-        self.autofocus_z_stage = AutofocusDevice.set(
+        self.autofocus_z_stage = AutofocusDevice.create(
             self.stage_wdg.offset_device_comboBox.currentText(), self._mmc
         )
         # remove autofocus offset device if in the combobox of focus devices

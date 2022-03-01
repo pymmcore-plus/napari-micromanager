@@ -276,7 +276,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
                 self.stage_tableWidget.setItem(idx, c, item)
 
             if self._mmc.getAutoFocusDevice() and self._mmc.isContinuousFocusEnabled():
-                autofocus_dev = AutofocusDevice.set(
+                autofocus_dev = AutofocusDevice.create(
                     self._mmc.getAutoFocusDevice(), self._mmc
                 )
                 autofocus_dev.get_position()
