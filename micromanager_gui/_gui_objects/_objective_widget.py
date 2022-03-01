@@ -42,19 +42,17 @@ class MMObjectivesWidget(QtW.QWidget):
     # objectives
     def _refresh_options(self):
 
-        obj_dev_list = self._mmc.guessObjectiveDevices()
-        # e.g. ['TiNosePiece']
-
-        if not obj_dev_list:
+        obj_devs = self._mmc.guessObjectiveDevices()  # e.g. ['TiNosePiece']
+        if not obj_devs:
             return
 
-        if len(obj_dev_list) == 1:
-            self._set_objectives(obj_dev_list[0])
+        if len(obj_devs) == 1:
+            self._set_objectives(obj_devs[0])
         else:
-            # if obj_dev_list has more than 1 possible objective device,
+            # if obj_devs has more than 1 possible objective device,
             # you can select the correct one through a combobox
             obj = SelectDeviceFromCombobox(
-                obj_dev_list,
+                obj_devs,
                 "Select Objective Device:",
                 self,
             )
@@ -62,8 +60,7 @@ class MMObjectivesWidget(QtW.QWidget):
             obj.show()
 
     def _set_objectives(self, obj_device: str):
-
-        obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
+        obj_dev, obj_cfg, presets = _core.get_objective_device(obj_device)
 
         if obj_dev and obj_cfg and presets:
             current_obj = self._mmc.getCurrentConfig(obj_cfg)
@@ -71,30 +68,6 @@ class MMObjectivesWidget(QtW.QWidget):
             current_obj = self._mmc.getState(obj_dev)
             presets = self._mmc.getStateLabels(obj_dev)
         self._add_objective_to_gui(current_obj, presets)
-
-    def _get_objective_device(self, obj_device: str):
-        # check if there is a configuration group for the objectives
-        for cfg_groups in self._mmc.getAvailableConfigGroups():
-            # e.g. ('Camera', 'Channel', 'Objectives')
-
-            presets = self._mmc.getAvailableConfigs(cfg_groups)
-
-            if not presets:
-                continue
-
-            # first group option e.g. TINosePiece: State=1
-            cfg_data = self._mmc.getConfigData(cfg_groups, presets[0])
-
-            device = cfg_data.getSetting(0).getDeviceLabel()
-            # e.g. TINosePiece
-
-            if device == obj_device:
-                _core.STATE.objective_device = device
-                _core.STATE.objectives_cfg = cfg_groups
-                return _core.STATE.objective_device, _core.STATE.objectives_cfg, presets
-
-        _core.STATE.objective_device = obj_device
-        return _core.STATE.objective_device, None, None
 
     def _add_objective_to_gui(self, current_obj, presets):
         with blockSignals(self.combo):

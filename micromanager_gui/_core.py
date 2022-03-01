@@ -116,3 +116,28 @@ def update_pixel_size(
         mmc.definePixelSizeConfig(resolutionID, obj_dev_label, "Label", curr_obj)
         mmc.setPixelSizeUm(resolutionID, pixel_size / mag)
         mmc.setPixelSizeConfig(resolutionID)
+
+
+def get_objective_device(obj_device: str):
+    mmc = get_core_singleton()
+    # check if there is a configuration group for the objectives
+    for cfg_groups in mmc.getAvailableConfigGroups():
+        # e.g. ('Camera', 'Channel', 'Objectives')
+
+        presets = mmc.getAvailableConfigs(cfg_groups)
+
+        if not presets:
+            continue
+
+        # first group option e.g. TINosePiece: State=1
+        cfg_data = mmc.getConfigData(cfg_groups, presets[0])
+
+        device = cfg_data.getSetting(0).getDeviceLabel()  # e.g. TINosePiece
+
+        if device == obj_device:
+            STATE.objective_device = device
+            STATE.objectives_cfg = cfg_groups
+            return STATE.objective_device, STATE.objectives_cfg, presets
+
+    STATE.objective_device = obj_device
+    return STATE.objective_device, None, None
