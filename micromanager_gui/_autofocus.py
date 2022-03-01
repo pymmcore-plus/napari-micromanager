@@ -12,7 +12,7 @@ class AutofocusDevice:
         self._mmc = mmcore
 
     @classmethod
-    def set(self, key, mmcore):
+    def create(cls, key, mmcore) -> AutofocusDevice:
         if key == "TIPFSStatus":  # key = mmcore.getAutoFocusDevice() -> "TIPFStatus"
             return NikonPFS(mmcore)
 
