@@ -8,14 +8,13 @@ import numpy as np
 from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import Qt, QTimer
+from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core
 from ._camera_roi import CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
-from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
     SelectDeviceFromCombobox,
@@ -96,7 +95,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-        self.illum_wdg.illumination_Button.clicked.connect(self.illumination)
         self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
@@ -154,7 +152,7 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stage_wdg.Z_groupBox.setEnabled(False)
 
-        self.illum_wdg.illumination_Button.setEnabled(enabled)
+        self.illum_btn.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -363,19 +361,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    # illumination
-    def illumination(self):
-        if hasattr(self, "_illumination"):
-            self._illumination.close()
-        self._illumination = IlluminationDialog(self._mmc, self)
-        self._illumination.setWindowFlags(
-            Qt.Window
-            | Qt.WindowTitleHint
-            | Qt.WindowStaysOnTopHint
-            | Qt.WindowCloseButtonHint
-        )
-        self._illumination.show()
 
     # property browser
     def _show_prop_browser(self):
