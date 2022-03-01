@@ -34,13 +34,9 @@ class AutofocusDevice:
 
 
 class NikonPFS(AutofocusDevice):
-    """
-    for Nikon PFS:
-    - mmcore.getAutoFocusDevice() -> "TIPFStatus"
-    - offset_device to set/get the PFS offset -> "TIPFSOffset"
-    "TIPFSOffset" is listed under StageDevice (z movement).
-    Can be used with mmc.setProperty("TIPFSOffset", "Position", offset)
-    or mmc.getProperty("TIPFSOffset", "Position")
+    """Nikon Perfect Focus System (PFS) autofocus device.
+
+    To be used when `mmcore.getAutoFocusDevice()` returns `"TIPFStatus"`.
     """
 
     offset_device = "TIPFSOffset"
