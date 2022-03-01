@@ -7,6 +7,7 @@ import pytest
 from pymmcore_plus import CMMCorePlus, server
 from useq import MDASequence
 
+from micromanager_gui import _core
 from micromanager_gui.main_window import MainWindow
 from micromanager_gui.multid_widget import SequenceMeta
 
@@ -23,6 +24,7 @@ def global_mmcore():
 
 @pytest.fixture(params=["local", "remote"])
 def main_window(request, make_napari_viewer):
+    _core._SESSION_CORE = None
     if request.param == "remote":
         server.try_kill_server()
 
