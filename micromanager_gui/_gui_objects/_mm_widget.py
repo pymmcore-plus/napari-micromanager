@@ -4,9 +4,9 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
+from .._illumination import IlluminationDialog
 from ._camera_widget import MMCameraWidget
-from ._illumination_widget import MMIlluminationWidget
-from ._mm_configuration_widget import MMConfigurationWidget
+from ._config_widget import MMConfigurationWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
@@ -21,9 +21,10 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = MMConfigurationWidget()
         self.obj_wdg = MMObjectivesWidget()
-        self.illum_wdg = MMIlluminationWidget()
         self.cam_wdg = MMCameraWidget()
         self.stage_wdg = MMStagesWidget()
+        self.illum_btn = QtW.QPushButton("Light Sources")
+        self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.prop_wdg = MMPropertyBrowserWidget()
         self.shutter_wdg = MMShuttersWidget()
@@ -109,6 +110,11 @@ class MicroManagerWidget(QtW.QWidget):
         ill_shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
         ill_shutter_wdg_layout.setSpacing(7)
         ill_shutter_wdg_layout.addWidget(self.shutter_wdg)
-        ill_shutter_wdg_layout.addWidget(self.illum_wdg)
+        ill_shutter_wdg_layout.addWidget(self.illum_btn)
         ill_shutter_wdg.setLayout(ill_shutter_wdg_layout)
         return ill_shutter_wdg
+
+    def _show_illum_dialog(self):
+        if not hasattr(self, "_illumination"):
+            self._illumination = IlluminationDialog(self)
+        self._illumination.show()

@@ -9,7 +9,7 @@ from pymmcore_plus import CMMCorePlus
 
 MAG_PATTERN = re.compile(r"(\d{1,3})[xX]")
 RESOLUTION_ID_PREFIX = "px_size_"
-_SESSION_CORE = None
+_SESSION_CORE: Optional[CMMCorePlus] = None
 
 
 def get_core_singleton(remote=False) -> CMMCorePlus:
@@ -23,7 +23,7 @@ def get_core_singleton(remote=False) -> CMMCorePlus:
         if remote:
             from pymmcore_plus import RemoteMMCore
 
-            _SESSION_CORE = RemoteMMCore()
+            _SESSION_CORE = RemoteMMCore()  # type: ignore  # it has the same interface.
         else:
             _SESSION_CORE = CMMCorePlus.instance()
     return _SESSION_CORE
@@ -49,8 +49,27 @@ class CoreState:
             cls.__instance = cls()
         return cls.__instance
 
+    def reset(self):
+        self.objective_device = None
+        self.objectives_cfg = None
+
 
 STATE = CoreState.instance()
+
+
+def load_system_config(config: str = ""):
+    """Internal convenience for `loadSystemConfiguration(config)`
+
+    This also unloads all devices first and resets the STATE.
+    If config is `None` or empty string, will load the MMConfig_demo.
+    Note that it should also always be fine for the end-user to use something like
+    `CMMCorePlus.instance().loadSystemConfiguration(...)` (instead of this function)
+    and we need to handle that as well.  So this function shouldn't get too complex.
+    """
+    STATE.reset()
+    mmc = get_core_singleton()
+    mmc.unloadAllDevices()
+    mmc.loadSystemConfiguration(config or "MMConfig_demo.cfg")
 
 
 def update_pixel_size(

@@ -8,14 +8,13 @@ import numpy as np
 from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import Qt, QTimer
+from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core
 from ._camera_roi import CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
-from ._illumination import IlluminationDialog
 from ._saving import save_sequence
 from ._util import (
     SelectDeviceFromCombobox,
@@ -86,8 +85,6 @@ class MainWindow(MicroManagerWidget):
         sig.frameReady.connect(self._on_mda_frame)
 
         # connect buttons
-        self.cfg_wdg.load_cfg_Button.clicked.connect(self.load_cfg)
-        self.cfg_wdg.browse_cfg_Button.clicked.connect(self.browse_cfg)
         self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
         self.stage_wdg.right_Button.clicked.connect(self.stage_x_right)
         self.stage_wdg.y_up_Button.clicked.connect(self.stage_y_up)
@@ -96,7 +93,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-        self.illum_wdg.illumination_Button.clicked.connect(self.illumination)
         self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
@@ -154,7 +150,7 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stage_wdg.Z_groupBox.setEnabled(False)
 
-        self.illum_wdg.illumination_Button.setEnabled(enabled)
+        self.illum_btn.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():
@@ -165,40 +161,6 @@ class MainWindow(MicroManagerWidget):
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
         self.prop_wdg.properties_Button.setEnabled(enabled)
-
-    def browse_cfg(self):
-        (filename, _) = QtW.QFileDialog.getOpenFileName(self, "", "", "cfg(*.cfg)")
-        if filename:
-            self.cfg_wdg.cfg_LineEdit.setText(filename)
-            self.tab_wdg.max_min_val_label.setText("None")
-            self.cfg_wdg.load_cfg_Button.setEnabled(True)
-
-    def load_cfg(self):
-
-        # clear spinbox/combobox without accidently setting properties
-        boxes = [
-            self.obj_wdg.objective_comboBox,
-            self.tab_wdg.snap_channel_comboBox,
-            self.stage_wdg.xy_device_comboBox,
-            self.stage_wdg.focus_device_comboBox,
-        ]
-        with blockSignals(boxes):
-            for box in boxes:
-                box.clear()
-
-        self.mda.clear_channel()
-        self.mda.clear_positions()
-        self.explorer.clear_channel()
-
-        _core.STATE.objective_device = None
-        _core.STATE.objectives_cfg = None
-
-        self._mmc.unloadAllDevices()  # unload all devicies
-        # disable gui
-        self._set_enabled(False)
-        self.cfg_wdg.load_cfg_Button.setEnabled(False)
-        cfg = self.cfg_wdg.cfg_LineEdit.text() or "MMConfig_demo.cfg"
-        self._mmc.loadSystemConfiguration(cfg)
 
     def _refresh_options(self):
         self._refresh_objective_options()
@@ -363,19 +325,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    # illumination
-    def illumination(self):
-        if hasattr(self, "_illumination"):
-            self._illumination.close()
-        self._illumination = IlluminationDialog(self._mmc, self)
-        self._illumination.setWindowFlags(
-            Qt.Window
-            | Qt.WindowTitleHint
-            | Qt.WindowStaysOnTopHint
-            | Qt.WindowCloseButtonHint
-        )
-        self._illumination.show()
 
     # property browser
     def _show_prop_browser(self):
