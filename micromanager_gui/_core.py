@@ -83,7 +83,7 @@ def update_pixel_size(
         mmc.deletePixelSizeConfig(current_px_size_cfg)
 
     # create and store a new pixel size config for the current objective.
-    obj_dev_label = obj_dev_label or CoreState.instance().objective_device
+    obj_dev_label = obj_dev_label or STATE.objective_device
     if not obj_dev_label:
         return
     curr_obj = mmc.getProperty(obj_dev_label, "Label")
