@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
-from pymmcore_plus import CMMCorePlus, DeviceType, RemoteMMCore
+from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
+from . import _core
 from ._camera_roi import CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._illumination import IlluminationDialog
@@ -39,19 +39,11 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MicroManagerWidget):
-    def __init__(
-        self,
-        viewer: napari.viewer.Viewer,
-        remote=False,
-        mmc: CMMCorePlus | RemoteMMCore = None,
-    ):
+    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
         super().__init__()
 
         # create connection to mmcore server or process-local variant
-        if mmc is not None:
-            self._mmc = mmc
-        else:
-            self._mmc = RemoteMMCore() if remote else CMMCorePlus.instance()
+        self._mmc = _core.get_core_singleton(remote)
 
         self.viewer = viewer
 
@@ -76,8 +68,6 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
-        self.objectives_device: str | None = None
-        self.objectives_cfg: str | None = None
 
         # disable gui
         self._set_enabled(False)
@@ -123,12 +113,11 @@ class MainWindow(MicroManagerWidget):
         self.cam_roi = CameraROI(
             self.viewer,
             self._mmc,
-            self.cam_wdg.cam_roi_comboBox,
-            self.cam_wdg.crop_Button,
+            self.cam_wdg.cam_roi_combo,
+            self.cam_wdg.crop_btn,
         )
 
         # connect spinboxes
-        self.cam_wdg.px_size_doubleSpinBox.valueChanged.connect(self._update_pixel_size)
         self.tab_wdg.exp_spinBox.valueChanged.connect(self._update_exp)
         self.tab_wdg.exp_spinBox.setKeyboardTracking(False)
 
@@ -174,9 +163,7 @@ class MainWindow(MicroManagerWidget):
             self.explorer._set_enabled(False)
 
     def _camera_group_wdg(self, enabled):
-        self.cam_wdg.px_size_doubleSpinBox.setEnabled(enabled)
-        self.cam_wdg.cam_roi_comboBox.setEnabled(enabled)
-        self.cam_wdg.crop_Button.setEnabled(enabled)
+        self.cam_wdg.setEnabled(enabled)
         self.prop_wdg.properties_Button.setEnabled(enabled)
 
     def browse_cfg(self):
@@ -203,8 +190,8 @@ class MainWindow(MicroManagerWidget):
         self.mda.clear_positions()
         self.explorer.clear_channel()
 
-        self.objectives_device = None
-        self.objectives_cfg = None
+        _core.STATE.objective_device = None
+        _core.STATE.objectives_cfg = None
 
         self._mmc.unloadAllDevices()  # unload all devicies
         # disable gui
@@ -477,20 +464,19 @@ class MainWindow(MicroManagerWidget):
             if not presets:
                 continue
 
-            cfg_data = self._mmc.getConfigData(
-                cfg_groups, presets[0]
-            )  # first group option e.g. TINosePiece: State=1
+            # first group option e.g. TINosePiece: State=1
+            cfg_data = self._mmc.getConfigData(cfg_groups, presets[0])
 
             device = cfg_data.getSetting(0).getDeviceLabel()
             # e.g. TINosePiece
 
             if device == obj_device:
-                self.objectives_device = device
-                self.objectives_cfg = cfg_groups
-                return self.objectives_device, self.objectives_cfg, presets
+                _core.STATE.objective_device = device
+                _core.STATE.objectives_cfg = cfg_groups
+                return _core.STATE.objective_device, _core.STATE.objectives_cfg, presets
 
-        self.objectives_device = obj_device
-        return self.objectives_device, None, None
+        _core.STATE.objective_device = obj_device
+        return _core.STATE.objective_device, None, None
 
     def _add_objective_to_gui(self, current_obj, presets):
         with blockSignals(self.obj_wdg.objective_comboBox):
@@ -500,49 +486,13 @@ class MainWindow(MicroManagerWidget):
                 self.obj_wdg.objective_comboBox.setCurrentIndex(current_obj)
             else:
                 self.obj_wdg.objective_comboBox.setCurrentText(current_obj)
-            self._update_pixel_size()
-            return
-
-    def _update_pixel_size(self, value: float = None):
-
-        current_px_size_cfg = self._mmc.getCurrentPixelSizeConfig()
-
-        # if pixel size is already set -> return
-        if current_px_size_cfg and not value:
-            return
-
-        # if pixel size is already set but the camera px size is changed
-        # or if there is not a px size cfg
-        if current_px_size_cfg:
-            self._mmc.deletePixelSizeConfig(current_px_size_cfg)
-
-        # if not, create and store a new pixel size config for the current objective.
-        curr_obj = self._mmc.getProperty(self.objectives_device, "Label")
-        # get magnification info from the current objective label
-        match = re.search(r"(\d{1,3})[xX]", curr_obj)
-        if match:
-            mag = int(match.groups()[0])
-
-            # if self.cam.px_size_doubleSpinBox.value() == 1.0:
-            if value == 1.0:
-                return
-
-            # image_pixel_size = self.cam.px_size_doubleSpinBox.value() / mag
-            image_pixel_size = value / mag
-            px_cgf_name = f"px_size_{curr_obj}"
-            # set image pixel sixe (x,y) for the newly created pixel size config
-            self._mmc.definePixelSizeConfig(
-                px_cgf_name, self.objectives_device, "Label", curr_obj
-            )
-            self._mmc.setPixelSizeUm(px_cgf_name, image_pixel_size)
-            self._mmc.setPixelSizeConfig(px_cgf_name)
-        # if it does't match, px size is set to 0.0
+            self.cam_wdg._update_pixel_size()
 
     def change_objective(self):
         if self.obj_wdg.objective_comboBox.count() <= 0:
             return
 
-        if self.objectives_device == "":
+        if not _core.STATE.objective_device:
             return
 
         zdev = self._mmc.getFocusDevice()
@@ -553,20 +503,20 @@ class MainWindow(MicroManagerWidget):
 
         try:
             self._mmc.setConfig(
-                self.objectives_cfg, self.obj_wdg.objective_comboBox.currentText()
+                _core.STATE.objectives_cfg,
+                self.obj_wdg.objective_comboBox.currentText(),
             )
         except ValueError:
             self._mmc.setProperty(
-                self.objectives_device,
+                _core.STATE.objective_device,
                 "Label",
                 self.obj_wdg.objective_comboBox.currentText(),
             )
 
-        self._mmc.waitForDevice(self.objectives_device)
+        self._mmc.waitForDevice(_core.STATE.objective_device)
         self._mmc.setPosition(zdev, currentZ)
         self._mmc.waitForDevice(zdev)
-
-        self._update_pixel_size()
+        self.cam_wdg._update_pixel_size()
 
     # stages
     def _refresh_positions(self):
