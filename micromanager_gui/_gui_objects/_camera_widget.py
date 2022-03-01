@@ -7,7 +7,7 @@ policy_max = QtW.QSizePolicy.Policy.Maximum
 
 
 class MMCameraWidget(QtW.QWidget):
-    """A Widget to control camera ROI"""
+    """A Widget to control camera ROI and pixel size."""
 
     def __init__(self):
         super().__init__()
@@ -16,7 +16,8 @@ class MMCameraWidget(QtW.QWidget):
         self.crop_btn = QtW.QPushButton("Crop")
         self.px_size_spinbox = QtW.QDoubleSpinBox()
         self.px_size_spinbox.setMinimum(1.0)
-        self.px_size_spinbox.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
+        center = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter
+        self.px_size_spinbox.setAlignment(center)
 
         cam_px_label = QtW.QLabel("Camera Pixel (µm):")
         cam_px_label.setSizePolicy(policy_max, policy_max)
@@ -40,4 +41,5 @@ class MMCameraWidget(QtW.QWidget):
         self.px_size_spinbox.setEnabled(enabled)
 
     def _update_pixel_size(self):
+        """Update core pixel size config using the current pixel size spinbox."""
         _core.update_pixel_size(self.px_size_spinbox.value())

@@ -1,5 +1,4 @@
 """Functions and utils for managing the global mmcore singleton."""
-
 from __future__ import annotations
 
 import re

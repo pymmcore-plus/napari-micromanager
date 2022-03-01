@@ -2,26 +2,19 @@ from micromanager_gui.main_window import MainWindow
 
 
 def test_crop_camera(main_window: MainWindow):
-
     assert not main_window.viewer.layers
 
     cbox = main_window.cam_wdg.cam_roi_combo
     cam_roi_btn = main_window.cam_wdg.crop_btn
 
-    text, div = ("1/4", 2)
-
-    cbox.setCurrentText(text)
-
+    cbox.setCurrentText("1/4")
     cam_roi_btn.click()
 
     assert len(main_window.viewer.layers) == 1
-
-    crop_layer = main_window.viewer.layers[-1]
-    assert crop_layer.data.shape == (512 // div, 512 // div)
-
+    assert main_window.viewer.layers[-1].data.shape == (256, 256)
     cbox.setCurrentText("Full")
-    crop_layer = main_window.viewer.layers[-1]
-    assert crop_layer.data.shape == (512, 512)
+    assert main_window.viewer.layers[-1].data.shape == (512, 512)
+    assert len(main_window.viewer.layers) == 1
 
 
 def test_objective_device_and_px_size(main_window: MainWindow):
