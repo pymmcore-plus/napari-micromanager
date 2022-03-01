@@ -13,7 +13,7 @@ class AutofocusDevice:
 
     @classmethod
     def create(cls, key, mmcore) -> AutofocusDevice:
-        if key == "TIPFSStatus":  # key = mmcore.getAutoFocusDevice() -> "TIPFStatus"
+        if key == "TIPFSStatus":
             return NikonPFS(mmcore)
 
     def isEngaged(self) -> bool:
