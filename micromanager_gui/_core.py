@@ -49,8 +49,27 @@ class CoreState:
             cls.__instance = cls()
         return cls.__instance
 
+    def reset(self):
+        self.objective_device = None
+        self.objectives_cfg = None
+
 
 STATE = CoreState.instance()
+
+
+def load_system_config(config: str = ""):
+    """Internal convenience for `loadSystemConfiguration(config)`
+
+    This also unloads all devices first and resets the STATE.
+    If config is `None` or empty string, will load the MMConfig_demo.
+    Note that it should also always be fine for the end-user to use something like
+    `CMMCorePlus.instance().loadSystemConfiguration(...)` (instead of this function)
+    and we need to handle that as well.  So this function shouldn't get too complex.
+    """
+    STATE.reset()
+    mmc = get_core_singleton()
+    mmc.unloadAllDevices()
+    mmc.loadSystemConfiguration(config or "MMConfig_demo.cfg")
 
 
 def update_pixel_size(
