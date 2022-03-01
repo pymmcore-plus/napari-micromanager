@@ -213,10 +213,8 @@ class ExploreSample(QtW.QWidget):
             self.channel_explorer_exp_spinBox.setRange(0, 10000)
             self.channel_explorer_exp_spinBox.setValue(100)
 
-            channel_group = self._mmc.getChannelGroup()
-            if channel_group:
-                channel_list = list(self._mmc.getAvailableConfigs(channel_group))
-                self.channel_explorer_comboBox.addItems(channel_list)
+            channel_list = list(self._mmc.getAvailableConfigs(channel_group))
+            self.channel_explorer_comboBox.addItems(channel_list)
 
             self.channel_explorer_tableWidget.setCellWidget(
                 idx, 0, self.channel_explorer_comboBox
