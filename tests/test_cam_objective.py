@@ -20,14 +20,14 @@ def test_crop_camera(main_window: MainWindow):
 def test_objective_device_and_px_size(main_window: MainWindow):
     mmc = main_window._mmc
 
-    main_window.obj_wdg.objective_comboBox.setCurrentText("10X")
-    assert main_window.obj_wdg.objective_comboBox.currentText() == "10X"
+    main_window.obj_wdg.combo.setCurrentText("10X")
+    assert main_window.obj_wdg.combo.currentText() == "10X"
     assert mmc.getCurrentPixelSizeConfig() == "Res10x"
     assert main_window.cam_wdg.px_size_spinbox.value() == 1.0
 
     main_window.cam_wdg.px_size_spinbox.setValue(6.5)
 
     mmc.deleteConfigGroup("Objective")
-    main_window._refresh_objective_options()
-    assert main_window.obj_wdg.objective_comboBox.currentText() == "Nikon 10X S Fluor"
+    main_window.obj_wdg._refresh_options()
+    assert main_window.obj_wdg.combo.currentText() == "Nikon 10X S Fluor"
     assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
