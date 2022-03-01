@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 class AutofocusDevice:
-    def __init__(self, mmcore: CMMCorePlus | RemoteMMCore = None):
+    def __init__(self, mmcore: CMMCorePlus | RemoteMMCore):
         super().__init__()
         self._mmc = mmcore
 
