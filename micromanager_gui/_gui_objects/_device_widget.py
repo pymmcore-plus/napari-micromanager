@@ -1,7 +1,9 @@
 from typing import Any, Optional, Tuple, TypeVar
 
-from pymmcore_plus import CMMCorePlus, DeviceType
+from pymmcore_plus import DeviceType
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
+
+from .._core import get_core_singleton
 
 T = TypeVar("T", bound="DeviceWidget")
 
@@ -16,16 +18,20 @@ class DeviceWidget(QWidget):
     def __init__(self, device_label: str, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self._device_label = device_label
-        self._mmc = CMMCorePlus.instance()
+        self._mmc = get_core_singleton()
 
     def deviceName(self) -> str:
         return self._mmc.getDeviceName(self._device_label)
 
+    def deviceLabel(self) -> str:
+        return self._device_label
+
     @classmethod
     def for_device(cls, label: str):
-        core = CMMCorePlus.instance()
+        core = get_core_singleton()
+        dev_type = core.getDeviceType(label)
         _map = {DeviceType.StateDevice: StateDeviceWidget}
-        return _map[core.getDeviceType(label)](label)
+        return _map[dev_type](label)
 
 
 class StateDeviceWidget(DeviceWidget):
@@ -37,7 +43,8 @@ class StateDeviceWidget(DeviceWidget):
 
         self._combo = QComboBox()
         self._combo.currentIndexChanged.connect(self._on_combo_changed)
-        self._refresh_combo()
+        self._refresh_combo_choices()
+        self._combo.setCurrentText(self._mmc.getStateLabel(self._device_label))
 
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self._combo)
@@ -46,7 +53,7 @@ class StateDeviceWidget(DeviceWidget):
         self.destroyed.connect(self._disconnect)
 
     def _on_combo_changed(self, index: int) -> None:
-        # TODO: add hook here for pre change/post change
+        # TODO: add hook here for pre change/post change?
         # e.g. if you wanted to drop the objective before changing
         self._mmc.setState(self._device_label, index)
 
@@ -54,12 +61,15 @@ class StateDeviceWidget(DeviceWidget):
         self._mmc.events.propertyChanged.disconnect(self._on_prop_change)
 
     def _on_prop_change(self, dev_label: str, prop: str, value: Any):
+        # TODO: hmmm... it appears that not all state devices emit
+        # a property change event?
+        print("PROP CHANGE", locals())
         if dev_label == self._device_label:
             pre = self._combo.blockSignals(True)
             self._combo.setCurrentText(value)
             self._combo.blockSignals(pre)
 
-    def _refresh_combo(self):
+    def _refresh_combo_choices(self):
         pre = self._combo.blockSignals(True)
         self._combo.clear()
         self._combo.addItems(self.stateLabels())
