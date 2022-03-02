@@ -24,9 +24,8 @@ class DeviceWidget(QWidget):
     @classmethod
     def for_device(cls, label: str):
         core = CMMCorePlus.instance()
-        dt = core.getDeviceType("Objective")
         _map = {DeviceType.StateDevice: StateDeviceWidget}
-        return _map[dt](label)
+        return _map[core.getDeviceType(label)](label)
 
 
 class StateDeviceWidget(DeviceWidget):
