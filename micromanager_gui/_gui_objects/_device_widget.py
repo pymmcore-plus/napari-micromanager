@@ -25,11 +25,11 @@ class DeviceWidget(QWidget):
     def for_device(cls, label: str):
         core = CMMCorePlus.instance()
         dt = core.getDeviceType("Objective")
-        _map = {DeviceType.StateDevice: StateWidget}
+        _map = {DeviceType.StateDevice: StateDeviceWidget}
         return _map[dt](label)
 
 
-class StateWidget(DeviceWidget):
+class StateDeviceWidget(DeviceWidget):
     """Widget to control a StateDevice."""
 
     def __init__(self, device_label: str, parent: Optional[QWidget] = None):
