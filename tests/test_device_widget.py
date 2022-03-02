@@ -24,7 +24,6 @@ def test_state_device_widget(qtbot, global_mmcore: CMMCorePlus):
         global_mmcore.setState(label, next_state)
 
     assert wdg.state() != start_state
-    assert wdg.data()
     assert wdg.state() == global_mmcore.getState(label) == wdg._combo.currentIndex()
     assert (
         wdg.stateLabel()
