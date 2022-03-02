@@ -2,6 +2,7 @@ from typing import Any, Optional, Tuple, TypeVar
 
 from pymmcore_plus import DeviceType
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
+from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
 
@@ -65,15 +66,13 @@ class StateDeviceWidget(DeviceWidget):
         # a property change event?
         print("PROP CHANGE", locals())
         if dev_label == self._device_label:
-            pre = self._combo.blockSignals(True)
-            self._combo.setCurrentText(value)
-            self._combo.blockSignals(pre)
+            with signals_blocked(self._combo):
+                self._combo.setCurrentText(value)
 
     def _refresh_combo_choices(self):
-        pre = self._combo.blockSignals(True)
-        self._combo.clear()
-        self._combo.addItems(self.stateLabels())
-        self._combo.blockSignals(pre)
+        with signals_blocked(self._combo):
+            self._combo.clear()
+            self._combo.addItems(self.stateLabels())
 
     def state(self) -> int:
         return self._mmc.getState(self._device_label)
