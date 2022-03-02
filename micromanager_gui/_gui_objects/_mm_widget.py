@@ -7,6 +7,7 @@ from superqt import QCollapsible
 from .._illumination import IlluminationDialog
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
+from ._group_preset_table_widget import MMGroupPresetTableWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
@@ -81,6 +82,8 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        self.group_preset_table_wdg = MMGroupPresetTableWidget()
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
