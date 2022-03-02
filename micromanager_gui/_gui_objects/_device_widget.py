@@ -52,7 +52,7 @@ class StateDeviceWidget(DeviceWidget):
         self._mmc.setState(self._device_label, index)
 
     def _disconnect(self):
-        self._mmc.events.propertyChanged.connect(self._on_prop_change)
+        self._mmc.events.propertyChanged.disconnect(self._on_prop_change)
 
     def _on_prop_change(self, dev_label: str, prop: str, value: Any):
         if dev_label == self._device_label:
