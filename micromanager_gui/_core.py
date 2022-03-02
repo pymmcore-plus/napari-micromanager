@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import ClassVar, Optional
+from typing import ClassVar, List, Optional
 
 from pymmcore_plus import CMMCorePlus
 
@@ -118,26 +118,40 @@ def update_pixel_size(
         mmc.setPixelSizeConfig(resolutionID)
 
 
-def get_objective_device(obj_device: str):
+def get_cfg_groups_with_device_label(label: str, max_results=1) -> List[str]:
+    """Return config groups that control a device labeled `label`.
+
+    By default, returns a list of length 1 with the first matching config group.
+
+    Parameters
+    ----------
+    label : str
+        A device label
+    max_results : int, optional
+        The max number of config groups to return, by default 1
+
+    Returns
+    -------
+    List[str]
+        (up to `max_results`) config groups that contain a device named `label`
+    """
     mmc = get_core_singleton()
-    # check if there is a configuration group for the objectives
-    for cfg_groups in mmc.getAvailableConfigGroups():
-        # e.g. ('Camera', 'Channel', 'Objectives')
-
-        presets = mmc.getAvailableConfigs(cfg_groups)
-
-        if not presets:
-            continue
-
-        # first group option e.g. TINosePiece: State=1
-        cfg_data = mmc.getConfigData(cfg_groups, presets[0])
-
-        device = cfg_data.getSetting(0).getDeviceLabel()  # e.g. TINosePiece
-
-        if device == obj_device:
-            STATE.objective_device = device
-            STATE.objectives_cfg = cfg_groups
-            return STATE.objective_device, STATE.objectives_cfg, presets
-
-    STATE.objective_device = obj_device
-    return STATE.objective_device, None, None
+    results = []
+    _r = 0
+    groups = mmc.getAvailableConfigGroups()
+    # we use sorted here to prefer configuration groups with the same name as `label`.
+    # in the micromanager docs, `Objective` is used both as the device label and the
+    # configuration group name. So, it's worth checking that first.
+    for cfg_group in sorted(groups, key=lambda x: x != label):
+        for preset in mmc.getAvailableConfigs(cfg_group):
+            for device_label, _, _ in mmc.getConfigData(cfg_group, preset):
+                if device_label == label:
+                    results.append(cfg_group)
+                    _r += 1
+                    break
+            # only need to check the first preset, since preset share the same devices
+            break
+        if _r >= max_results:
+            break
+    print("RETT", results)
+    return results

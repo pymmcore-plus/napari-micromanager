@@ -28,6 +28,6 @@ def test_objective_device_and_px_size(main_window: MainWindow):
     main_window.cam_wdg.px_size_spinbox.setValue(6.5)
 
     mmc.deleteConfigGroup("Objective")
-    main_window.obj_wdg._refresh_options()
+    main_window.obj_wdg._refresh_objective_choices()
     assert main_window.obj_wdg.combo.currentText() == "Nikon 10X S Fluor"
     assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
