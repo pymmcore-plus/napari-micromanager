@@ -14,6 +14,7 @@ def test_state_device_widget(qtbot, global_mmcore: CMMCorePlus):
     qtbot.addWidget(wdg)
     wdg.show()
     assert wdg.deviceLabel() == label
+    assert wdg.deviceName() == "DObjective"
     assert global_mmcore.getStateLabel(label) == wdg._combo.currentText()
     assert global_mmcore.getState(label) == wdg._combo.currentIndex()
     start_state = wdg.state()
@@ -23,5 +24,12 @@ def test_state_device_widget(qtbot, global_mmcore: CMMCorePlus):
         global_mmcore.setState(label, next_state)
 
     assert wdg.state() != start_state
-    assert global_mmcore.getState(label) == wdg._combo.currentIndex()
-    assert global_mmcore.getStateLabel(label) == wdg._combo.currentText()
+    assert wdg.data()
+    assert wdg.state() == global_mmcore.getState(label) == wdg._combo.currentIndex()
+    assert (
+        wdg.stateLabel()
+        == global_mmcore.getStateLabel(label)
+        == wdg._combo.currentText()
+    )
+
+    wdg._disconnect()
