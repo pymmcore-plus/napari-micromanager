@@ -19,7 +19,7 @@ class DeviceWidget(QWidget):
         self._mmc = CMMCorePlus.instance()
 
     def deviceName(self) -> str:
-        return self._mmc.getDeviceName()
+        return self._mmc.getDeviceName(self._device_label)
 
     @classmethod
     def for_device(cls, label: str):
