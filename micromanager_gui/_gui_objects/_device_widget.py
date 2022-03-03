@@ -72,6 +72,11 @@ class DeviceWidget(QWidget):
         """
         dev_type = get_core_singleton().getDeviceType(device_label)
         _map = {DeviceType.StateDevice: StateDeviceWidget}
+        if dev_type not in _map:
+            raise NotImplementedError(
+                "No DeviceWidget subclass has been implemented for devices of "
+                f"type {dev_type.name!r}"
+            )
         return _map[dev_type](device_label)
 
 
