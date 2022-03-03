@@ -29,7 +29,7 @@ class DeviceWidget(QWidget):
         self.destroyed.connect(self._disconnect)
 
     @abstractmethod
-    def _disconnect():
+    def _disconnect(self):
         """Disconnect from core when the widget is destroyed.
 
         Must implement in subclass. (note we can't actually enforce this without
