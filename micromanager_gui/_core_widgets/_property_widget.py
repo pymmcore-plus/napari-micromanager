@@ -1,8 +1,16 @@
-from typing import Any, Callable, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from qtpy.QtCore import Qt, Signal
-from qtpy.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QWidget
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QLineEdit,
+    QSpinBox,
+    QWidget,
+)
 from superqt import QLabeledDoubleSlider, QLabeledSlider, utils
 
 from .._core import get_core_singleton
@@ -28,6 +36,10 @@ class PPropValueWidget(Protocol):
 # fmt: on
 
 
+# -----------------------------------------------------------------------
+# These widgets all implement PPropValueWidget for various PropertyTypes.
+# -----------------------------------------------------------------------
+
 T = TypeVar("T", bound=float)
 
 
@@ -40,28 +52,47 @@ def _stretch_range_to_contain(wdg: QLabeledDoubleSlider, val: T) -> T:
     return val
 
 
-class IntegerWidget(QLabeledSlider):
+class IntegerWidget(QSpinBox):
     """Slider suited to managing integer values"""
 
-    def __init__(
-        self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
-    ) -> None:
-        super().__init__(orientation, parent)
-
-    def setValue(self, v: int) -> None:
+    def setValue(self, v: Any) -> None:
         return super().setValue(_stretch_range_to_contain(self, int(v)))
 
 
-class FloatWidget(QLabeledDoubleSlider):
+class FloatWidget(QDoubleSpinBox):
     """Slider suited to managing float values"""
 
+    def setValue(self, v: Any) -> None:
+        # stretch decimals to fit value
+        dec = min(str(v).rstrip("0")[::-1].find("."), 8)
+        if dec > self.decimals():
+            self.setDecimals(dec)
+        return super().setValue(_stretch_range_to_contain(self, float(v)))
+
+
+class _RangedMixin:
+    _cast = int
+
+    # prefer horizontal orientation
     def __init__(
-        self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
+        self: QLabeledSlider,
+        orientation=Qt.Orientation.Horizontal,
+        parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(orientation, parent)
 
-    def setValue(self, v: float) -> None:
-        return super().setValue(_stretch_range_to_contain(self, float(v)))
+    def setValue(self: QLabeledSlider, v: float) -> None:
+        return super().setValue(_stretch_range_to_contain(self, self._cast(v)))
+
+
+class RangedIntegerWidget(_RangedMixin, QLabeledSlider):
+    """Slider suited to managing ranged integer values"""
+
+
+class RangedFloatWidget(_RangedMixin, QLabeledDoubleSlider):
+    """Slider suited to managing ranged float values"""
+
+    _cast = float
 
 
 class IntBoolWidget(QCheckBox):
@@ -120,7 +151,12 @@ class StringWidget(QLineEdit):
         self.setText(str(value))
 
 
-def make_property_value_widget(
+# -----------------------------------------------------------------------
+# Factory function to create the appropriate PPropValueWidget.
+# -----------------------------------------------------------------------
+
+
+def _make_property_value_widget(
     dev: str, prop: str, core: Optional[CMMCorePlus] = None
 ) -> PPropValueWidget:
     """Return a widget for device `dev`, property `prop`.
@@ -152,10 +188,16 @@ def make_property_value_widget(
         else:
             wdg = ChoiceWidget(allowed)
     elif _type in (PropertyType.Integer, PropertyType.Float):
-        wdg = IntegerWidget() if _type is PropertyType.Integer else FloatWidget()
         if core.hasPropertyLimits(dev, prop):
-            wdg.setMinimum(_type.to_python()(core.getPropertyLowerLimit(dev, prop)))
-            wdg.setMaximum(_type.to_python()(core.getPropertyUpperLimit(dev, prop)))
+            wdg = (
+                RangedIntegerWidget()
+                if _type is PropertyType.Integer
+                else RangedFloatWidget()
+            )
+            wdg.setMinimum(wdg._cast(core.getPropertyLowerLimit(dev, prop)))
+            wdg.setMaximum(wdg._cast(core.getPropertyUpperLimit(dev, prop)))
+        else:
+            wdg = IntegerWidget() if _type is PropertyType.Integer else FloatWidget()
     else:
         wdg = StringWidget()
 
@@ -185,6 +227,11 @@ def make_property_value_widget(
         _core.setProperty(dev, prop, value)
 
     return wdg
+
+
+# -----------------------------------------------------------------------
+# Main public facing QWidget.
+# -----------------------------------------------------------------------
 
 
 class PropertyWidget(QWidget):
@@ -220,6 +267,7 @@ class PropertyWidget(QWidget):
     ) -> None:
         super().__init__(parent)
         self._mmc = core or get_core_singleton()
+
         if device_label not in self._mmc.getLoadedDevices():
             raise ValueError(f"Device not loaded: {device_label!r}")
 
@@ -232,11 +280,41 @@ class PropertyWidget(QWidget):
 
         self._device_label = device_label
         self._prop_name = prop_name
-        self._prop_type = self._mmc.getPropertyType(device_label, prop_name)
 
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self._build_value_widget()
+
+    def value(self) -> Any:
+        """Return the current value of the *widget* (which should match core)."""
+        return self._value_widget.value()
+
+    def setValue(self, value: Any) -> None:
+        """Set the current value of the *widget* (which should match core)."""
+        self._value_widget.setValue(value)
+
+    def refresh(self) -> None:
+        """Update the value of the widget from core.
+
+        (If all goes well this shouldn't be necessary, but if a propertyChanged
+        event is missed, this can be used).
+        """
+        val = self._mmc.getProperty(*self._dp)
+        with utils.signals_blocked(self._value_widget):
+            self._value_widget.setValue(val)
+
+    def propertyType(self) -> PropertyType:
+        """Return property type."""
+        return self._mmc.getPropertyType(*self._dp)
+
+    def isReadOnly(self) -> bool:
+        """Return True if property is read only."""
+        return self._mmc.isPropertyReadOnly(*self._dp)
+
+    @property
+    def _dp(self) -> Tuple[str, str]:
+        """commonly requested pair for mmcore calls."""
+        return self._device_label, self._prop_name
 
     def _build_value_widget(self) -> None:
         """Create widget for device_label/prop_name, and add to layout."""
@@ -244,25 +322,5 @@ class PropertyWidget(QWidget):
             self._value_widget.setParent(None)
             self._value_widget.deleteLater()
 
-        self._value_widget = make_property_value_widget(
-            self._device_label, self._prop_name, self._mmc
-        )
+        self._value_widget = _make_property_value_widget(*self._dp, self._mmc)
         self.layout().addWidget(self._value_widget)
-
-    def value(self) -> Any:
-        """Return the current value of the *widget*."""
-        return self._value_widget.value()
-
-    def setValue(self, value: Any) -> None:
-        """Set the current value of the *widget*."""
-        self._value_widget.setValue(value)
-
-    def refresh(self) -> None:
-        """Set the value of the widget to core.
-
-        (If all goes well this shouldn't be necessary, but if a propertyChanged
-        event is missed, this can be used).
-        """
-        val = self._mmc.getProperty(self._device_label, self._prop_name)
-        with utils.signals_blocked(self._value_widget):
-            self._value_widget.setValue(val)
