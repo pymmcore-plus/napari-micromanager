@@ -235,6 +235,7 @@ class PropertyWidget(QWidget):
         self._prop_type = self._mmc.getPropertyType(device_label, prop_name)
 
         self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self._build_value_widget()
 
     def _build_value_widget(self) -> None:
