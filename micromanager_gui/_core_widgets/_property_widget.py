@@ -224,7 +224,14 @@ def make_property_value_widget(
 
     @wdg.valueChanged.connect
     def _on_widget_change(value, _core=core) -> None:
-        _core.setProperty(dev, prop, value)
+        # if there's an error when updating core, reset widget value to core
+        try:
+            _core.setProperty(dev, prop, value)
+        except RuntimeError as e:
+            import warnings
+
+            warnings.warn(e)
+            wdg.setValue(core.getProperty(dev, prop))
 
     return wdg
 
@@ -299,9 +306,8 @@ class PropertyWidget(QWidget):
         (If all goes well this shouldn't be necessary, but if a propertyChanged
         event is missed, this can be used).
         """
-        val = self._mmc.getProperty(*self._dp)
         with utils.signals_blocked(self._value_widget):
-            self._value_widget.setValue(val)
+            self._value_widget.setValue(self._mmc.getProperty(*self._dp))
 
     def propertyType(self) -> PropertyType:
         """Return property type."""
