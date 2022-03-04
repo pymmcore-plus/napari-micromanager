@@ -1,12 +1,13 @@
 from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
 
-from pymmcore_plus import CMMCorePlus, PropertyType
+from pymmcore_plus import CMMCorePlus, DeviceType, PropertyType
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QSpinBox,
     QWidget,
@@ -130,9 +131,10 @@ class ChoiceWidget(QComboBox):
         return self.currentText()
 
     def setValue(self, value: str) -> None:
+        value = str(value)
         if value not in self._allowed:
             raise ValueError(f"{value!r} must be one of {self._allowed}")
-        self.setCurrentText(str(value))
+        self.setCurrentText(value)
 
 
 class StringWidget(QLineEdit):
@@ -143,6 +145,18 @@ class StringWidget(QLineEdit):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.textChanged.connect(self.valueChanged.emit)
+
+    def value(self) -> str:
+        return self.text()
+
+    def setValue(self, value: str) -> None:
+        self.setText(str(value))
+
+
+class ReadOnlyWidget(QLabel):
+    """String widget for pretty much everything else."""
+
+    valueChanged = Signal()  # just for the protocol... not used
 
     def value(self) -> str:
         return self.text()
@@ -178,37 +192,12 @@ def make_property_value_widget(
         A widget with a normalized PropValueWidget protocol.
     """
     core = core or get_core_singleton()
-    _type = core.getPropertyType(dev, prop)
 
     # Create the widget based on property type and allowed choices
-    if allowed := core.getAllowedPropertyValues(dev, prop):
-        # note: many string properties are also choices between "Yes", "No"
-        if _type is PropertyType.Integer and set(allowed) == {"0", "1"}:
-            wdg = IntBoolWidget()
-        else:
-            wdg = ChoiceWidget(allowed)
-    elif _type in (PropertyType.Integer, PropertyType.Float):
-        if core.hasPropertyLimits(dev, prop):
-            wdg = (
-                RangedIntegerWidget()
-                if _type is PropertyType.Integer
-                else RangedFloatWidget()
-            )
-            wdg.setMinimum(wdg._cast(core.getPropertyLowerLimit(dev, prop)))
-            wdg.setMaximum(wdg._cast(core.getPropertyUpperLimit(dev, prop)))
-        else:
-            wdg = IntegerWidget() if _type is PropertyType.Integer else FloatWidget()
-    else:
-        wdg = StringWidget()
+    wdg = _creat_prop_widget(core, dev, prop)
 
     # set current value from core
     wdg.setValue(core.getProperty(dev, prop))
-
-    # disable if read only
-    if core.isPropertyReadOnly(dev, prop):
-        if hasattr(wdg, "setReadOnly"):
-            wdg.setReadOnly(True)
-        wdg.setEnabled(False)
 
     # connect events and queue for disconnection on widget destroyed
     def _on_core_change(dev_label, prop_name, new_val):
@@ -234,6 +223,37 @@ def make_property_value_widget(
             wdg.setValue(core.getProperty(dev, prop))
 
     return wdg
+
+
+def _creat_prop_widget(core: CMMCorePlus, dev: str, prop: str) -> PPropValueWidget:
+    """The type -> widget selection part used in the above function."""
+
+    if core.isPropertyReadOnly(dev, prop):
+        return ReadOnlyWidget()
+
+    ptype = core.getPropertyType(dev, prop)
+    if allowed := core.getAllowedPropertyValues(dev, prop):
+        if ptype is PropertyType.Integer and set(allowed) == {"0", "1"}:
+            return IntBoolWidget()
+        # TODO? many string properties are also choices between "Yes", "No"
+        return ChoiceWidget(allowed)
+    if prop in {"State", "Label"} and core.getDeviceType(dev) == DeviceType.StateDevice:
+        # TODO: This logic is very similar to StateDeviceWidget. use this in the future?
+        if prop == "Label":
+            return ChoiceWidget(core.getStateLabels(dev))
+        return ChoiceWidget([str(i) for i in range(core.getNumberOfStates(dev))])
+    if ptype in (PropertyType.Integer, PropertyType.Float):
+        if not core.hasPropertyLimits(dev, prop):
+            return IntegerWidget() if ptype is PropertyType.Integer else FloatWidget()
+        wdg = (
+            RangedIntegerWidget()
+            if ptype is PropertyType.Integer
+            else RangedFloatWidget()
+        )
+        wdg.setMinimum(wdg._cast(core.getPropertyLowerLimit(dev, prop)))
+        wdg.setMaximum(wdg._cast(core.getPropertyUpperLimit(dev, prop)))
+        return wdg
+    return StringWidget()
 
 
 # -----------------------------------------------------------------------
@@ -290,7 +310,8 @@ class PropertyWidget(QWidget):
 
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
-        self._build_value_widget()
+        self._value_widget = make_property_value_widget(*self._dp, self._mmc)
+        self.layout().addWidget(self._value_widget)
 
     def value(self) -> Any:
         """Return the current value of the *widget* (which should match core)."""
@@ -321,12 +342,3 @@ class PropertyWidget(QWidget):
     def _dp(self) -> Tuple[str, str]:
         """commonly requested pair for mmcore calls."""
         return self._device_label, self._prop_name
-
-    def _build_value_widget(self) -> None:
-        """Create widget for device_label/prop_name, and add to layout."""
-        if hasattr(self, "_value_widget"):
-            self._value_widget.setParent(None)
-            self._value_widget.deleteLater()
-
-        self._value_widget = make_property_value_widget(*self._dp, self._mmc)
-        self.layout().addWidget(self._value_widget)
