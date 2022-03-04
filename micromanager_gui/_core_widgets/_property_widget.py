@@ -1,6 +1,5 @@
-from typing import Any, Callable, Optional, Protocol, cast
+from typing import Any, Callable, Optional, Protocol, TypeVar, cast
 
-from psygnal import SignalInstance
 from pymmcore_plus import CMMCorePlus, PropertyType
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QWidget
@@ -9,51 +8,41 @@ from superqt import QLabeledDoubleSlider, QLabeledSlider, utils
 from .._core import get_core_singleton
 
 
+# fmt: off
 class PSignalInstance(Protocol):
-    def connect(self, callback: Callable) -> Callable:
-        ...
-
-    def disconnect(self, callback: Callable) -> None:
-        ...
-
-    def emit(self, *args: Any) -> None:
-        ...
+    """The protocol expected of a signal instance"""
+    def connect(self, callback: Callable) -> Callable: ...
+    def disconnect(self, callback: Callable) -> None: ...
+    def emit(self, *args: Any) -> None: ...
 
 
 class PPropValueWidget(Protocol):
-    def value(self) -> Any:
-        ...
-
-    def setValue(self) -> Any:
-        ...
-
-    def setEnabled(self, enabled: bool) -> None:
-        ...
-
-    @property
-    def valueChanged(self) -> PSignalInstance:
-        ...
-
-    @property
-    def destroyed(self) -> SignalInstance:
-        ...
-
-    def setParent(self, parent: Optional[QWidget]) -> None:
-        ...
-
-    def deleteLater(self) -> None:
-        ...
+    """The protocol expected of a ValueWidget."""
+    valueChanged: PSignalInstance
+    destroyed: PSignalInstance
+    def value(self) -> Any: ...
+    def setValue(self) -> Any: ...
+    def setEnabled(self, enabled: bool) -> None: ...
+    def setParent(self, parent: Optional[QWidget]) -> None: ...
+    def deleteLater(self) -> None: ...
+# fmt: on
 
 
-def _stretch_range_to_contain(wdg: QLabeledDoubleSlider, v: float):
-    if v > wdg.maximum():
-        wdg.setMaximum(v)
-    if v < wdg.minimum():
-        wdg.setMinimum(v)
-    return v
+T = TypeVar("T", bound=float)
+
+
+def _stretch_range_to_contain(wdg: QLabeledDoubleSlider, val: T) -> T:
+    """Set range of `wdg` to include `val`."""
+    if val > wdg.maximum():
+        wdg.setMaximum(val)
+    if val < wdg.minimum():
+        wdg.setMinimum(val)
+    return val
 
 
 class IntegerWidget(QLabeledSlider):
+    """Slider suited to managing integer values"""
+
     def __init__(
         self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
@@ -64,6 +53,8 @@ class IntegerWidget(QLabeledSlider):
 
 
 class FloatWidget(QLabeledDoubleSlider):
+    """Slider suited to managing float values"""
+
     def __init__(
         self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
@@ -74,6 +65,8 @@ class FloatWidget(QLabeledDoubleSlider):
 
 
 class IntBoolWidget(QCheckBox):
+    """Checkbox for boolean values, which are integers in pymmcore"""
+
     valueChanged = Signal(int)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -91,6 +84,8 @@ class IntBoolWidget(QCheckBox):
 
 
 class ChoiceWidget(QComboBox):
+    """Combobox for props with a set of allowed values."""
+
     valueChanged = Signal(str)
 
     def __init__(self, allowed=(), parent: Optional[QWidget] = None) -> None:
@@ -110,6 +105,8 @@ class ChoiceWidget(QComboBox):
 
 
 class StringWidget(QLineEdit):
+    """String widget for pretty much everything else."""
+
     valueChanged = Signal(str)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -123,7 +120,25 @@ class StringWidget(QLineEdit):
         self.setText(str(value))
 
 
-def make_property_widget(dev: str, prop: str, core=None) -> PPropValueWidget:
+def make_property_widget(
+    dev: str, prop: str, core: Optional[CMMCorePlus] = None
+) -> PPropValueWidget:
+    """Return a widget for device `dev`, property `prop`.
+
+    Parameters
+    ----------
+    dev : str
+        Device label
+    prop : str
+        Property name
+    core : Optional[CMMCorePlus]
+        Optional CMMCorePlus instance, by default the global singleton.
+
+    Returns
+    -------
+    PPropValueWidget
+        A widget with a normalized PropValueWidget protocol.
+    """
     core = core or get_core_singleton()
     _type = core.getPropertyType(dev, prop)
 
@@ -171,6 +186,25 @@ def make_property_widget(dev: str, prop: str, core=None) -> PPropValueWidget:
 
 
 class PropertyWidget(QWidget):
+    """A widget that presents a view onto an mmcore device property.
+
+    Parameters
+    ----------
+    device_label : str
+        Device label
+    prop_name : str
+        Property name
+    parent : Optional[QWidget]
+        parent widget, by default None
+    core : Optional[CMMCorePlus]
+        Optional CMMCorePlus instance, by default the global singleton.
+
+    Raises
+    ------
+    ValueError
+        If the `device_label` is not loaded, or does not have a property `prop_name`.
+    """
+
     _value_widget: PPropValueWidget
     valueChanged = Signal(object)
 
@@ -202,6 +236,7 @@ class PropertyWidget(QWidget):
         self._build_value_widget()
 
     def _build_value_widget(self) -> None:
+        """Create widget for device_label/prop_name, and add to layout."""
         if hasattr(self, "_value_widget"):
             self._value_widget.setParent(None)
             self._value_widget.deleteLater()
@@ -212,7 +247,19 @@ class PropertyWidget(QWidget):
         self.layout().addWidget(self._value_widget)
 
     def value(self) -> Any:
+        """Return the current value of the *widget*."""
         return self._value_widget.value()
 
-    def setValue(self, value):
+    def setValue(self, value: Any) -> None:
+        """Set the current value of the *widget*."""
         self._value_widget.setValue(value)
+
+    def refresh(self) -> None:
+        """Set the value of the widget to core.
+
+        (If all goes well this shouldn't be necessary, but if a propertyChanged
+        event is missed, this can be used).
+        """
+        val = self._mmc.getProperty(self._device_label, self._prop_name)
+        with utils.signals_blocked(self._value_widget):
+            self._value_widget.setValue(val)
