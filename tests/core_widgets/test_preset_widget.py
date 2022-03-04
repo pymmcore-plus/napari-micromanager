@@ -12,13 +12,18 @@ groups = list(CORE.getAvailableConfigGroups())
 @pytest.mark.parametrize("group", groups)
 def test_preset_widget(group, qtbot):
 
-    presets = CORE.getAvailableConfigs(group)
+    presets = list(CORE.getAvailableConfigs(group))
+
+    if len(presets) <= 1:
+        return
 
     wdg = PresetsWidget(group)
+
+    items = [wdg._combo.itemText(i) for i in range(wdg._combo.count())]
+    assert items == presets
 
     CORE.setConfig(group, presets[0])
     assert wdg._combo.currentText() == str(presets[0])
 
-    if len(presets) > 1:
-        wdg._combo.setCurrentText(presets[1])
-        assert CORE.getCurrentConfig(group) == presets[1]
+    wdg._combo.setCurrentText(presets[1])
+    assert CORE.getCurrentConfig(group) == presets[1]
