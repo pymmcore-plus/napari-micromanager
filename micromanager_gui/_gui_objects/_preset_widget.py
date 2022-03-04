@@ -30,7 +30,8 @@ class PresetsWidget(QWidget):
             raise ValueError(f"{self._group} group does not have presets.")
 
         self._combo = QComboBox()
-        self._combo.addItems(self._presets)
+        with signals_blocked(self._combo):
+            self._combo.addItems(self._presets)
         self.setLayout(QHBoxLayout())
         self.layout().addWidget(self._combo)
 
@@ -46,7 +47,7 @@ class PresetsWidget(QWidget):
         if group == self._group:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                print(f"cfg changed to {self._group} -> {preset}")
+                print(f"cfg changed (signals_blocked) to {self._group} -> {preset}")
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
