@@ -54,8 +54,10 @@ class PresetsWidget(QWidget):
         return self._combo.currentText()
 
     def setValue(self, value: str) -> None:
-        if value not in [self._combo.itemText(i) for i in range(self._combo.count())]:
-            raise ValueError(f"{value!r} must be one of {self._allowed}")
+        if value not in self._mmc.getAvailableConfigs(self._group):
+            raise ValueError(
+                f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
+            )
         self._combo.setCurrentText(str(value))
 
     def _disconnect(self):
