@@ -10,8 +10,10 @@ def test_populating_group_preset_table(main_window: MainWindow):
 
     assert len(list(mmc.getAvailableConfigGroups())) == 8
 
-    for r in range(table.native.rowCount()):
-        group_name, wdg = table.data[r]
+    for r in range(table.rowCount()):
+
+        group_name = table.item(r, 0)
+        wdg = table.item(r, 1)
 
         if group_name == "Channel":
             assert type(wdg) == ComboBox
