@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Protocol, TypeVar, cast
+from typing import Any, Callable, Optional, Protocol, TypeVar, Union, cast
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from qtpy.QtCore import Qt, Signal
@@ -20,8 +20,8 @@ class PPropValueWidget(Protocol):
     """The protocol expected of a ValueWidget."""
     valueChanged: PSignalInstance
     destroyed: PSignalInstance
-    def value(self) -> Any: ...
-    def setValue(self) -> Any: ...
+    def value(self) -> Union[str, float]: ...
+    def setValue(self, val: Union[str, float]) -> None: ...
     def setEnabled(self, enabled: bool) -> None: ...
     def setParent(self, parent: Optional[QWidget]) -> None: ...
     def deleteLater(self) -> None: ...
@@ -152,8 +152,8 @@ def make_property_widget(
     elif _type in (PropertyType.Integer, PropertyType.Float):
         wdg = IntegerWidget() if _type is PropertyType.Integer else FloatWidget()
         if core.hasPropertyLimits(dev, prop):
-            wdg.setMinimum(core.getPropertyLowerLimit(dev, prop))
-            wdg.setMaximum(core.getPropertyUpperLimit(dev, prop))
+            wdg.setMinimum(_type.to_python()(core.getPropertyLowerLimit(dev, prop)))
+            wdg.setMaximum(_type.to_python()(core.getPropertyUpperLimit(dev, prop)))
     else:
         wdg = StringWidget()
 
