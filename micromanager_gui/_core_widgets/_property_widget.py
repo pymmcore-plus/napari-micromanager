@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, Protocol, Sequence, Tuple, TypeVar, Union
 
 from pymmcore_plus import CMMCorePlus, DeviceType, PropertyType
 from qtpy.QtCore import Qt, Signal
@@ -120,10 +120,12 @@ class ChoiceWidget(QComboBox):
 
     valueChanged = Signal(str)
 
-    def __init__(self, allowed=(), parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self, allowed: Sequence[str] = (), parent: Optional[QWidget] = None
+    ) -> None:
         super().__init__(parent)
         self.currentTextChanged.connect(self.valueChanged.emit)
-        self._allowed = allowed
+        self._allowed = tuple(allowed)
         if allowed:
             self.addItems(allowed)
 
@@ -320,6 +322,13 @@ class PropertyWidget(QWidget):
     def setValue(self, value: Any) -> None:
         """Set the current value of the *widget* (which should match core)."""
         self._value_widget.setValue(value)
+
+    def allowedValues(self) -> Tuple[str]:
+        """Return tuple of allowable values if property is categorical."""
+        # this will have already been grabbed from core on creation, and will
+        # have also taken into account the restrictions in the State/Label property
+        # of state devices.  So check for the _allowed attribute on the widget.
+        return tuple(getattr(self._value_widget, "_allowed", ()))
 
     def refresh(self) -> None:
         """Update the value of the widget from core.
