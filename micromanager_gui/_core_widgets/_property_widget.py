@@ -156,7 +156,7 @@ class StringWidget(QLineEdit):
 # -----------------------------------------------------------------------
 
 
-def _make_property_value_widget(
+def make_property_value_widget(
     dev: str, prop: str, core: Optional[CMMCorePlus] = None
 ) -> PPropValueWidget:
     """Return a widget for device `dev`, property `prop`.
@@ -322,5 +322,5 @@ class PropertyWidget(QWidget):
             self._value_widget.setParent(None)
             self._value_widget.deleteLater()
 
-        self._value_widget = _make_property_value_widget(*self._dp, self._mmc)
+        self._value_widget = make_property_value_widget(*self._dp, self._mmc)
         self.layout().addWidget(self._value_widget)
