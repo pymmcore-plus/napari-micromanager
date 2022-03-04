@@ -21,6 +21,8 @@ def test_preset_widget(group, qtbot):
         return
 
     wdg = PresetsWidget(group)
+    qtbot.addWidget(wdg)
+    wdg.show()
 
     items = [wdg._combo.itemText(i) for i in range(wdg._combo.count())]
     assert items == presets
