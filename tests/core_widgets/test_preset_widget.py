@@ -28,7 +28,7 @@ def test_preset_widget(group, qtbot):
     CORE.setConfig(group, presets[1])
     assert wdg._combo.currentText() == str(presets[1])
 
-    wdg._combo.setCurrentText(presets[2])
-    assert CORE.getCurrentConfig(group) == presets[2]
+    wdg._combo.setCurrentText(presets[0])
+    assert CORE.getCurrentConfig(group) == presets[0]
 
     wdg._disconnect()
