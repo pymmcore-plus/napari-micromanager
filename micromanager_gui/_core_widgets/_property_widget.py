@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Protocol, TypeVar, Union, cast
+from typing import Any, Callable, Optional, Protocol, TypeVar, Union
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from qtpy.QtCore import Qt, Signal
@@ -79,7 +79,7 @@ class IntBoolWidget(QCheckBox):
     def value(self) -> int:
         return int(self.isChecked())
 
-    def setValue(self, val: int) -> None:
+    def setValue(self, val: Union[str, int]) -> None:
         return self.setChecked(bool(int(val)))
 
 
@@ -120,10 +120,12 @@ class StringWidget(QLineEdit):
         self.setText(str(value))
 
 
-def make_property_widget(
+def make_property_value_widget(
     dev: str, prop: str, core: Optional[CMMCorePlus] = None
 ) -> PPropValueWidget:
     """Return a widget for device `dev`, property `prop`.
+
+    The resulting widget will be used for PropertyWidget._value_widget.
 
     Parameters
     ----------
@@ -173,14 +175,14 @@ def make_property_widget(
                 wdg.setValue(new_val)
 
     core.events.propertyChanged.connect(_on_core_change)
-    wdg = cast(PPropValueWidget, wdg)
+    wdg: PPropValueWidget
     wdg.destroyed.connect(
         lambda: core.events.propertyChanged.disconnect(_on_core_change)
     )
 
     @wdg.valueChanged.connect
-    def _on_widget_change(value) -> None:
-        core.setProperty(dev, prop, value)
+    def _on_widget_change(value, _core=core) -> None:
+        _core.setProperty(dev, prop, value)
 
     return wdg
 
@@ -241,7 +243,7 @@ class PropertyWidget(QWidget):
             self._value_widget.setParent(None)
             self._value_widget.deleteLater()
 
-        self._value_widget = make_property_widget(
+        self._value_widget = make_property_value_widget(
             self._device_label, self._prop_name, self._mmc
         )
         self.layout().addWidget(self._value_widget)
