@@ -1,6 +1,6 @@
 from pymmcore_plus import CMMCorePlus
 
-from micromanager_gui._gui_objects._presets_widget import PresetsWidget
+from micromanager_gui._core_widgets._presets_widget import PresetsWidget
 
 
 def test_preset_widget(qtbot, global_mmcore: CMMCorePlus):
