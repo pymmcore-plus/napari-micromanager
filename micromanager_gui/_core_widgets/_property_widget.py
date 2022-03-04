@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional, Protocol, cast
 
 from psygnal import SignalInstance
-from pymmcore_plus import PropertyType
+from pymmcore_plus import CMMCorePlus, PropertyType
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QWidget
 from superqt import QLabeledDoubleSlider, QLabeledSlider, utils
@@ -123,8 +123,8 @@ class StringWidget(QLineEdit):
         self.setText(str(value))
 
 
-def _make_prop_widget(dev: str, prop: str) -> PPropValueWidget:
-    core = get_core_singleton()
+def make_property_widget(dev: str, prop: str, core=None) -> PPropValueWidget:
+    core = core or get_core_singleton()
     _type = core.getPropertyType(dev, prop)
 
     # Create the widget based on property type and allowed choices
@@ -178,11 +178,12 @@ class PropertyWidget(QWidget):
         self,
         device_label: str,
         prop_name: str,
+        *,
         parent: Optional[QWidget] = None,
-        orientation=Qt.Orientation.Horizontal,
+        core: Optional[CMMCorePlus] = None,
     ) -> None:
         super().__init__(parent)
-        self._mmc = get_core_singleton()
+        self._mmc = core or get_core_singleton()
         if device_label not in self._mmc.getLoadedDevices():
             raise ValueError(f"Device not loaded: {device_label!r}")
 
@@ -205,7 +206,9 @@ class PropertyWidget(QWidget):
             self._value_widget.setParent(None)
             self._value_widget.deleteLater()
 
-        self._value_widget = _make_prop_widget(self._device_label, self._prop_name)
+        self._value_widget = make_property_widget(
+            self._device_label, self._prop_name, self._mmc
+        )
         self.layout().addWidget(self._value_widget)
 
     def value(self) -> Any:
