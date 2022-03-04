@@ -13,14 +13,25 @@ dev_props = [
 ]
 
 
+def assert_equal(a, b):
+    try:
+        assert float(a) == float(b)
+    except ValueError:
+        assert str(a) == str(b)
+
+
 @pytest.mark.parametrize("dev, prop", dev_props)
 def test_property_widget(dev, prop, qtbot):
     wdg = PropertyWidget(dev, prop)
     qtbot.addWidget(wdg)
-    if prop in ("SimulateCrash", "Trigger"):
+    if core.isPropertyReadOnly(dev, prop) or prop in ("SimulateCrash", "Trigger"):
         return
+
+    start_val = core.getProperty(dev, prop)
+    assert_equal(wdg.value(), start_val)
+
+    # make sure that setting the value via the widget updates core
     if allowed := core.getAllowedPropertyValues(dev, prop):
-        wdg.setValue(allowed[-1])
         val = allowed[-1]
     elif core.getPropertyType(dev, prop) in (PropertyType.Integer, PropertyType.Float):
         # these are just numbers that work for the test config devices
@@ -34,13 +45,13 @@ def test_property_widget(dev, prop, qtbot):
             "FractionOfPixelsToDropOrSaturate": 0.05,
         }
         val = _vals.get(prop, 1)
-
     else:
         val = "some string"
-    if not core.isPropertyReadOnly(dev, prop):
-        wdg.setValue(val)
-        new_val = core.getProperty(dev, prop)
-        try:
-            assert float(new_val) == float(val)
-        except ValueError:
-            assert new_val == str(val)
+
+    wdg.setValue(val)
+    assert_equal(wdg.value(), val)
+    assert_equal(core.getProperty(dev, prop), val)
+
+    # make sure that setting value via core updates the widget
+    core.setProperty(dev, prop, start_val)
+    assert_equal(wdg.value(), start_val)

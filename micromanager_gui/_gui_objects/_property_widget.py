@@ -1,10 +1,10 @@
-from typing import Any, Callable, Optional, Protocol
+from typing import Any, Callable, Optional, Protocol, cast
 
 from psygnal import SignalInstance
 from pymmcore_plus import PropertyType
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLineEdit, QWidget
-from superqt import QLabeledDoubleSlider, QLabeledSlider
+from superqt import QLabeledDoubleSlider, QLabeledSlider, utils
 
 from .._core import get_core_singleton
 
@@ -45,11 +45,22 @@ class PPropValueWidget(Protocol):
         ...
 
 
+def _stretch_range_to_contain(wdg: QLabeledDoubleSlider, v: float):
+    if v > wdg.maximum():
+        wdg.setMaximum(v)
+    if v < wdg.minimum():
+        wdg.setMinimum(v)
+    return v
+
+
 class IntegerWidget(QLabeledSlider):
     def __init__(
         self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
         super().__init__(orientation, parent)
+
+    def setValue(self, v: int) -> None:
+        return super().setValue(_stretch_range_to_contain(self, int(v)))
 
 
 class FloatWidget(QLabeledDoubleSlider):
@@ -57,6 +68,9 @@ class FloatWidget(QLabeledDoubleSlider):
         self, orientation=Qt.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
         super().__init__(orientation, parent)
+
+    def setValue(self, v: float) -> None:
+        return super().setValue(_stretch_range_to_contain(self, float(v)))
 
 
 class IntBoolWidget(QCheckBox):
@@ -73,7 +87,7 @@ class IntBoolWidget(QCheckBox):
         return int(self.isChecked())
 
     def setValue(self, val: int) -> None:
-        return self.setChecked(bool(val))
+        return self.setChecked(bool(int(val)))
 
 
 class ChoiceWidget(QComboBox):
@@ -113,6 +127,7 @@ def _make_prop_widget(dev: str, prop: str) -> PPropValueWidget:
     core = get_core_singleton()
     _type = core.getPropertyType(dev, prop)
 
+    # Create the widget based on property type and allowed choices
     if allowed := core.getAllowedPropertyValues(dev, prop):
         # note: many string properties are also choices between "Yes", "No"
         if _type is PropertyType.Integer and set(allowed) == {"0", "1"}:
@@ -126,10 +141,32 @@ def _make_prop_widget(dev: str, prop: str) -> PPropValueWidget:
             wdg.setMaximum(core.getPropertyUpperLimit(dev, prop))
     else:
         wdg = StringWidget()
+
+    # set current value from core
+    wdg.setValue(core.getProperty(dev, prop))
+
+    # disable if read only
     if core.isPropertyReadOnly(dev, prop):
         if hasattr(wdg, "setReadOnly"):
             wdg.setReadOnly(True)
         wdg.setEnabled(False)
+
+    # connect events and queue for disconnection on widget destroyed
+    def _on_core_change(dev_label, prop_name, new_val):
+        if dev_label == dev and prop_name == prop:
+            with utils.signals_blocked(wdg):
+                wdg.setValue(new_val)
+
+    core.events.propertyChanged.connect(_on_core_change)
+    wdg = cast(PPropValueWidget, wdg)
+    wdg.destroyed.connect(
+        lambda: core.events.propertyChanged.disconnect(_on_core_change)
+    )
+
+    @wdg.valueChanged.connect
+    def _on_widget_change(value) -> None:
+        core.setProperty(dev, prop, value)
+
     return wdg
 
 
@@ -169,15 +206,7 @@ class PropertyWidget(QWidget):
             self._value_widget.deleteLater()
 
         self._value_widget = _make_prop_widget(self._device_label, self._prop_name)
-        self._value_widget.valueChanged.connect(self._update_core)
-        self._value_widget.destroyed.connect(self._disconnect)
         self.layout().addWidget(self._value_widget)
-
-    def _disconnect(self):
-        self._value_widget.destroyed.disconnect(self._disconnect)
-
-    def _update_core(self, value) -> None:
-        self._mmc.setProperty(self._device_label, self._prop_name, value)
 
     def value(self) -> Any:
         return self._value_widget.value()
