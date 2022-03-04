@@ -42,13 +42,13 @@ class PresetsWidget(QWidget):
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
-        print(f"cfg set: {self._group} -> {text}")
+        # print(f"cfg set: {self._group} -> {text}")
 
     def _on_cfg_set(self, group: str, preset: str):
-        if group == self._group:
+        if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                print(f"cfg changed (signals_blocked) to {self._group} -> {preset}")
+                # print(f"cfg changed (signals_blocked) to {self._group} -> {preset}")
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
