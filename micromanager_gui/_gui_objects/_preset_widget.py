@@ -33,6 +33,7 @@ class PresetsWidget(QWidget):
         with signals_blocked(self._combo):
             self._combo.addItems(self._presets)
         self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
 
         self._combo.currentTextChanged.connect(self._on_combo_changed)
