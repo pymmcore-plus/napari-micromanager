@@ -4,7 +4,7 @@ from pymmcore_plus import DeviceType
 from qtpy import QtWidgets as QtW
 
 from .. import _core
-from .._gui_objects import DeviceWidget
+from .._core_widgets import DeviceWidget
 from .._util import ComboMessageBox
 
 
