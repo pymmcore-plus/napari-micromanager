@@ -103,6 +103,27 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
                 assert data_shape == mda.shape + (512, 512)
 
 
+def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
+    # we should show the mda even if it came from outside
+    mmc = main_window._mmc
+    print(mmc.getLoadedDevices())
+    sequence = MDASequence(
+        channels=[{"config": "Cy5", "exposure": 3}, {"config": "FITC", "exposure": 5}],
+        time_plan={"interval": 0.1, "loops": 2},
+        z_plan={"range": 4, "step": 0.5},
+        axis_order="tpcz",
+        stage_positions=[(222, 1, 1), (111, 0, 0)],
+    )
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished):
+        mmc.run_mda(sequence)
+
+    layer_name = f"Exp_{sequence.uid}"
+    viewer = main_window.viewer
+    viewer_layer_names = [layer.name for layer in viewer.layers]
+    assert layer_name in viewer_layer_names
+    assert sequence.shape == viewer.layers[layer_name].data.shape[:-2]
+
+
 def test_refresh_safety(main_window: MainWindow):
     mmc = main_window._mmc
 

@@ -8,8 +8,8 @@ from pymmcore_plus import CMMCorePlus
 from useq import MDASequence
 
 from micromanager_gui import _core
+from micromanager_gui._gui_objects._mda_widget import SequenceMeta
 from micromanager_gui.main_window import MainWindow
-from micromanager_gui.multid_widget import SequenceMeta
 
 ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
 
