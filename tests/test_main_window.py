@@ -6,8 +6,8 @@ import pytest
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
+from micromanager_gui._gui_objects._mda_widget import SequenceMeta
 from micromanager_gui.main_window import MainWindow
-from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -23,11 +23,14 @@ def test_main_window_mda(main_window: MainWindow):
         channels=["DAPI", "FITC"],
     )
 
+    mmc = main_window._mmc
     main_window.mda.SEQUENCE_META[mda] = SequenceMeta(mode="mda")
+
+    mmc.mda.events.sequenceStarted.emit(mda)
 
     for event in mda:
         frame = np.random.rand(128, 128)
-        main_window._on_mda_frame(frame, event)
+        mmc.mda.events.frameReady.emit(frame, event)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 128, 128)
 
 
