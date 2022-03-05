@@ -18,5 +18,8 @@ sequence = MDASequence(
 )
 
 main_window.mda.set_state(sequence)
+v.window._qt_viewer.console.push(
+    {"main_window": main_window, "mmc": core, "sequence": sequence}
+)
 
 napari.run()
