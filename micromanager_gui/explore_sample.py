@@ -13,7 +13,9 @@ from qtpy import uic
 from useq import MDASequence
 
 from ._saving import save_sequence
-from .multid_widget import SequenceMeta
+
+if TYPE_CHECKING:
+    from ._gui_objects._mda_widget import SequenceMeta
 
 if TYPE_CHECKING:
     import napari.viewer
@@ -128,6 +130,8 @@ class ExploreSample(QtW.QWidget):
 
     def _on_explorer_frame(self, image: np.ndarray, event: useq.MDAEvent):
         seq = event.sequence
+        from ._gui_objects._mda_widget import SequenceMeta
+
         meta = self.SEQUENCE_META.get(event.sequence) or SequenceMeta()
         if meta.mode != "explorer":
             return
@@ -162,6 +166,8 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
+        from ._gui_objects._mda_widget import SequenceMeta
+
         meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
         seq_uid = sequence.uid
 

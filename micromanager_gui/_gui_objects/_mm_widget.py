@@ -6,6 +6,7 @@ from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
+from ._mda_widget import MultiDWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
@@ -28,6 +29,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg = MMTabWidget()
         self.prop_wdg = MMPropertyBrowserWidget()
         self.shutter_wdg = MMShuttersWidget()
+        self.mda = MultiDWidget()
 
         self.create_gui()
 
@@ -78,6 +80,8 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_group_layout.addWidget(self.stages_coll)
         self.stages_group.setLayout(self.stages_group_layout)
         self.main_layout.addWidget(self.stages_group)
+
+        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)

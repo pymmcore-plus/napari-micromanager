@@ -14,6 +14,7 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core
 from ._camera_roi import CameraROI
+from ._gui_objects._mda_widget import SequenceMeta
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
@@ -23,7 +24,6 @@ from ._util import (
     extend_array_for_index,
 )
 from .explore_sample import ExploreSample
-from .multid_widget import MultiDWidget, SequenceMeta
 from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
@@ -55,12 +55,9 @@ class MainWindow(MicroManagerWidget):
                 "MICROMANAGER_PATH."
             )
 
-        # tab widgets
-        self.mda = MultiDWidget(self._mmc)
         self.explorer = ExploreSample(self.viewer, self._mmc)
 
         # add mda and explorer tabs to mm_tab widget
-        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
         sizepolicy = QtW.QSizePolicy(
             QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding

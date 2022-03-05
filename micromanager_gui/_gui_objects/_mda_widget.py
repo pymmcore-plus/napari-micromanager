@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pymmcore_plus import CMMCorePlus
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from qtpy.QtCore import QSize, Qt
@@ -13,10 +14,9 @@ from typing_extensions import Literal
 from useq import MDASequence
 
 if TYPE_CHECKING:
-    from pymmcore_plus import RemoteMMCore
     from pymmcore_plus.mda import PMDAEngine
 
-ICONS = Path(__file__).parent / "icons"
+ICONS = Path(__file__).parent.parent / "icons"
 
 
 @dataclass
@@ -30,7 +30,7 @@ class SequenceMeta:
 
 
 class _MultiDUI:
-    UI_FILE = str(Path(__file__).parent / "_gui_objects" / "multid_gui.ui")
+    UI_FILE = str(Path(__file__).parent / "multid_gui.ui")
 
     # The UI_FILE above contains these objects:
     save_groupBox: QtW.QGroupBox
@@ -94,10 +94,11 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     # metadata associated with a given experiment
     SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
-    def __init__(self, mmcore: RemoteMMCore, parent=None):
-        self._mmc = mmcore
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_ui()
+
+        self._mmc = CMMCorePlus.instance()
 
         self.pause_Button.released.connect(lambda: self._mmc.mda.toggle_pause())
         self.cancel_Button.released.connect(lambda: self._mmc.mda.cancel())
@@ -141,10 +142,10 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
         # events
-        mmcore.mda.events.sequenceStarted.connect(self._on_mda_started)
-        mmcore.mda.events.sequenceFinished.connect(self._on_mda_finished)
-        mmcore.mda.events.sequencePauseToggled.connect(self._on_mda_paused)
-        mmcore.events.mdaEngineRegistered.connect(self._update_mda_engine)
+        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
+        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        self._mmc.mda.events.sequencePauseToggled.connect(self._on_mda_paused)
+        self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
