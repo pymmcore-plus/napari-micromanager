@@ -12,10 +12,11 @@ from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
 
+from . import _mda
 from ._saving import save_sequence
 
 if TYPE_CHECKING:
-    from ._gui_objects._mda_widget import SequenceMeta
+    pass
 
 if TYPE_CHECKING:
     import napari.viewer
@@ -52,9 +53,6 @@ class ExploreSample(QtW.QWidget):
     x_lineEdit: QtW.QLineEdit
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
-
-    # metadata associated with a given experiment
-    SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
 
     def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
 
@@ -130,9 +128,8 @@ class ExploreSample(QtW.QWidget):
 
     def _on_explorer_frame(self, image: np.ndarray, event: useq.MDAEvent):
         seq = event.sequence
-        from ._gui_objects._mda_widget import SequenceMeta
 
-        meta = self.SEQUENCE_META.get(event.sequence) or SequenceMeta()
+        meta = _mda.SEQUENCE_META.get(seq) or _mda.SequenceMeta()
         if meta.mode != "explorer":
             return
 
@@ -166,9 +163,7 @@ class ExploreSample(QtW.QWidget):
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        from ._gui_objects._mda_widget import SequenceMeta
-
-        meta = self.SEQUENCE_META.get(sequence) or SequenceMeta()
+        meta = _mda.SEQUENCE_META.get(sequence) or _mda.SequenceMeta()
         seq_uid = sequence.uid
 
         if meta.mode == "explorer":
@@ -190,7 +185,7 @@ class ExploreSample(QtW.QWidget):
             for group in layergroups.values():
                 link_layers(group)
 
-        meta = self.SEQUENCE_META.pop(sequence, SequenceMeta())
+        meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
         save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
 
@@ -370,7 +365,7 @@ class ExploreSample(QtW.QWidget):
 
         explore_sample = MDASequence(**self._get_state_dict())
 
-        self.SEQUENCE_META[explore_sample] = SequenceMeta(
+        _mda.SEQUENCE_META[explore_sample] = _mda.SequenceMeta(
             mode="explorer",
             split_channels=True,
             should_save=self.save_explorer_groupBox.isChecked(),

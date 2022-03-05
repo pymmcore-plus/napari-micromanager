@@ -12,9 +12,8 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
-from . import _core
+from . import _core, _mda
 from ._camera_roi import CameraROI
-from ._gui_objects._mda_widget import SequenceMeta
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
@@ -261,7 +260,7 @@ class MainWindow(MicroManagerWidget):
         """ "create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
-        self._mda_meta = self.mda.SEQUENCE_META.get(sequence, SequenceMeta())
+        self._mda_meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
         if self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
             self._mda_meta.mode = "mda"
@@ -319,7 +318,7 @@ class MainWindow(MicroManagerWidget):
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-        meta = self.mda.SEQUENCE_META.pop(sequence, self._mda_meta)
+        meta = _mda.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)

@@ -6,7 +6,7 @@ import pytest
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
-from micromanager_gui._gui_objects._mda_widget import SequenceMeta
+from micromanager_gui import _mda
 from micromanager_gui.main_window import MainWindow
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ def test_main_window_mda(main_window: MainWindow):
     )
 
     mmc = main_window._mmc
-    main_window.mda.SEQUENCE_META[mda] = SequenceMeta(mode="mda")
+    _mda.SEQUENCE_META[mda] = _mda.SequenceMeta(mode="mda")
 
     mmc.mda.events.sequenceStarted.emit(mda)
 
