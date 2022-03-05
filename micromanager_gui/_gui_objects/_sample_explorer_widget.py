@@ -1,34 +1,25 @@
 from __future__ import annotations
 
 import warnings
-from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 import useq
-from napari.experimental import link_layers
 from qtpy import QtWidgets as QtW
 from qtpy import uic
 from useq import MDASequence
 
-from . import _mda
-from ._saving import save_sequence
+from .. import _mda
+from .._core import get_core_singleton
 
 if TYPE_CHECKING:
     pass
 
 if TYPE_CHECKING:
-    import napari.viewer
-    from pymmcore_plus import RemoteMMCore
     from pymmcore_plus.mda import PMDAEngine
 
 
-UI_FILE = str(Path(__file__).parent / "_gui_objects" / "explore_sample.ui")
-
-
-def _channel_key(name: str, index: int) -> str:
-    return f"[{name}_idx{index}]"
+UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 
 class ExploreSample(QtW.QWidget):
@@ -54,12 +45,11 @@ class ExploreSample(QtW.QWidget):
     y_lineEdit: QtW.QLineEdit
     ovelap_spinBox: QtW.QSpinBox
 
-    def __init__(self, viewer: napari.viewer.Viewer, mmcore: RemoteMMCore, parent=None):
-
-        self._mmc = mmcore
-        self.viewer = viewer
+    def __init__(self, parent=None):
         super().__init__(parent)
         uic.loadUi(UI_FILE, self)
+
+        self._mmc = get_core_singleton()
 
         self.pixel_size = 0
 
@@ -81,43 +71,19 @@ class ExploreSample(QtW.QWidget):
         self.y_lineEdit.setText(str(None))
 
         # connect mmcore signals
-        mmcore.events.systemConfigurationLoaded.connect(self.clear_channel)
+        self._mmc.events.systemConfigurationLoaded.connect(self.clear_channel)
 
-        mmcore.mda.events.sequenceStarted.connect(self._on_mda_started)
-        mmcore.mda.events.frameReady.connect(self._on_explorer_frame)
-        mmcore.mda.events.sequenceFinished.connect(self._on_mda_finished)
-        mmcore.mda.events.sequenceFinished.connect(self._refresh_positions)
+        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
+        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        self._mmc.mda.events.sequenceFinished.connect(self._refresh_positions)
 
-        mmcore.events.mdaEngineRegistered.connect(self._update_mda_engine)
-
-        @self.viewer.mouse_drag_callbacks.append
-        def get_event(viewer, event):
-            if not self.isVisible():
-                return
-            if mmcore.getPixelSizeUm() > 0:
-                width = mmcore.getROI(mmcore.getCameraDevice())[2]
-                height = mmcore.getROI(mmcore.getCameraDevice())[3]
-
-                x = viewer.cursor.position[-1] * mmcore.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * mmcore.getPixelSizeUm() * (-1)
-
-                # to match position coordinates with center of the image
-                x = f"{x - ((width / 2) * mmcore.getPixelSizeUm()):.1f}"
-                y = f"{y - ((height / 2) * mmcore.getPixelSizeUm() * (-1)):.1f}"
-
-            else:
-                x, y = "None", "None"
-
-            self.x_lineEdit.setText(x)
-            self.y_lineEdit.setText(y)
+        self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
-        oldEngine.events.frameReady.connect(self._on_explorer_frame)
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
         oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
         oldEngine.events.sequenceFinished.disconnect(self._refresh_positions)
 
-        newEngine.events.frameReady.connect(self._on_explorer_frame)
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
         newEngine.events.sequenceFinished.connect(self._refresh_positions)
@@ -126,46 +92,11 @@ class ExploreSample(QtW.QWidget):
         """Block gui when mda starts."""
         self._set_enabled(False)
 
-    def _on_explorer_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        seq = event.sequence
-
-        meta = _mda.SEQUENCE_META.get(seq) or _mda.SequenceMeta()
-        if meta.mode != "explorer":
-            return
-
-        x = event.x_pos / self.pixel_size
-        y = event.y_pos / self.pixel_size * (-1)
-
-        pos_idx = event.index["p"]
-        file_name = meta.file_name if meta.should_save else "Exp"
-        ch_name = event.channel.config
-        ch_id = event.index["c"]
-        layer_name = f"Pos{pos_idx:03d}_{file_name}_{_channel_key(ch_name, ch_id)}"
-
-        meta = dict(
-            useq_sequence=seq,
-            uid=seq.uid,
-            scan_coord=(y, x),
-            scan_position=f"Pos{pos_idx:03d}",
-            ch_name=ch_name,
-            ch_id=ch_id,
-        )
-        self.viewer.add_image(
-            image, name=layer_name, blending="additive", translate=(y, x), metadata=meta
-        )
-
-        zoom_out_factor = (
-            self.scan_size_r
-            if self.scan_size_r >= self.scan_size_c
-            else self.scan_size_c
-        )
-        self.viewer.camera.zoom = 1 / zoom_out_factor
-        self.viewer.reset_view()
-
     def _on_mda_finished(self, sequence: useq.MDASequence):
-        meta = _mda.SEQUENCE_META.get(sequence) or _mda.SequenceMeta()
-        seq_uid = sequence.uid
-
+        # TODO: have this widget be able to save independently of napari
+        # meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
+        # save_sequence(sequence, self.viewer.layers, meta)
+        meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
         if meta.mode == "explorer":
             if (
                 self.return_to_position_x is not None
@@ -176,17 +107,6 @@ class ExploreSample(QtW.QWidget):
                 )
                 self.return_to_position_x = None
                 self.return_to_position_y = None
-
-            layergroups = defaultdict(set)
-            for lay in self.viewer.layers:
-                if lay.metadata.get("uid") == seq_uid:
-                    key = _channel_key(lay.metadata["ch_name"], lay.metadata["ch_id"])
-                    layergroups[key].add(lay)
-            for group in layergroups.values():
-                link_layers(group)
-
-        meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
-        save_sequence(sequence, self.viewer.layers, meta)
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):

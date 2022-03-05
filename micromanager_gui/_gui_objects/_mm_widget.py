@@ -9,6 +9,7 @@ from ._config_widget import MMConfigurationWidget
 from ._mda_widget import MultiDWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
+from ._sample_explorer_widget import ExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._slider_dialog import SliderDialog
 from ._tab_widget import MMTabWidget
@@ -30,6 +31,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.prop_wdg = MMPropertyBrowserWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
+        self.explorer = ExploreSample()
 
         self.create_gui()
 
@@ -82,6 +84,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.main_layout.addWidget(self.stages_group)
 
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
