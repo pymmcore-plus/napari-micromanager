@@ -1,7 +1,7 @@
 from micromanager_gui.main_window import MainWindow
 
 
-def test_populating_group_preset_table(main_window: MainWindow):
+def test_populating_group_preset_table(main_window: MainWindow, qtbot):
 
     mmc = main_window._mmc
     table = main_window.group_preset_table_wdg.table_wdg
@@ -17,6 +17,10 @@ def test_populating_group_preset_table(main_window: MainWindow):
             assert set(wdg.allowedValues()) == {"DAPI", "FITC", "Cy5", "Rhodamine"}
             wdg.setValue("FITC")
             assert mmc.getCurrentConfig(group_name) == "FITC"
+
+            with qtbot.waitSignal(main_window._mmc.events.configSet):
+                main_window.tab_wdg.snap_channel_comboBox.setCurrentText("DAPI")
+            assert wdg.value() == "DAPI"
 
         elif group_name == "_combobox_no_preset_test":
             assert set(wdg.allowedValues()) == {"1", "2", "4", "8"}
