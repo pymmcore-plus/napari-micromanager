@@ -1,12 +1,12 @@
 from typing import Optional, Tuple
 
-from qtpy.QtWidgets import QComboBox, QWidget
+from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
 
 
-class PresetsWidget(QComboBox):
+class PresetsWidget(QWidget):
     """Create a QCombobox Widget for a specified group presets"""
 
     def __init__(
@@ -29,10 +29,14 @@ class PresetsWidget(QComboBox):
         if not self._presets:
             raise ValueError(f"{self._group} group does not have presets.")
 
-        with signals_blocked(self):
-            self.addItems(self._presets)
+        self._combo = QComboBox()
+        with signals_blocked(self._combo):
+            self._combo.addItems(self._presets)
+        self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(self._combo)
 
-        self.currentTextChanged.connect(self._on_combo_changed)
+        self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self.destroyed.connect(self._disconnect)
 
@@ -40,19 +44,19 @@ class PresetsWidget(QComboBox):
         self._mmc.setConfig(self._group, text)
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
-        if group == self._group and self.currentText() != preset:
-            with signals_blocked(self):
-                self.setCurrentText(preset)
+        if group == self._group and self._combo.currentText() != preset:
+            with signals_blocked(self._combo):
+                self._combo.setCurrentText(preset)
 
     def value(self) -> str:
-        return self.currentText()
+        return self._combo.currentText()
 
     def setValue(self, value: str) -> None:
         if value not in self._mmc.getAvailableConfigs(self._group):
             raise ValueError(
                 f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
             )
-        self.setCurrentText(str(value))
+        self._combo.setCurrentText(str(value))
 
     def allowedValues(self) -> Tuple[str]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
