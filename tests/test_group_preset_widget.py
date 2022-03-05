@@ -14,14 +14,12 @@ def test_populating_group_preset_table(main_window: MainWindow):
         wdg = table.cellWidget(r, 1)
 
         if group_name == "Channel":
-            items = [wdg.itemText(i) for i in range(wdg.count())]
-            assert set(items) == {"DAPI", "FITC", "Cy5", "Rhodamine"}
+            assert set(wdg.allowedValues()) == {"DAPI", "FITC", "Cy5", "Rhodamine"}
             wdg.setValue("FITC")
             assert mmc.getCurrentConfig(group_name) == "FITC"
 
         elif group_name == "_combobox_no_preset_test":
-            items = [wdg.itemText(i) for i in range(wdg.count())]
-            assert set(items) == {"1", "2", "4", "8"}
+            assert set(wdg.allowedValues()) == {"1", "2", "4", "8"}
             wdg.setValue("8")
             assert mmc.getProperty("Camera", "Binning") == "8"
 
