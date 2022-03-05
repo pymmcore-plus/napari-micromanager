@@ -14,6 +14,7 @@ from useq import MDASequence
 
 if TYPE_CHECKING:
     from pymmcore_plus import RemoteMMCore
+    from pymmcore_plus.mda import PMDAEngine
 
 ICONS = Path(__file__).parent / "icons"
 
@@ -98,8 +99,8 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         super().__init__(parent)
         self.setup_ui()
 
-        self.pause_Button.released.connect(self._mmc.toggle_pause)
-        self.cancel_Button.released.connect(self._mmc.cancel)
+        self.pause_Button.released.connect(lambda: self._mmc.mda.toggle_pause())
+        self.cancel_Button.released.connect(lambda: self._mmc.mda.cancel())
 
         # connect buttons
         self.add_pos_Button.clicked.connect(self.add_position)
@@ -140,9 +141,19 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
 
         # events
-        mmcore.events.sequenceStarted.connect(self._on_mda_started)
-        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
-        mmcore.events.sequencePauseToggled.connect(self._on_mda_paused)
+        mmcore.mda.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.mda.events.sequencePauseToggled.connect(self._on_mda_paused)
+        mmcore.events.mdaEngineRegistered.connect(self._update_mda_engine)
+
+    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+        oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
+        oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+        oldEngine.events.sequencePauseToggled.disconnect(self._on_mda_paused)
+
+        newEngine.events.sequenceStarted.connect(self._on_mda_started)
+        newEngine.events.sequenceFinished.connect(self._on_mda_finished)
+        newEngine.events.sequencePauseToggled.connect(self._on_mda_paused)
 
     def _set_enabled(self, enabled: bool):
         self.save_groupBox.setEnabled(enabled)
