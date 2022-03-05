@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from qtpy.QtWidgets import QComboBox, QWidget
 from superqt.utils import signals_blocked
@@ -53,6 +53,9 @@ class PresetsWidget(QComboBox):
                 f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
             )
         self.setCurrentText(str(value))
+
+    def allowedValues(self) -> Tuple[str]:
+        return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)

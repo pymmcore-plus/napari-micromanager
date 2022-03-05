@@ -18,8 +18,7 @@ def test_preset_widget(qtbot, global_mmcore: CMMCorePlus):
         qtbot.addWidget(wdg)
         wdg.show()
 
-        values = [wdg.itemText(i) for i in range(wdg.count())]
-        assert values == presets
+        assert list(wdg.allowedValues()) == presets
 
         with qtbot.waitSignal(global_mmcore.events.configSet):
             global_mmcore.setConfig(group, presets[1])

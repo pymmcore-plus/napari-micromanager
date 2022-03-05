@@ -1,5 +1,6 @@
 from typing import Any, Callable, Optional, Protocol, Sequence, Tuple, TypeVar, Union
 
+import pymmcore
 from pymmcore_plus import CMMCorePlus, DeviceType, PropertyType
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import (
@@ -15,6 +16,9 @@ from qtpy.QtWidgets import (
 from superqt import QLabeledDoubleSlider, QLabeledSlider, utils
 
 from .._core import get_core_singleton
+
+STATE = pymmcore.g_Keyword_State
+LABEL = pymmcore.g_Keyword_Label
 
 
 # fmt: off
@@ -239,9 +243,9 @@ def _creat_prop_widget(core: CMMCorePlus, dev: str, prop: str) -> PPropValueWidg
             return IntBoolWidget()
         # TODO? many string properties are also choices between "Yes", "No"
         return ChoiceWidget(allowed)
-    if prop in {"State", "Label"} and core.getDeviceType(dev) == DeviceType.StateDevice:
+    if prop in {STATE, LABEL} and core.getDeviceType(dev) == DeviceType.StateDevice:
         # TODO: This logic is very similar to StateDeviceWidget. use this in the future?
-        if prop == "Label":
+        if prop == LABEL:
             return ChoiceWidget(core.getStateLabels(dev))
         return ChoiceWidget([str(i) for i in range(core.getNumberOfStates(dev))])
     if ptype in (PropertyType.Integer, PropertyType.Float):

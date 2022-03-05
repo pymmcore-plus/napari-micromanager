@@ -1,11 +1,14 @@
 from abc import abstractmethod
 from typing import Any, Optional, Tuple
 
+import pymmcore
 from pymmcore_plus import DeviceType
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
+
+LABEL = pymmcore.g_Keyword_Label
 
 
 class DeviceWidget(QWidget):
@@ -114,7 +117,7 @@ class StateDeviceWidget(DeviceWidget):
 
     def _on_prop_change(self, dev_label: str, prop: str, value: Any) -> None:
         """Update the combobox when the state changes."""
-        if dev_label == self._device_label and prop == "Label":
+        if dev_label == self._device_label and prop == LABEL:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(value)
 
