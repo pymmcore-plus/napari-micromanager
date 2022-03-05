@@ -89,11 +89,6 @@ def update_pixel_size(
     mmc : Optional[CMMCorePlus]
         optional mmcore object, by default `CMMCorePlus.instance()`
     """
-    if pixel_size == 1.0:
-        # TODO: this was previous behavior, but does this make sense?
-        # presumably it was here because the default value of the spinbox is 1.0?
-        return
-
     mmc = mmc or get_core_singleton()
     # if pixel size is already set, and we're not providing a new value, return.
     if current_px_size_cfg := mmc.getCurrentPixelSizeConfig():

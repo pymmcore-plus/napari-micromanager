@@ -22,10 +22,16 @@ def test_objective_device_and_px_size(main_window: MainWindow):
 
     main_window.obj_wdg.objective_comboBox.setCurrentText("10X")
     assert main_window.obj_wdg.objective_comboBox.currentText() == "10X"
-    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
     assert main_window.cam_wdg.px_size_spinbox.value() == 1.0
 
+    orig_size = mmc.getPixelSizeUm()
+
     main_window.cam_wdg.px_size_spinbox.setValue(6.5)
+    mmc.getPixelSizeUm() == 0.65
+
+    main_window.cam_wdg.px_size_spinbox.setValue(1)
+    assert orig_size == mmc.getPixelSizeUm()
 
     mmc.deleteConfigGroup("Objective")
     main_window._refresh_objective_options()
