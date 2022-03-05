@@ -18,7 +18,7 @@ def test_preset_widget(qtbot, global_mmcore: CMMCorePlus):
         qtbot.addWidget(wdg)
         wdg.show()
 
-        values = [wdg._combo.itemText(i) for i in range(wdg._combo.count())]
+        values = [wdg.itemText(i) for i in range(wdg.count())]
         assert values == presets
 
         with qtbot.waitSignal(global_mmcore.events.configSet):
@@ -31,4 +31,4 @@ def test_preset_widget(qtbot, global_mmcore: CMMCorePlus):
         wdg._disconnect()
         # once disconnected, core changes shouldn't call out to the widget
         global_mmcore.setConfig(group, presets[1])
-        assert global_mmcore.getCurrentConfig(group) != wdg._combo.currentText()
+        assert global_mmcore.getCurrentConfig(group) != wdg.value()
