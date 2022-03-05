@@ -261,10 +261,15 @@ class MainWindow(MicroManagerWidget):
         """ "create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
+        self._mda_meta = self.mda.SEQUENCE_META.get(sequence, SequenceMeta())
+        if self._mda_meta.mode == "":
+            # originated from user script - assume it's an mda
+            self._mda_meta.mode = "mda"
+
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        meta = self.mda.SEQUENCE_META.get(event.sequence) or SequenceMeta()
 
+        meta = self._mda_meta
         if meta.mode != "mda":
             return
 
@@ -314,7 +319,7 @@ class MainWindow(MicroManagerWidget):
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-        meta = self.mda.SEQUENCE_META.pop(sequence, SequenceMeta())
+        meta = self.mda.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
