@@ -30,14 +30,14 @@ class PresetsWidget(QWidget):
             raise ValueError(f"{self._group} group does not have presets.")
 
         self._combo = QComboBox()
-        with signals_blocked(self._combo):
-            self._combo.addItems(self._presets)
+        self._combo.addItems(self._presets)
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
 
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._mmc.events.configSet.connect(self._on_cfg_set)
+        self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self.destroyed.connect(self._disconnect)
 
     def _on_combo_changed(self, text: str) -> None:
@@ -60,6 +60,17 @@ class PresetsWidget(QWidget):
 
     def allowedValues(self) -> Tuple[str]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
+
+    def refresh(self) -> None:
+        with signals_blocked(self._combo):
+            self._combo.clear()
+            if self._group not in self._mmc.getAvailableConfigGroups():
+                self._combo.addItem(f"No group named {self._group}.")
+                self._combo.setEnabled(False)
+            else:
+                presets = self._mmc.getAvailableConfigs(self._group)
+                self._combo.addItems(presets)
+                self._combo.setEnabled(True)
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
