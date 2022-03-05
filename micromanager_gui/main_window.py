@@ -255,13 +255,13 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.live_Button.setIcon(CAM_ICON)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+        oldEngine.events.frameReady.connect(self._on_mda_frame)
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
         oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
-        oldEngine.events.sequencePauseToggled.disconnect(self._on_mda_paused)
 
+        newEngine.events.frameReady.connect(self._on_mda_frame)
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
-        newEngine.events.sequencePauseToggled.connect(self._on_mda_paused)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
