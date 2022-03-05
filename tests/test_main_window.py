@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
 from micromanager_gui.main_window import MainWindow
@@ -67,14 +68,20 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
 
         mda = None
 
-        @main_window._mmc.mda.events.sequenceStarted.connect
+        mmc = main_window._mmc
+        # re-register twice to fully exercise the logic of the update
+        # functions - the initial connections are made in init
+        # then after that they are fully handled by the _update_mda_engine
+        # callbacks
+        mmc.register_mda_engine(MDAEngine(mmc))
+        mmc.register_mda_engine(MDAEngine(mmc))
+
+        @mmc.mda.events.sequenceStarted.connect
         def _store_mda(_mda):
             nonlocal mda
             mda = _mda
 
-        with qtbot.waitSignal(
-            main_window._mmc.mda.events.sequenceFinished, timeout=2000
-        ):
+        with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
             _mda._on_run_clicked()
 
         assert mda is not None
