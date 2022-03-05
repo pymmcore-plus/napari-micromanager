@@ -30,8 +30,7 @@ class PresetsWidget(QWidget):
             raise ValueError(f"{self._group} group does not have presets.")
 
         self._combo = QComboBox()
-        with signals_blocked(self._combo):
-            self._combo.addItems(self._presets)
+        self._combo.addItems(self._presets)
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
