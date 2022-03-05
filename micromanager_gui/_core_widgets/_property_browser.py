@@ -69,7 +69,7 @@ DevTypeLabels: Dict[str, DeviceType] = {
 DevTypeLabels["other devices"] = tuple(set(DeviceType) - set(DevTypeLabels.values()))
 
 
-class PropBrowser(QWidget):
+class PropertyBrowser(QWidget):
     def __init__(
         self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QWidget] = None
     ):
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     CMMCorePlus.instance().loadSystemConfiguration()
     app = QApplication([])
 
-    table = PropBrowser()
+    table = PropertyBrowser()
     table.show()
 
     app.exec()
