@@ -38,15 +38,18 @@ class PresetsWidget(QWidget):
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
+        self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
         self.destroyed.connect(self._disconnect)
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
+        self._set_font_color("black")
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
+                self._set_font_color("black")
 
     def value(self) -> str:
         return self._combo.currentText()
@@ -71,6 +74,28 @@ class PresetsWidget(QWidget):
                 presets = self._mmc.getAvailableConfigs(self._group)
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
+
+    def _set_font_color(self, color: str = "black"):
+        self._combo.setEditable(True)
+        self._combo.setStyleSheet(f"color: {color};")
+        self._combo.setEditable(False)
+
+    def _highlight_if_prop_changed(self, device: str, property: str, value: str):
+
+        dev_prop = [
+            (k[0], k[1]) for k in self._mmc.getConfigData(self._group, self._presets[0])
+        ]
+
+        if (device, property) not in dev_prop:
+            return
+
+        state = self._mmc.getConfigGroupState(self._group)
+        cfg_data = self._mmc.getConfigData(self._group, self._combo.currentText())
+
+        print(cfg_data)
+
+        if state != cfg_data:
+            self._set_font_color("magenta")
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
