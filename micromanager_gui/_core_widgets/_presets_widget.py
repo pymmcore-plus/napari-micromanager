@@ -13,6 +13,7 @@ class PresetsWidget(QWidget):
     def __init__(
         self,
         group: str,
+        text_color: str = "black",
         parent: Optional[QWidget] = None,
     ) -> None:
 
@@ -21,6 +22,7 @@ class PresetsWidget(QWidget):
         self._mmc = get_core_singleton()
 
         self._group = group
+        self.text_color = text_color
 
         if self._group not in self._mmc.getAvailableConfigGroups():
             raise ValueError(f"{self._group} group does not exist.")
@@ -32,10 +34,11 @@ class PresetsWidget(QWidget):
 
         self._combo = QComboBox()
         self._combo.addItems(self._presets)
+
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
-
+        self._set_font_color(self.text_color)
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._combo.textActivated.connect(self._on_text_activate)
         self._mmc.events.configSet.connect(self._on_cfg_set)
@@ -47,17 +50,17 @@ class PresetsWidget(QWidget):
         """Used in case there is only one preset"""
         if len(self._presets) == 1:
             self._mmc.setConfig(self._group, text)
-            self._set_font_color()
+            self._set_font_color(self.text_color)
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
-        self._set_font_color()
+        self._set_font_color(self.text_color)
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                self._set_font_color()
+                self._set_font_color(self.text_color)
 
     def value(self) -> str:
         return self._combo.currentText()
@@ -83,7 +86,7 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
 
-    def _set_font_color(self, color: str = "white"):
+    def _set_font_color(self, color: str):
         self._combo.setEditable(True)
         self._combo.setStyleSheet(f"color: {color};")
         self._combo.setEditable(False)
@@ -106,7 +109,7 @@ class PresetsWidget(QWidget):
         if self._mmc.getCurrentConfig(self._group) != self._combo.currentText():
             self._set_font_color("magenta")
         else:
-            self._set_font_color("white")
+            self._set_font_color(self.text_color)
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)

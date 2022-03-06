@@ -19,7 +19,6 @@ def test_crop_camera(main_window: MainWindow):
 
 def test_objective_device_and_px_size(main_window: MainWindow):
     mmc = main_window._mmc
-
     main_window.obj_wdg.objective_comboBox.setCurrentText("10X")
     assert main_window.obj_wdg.objective_comboBox.currentText() == "10X"
     assert mmc.getCurrentPixelSizeConfig() == "Res10x"
