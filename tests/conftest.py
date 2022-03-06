@@ -3,12 +3,12 @@ from typing import Tuple
 
 import pytest
 from pymmcore_plus import CMMCorePlus
-from useq import MDASequence
 
-from micromanager_gui import _core, _mda
+from micromanager_gui import _core
+from micromanager_gui._gui_objects._sample_explorer_widget import ExploreSample
 from micromanager_gui.main_window import MainWindow
 
-ExplorerTuple = Tuple[MainWindow, MDASequence, _mda.SequenceMeta]
+ExplorerTuple = Tuple[MainWindow, ExploreSample]
 
 
 @pytest.fixture(params=["local"])
