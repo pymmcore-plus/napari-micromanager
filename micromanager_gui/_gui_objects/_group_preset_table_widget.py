@@ -85,6 +85,6 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         device, property, _, dev_prop_val_count = self._get_cfg_data(group, presets[0])
 
         if len(presets) > 1 or dev_prop_val_count > 1:
-            return PresetsWidget(group)
+            return PresetsWidget(group, text_color="white")
         else:
             return PropertyWidget(device, property)
