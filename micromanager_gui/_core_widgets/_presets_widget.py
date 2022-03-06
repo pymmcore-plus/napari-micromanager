@@ -91,9 +91,8 @@ class PresetsWidget(QWidget):
         if (device, property) not in dev_prop:
             if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
                 return
-            # if it is a StateDevice, the preset can have the "Label" property
-            # instead of the "State" one. So here we check if the property
-            # "State" is in dev_prop.
+            # a StateDevice has also a "Label" property. If "Label" is not
+            # in dev_prop, we check if the property "State" is in dev_prop.
             if (device, "State") not in dev_prop:
                 return
 
