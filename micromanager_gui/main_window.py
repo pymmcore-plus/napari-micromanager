@@ -139,8 +139,8 @@ class MainWindow(MicroManagerWidget):
             else:
                 x, y = "None", "None"
 
-            self.x_lineEdit.setText(x)
-            self.y_lineEdit.setText(y)
+            self.explorer.x_lineEdit.setText(x)
+            self.explorer.y_lineEdit.setText(y)
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
