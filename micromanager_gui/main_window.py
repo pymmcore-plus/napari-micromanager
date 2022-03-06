@@ -14,6 +14,7 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core
 from ._camera_roi import CameraROI
+from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
@@ -24,7 +25,6 @@ from ._util import (
 )
 from .explore_sample import ExploreSample
 from .multid_widget import MultiDWidget, SequenceMeta
-from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
     import napari.layers
@@ -131,8 +131,20 @@ class MainWindow(MicroManagerWidget):
         self._patch_viewer_menu()
 
     def _patch_viewer_menu(self):
-        bar = self.viewer.window._qt_window.menuBar()
-        print("BAR", bar)
+        self._menu = QtW.QMenu("&Micro-Manager")
+
+        action = self._menu.addAction("Device Property Browser...")
+        action.triggered.connect(self._show_prop_browser)
+
+        v = getattr(self.viewer, "__wrapped__", self.viewer)
+        bar = v.window._qt_window.menuBar()
+        bar.insertMenu(list(bar.actions())[-1], self._menu)
+
+    def _show_prop_browser(self):
+        if not hasattr(self, "_prop_browser"):
+            self._prop_browser = PropertyBrowser(self._mmc, self)
+        self._prop_browser.show()
+        self._prop_browser.raise_()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
@@ -342,10 +354,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    def _show_prop_browser(self):
-        pb = PropBrowser(self._mmc, self)
-        pb.exec()
 
     # channels
     def _refresh_channel_list(self):

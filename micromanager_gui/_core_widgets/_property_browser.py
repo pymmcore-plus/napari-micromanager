@@ -6,6 +6,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import (
     QCheckBox,
+    QDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -33,6 +34,8 @@ class PropertyTable(QTableWidget):
     ):
         super().__init__(0, 2, parent=parent)
         self._mmc = mmcore or get_core_singleton()
+        self._mmc.events.systemConfigurationLoaded.connect(self._rebuild_table)
+        self.destroyed.connect(self._disconnect)
 
         self.setMinimumWidth(500)
         self.setHorizontalHeaderLabels(["Property", "Value"])
@@ -45,9 +48,12 @@ class PropertyTable(QTableWidget):
         self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.setSelectionMode(self.SelectionMode.NoSelection)
         self.resize(500, 500)
-        self._build_table()
+        self._rebuild_table()
 
-    def _build_table(self):
+    def _disconnect(self) -> None:
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._rebuild_table)
+
+    def _rebuild_table(self) -> None:
         self.clearContents()
         props = list(iter_dev_props(self._mmc))
         self.setRowCount(len(props))
@@ -57,28 +63,30 @@ class PropertyTable(QTableWidget):
             self.setItem(i, 0, item)
             self.setCellWidget(i, 1, wdg)
             if wdg.isReadOnly():
-                item.setBackground(QColor("#CCC"))
-                wdg.setStyleSheet("QLabel { background-color : #CCC }")
+                # TODO: make this more theme aware
+                item.setBackground(QColor("#AAA"))
+                wdg.setStyleSheet("QLabel { background-color : #AAA }")
 
         # TODO: install eventFilter to prevent mouse wheel from scrolling sliders
 
 
-DevTypeLabels: Dict[str, DeviceType] = {
+DevTypeLabels: Dict[str, Tuple[DeviceType, ...]] = {
     "cameras": (DeviceType.CameraDevice,),
     "shutters": (DeviceType.ShutterDevice,),
     "stages": (DeviceType.StageDevice,),
     "wheels, turrets, etc.": (DeviceType.StateDevice,),
 }
-_d = set.union(*(set(i) for i in DevTypeLabels.values()))
+_d: Set[DeviceType] = set.union(*(set(i) for i in DevTypeLabels.values()))
 DevTypeLabels["other devices"] = tuple(set(DeviceType) - _d)
 
 
-class PropertyBrowser(QWidget):
+class PropertyBrowser(QDialog):
     def __init__(
         self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QWidget] = None
     ):
         super().__init__(parent)
         self._mmc = mmcore or get_core_singleton()
+
         self._prop_table = PropertyTable(mmcore)
         self._show_read_only: bool = True
 
@@ -124,7 +132,6 @@ class PropertyBrowser(QWidget):
 
         dev_gb = QGroupBox("Device Type")
         dev_gb.setLayout(QGridLayout())
-        dev_gb.layout().setContentsMargins(0, 3, 0, 0)
         dev_gb.layout().setSpacing(6)
         all_btn = QPushButton("All")
         dev_gb.layout().addWidget(all_btn, 0, 0, 1, 1)
