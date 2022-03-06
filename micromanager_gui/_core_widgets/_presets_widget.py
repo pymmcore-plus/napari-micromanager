@@ -37,20 +37,27 @@ class PresetsWidget(QWidget):
         self.layout().addWidget(self._combo)
 
         self._combo.currentTextChanged.connect(self._on_combo_changed)
+        self._combo.textActivated.connect(self._on_text_activate)
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
         self.destroyed.connect(self._disconnect)
 
+    def _on_text_activate(self, text: str):
+        """Used in case there is only one preset"""
+        if len(self._presets) == 1:
+            self._mmc.setConfig(self._group, text)
+            self._set_font_color()
+
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
-        self._set_font_color("black")
+        self._set_font_color()
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                self._set_font_color("black")
+                self._set_font_color()
 
     def value(self) -> str:
         return self._combo.currentText()
@@ -76,7 +83,7 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
 
-    def _set_font_color(self, color: str = "black"):
+    def _set_font_color(self, color: str = "white"):
         self._combo.setEditable(True)
         self._combo.setStyleSheet(f"color: {color};")
         self._combo.setEditable(False)
