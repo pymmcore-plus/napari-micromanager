@@ -4,7 +4,7 @@ from pymmcore_plus import DeviceType
 from qtpy import QtWidgets as QtW
 
 from .. import _core
-from .._core_widgets import DeviceWidget
+from .._core_widgets import StateDeviceWidget
 from .._util import ComboMessageBox
 
 
@@ -20,8 +20,9 @@ class MMObjectivesWidget(QtW.QWidget):
         obj_label = QtW.QLabel("Objectives:")
         max_policy = QtW.QSizePolicy.Policy.Maximum
         obj_label.setSizePolicy(max_policy, max_policy)
-        self.combo = QtW.QComboBox()  # just an empty stub. real one in create_obj_combo
-        self.combo.setEnabled(False)
+
+        self.combo = self._create_objective_combo(objective_device)
+
         self.setLayout(QtW.QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(obj_label)
@@ -32,6 +33,9 @@ class MMObjectivesWidget(QtW.QWidget):
         self.destroyed.connect(self._disconnect_from_core)
         self._on_sys_cfg_loaded()
 
+    def _disconnect_from_core(self):
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
+
     def _on_sys_cfg_loaded(self):
         loaded = self._mmc.getLoadedDevices()
         if self._objective_device not in loaded:
@@ -40,32 +44,14 @@ class MMObjectivesWidget(QtW.QWidget):
             if not self._objective_device:
                 self._objective_device = self._guess_objective_device()
             self._clear_previous_device_widget()
-            if self._objective_device:
-                self._create_objective_combo()
-            else:
-                self.combo = QtW.QComboBox()
-
-    def _clear_previous_device_widget(self):
-        self.combo.setParent(None)
-        self.combo.deleteLater()
-
-    def _create_objective_combo(self):
-        self._clear_previous_device_widget()
-        self.combo = DeviceWidget.for_device(self._objective_device)
-        self.combo.setMinimumWidth(285)
-        self.layout().addWidget(self.combo)
-
-    def _disconnect_from_core(self):
-        self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
+            self.combo = self._create_objective_combo(self._objective_device)
+            self.layout().addWidget(self.combo)
 
     def _guess_objective_device(self) -> Optional[str]:
         """Try to update the list of objective choices
 
         1. get a list of potential objective devices from pymmcore
         2. if there is only one, use it, if there are >1, show a dialog box
-        3. try to _set_objective_choices_from_device_label with the chosen device label.
-        4. if it fails, and there were multiple options, recurse, omitting the ones
-           that already failed.
         """
         state_devs = []
         for d in self._mmc.guessObjectiveDevices():
@@ -85,15 +71,25 @@ class MMObjectivesWidget(QtW.QWidget):
                 return dialog.currentText()
         return None
 
-    def setValue(self, new_obj: str) -> None:
-        if new_obj not in self._mmc.getStateLabels(self._objective_device):
-            raise ValueError(f"Invalid objective label: {new_obj!r}")
-        current = self._drop_focus_motor()
-        self._mmc.setStateLabel(self._objective_device, new_obj)
-        self._mmc.waitForDevice(_core.STATE.objective_device)
-        self._raise_focus_motor(current)
+    def _clear_previous_device_widget(self):
+        self.combo.setParent(None)
+        self.combo.deleteLater()
 
-        # self.cam_wdg._update_pixel_size() # TODO: put pixel size on STATE
+    def _create_objective_combo(self, device_label):
+        if not device_label:
+            combo = QtW.QComboBox()
+            combo.setEnabled(False)
+            return combo
+
+        combo = StateDeviceWidget(device_label)
+        combo.setMinimumWidth(285)
+
+        # This logic tries to makes it so that that objective drops before changing...
+        # It should be made clear, however, that this *ONLY* works when one controls the
+        # objective through the widget, and not if one directly controls it through core
+        combo._pre_change_hook = self._drop_focus_motor
+        combo._post_change_hook = self._raise_focus_motor
+        return combo
 
     def _drop_focus_motor(self) -> float:
         zdev = self._mmc.getFocusDevice()
@@ -103,6 +99,9 @@ class MMObjectivesWidget(QtW.QWidget):
         return currentZ
 
     def _raise_focus_motor(self, value: float):
+        self._mmc.waitForDevice(self._objective_device)
         zdev = self._mmc.getFocusDevice()
         self._mmc.setPosition(zdev, value)
         self._mmc.waitForDevice(zdev)
+
+        # self.cam_wdg._update_pixel_size() # TODO: put this elswhere on a propChange

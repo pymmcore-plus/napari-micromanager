@@ -116,6 +116,8 @@ class StateDeviceWidget(DeviceWidget):
         self.layout().addWidget(self._combo)
         self._mmc.events.propertyChanged.connect(self._on_prop_change)
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
+        self._pre_change_hook = lambda: None  # type: ignore
+        self._post_change_hook = lambda: None  # type: ignore
 
     def _on_sys_cfg_loaded(self):
         with signals_blocked(self._combo):
@@ -134,7 +136,9 @@ class StateDeviceWidget(DeviceWidget):
 
     def _on_combo_changed(self, index: int) -> None:
         """Update core state when the combobox changes."""
+        self._pre_change_hook()
         self._mmc.setState(self._device_label, index)
+        self._post_change_hook()
 
     def _on_prop_change(self, dev_label: str, prop: str, value: Any) -> None:
         """Update the combobox when the state changes."""
