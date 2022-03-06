@@ -110,3 +110,4 @@ class PresetsWidget(QWidget):
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
+        self._mmc.events.propertyChanged.disconnect(self._highlight_if_prop_changed)
