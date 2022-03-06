@@ -116,8 +116,12 @@ class StateDeviceWidget(DeviceWidget):
         self.layout().addWidget(self._combo)
         self._mmc.events.propertyChanged.connect(self._on_prop_change)
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
-        self._pre_change_hook = lambda: None  # type: ignore
-        self._post_change_hook = lambda: None  # type: ignore
+
+    def _pre_change_hook(self):
+        pass  # for subclasses
+
+    def _post_change_hook(self):
+        pass  # for subclasses
 
     def _on_sys_cfg_loaded(self):
         with signals_blocked(self._combo):
@@ -163,3 +167,13 @@ class StateDeviceWidget(DeviceWidget):
     def stateLabels(self) -> Tuple[str]:
         """Return all state labels of the device."""
         return self._mmc.getStateLabels(self._device_label)
+
+    def currentText(self) -> str:
+        # pass through the QComboBox interface
+        return self._combo.currentText()
+
+    def setCurrentText(self, text: str) -> None:
+        # pass through the QComboBox interface
+        if text not in self.stateLabels():
+            raise ValueError(f"State label must be one of: {self.stateLabels()}")
+        self._combo.setCurrentText(text)

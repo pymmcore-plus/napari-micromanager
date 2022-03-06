@@ -15,7 +15,8 @@ class MMObjectivesWidget(QtW.QWidget):
         self, objective_device: str = None, parent: Optional[QtW.QWidget] = None
     ):
         super().__init__(parent)
-        self._objective_device = objective_device
+        self._mmc = _core.get_core_singleton()
+        self._objective_device = objective_device or self._guess_objective_device()
 
         obj_label = QtW.QLabel("Objectives:")
         max_policy = QtW.QSizePolicy.Policy.Maximum
@@ -28,7 +29,6 @@ class MMObjectivesWidget(QtW.QWidget):
         self.layout().addWidget(obj_label)
         self.layout().addWidget(self.combo)
 
-        self._mmc = _core.get_core_singleton()
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
         self.destroyed.connect(self._disconnect_from_core)
         self._on_sys_cfg_loaded()
@@ -81,15 +81,15 @@ class MMObjectivesWidget(QtW.QWidget):
             combo.setEnabled(False)
             return combo
 
-        combo = StateDeviceWidget(device_label)
+        combo = _ObjectiveStateWidget(device_label)
         combo.setMinimumWidth(285)
-
-        # This logic tries to makes it so that that objective drops before changing...
-        # It should be made clear, however, that this *ONLY* works when one controls the
-        # objective through the widget, and not if one directly controls it through core
-        combo._pre_change_hook = self._drop_focus_motor
-        combo._post_change_hook = self._raise_focus_motor
         return combo
+
+
+class _ObjectiveStateWidget(StateDeviceWidget):
+    # This logic tries to makes it so that that objective drops before changing...
+    # It should be made clear, however, that this *ONLY* works when one controls the
+    # objective through the widget, and not if one directly controls it through core
 
     def _drop_focus_motor(self) -> float:
         zdev = self._mmc.getFocusDevice()
@@ -103,5 +103,4 @@ class MMObjectivesWidget(QtW.QWidget):
         zdev = self._mmc.getFocusDevice()
         self._mmc.setPosition(zdev, value)
         self._mmc.waitForDevice(zdev)
-
         # self.cam_wdg._update_pixel_size() # TODO: put this elswhere on a propChange

@@ -1,3 +1,7 @@
+import pytest
+from pymmcore_plus import CMMCorePlus
+
+from micromanager_gui._gui_objects._objective_widget import MMObjectivesWidget
 from micromanager_gui.main_window import MainWindow
 
 
@@ -17,17 +21,21 @@ def test_crop_camera(main_window: MainWindow):
     assert len(main_window.viewer.layers) == 1
 
 
-def test_objective_device_and_px_size(main_window: MainWindow):
-    mmc = main_window._mmc
+def test_objective_widget(global_mmcore: CMMCorePlus, qtbot):
 
-    main_window.obj_wdg.combo.setCurrentText("10X")
-    assert main_window.obj_wdg.combo.currentText() == "10X"
-    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
-    assert main_window.cam_wdg.px_size_spinbox.value() == 1.0
+    obj_wdg = MMObjectivesWidget()
+    qtbot.addWidget(obj_wdg)
 
-    main_window.cam_wdg.px_size_spinbox.setValue(6.5)
+    assert obj_wdg.combo.currentText() == "Nikon 10X S Fluor"
+    with pytest.raises(ValueError):
+        obj_wdg.combo.setCurrentText("10asdfdsX")
 
-    mmc.deleteConfigGroup("Objective")
-    main_window.obj_wdg._refresh_objective_choices()
-    assert main_window.obj_wdg.combo.currentText() == "Nikon 10X S Fluor"
-    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
+    assert global_mmcore.getCurrentPixelSizeConfig() == "Res10x"
+
+    new_val = "Nikon 40X Plan Flueor ELWD"
+    with qtbot.waitSignal(global_mmcore.events.propertyChanged):
+        obj_wdg.combo.setCurrentText(new_val)
+
+    assert obj_wdg.combo.currentText() == new_val
+    assert global_mmcore.getStateLabel(obj_wdg._objective_device) == new_val
+    assert global_mmcore.getCurrentPixelSizeConfig() == "Res40x"
