@@ -38,9 +38,16 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         self._populate_table()
 
     def _reset_table(self):
+        self._disconnect_wdgs()
         self.table_wdg.clearContents()
         self.table_wdg.setRowCount(0)
         self.table_wdg.setHorizontalHeaderLabels(["Group", "Preset"])
+
+    def _disconnect_wdgs(self):
+        for r in range(self.table_wdg.rowCount()):
+            wdg = self.table_wdg.cellWidget(r, 1)
+            if isinstance(wdg, PresetsWidget):
+                wdg._disconnect()
 
     def _populate_table(self):
         self._reset_table()

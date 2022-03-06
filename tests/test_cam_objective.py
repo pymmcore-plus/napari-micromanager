@@ -23,11 +23,34 @@ def test_objective_device_and_px_size(main_window: MainWindow):
     main_window.obj_wdg.objective_comboBox.setCurrentText("10X")
     assert main_window.obj_wdg.objective_comboBox.currentText() == "10X"
     assert mmc.getCurrentPixelSizeConfig() == "Res10x"
-    assert main_window.cam_wdg.px_size_spinbox.value() == 1.0
+    assert mmc.getPixelSizeUm() == 1.0
+    assert main_window.cam_wdg.px_size_spinbox.value() == 0.0
+
+    main_window.obj_wdg.objective_comboBox.setCurrentText("20X")
+    assert mmc.getCurrentPixelSizeConfig() == "Res20x"
+    assert main_window.cam_wdg.px_size_spinbox.value() == 0.0
 
     main_window.cam_wdg.px_size_spinbox.setValue(6.5)
+    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 20X Plan Fluor ELWD"
+    assert mmc.getPixelSizeUm() == 0.325
+
+    main_window.cam_wdg.px_size_spinbox.setValue(0)
+    assert mmc.getPixelSizeUm() == 0.325
 
     mmc.deleteConfigGroup("Objective")
     main_window._refresh_objective_options()
-    assert main_window.obj_wdg.objective_comboBox.currentText() == "Nikon 10X S Fluor"
-    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 10X S Fluor"
+    main_window.group_preset_table_wdg._populate_table()
+
+    assert (
+        main_window.obj_wdg.objective_comboBox.currentText()
+        == "Nikon 20X Plan Fluor ELWD"
+    )
+
+    table = main_window.group_preset_table_wdg.table_wdg
+    for r in range(table.rowCount()):
+        wdg = table.cellWidget(r, 1)
+        print(wdg.allowedValues())
+
+    main_window.obj_wdg.objective_comboBox.setCurrentText("Nikon 10X S Fluor")
+    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
+    assert mmc.getPixelSizeUm() == 1.0

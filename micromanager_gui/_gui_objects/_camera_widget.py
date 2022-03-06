@@ -15,7 +15,8 @@ class MMCameraWidget(QtW.QWidget):
         self.cam_roi_combo = QtW.QComboBox()
         self.crop_btn = QtW.QPushButton("Crop")
         self.px_size_spinbox = QtW.QDoubleSpinBox()
-        self.px_size_spinbox.setMinimum(1.0)
+        self.px_size_spinbox.setMinimum(0.0)
+        self.px_size_spinbox.setValue(0.0)
         center = Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter
         self.px_size_spinbox.setAlignment(center)
 
