@@ -13,9 +13,6 @@ from .. import _mda
 from .._core import get_core_singleton
 
 if TYPE_CHECKING:
-    pass
-
-if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
 
 
