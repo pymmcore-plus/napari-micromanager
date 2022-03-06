@@ -89,13 +89,10 @@ class PresetsWidget(QWidget):
         if (device, property) not in dev_prop:
             return
 
-        state = self._mmc.getConfigGroupState(self._group)
-        cfg_data = self._mmc.getConfigData(self._group, self._combo.currentText())
-
-        print(cfg_data)
-
-        if state != cfg_data:
+        if not self._mmc.getCurrentConfig(self._group):
             self._set_font_color("magenta")
+        else:
+            self._set_font_color("black")
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
