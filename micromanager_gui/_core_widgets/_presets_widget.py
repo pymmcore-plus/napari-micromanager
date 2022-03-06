@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from pymmcore_plus import DeviceType
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
@@ -88,12 +89,18 @@ class PresetsWidget(QWidget):
         ]
 
         if (device, property) not in dev_prop:
-            return
+            if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
+                return
+            # if it is a StateDevice, the preset can have the "Label" property
+            # instead of the "State" one. So here we check if the property
+            # "State" is in dev_prop.
+            if (device, "State") not in dev_prop:
+                return
 
-        if not self._mmc.getCurrentConfig(self._group):
+        if self._mmc.getCurrentConfig(self._group) != self._combo.currentText():
             self._set_font_color("magenta")
         else:
-            self._set_font_color("black")
+            self._set_font_color("white")
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
