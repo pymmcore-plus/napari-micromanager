@@ -225,7 +225,7 @@ def make_property_value_widget(
         except RuntimeError as e:
             import warnings
 
-            warnings.warn(e)
+            warnings.warn(str(e))
             wdg.setValue(core.getProperty(dev, prop))
 
     return wdg
@@ -346,6 +346,10 @@ class PropertyWidget(QWidget):
     def propertyType(self) -> PropertyType:
         """Return property type."""
         return self._mmc.getPropertyType(*self._dp)
+
+    def deviceType(self) -> DeviceType:
+        """Return property type."""
+        return self._mmc.getDeviceType(self._device_label)
 
     def isReadOnly(self) -> bool:
         """Return True if property is read only."""

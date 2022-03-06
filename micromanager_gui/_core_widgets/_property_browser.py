@@ -2,11 +2,15 @@ from functools import partial
 from typing import Dict, Iterator, Optional, Set, Tuple, cast
 
 from pymmcore_plus import CMMCorePlus, DeviceType
+from qtpy.QtCore import Qt
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import (
     QCheckBox,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLineEdit,
+    QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -32,9 +36,8 @@ class PropertyTable(QTableWidget):
 
         self.setMinimumWidth(500)
         self.setHorizontalHeaderLabels(["Property", "Value"])
-        hdr = self.horizontalHeader()
-        hdr.setSectionResizeMode(hdr.ResizeMode.ResizeToContents)
-        hdr.setStretchLastSection(True)
+        self.setColumnWidth(0, 250)
+        self.horizontalHeader().setStretchLastSection(True)
         vh = self.verticalHeader()
         vh.setSectionResizeMode(vh.ResizeMode.Fixed)
         vh.setDefaultSectionSize(24)
@@ -61,12 +64,13 @@ class PropertyTable(QTableWidget):
 
 
 DevTypeLabels: Dict[str, DeviceType] = {
-    "cameras": DeviceType.CameraDevice,
-    "shutters": DeviceType.ShutterDevice,
-    "stages": DeviceType.StageDevice,
-    "wheels, turrets, etc.": DeviceType.StateDevice,
+    "cameras": (DeviceType.CameraDevice,),
+    "shutters": (DeviceType.ShutterDevice,),
+    "stages": (DeviceType.StageDevice,),
+    "wheels, turrets, etc.": (DeviceType.StateDevice,),
 }
-DevTypeLabels["other devices"] = tuple(set(DeviceType) - set(DevTypeLabels.values()))
+_d = set.union(*(set(i) for i in DevTypeLabels.values()))
+DevTypeLabels["other devices"] = tuple(set(DeviceType) - _d)
 
 
 class PropertyBrowser(QWidget):
@@ -80,7 +84,8 @@ class PropertyBrowser(QWidget):
 
         self._filters: Set[DeviceType] = set()
         self._filter_text = QLineEdit()
-        self._filter_text.setPlaceholderText("Filter...")
+        self._filter_text.setClearButtonEnabled(True)
+        self._filter_text.setPlaceholderText("Filter by device or property name...")
         self._filter_text.textChanged.connect(self._update_filter)
 
         right = QWidget()
@@ -93,7 +98,8 @@ class PropertyBrowser(QWidget):
         left.layout().addWidget(self._make_checkboxes())
 
         self.setLayout(QHBoxLayout())
-        self.setContentsMargins(0, 0, 0, 0)
+        self.layout().setContentsMargins(6, 12, 12, 12)
+        self.layout().setSpacing(0)
         self.layout().addWidget(left)
         self.layout().addWidget(right)
 
@@ -108,27 +114,49 @@ class PropertyBrowser(QWidget):
             elif filt and filt not in self._prop_table.item(r, 0).text().lower():
                 self._prop_table.hideRow(r)
             else:
-                print(wdg.deviceType())
                 self._prop_table.showRow(r)
 
     def _toggle_filter(self, label: str):
-        self._filters.symmetric_difference_update({DevTypeLabels[label]})
+        self._filters.symmetric_difference_update(DevTypeLabels[label])
         self._update_filter()
 
     def _make_checkboxes(self):
-        c = QWidget()
-        c.setLayout(QVBoxLayout())
-        c.layout().setSpacing(0)
 
-        for label in DevTypeLabels:
+        dev_gb = QGroupBox("Device Type")
+        dev_gb.setLayout(QGridLayout())
+        dev_gb.layout().setContentsMargins(0, 3, 0, 0)
+        dev_gb.layout().setSpacing(6)
+        all_btn = QPushButton("All")
+        dev_gb.layout().addWidget(all_btn, 0, 0, 1, 1)
+        none_btn = QPushButton("None")
+        dev_gb.layout().addWidget(none_btn, 0, 1, 1, 1)
+        for i, label in enumerate(DevTypeLabels):
             cb = QCheckBox(label)
             cb.setChecked(DevTypeLabels[label] not in self._filters)
             cb.toggled.connect(partial(self._toggle_filter, label))
-            c.layout().addWidget(cb)
+            dev_gb.layout().addWidget(cb, i + 1, 0, 1, 2)
+
+        @all_btn.clicked.connect
+        def _check_all():
+            for cxbx in dev_gb.findChildren(QCheckBox):
+                cxbx.setChecked(True)
+
+        @none_btn.clicked.connect
+        def _check_none():
+            for cxbx in dev_gb.findChildren(QCheckBox):
+                cxbx.setChecked(False)
+
+        for i in dev_gb.findChildren(QWidget):
+            i.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         ro = QCheckBox("Show read-only")
         ro.setChecked(self._show_read_only)
         ro.toggled.connect(self._set_show_read_only)
+        ro.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        c = QWidget()
+        c.setLayout(QVBoxLayout())
+        c.layout().addWidget(dev_gb)
         c.layout().addWidget(ro)
         c.layout().addStretch()
         return c
@@ -143,7 +171,6 @@ if __name__ == "__main__":
 
     CMMCorePlus.instance().loadSystemConfiguration()
     app = QApplication([])
-
     table = PropertyBrowser()
     table.show()
 
