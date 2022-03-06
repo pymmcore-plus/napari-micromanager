@@ -26,16 +26,16 @@ def test_objective_widget(global_mmcore: CMMCorePlus, qtbot):
     obj_wdg = MMObjectivesWidget()
     qtbot.addWidget(obj_wdg)
 
-    assert obj_wdg.combo.currentText() == "Nikon 10X S Fluor"
+    assert obj_wdg._combo.currentText() == "Nikon 10X S Fluor"
     with pytest.raises(ValueError):
-        obj_wdg.combo.setCurrentText("10asdfdsX")
+        obj_wdg._combo.setCurrentText("10asdfdsX")
 
     assert global_mmcore.getCurrentPixelSizeConfig() == "Res10x"
 
     new_val = "Nikon 40X Plan Flueor ELWD"
     with qtbot.waitSignal(global_mmcore.events.propertyChanged):
-        obj_wdg.combo.setCurrentText(new_val)
+        obj_wdg._combo.setCurrentText(new_val)
 
-    assert obj_wdg.combo.currentText() == new_val
+    assert obj_wdg._combo.currentText() == new_val
     assert global_mmcore.getStateLabel(obj_wdg._objective_device) == new_val
     assert global_mmcore.getCurrentPixelSizeConfig() == "Res40x"
