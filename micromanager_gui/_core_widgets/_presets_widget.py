@@ -94,9 +94,13 @@ class PresetsWidget(QWidget):
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
         """Set the text color to magenta if a preset property has changed"""
 
-        dev_prop = [
-            (k[0], k[1]) for k in self._mmc.getConfigData(self._group, self._presets[0])
-        ]
+        try:  # to catch error upun loading a new system config
+            dev_prop = [
+                (k[0], k[1])
+                for k in self._mmc.getConfigData(self._group, self._presets[0])
+            ]
+        except ValueError:
+            return
 
         if (device, property) not in dev_prop:
             if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
