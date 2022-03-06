@@ -1,3 +1,5 @@
+from unittest.mock import Mock, call
+
 import pytest
 from pymmcore_plus import CMMCorePlus
 
@@ -21,10 +23,15 @@ def test_crop_camera(main_window: MainWindow):
     assert len(main_window.viewer.layers) == 1
 
 
-def test_objective_widget(global_mmcore: CMMCorePlus, qtbot):
+def test_objective_widget_changes_objective(global_mmcore: CMMCorePlus, qtbot):
 
     obj_wdg = MMObjectivesWidget()
     qtbot.addWidget(obj_wdg)
+
+    start_z = 100.0
+    global_mmcore.setPosition("Z", start_z)
+    stage_mock = Mock()
+    obj_wdg._mmc.events.stagePositionChanged.connect(stage_mock)
 
     assert obj_wdg._combo.currentText() == "Nikon 10X S Fluor"
     with pytest.raises(ValueError):
@@ -32,10 +39,13 @@ def test_objective_widget(global_mmcore: CMMCorePlus, qtbot):
 
     assert global_mmcore.getCurrentPixelSizeConfig() == "Res10x"
 
-    new_val = "Nikon 40X Plan Flueor ELWD"
+    new_val = "Nikon 40X Plan Fluor ELWD"
     with qtbot.waitSignal(global_mmcore.events.propertyChanged):
         obj_wdg._combo.setCurrentText(new_val)
 
+    stage_mock.assert_has_calls([call("Z", 0), call("Z", start_z)])
     assert obj_wdg._combo.currentText() == new_val
     assert global_mmcore.getStateLabel(obj_wdg._objective_device) == new_val
     assert global_mmcore.getCurrentPixelSizeConfig() == "Res40x"
+
+    assert global_mmcore.getPosition("Z") == start_z

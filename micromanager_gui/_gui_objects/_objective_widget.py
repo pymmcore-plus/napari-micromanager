@@ -85,7 +85,7 @@ class MMObjectivesWidget(QWidget):
         self, device_label
     ) -> Union[StateDeviceWidget, QComboBox]:
         if device_label:
-            combo = _ObjectiveStateWidget(device_label)
+            combo = _ObjectiveStateWidget(device_label, mmcore=self._mmc)
             combo.setMinimumWidth(285)
         else:
             combo = QComboBox()
@@ -100,15 +100,16 @@ class _ObjectiveStateWidget(StateDeviceWidget):
 
     # TODO: this should be a preference, not a requirement.
 
-    def _drop_focus_motor(self) -> float:
+    def _pre_change_hook(self) -> None:
+        # drop focus motor
         zdev = self._mmc.getFocusDevice()
-        currentZ = self._mmc.getZPosition()
+        self._previous_z = self._mmc.getZPosition()
         self._mmc.setPosition(zdev, 0)
         self._mmc.waitForDevice(zdev)
-        return currentZ
 
-    def _raise_focus_motor(self, value: float):
-        self._mmc.waitForDevice(self._objective_device)
+    def _post_change_hook(self) -> None:
+        # raise focus motor
+        self._mmc.waitForDevice(self._device_label)
         zdev = self._mmc.getFocusDevice()
-        self._mmc.setPosition(zdev, value)
+        self._mmc.setPosition(zdev, self._previous_z)
         self._mmc.waitForDevice(zdev)

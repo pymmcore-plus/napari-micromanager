@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Any, Optional, Tuple
 
 import pymmcore
-from pymmcore_plus import DeviceType
+from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
@@ -25,10 +25,16 @@ class DeviceWidget(QWidget):
         Optional parent widget.
     """
 
-    def __init__(self, device_label: str, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        device_label: str,
+        parent: Optional[QWidget] = None,
+        *,
+        mmcore: Optional[CMMCorePlus] = None,
+    ) -> None:
         super().__init__(parent)
         self._device_label = device_label
-        self._mmc = get_core_singleton()
+        self._mmc = mmcore or get_core_singleton()
         self.destroyed.connect(self._disconnect)
 
         # TODO:
@@ -102,8 +108,14 @@ class StateDeviceWidget(DeviceWidget):
         Optional parent widget.
     """
 
-    def __init__(self, device_label: str, parent: Optional[QWidget] = None) -> None:
-        super().__init__(device_label, parent)
+    def __init__(
+        self,
+        device_label: str,
+        parent: Optional[QWidget] = None,
+        *,
+        mmcore: Optional[CMMCorePlus] = None,
+    ) -> None:
+        super().__init__(device_label, parent, mmcore=mmcore)
         assert self.deviceType() == DeviceType.StateDevice
 
         self._combo = QComboBox()
@@ -177,3 +189,14 @@ class StateDeviceWidget(DeviceWidget):
         if text not in self.stateLabels():
             raise ValueError(f"State label must be one of: {self.stateLabels()}")
         self._combo.setCurrentText(text)
+
+    def currentIndex(self) -> int:
+        # pass through the QComboBox interface
+        return self._combo.currentIndex()
+
+    def setCurrentIndex(self, index: int) -> None:
+        # pass through the QComboBox interface
+        nstates = self._mmc.getNumberOfStates()
+        if not (0 <= index < nstates):
+            raise ValueError(f"Index must be between 0 and {nstates}")
+        self._combo.setCurrentIndex(index)
