@@ -112,5 +112,3 @@ class _ObjectiveStateWidget(StateDeviceWidget):
         zdev = self._mmc.getFocusDevice()
         self._mmc.setPosition(zdev, value)
         self._mmc.waitForDevice(zdev)
-
-        # cam_wdg._update_pixel_size() # TODO: put this elswhere on a propChange
