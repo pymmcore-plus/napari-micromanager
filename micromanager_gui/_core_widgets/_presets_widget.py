@@ -81,6 +81,7 @@ class PresetsWidget(QWidget):
         self._combo.setEditable(False)
 
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
+        """Set the text color to magenta if a preset property has changed"""
 
         dev_prop = [
             (k[0], k[1]) for k in self._mmc.getConfigData(self._group, self._presets[0])
