@@ -56,7 +56,10 @@ class MMGroupPresetTableWidget(QtW.QWidget):
             for row, group in enumerate(groups):
                 self.table_wdg.insertRow(row)
                 self.table_wdg.setItem(row, 0, QtW.QTableWidgetItem(str(group)))
-                self.table_wdg.setCellWidget(row, 1, self.create_group_widget(group))
+                wdg = self.create_group_widget(group)
+                self.table_wdg.setCellWidget(row, 1, wdg)
+                if not self._mmc.getCurrentConfig(group):
+                    wdg._set_font_color("magenta")
 
     def _get_cfg_data(self, group: str, preset: str):
         """
