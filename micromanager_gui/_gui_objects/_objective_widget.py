@@ -49,6 +49,7 @@ class MMObjectivesWidget(QWidget):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
 
     def _on_sys_cfg_loaded(self):
+        """When config is loaded, check objective still exists, recreate combo."""
         loaded = self._mmc.getLoadedDevices()
         if self._objective_device not in loaded:
             self._objective_device = None
@@ -91,6 +92,8 @@ class MMObjectivesWidget(QWidget):
 
 
 class _ObjectiveStateWidget(StateDeviceWidget):
+    """Subclass of StateDeviceWidget that drops/raises stage when changing objective."""
+
     # This logic tries to makes it so that that objective drops before changing...
     # It should be made clear, however, that this *ONLY* works when one controls the
     # objective through the widget, and not if one directly controls it through core
