@@ -30,7 +30,8 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
-    from pymmcore_plus.core._signals.qcallback import QCoreCallback
+    from pymmcore_plus.core.events import QCoreSignaler
+    from pymmcore_plus.mda import PMDAEngine
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
@@ -72,17 +73,20 @@ class MainWindow(MicroManagerWidget):
         self._set_enabled(False)
 
         # connect mmcore signals
-        sig: QCoreCallback = self._mmc.events
+        sig: QCoreSignaler = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.sequenceStarted.connect(self._on_mda_started)
-        sig.sequenceFinished.connect(self._on_mda_finished)
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
-        sig.frameReady.connect(self._on_mda_frame)
+
+        # mda events
+        self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
+        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
+        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         # connect buttons
         self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
@@ -246,6 +250,15 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stop_live()
             self.tab_wdg.live_Button.setIcon(CAM_ICON)
+
+    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+        oldEngine.events.frameReady.connect(self._on_mda_frame)
+        oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
+        oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+
+        newEngine.events.frameReady.connect(self._on_mda_frame)
+        newEngine.events.sequenceStarted.connect(self._on_mda_started)
+        newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""

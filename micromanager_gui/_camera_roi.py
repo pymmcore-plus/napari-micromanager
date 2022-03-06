@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import math
 import warnings
+from typing import TYPE_CHECKING
 
 import napari
 import napari.viewer
-from pymmcore_plus import CMMCorePlus, RemoteMMCore
 from qtpy import QtWidgets as QtW
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus, RemoteMMCore
 
 CAM_ROI_LAYER = "Camera_ROI"
 
