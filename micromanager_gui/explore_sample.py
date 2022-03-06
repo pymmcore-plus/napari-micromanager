@@ -18,6 +18,7 @@ from .multid_widget import SequenceMeta
 if TYPE_CHECKING:
     import napari.viewer
     from pymmcore_plus import RemoteMMCore
+    from pymmcore_plus.mda import PMDAEngine
 
 
 UI_FILE = str(Path(__file__).parent / "_gui_objects" / "explore_sample.ui")
@@ -82,10 +83,12 @@ class ExploreSample(QtW.QWidget):
         # connect mmcore signals
         mmcore.events.systemConfigurationLoaded.connect(self.clear_channel)
 
-        mmcore.events.sequenceStarted.connect(self._on_mda_started)
-        mmcore.events.frameReady.connect(self._on_explorer_frame)
-        mmcore.events.sequenceFinished.connect(self._on_mda_finished)
-        mmcore.events.sequenceFinished.connect(self._refresh_positions)
+        mmcore.mda.events.sequenceStarted.connect(self._on_mda_started)
+        mmcore.mda.events.frameReady.connect(self._on_explorer_frame)
+        mmcore.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        mmcore.mda.events.sequenceFinished.connect(self._refresh_positions)
+
+        mmcore.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         @self.viewer.mouse_drag_callbacks.append
         def get_event(viewer, event):
@@ -107,6 +110,17 @@ class ExploreSample(QtW.QWidget):
 
             self.x_lineEdit.setText(x)
             self.y_lineEdit.setText(y)
+
+    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+        oldEngine.events.frameReady.connect(self._on_explorer_frame)
+        oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
+        oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+        oldEngine.events.sequenceFinished.disconnect(self._refresh_positions)
+
+        newEngine.events.frameReady.connect(self._on_explorer_frame)
+        newEngine.events.sequenceStarted.connect(self._on_mda_started)
+        newEngine.events.sequenceFinished.connect(self._on_mda_finished)
+        newEngine.events.sequenceFinished.connect(self._refresh_positions)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Block gui when mda starts."""
