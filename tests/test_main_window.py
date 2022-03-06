@@ -106,15 +106,14 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
 def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
     # we should show the mda even if it came from outside
     mmc = main_window._mmc
-    print(mmc.getLoadedDevices())
     sequence = MDASequence(
-        channels=[{"config": "Cy5", "exposure": 3}, {"config": "FITC", "exposure": 5}],
+        channels=[{"config": "Cy5", "exposure": 1}, {"config": "FITC", "exposure": 1}],
         time_plan={"interval": 0.1, "loops": 2},
-        z_plan={"range": 4, "step": 0.5},
+        z_plan={"range": 4, "step": 5},
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],
     )
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
         mmc.run_mda(sequence)
 
     layer_name = f"Exp_{sequence.uid}"
