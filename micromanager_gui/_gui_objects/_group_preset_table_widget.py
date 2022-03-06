@@ -44,6 +44,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         self.table_wdg.setHorizontalHeaderLabels(["Group", "Preset"])
 
     def _disconnect_wdgs(self):
+        # mainly imprtant to disconnect _highlight_if_prop_changed()
         for r in range(self.table_wdg.rowCount()):
             wdg = self.table_wdg.cellWidget(r, 1)
             if isinstance(wdg, PresetsWidget):
