@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pymmcore_plus import DeviceType
+from pymmcore_plus import CMMCorePlus
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from .. import _core
@@ -21,9 +21,15 @@ class MMObjectivesWidget(QWidget):
         Optional parent widget, by default None
     """
 
-    def __init__(self, objective_device: str = None, parent: Optional[QWidget] = None):
+    def __init__(
+        self,
+        objective_device: str = None,
+        parent: Optional[QWidget] = None,
+        *,
+        mmcore: Optional[CMMCorePlus] = None
+    ):
         super().__init__(parent)
-        self._mmc = _core.get_core_singleton()
+        self._mmc = mmcore or _core.get_core_singleton()
         self._objective_device = objective_device or self._guess_objective_device()
         self._combo = self._create_objective_combo(objective_device)
 
@@ -59,20 +65,11 @@ class MMObjectivesWidget(QWidget):
         1. get a list of potential objective devices from pymmcore
         2. if there is only one, use it, if there are >1, show a dialog box
         """
-        state_devs = []
-        for d in self._mmc.guessObjectiveDevices():
-            try:
-                if self._mmc.getDeviceType(d) is DeviceType.StateDevice:
-                    state_devs.append(d)
-            except RuntimeError:
-                continue
-
-        if len(state_devs) == 1:
-            return state_devs[0]
-        elif state_devs:
-            # if obj_devs has more than 1 possible objective device,
-            # present dialog to pick one
-            dialog = ComboMessageBox(state_devs, "Select Objective Device:", self)
+        candidates = self._mmc.guessObjectiveDevices()
+        if len(candidates) == 1:
+            return candidates[0]
+        elif candidates:
+            dialog = ComboMessageBox(candidates, "Select Objective Device:", self)
             if dialog.exec_() == dialog.DialogCode.Accepted:
                 return dialog.currentText()
         return None

@@ -1,9 +1,13 @@
-from unittest.mock import Mock, call
+from unittest.mock import Mock, call, patch
 
 import pytest
 from pymmcore_plus import CMMCorePlus
+from qtpy.QtWidgets import QDialog
 
-from micromanager_gui._gui_objects._objective_widget import MMObjectivesWidget
+from micromanager_gui._gui_objects._objective_widget import (
+    ComboMessageBox,
+    MMObjectivesWidget,
+)
 from micromanager_gui.main_window import MainWindow
 
 
@@ -24,7 +28,6 @@ def test_crop_camera(main_window: MainWindow):
 
 
 def test_objective_widget_changes_objective(global_mmcore: CMMCorePlus, qtbot):
-
     obj_wdg = MMObjectivesWidget()
     qtbot.addWidget(obj_wdg)
 
@@ -49,3 +52,12 @@ def test_objective_widget_changes_objective(global_mmcore: CMMCorePlus, qtbot):
     assert global_mmcore.getCurrentPixelSizeConfig() == "Res40x"
 
     assert global_mmcore.getPosition("Z") == start_z
+
+
+@patch.object(ComboMessageBox, "exec_")
+def test_guess_objectve(dialog_mock, global_mmcore: CMMCorePlus, qtbot):
+    dialog_mock.return_value = QDialog.DialogCode.Accepted
+    with patch.object(global_mmcore, "guessObjectiveDevices") as mock:
+        mock.return_value = ["Objective", "Obj2"]
+        obj_wdg = MMObjectivesWidget(mmcore=global_mmcore)
+        qtbot.addWidget(obj_wdg)
