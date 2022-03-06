@@ -46,11 +46,6 @@ def test_objective_device_and_px_size(main_window: MainWindow):
         == "Nikon 20X Plan Fluor ELWD"
     )
 
-    table = main_window.group_preset_table_wdg.table_wdg
-    for r in range(table.rowCount()):
-        wdg = table.cellWidget(r, 1)
-        print(wdg.allowedValues())
-
     main_window.obj_wdg.objective_comboBox.setCurrentText("Nikon 10X S Fluor")
     assert mmc.getCurrentPixelSizeConfig() == "Res10x"
     assert mmc.getPixelSizeUm() == 1.0
