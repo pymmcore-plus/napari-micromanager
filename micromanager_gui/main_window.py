@@ -93,7 +93,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-        self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
@@ -124,6 +123,12 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+
+        self._patch_viewer_menu()
+
+    def _patch_viewer_menu(self):
+        bar = self.viewer.window._qt_window.menuBar()
+        print("BAR", bar)
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
@@ -160,7 +165,6 @@ class MainWindow(MicroManagerWidget):
 
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
-        self.prop_wdg.properties_Button.setEnabled(enabled)
 
     def _refresh_options(self):
         self._refresh_objective_options()
@@ -326,7 +330,6 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
 
-    # property browser
     def _show_prop_browser(self):
         pb = PropBrowser(self._mmc, self)
         pb.exec()

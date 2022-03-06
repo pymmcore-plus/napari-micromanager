@@ -8,7 +8,6 @@ from .._illumination import IlluminationDialog
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
 from ._objective_widget import MMObjectivesWidget
-from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
@@ -26,7 +25,6 @@ class MicroManagerWidget(QtW.QWidget):
         self.illum_btn = QtW.QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
-        self.prop_wdg = MMPropertyBrowserWidget()
         self.shutter_wdg = MMShuttersWidget()
 
         self.create_gui()
@@ -100,7 +98,6 @@ class MicroManagerWidget(QtW.QWidget):
         obj_prop_wdg_layout.setContentsMargins(5, 5, 5, 5)
         obj_prop_wdg_layout.setSpacing(7)
         obj_prop_wdg_layout.addWidget(self.obj_wdg)
-        obj_prop_wdg_layout.addWidget(self.prop_wdg)
         obj_prop_wdg.setLayout(obj_prop_wdg_layout)
         return obj_prop_wdg
 
