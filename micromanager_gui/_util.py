@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Sequence
 
 import numpy as np
 from qtpy.QtCore import Signal
-from qtpy.QtWidgets import QComboBox, QDialog, QHBoxLayout, QLabel, QPushButton, QWidget
+from qtpy.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 if TYPE_CHECKING:
     import useq
@@ -131,3 +140,33 @@ class SelectDeviceFromCombobox(QDialog):
 
     def _on_click(self):
         self.val_changed.emit(self.combobox.currentText())
+
+
+class ComboMessageBox(QDialog):
+    """Dialog that presents a combo box of `items`."""
+
+    def __init__(
+        self,
+        items: Sequence[str] = (),
+        text: str = "",
+        parent: Optional[QWidget] = None,
+    ):
+        super().__init__(parent)
+
+        self._combo = QComboBox()
+        self._combo.addItems(items)
+
+        btn_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        btn_box.accepted.connect(self.accept)
+        btn_box.rejected.connect(self.reject)
+
+        self.setLayout(QVBoxLayout())
+        if text:
+            self.layout().addWidget(QLabel(text))
+        self.layout().addWidget(self._combo)
+        self.layout().addWidget(btn_box)
+
+    def currentText(self) -> str:
+        return self._combo.currentText()
