@@ -30,7 +30,8 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
-    from pymmcore_plus.core._signals.qcallback import QCoreCallback
+    from pymmcore_plus.core.events import QCoreSignaler
+    from pymmcore_plus.mda import PMDAEngine
 
 ICONS = Path(__file__).parent / "icons"
 CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
@@ -72,17 +73,20 @@ class MainWindow(MicroManagerWidget):
         self._set_enabled(False)
 
         # connect mmcore signals
-        sig: QCoreCallback = self._mmc.events
+        sig: QCoreSignaler = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.sequenceStarted.connect(self._on_mda_started)
-        sig.sequenceFinished.connect(self._on_mda_finished)
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
-        sig.frameReady.connect(self._on_mda_frame)
+
+        # mda events
+        self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
+        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
+        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
+        self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         # connect buttons
         self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
@@ -99,9 +103,7 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
             self._set_focus_device
         )
-        self.obj_wdg.objective_comboBox.currentIndexChanged.connect(
-            self.change_objective
-        )
+
         self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
             self._channel_changed
         )
@@ -163,7 +165,6 @@ class MainWindow(MicroManagerWidget):
         self.prop_wdg.properties_Button.setEnabled(enabled)
 
     def _refresh_options(self):
-        self._refresh_objective_options()
         self._refresh_channel_list()
         self._refresh_positions()
         self._refresh_xyz_devices()
@@ -249,6 +250,15 @@ class MainWindow(MicroManagerWidget):
         else:
             self.stop_live()
             self.tab_wdg.live_Button.setIcon(CAM_ICON)
+
+    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+        oldEngine.events.frameReady.connect(self._on_mda_frame)
+        oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
+        oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+
+        newEngine.events.frameReady.connect(self._on_mda_frame)
+        newEngine.events.sequenceStarted.connect(self._on_mda_started)
+        newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
@@ -369,103 +379,6 @@ class MainWindow(MicroManagerWidget):
 
     def _channel_changed(self, newChannel: str):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
-
-    # objectives
-    def _refresh_objective_options(self):
-
-        obj_dev_list = self._mmc.guessObjectiveDevices()
-        # e.g. ['TiNosePiece']
-
-        if not obj_dev_list:
-            return
-
-        if len(obj_dev_list) == 1:
-            self._set_objectives(obj_dev_list[0])
-        else:
-            # if obj_dev_list has more than 1 possible objective device,
-            # you can select the correct one through a combobox
-            obj = SelectDeviceFromCombobox(
-                obj_dev_list,
-                "Select Objective Device:",
-                self,
-            )
-            obj.val_changed.connect(self._set_objectives)
-            obj.show()
-
-    def _set_objectives(self, obj_device: str):
-
-        obj_dev, obj_cfg, presets = self._get_objective_device(obj_device)
-
-        if obj_dev and obj_cfg and presets:
-            current_obj = self._mmc.getCurrentConfig(obj_cfg)
-        else:
-            current_obj = self._mmc.getState(obj_dev)
-            presets = self._mmc.getStateLabels(obj_dev)
-        self._add_objective_to_gui(current_obj, presets)
-
-    def _get_objective_device(self, obj_device: str):
-        # check if there is a configuration group for the objectives
-        for cfg_groups in self._mmc.getAvailableConfigGroups():
-            # e.g. ('Camera', 'Channel', 'Objectives')
-
-            presets = self._mmc.getAvailableConfigs(cfg_groups)
-
-            if not presets:
-                continue
-
-            # first group option e.g. TINosePiece: State=1
-            cfg_data = self._mmc.getConfigData(cfg_groups, presets[0])
-
-            device = cfg_data.getSetting(0).getDeviceLabel()
-            # e.g. TINosePiece
-
-            if device == obj_device:
-                _core.STATE.objective_device = device
-                _core.STATE.objectives_cfg = cfg_groups
-                return _core.STATE.objective_device, _core.STATE.objectives_cfg, presets
-
-        _core.STATE.objective_device = obj_device
-        return _core.STATE.objective_device, None, None
-
-    def _add_objective_to_gui(self, current_obj, presets):
-        with blockSignals(self.obj_wdg.objective_comboBox):
-            self.obj_wdg.objective_comboBox.clear()
-            self.obj_wdg.objective_comboBox.addItems(presets)
-            if isinstance(current_obj, int):
-                self.obj_wdg.objective_comboBox.setCurrentIndex(current_obj)
-            else:
-                self.obj_wdg.objective_comboBox.setCurrentText(current_obj)
-            self.cam_wdg._update_pixel_size()
-
-    def change_objective(self):
-        if self.obj_wdg.objective_comboBox.count() <= 0:
-            return
-
-        if not _core.STATE.objective_device:
-            return
-
-        zdev = self._mmc.getFocusDevice()
-
-        currentZ = self._mmc.getZPosition()
-        self._mmc.setPosition(zdev, 0)
-        self._mmc.waitForDevice(zdev)
-
-        try:
-            self._mmc.setConfig(
-                _core.STATE.objectives_cfg,
-                self.obj_wdg.objective_comboBox.currentText(),
-            )
-        except ValueError:
-            self._mmc.setProperty(
-                _core.STATE.objective_device,
-                "Label",
-                self.obj_wdg.objective_comboBox.currentText(),
-            )
-
-        self._mmc.waitForDevice(_core.STATE.objective_device)
-        self._mmc.setPosition(zdev, currentZ)
-        self._mmc.waitForDevice(zdev)
-        self.cam_wdg._update_pixel_size()
 
     # stages
     def _refresh_positions(self):

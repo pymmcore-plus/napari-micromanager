@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import ClassVar, Optional
+from typing import Iterator, Optional, Tuple
 
 from pymmcore_plus import CMMCorePlus
 
@@ -29,34 +28,6 @@ def get_core_singleton(remote=False) -> CMMCorePlus:
     return _SESSION_CORE
 
 
-@dataclass
-class CoreState:
-    """An object to store CMMCore related state.
-
-    This is stuff for which pymmcore.CMMCore doesn't provide an API.
-    It could all conceivably be put on the global CMMCorePlus.instance() singleton,
-    but for now we maintain an independent state object.
-    """
-
-    objective_device: Optional[str] = None
-    objectives_cfg: Optional[str] = None
-
-    __instance: ClassVar[Optional[CoreState]] = None
-
-    @classmethod
-    def instance(cls) -> CoreState:
-        if cls.__instance is None:
-            cls.__instance = cls()
-        return cls.__instance
-
-    def reset(self):
-        self.objective_device = None
-        self.objectives_cfg = None
-
-
-STATE = CoreState.instance()
-
-
 def load_system_config(config: str = ""):
     """Internal convenience for `loadSystemConfiguration(config)`
 
@@ -66,7 +37,6 @@ def load_system_config(config: str = ""):
     `CMMCorePlus.instance().loadSystemConfiguration(...)` (instead of this function)
     and we need to handle that as well.  So this function shouldn't get too complex.
     """
-    STATE.reset()
     mmc = get_core_singleton()
     mmc.unloadAllDevices()
     mmc.loadSystemConfiguration(config or "MMConfig_demo.cfg")
@@ -102,7 +72,6 @@ def update_pixel_size(
         mmc.deletePixelSizeConfig(current_px_size_cfg)
 
     # create and store a new pixel size config for the current objective.
-    obj_dev_label = obj_dev_label or STATE.objective_device
     if not obj_dev_label:
         return
     curr_obj = mmc.getProperty(obj_dev_label, "Label")
@@ -116,3 +85,11 @@ def update_pixel_size(
         mmc.definePixelSizeConfig(resolutionID, obj_dev_label, "Label", curr_obj)
         mmc.setPixelSizeUm(resolutionID, pixel_size / mag)
         mmc.setPixelSizeConfig(resolutionID)
+
+
+def iter_dev_props(mmc: Optional[CMMCorePlus] = None) -> Iterator[Tuple[str, str]]:
+    """Yield all pairs of currently loaded (device_label, property_name)."""
+    mmc = mmc or get_core_singleton()
+    for dev in mmc.getLoadedDevices():
+        for prop in mmc.getDevicePropertyNames(dev):
+            yield dev, prop
