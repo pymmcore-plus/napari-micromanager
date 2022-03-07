@@ -1,5 +1,5 @@
-import os
 import uuid
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
@@ -24,7 +24,7 @@ def global_mmcore(request):
 
     mmc = _core.get_core_singleton(remote=request.param == "remote")
     if len(mmc.getLoadedDevices()) < 2:
-        mmc.loadSystemConfiguration()
+        mmc.loadSystemConfiguration(str(Path(__file__).parent / "test_config.cfg"))
     return mmc
 
 
@@ -32,7 +32,7 @@ def global_mmcore(request):
 def main_window(global_mmcore, make_napari_viewer):
     viewer = make_napari_viewer()
     win = MainWindow(viewer=viewer)
-    config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
+    config_path = str(Path(__file__).parent / "test_config.cfg")
     win.cfg_wdg.cfg_LineEdit.setText(config_path)
     win._mmc.loadSystemConfiguration(config_path)
     return win
