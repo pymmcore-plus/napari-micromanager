@@ -174,7 +174,7 @@ class StringWidget(QLineEdit):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.textChanged.connect(self.valueChanged.emit)
+        self.editingFinished.connect(self.valueChanged.emit)
 
     def value(self) -> str:
         return self.text()
