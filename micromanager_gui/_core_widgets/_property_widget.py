@@ -174,10 +174,13 @@ class StringWidget(QLineEdit):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.editingFinished.connect(self.valueChanged.emit)
+        self.editingFinished.connect(self._emit_value)
 
     def value(self) -> str:
         return self.text()
+
+    def _emit_value(self):
+        self.valueChanged.emit(self.value())
 
     def setValue(self, value: str) -> None:
         self.setText(str(value))
@@ -246,10 +249,7 @@ def make_property_value_widget(
         # if there's an error when updating core, reset widget value to core
         try:
             _core.setProperty(dev, prop, value)
-        except (RuntimeError, ValueError) as e:
-            import warnings
-
-            warnings.warn(str(e))
+        except (RuntimeError, ValueError):
             wdg.setValue(_core.getProperty(dev, prop))
 
     return wdg
