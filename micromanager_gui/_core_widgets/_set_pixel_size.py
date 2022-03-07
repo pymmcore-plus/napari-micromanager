@@ -102,19 +102,17 @@ class PixelSizeTable(QtW.QTableWidget):
 
             resolutionID = f"{RESOLUTION_ID_PREFIX}{mag}x"
 
-            available_px_cfg = self._mmc.getAvailablePixelSizeConfigs()
-
-            if resolutionID in available_px_cfg:
-                self._mmc.deletePixelSizeConfig(resolutionID)
-
-            if available_px_cfg:
+            if self._mmc.getAvailablePixelSizeConfigs():
                 #  remove px cfg if contains obj_label in ConfigData
-                for cfg in available_px_cfg:
+                for cfg in self._mmc.getAvailablePixelSizeConfigs():
                     cfg_data = list(
                         itertools.chain(*self._mmc.getPixelSizeConfigData(cfg))
                     )
                     if obj_label in cfg_data:
                         self._mmc.deletePixelSizeConfig(cfg)
+
+            if resolutionID in self._mmc.getAvailablePixelSizeConfigs():
+                self._mmc.deletePixelSizeConfig(resolutionID)
 
             self._mmc.definePixelSizeConfig(
                 resolutionID, self._objective_device, "Label", obj_label
