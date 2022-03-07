@@ -95,6 +95,7 @@ class PresetsWidget(QWidget):
         self._combo.setEditable(False)
 
     def _highlight_if_preset_state_changed(self, group: str, preset: str):
+        """Set the text color to magenta if a preset has changed"""
         if group != self._group and not self._mmc.getCurrentConfig(self._group):
             self._set_font_color("magenta")
         else:
