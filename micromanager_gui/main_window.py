@@ -126,16 +126,16 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        self._patch_viewer_menu()
+        self._add_menu()
 
-    def _patch_viewer_menu(self):
-        self._menu = QtW.QMenu("&Micro-Manager")
+    def _add_menu(self):
+        w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
+        self._menu = QtW.QMenu("&Micro-Manager", w._qt_window)
 
         action = self._menu.addAction("Device Property Browser...")
         action.triggered.connect(self._show_prop_browser)
 
-        v = getattr(self.viewer, "__wrapped__", self.viewer)
-        bar = v.window._qt_window.menuBar()
+        bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
     def _show_prop_browser(self):

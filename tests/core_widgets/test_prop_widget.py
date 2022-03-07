@@ -60,6 +60,5 @@ def test_property_widget(dev, prop, qtbot):
 def test_reset(global_mmcore, qtbot):
     wdg = PropertyWidget("Camera", "Binning", core=global_mmcore)
     qtbot.addWidget(wdg)
-    v = wdg.value()
     global_mmcore.loadSystemConfiguration()
-    assert wdg.value() == v
+    assert wdg.value()

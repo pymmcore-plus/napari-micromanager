@@ -110,6 +110,12 @@ class PropertyBrowser(QDialog):
         self.layout().setSpacing(0)
         self.layout().addWidget(left)
         self.layout().addWidget(right)
+        self._mmc.events.systemConfigurationLoaded.connect(self._update_filter)
+
+        self.destroyed.connect(self._disconnect)
+
+    def _disconnect(self) -> None:
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._update_filter)
 
     def _update_filter(self):
         filt = self._filter_text.text().lower()
@@ -129,7 +135,6 @@ class PropertyBrowser(QDialog):
         self._update_filter()
 
     def _make_checkboxes(self):
-
         dev_gb = QGroupBox("Device Type")
         dev_gb.setLayout(QGridLayout())
         dev_gb.layout().setSpacing(6)

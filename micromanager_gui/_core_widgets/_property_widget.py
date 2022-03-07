@@ -160,8 +160,10 @@ class ChoiceWidget(QComboBox):
 
     def setValue(self, value: str) -> None:
         value = str(value)
-        if value not in self._allowed:
-            raise ValueError(f"{value!r} must be one of {self._allowed}")
+        # while nice in theory, this check raises unnecessarily when a propertyChanged
+        # signal gets emitted during system config loading...
+        # if value not in self._allowed:
+        #     raise ValueError(f"{value!r} must be one of {self._allowed}")
         self.setCurrentText(value)
 
 
