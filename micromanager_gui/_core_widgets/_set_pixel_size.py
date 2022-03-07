@@ -54,6 +54,10 @@ class PixelSizeTable(QtW.QTableWidget):
     def _on_image_px_size_changed(self, value: float):
         self.camera_px_size.setValue(value * self.mag.value())
 
+    def _on_mag_changed(self):
+        self._on_camera_px_size_changed(self.camera_px_size.value())
+        self._on_image_px_size_changed(self.image_px_size.value())
+
     def _on_obj_combobox_changed(self, obj_label: str):
         if match := re.search(r"(\d{1,3})[xX]", obj_label):
             self.mag.setValue(int(match.groups()[0]))
@@ -74,12 +78,13 @@ class PixelSizeTable(QtW.QTableWidget):
         self.mag.setMinimum(1)
         self.mag.setValue(10)
         self.mag.setMaximum(1000)
+        self.mag.valueChanged.connect(self._on_mag_changed)
 
         self.objective_combo = QtW.QComboBox()
         self.objective_labels = self._mmc.getStateLabels(self._objective_device)
         self.objective_combo.addItems(self.objective_labels)
         self.objective_combo.currentTextChanged.connect(self._on_obj_combobox_changed)
-        self._on_obj_combobox_changed(self.objective_combo.currentText())
+        self.objective_combo.setCurrentIndex(0)
 
         self.setCellWidget(row, 0, self.objective_combo)
         self.setCellWidget(row, 1, self.mag)
