@@ -121,26 +121,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
 
-        @self.viewer.mouse_drag_callbacks.append
-        def get_event(viewer, event):
-            if not self.explorer.isVisible():
-                return
-            if self._mmc.getPixelSizeUm() > 0:
-                width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-                height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
-                x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-                y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
-
-                # to match position coordinates with center of the image
-                x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
-                y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
-
-            else:
-                x, y = "None", "None"
-
-            self.explorer.x_lineEdit.setText(x)
-            self.explorer.y_lineEdit.setText(y)
+        self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
@@ -395,6 +376,26 @@ class MainWindow(MicroManagerWidget):
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
+
+    def _get_event_explorer(self, viewer, event):
+        if not self.explorer.isVisible():
+            return
+        if self._mmc.getPixelSizeUm() > 0:
+            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+            x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+            y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+
+            # to match position coordinates with center of the image
+            x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
+            y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
+
+        else:
+            x, y = "None", "None"
+
+        self.explorer.x_lineEdit.setText(x)
+        self.explorer.y_lineEdit.setText(y)
 
     # exposure time
     def _update_exp(self, exposure: float):
