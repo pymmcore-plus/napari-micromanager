@@ -41,9 +41,11 @@ class PresetsWidget(QWidget):
         self._set_font_color(self.text_color)
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._combo.textActivated.connect(self._on_text_activate)
+
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
+
         self.destroyed.connect(self._disconnect)
 
     def _on_text_activate(self, text: str):
@@ -94,7 +96,7 @@ class PresetsWidget(QWidget):
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
         """Set the text color to magenta if a preset property has changed"""
 
-        try:  # to catch error upun loading a new system config
+        try:
             dev_prop = [
                 (k[0], k[1])
                 for k in self._mmc.getConfigData(self._group, self._presets[0])
@@ -117,4 +119,5 @@ class PresetsWidget(QWidget):
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
+        self._mmc.events.systemConfigurationLoaded.disconnect(self.refresh)
         self._mmc.events.propertyChanged.disconnect(self._highlight_if_prop_changed)
