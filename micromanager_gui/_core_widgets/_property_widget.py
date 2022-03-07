@@ -131,8 +131,8 @@ class ChoiceWidget(QComboBox):
         self._prop = prop
         self._allowed: Tuple[str, ...] = ()
 
-        self.currentTextChanged.connect(self.valueChanged.emit)
         self._mmc.events.systemConfigurationLoaded.connect(self._refresh_choices)
+        self.currentTextChanged.connect(self.valueChanged.emit)
         self.destroyed.connect(self._disconnect)
         self._refresh_choices()
 
@@ -140,9 +140,10 @@ class ChoiceWidget(QComboBox):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._refresh_choices)
 
     def _refresh_choices(self):
-        self.clear()
-        self._allowed = self._get_allowed()
-        self.addItems(self._allowed)
+        with utils.signals_blocked(self):
+            self.clear()
+            self._allowed = self._get_allowed()
+            self.addItems(self._allowed)
 
     def _get_allowed(self) -> Tuple[str, ...]:
         if allowed := self._mmc.getAllowedPropertyValues(self._dev, self._prop):
@@ -246,7 +247,7 @@ def make_property_value_widget(
         except (RuntimeError, ValueError) as e:
             import warnings
 
-            warnings.warn(str(e) + type(wdg).__name__)
+            warnings.warn(str(e))
             wdg.setValue(_core.getProperty(dev, prop))
 
     return wdg

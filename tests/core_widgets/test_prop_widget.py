@@ -55,3 +55,11 @@ def test_property_widget(dev, prop, qtbot):
     # make sure that setting value via core updates the widget
     CORE.setProperty(dev, prop, start_val)
     _assert_equal(wdg.value(), start_val)
+
+
+def test_reset(global_mmcore, qtbot):
+    wdg = PropertyWidget("Camera", "Binning", core=global_mmcore)
+    qtbot.addWidget(wdg)
+    v = wdg.value()
+    global_mmcore.loadSystemConfiguration()
+    assert wdg.value() == v
