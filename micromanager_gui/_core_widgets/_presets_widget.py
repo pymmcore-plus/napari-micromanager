@@ -43,6 +43,7 @@ class PresetsWidget(QWidget):
         self._combo.textActivated.connect(self._on_text_activate)
 
         self._mmc.events.configSet.connect(self._on_cfg_set)
+        self._mmc.events.configSet.connect(self._highlight_if_preset_state_changed)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
 
@@ -93,6 +94,12 @@ class PresetsWidget(QWidget):
         self._combo.setStyleSheet(f"color: {color};")
         self._combo.setEditable(False)
 
+    def _highlight_if_preset_state_changed(self, group: str, preset: str):
+        if group != self._group and not self._mmc.getCurrentConfig(self._group):
+            self._set_font_color("magenta")
+        else:
+            self._set_font_color(self.text_color)
+
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
         """Set the text color to magenta if a preset property has changed"""
 
@@ -119,5 +126,6 @@ class PresetsWidget(QWidget):
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
+        self._mmc.events.configSet.disconnect(self._highlight_if_preset_state_changed)
         self._mmc.events.systemConfigurationLoaded.disconnect(self.refresh)
         self._mmc.events.propertyChanged.disconnect(self._highlight_if_prop_changed)
