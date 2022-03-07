@@ -1,3 +1,13 @@
+from unittest.mock import Mock, call, patch
+
+import pytest
+from pymmcore_plus import CMMCorePlus
+from qtpy.QtWidgets import QDialog
+
+from micromanager_gui._gui_objects._objective_widget import (
+    ComboMessageBox,
+    MMObjectivesWidget,
+)
 from micromanager_gui.main_window import MainWindow
 
 
@@ -17,34 +27,37 @@ def test_crop_camera(main_window: MainWindow):
     assert len(main_window.viewer.layers) == 1
 
 
-def test_objective_device_and_px_size(main_window: MainWindow):
-    mmc = main_window._mmc
-    main_window.obj_wdg.objective_comboBox.setCurrentText("10X")
-    assert main_window.obj_wdg.objective_comboBox.currentText() == "10X"
-    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
-    assert mmc.getPixelSizeUm() == 1.0
-    assert main_window.cam_wdg.px_size_spinbox.value() == 0.0
+def test_objective_widget_changes_objective(global_mmcore: CMMCorePlus, qtbot):
+    obj_wdg = MMObjectivesWidget()
+    qtbot.addWidget(obj_wdg)
 
-    main_window.obj_wdg.objective_comboBox.setCurrentText("20X")
-    assert mmc.getCurrentPixelSizeConfig() == "Res20x"
-    assert main_window.cam_wdg.px_size_spinbox.value() == 0.0
+    start_z = 100.0
+    global_mmcore.setPosition("Z", start_z)
+    stage_mock = Mock()
+    obj_wdg._mmc.events.stagePositionChanged.connect(stage_mock)
 
-    main_window.cam_wdg.px_size_spinbox.setValue(6.5)
-    assert mmc.getCurrentPixelSizeConfig() == "px_size_Nikon 20X Plan Fluor ELWD"
-    assert mmc.getPixelSizeUm() == 0.325
+    assert obj_wdg._combo.currentText() == "Nikon 10X S Fluor"
+    with pytest.raises(ValueError):
+        obj_wdg._combo.setCurrentText("10asdfdsX")
 
-    main_window.cam_wdg.px_size_spinbox.setValue(0)
-    assert mmc.getPixelSizeUm() == 0.325
+    assert global_mmcore.getCurrentPixelSizeConfig() == "Res10x"
 
-    mmc.deleteConfigGroup("Objective")
-    main_window._refresh_objective_options()
-    main_window.group_preset_table_wdg._populate_table()
+    new_val = "Nikon 40X Plan Fluor ELWD"
+    with qtbot.waitSignal(global_mmcore.events.propertyChanged):
+        obj_wdg._combo.setCurrentText(new_val)
 
-    assert (
-        main_window.obj_wdg.objective_comboBox.currentText()
-        == "Nikon 20X Plan Fluor ELWD"
-    )
+    stage_mock.assert_has_calls([call("Z", 0), call("Z", start_z)])
+    assert obj_wdg._combo.currentText() == new_val
+    assert global_mmcore.getStateLabel(obj_wdg._objective_device) == new_val
+    assert global_mmcore.getCurrentPixelSizeConfig() == "Res40x"
 
-    main_window.obj_wdg.objective_comboBox.setCurrentText("Nikon 10X S Fluor")
-    assert mmc.getCurrentPixelSizeConfig() == "Res10x"
-    assert mmc.getPixelSizeUm() == 1.0
+    assert global_mmcore.getPosition("Z") == start_z
+
+
+@patch.object(ComboMessageBox, "exec_")
+def test_guess_objectve(dialog_mock, global_mmcore: CMMCorePlus, qtbot):
+    dialog_mock.return_value = QDialog.DialogCode.Accepted
+    with patch.object(global_mmcore, "guessObjectiveDevices") as mock:
+        mock.return_value = ["Objective", "Obj2"]
+        obj_wdg = MMObjectivesWidget(mmcore=global_mmcore)
+        qtbot.addWidget(obj_wdg)
