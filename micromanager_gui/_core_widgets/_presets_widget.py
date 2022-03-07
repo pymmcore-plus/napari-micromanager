@@ -102,7 +102,7 @@ class PresetsWidget(QWidget):
                 for k in self._mmc.getConfigData(self._group, self._presets[0])
             ]
         except ValueError:
-            pass
+            return
 
         if (device, property) not in dev_prop:
             if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
