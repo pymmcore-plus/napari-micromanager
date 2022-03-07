@@ -1,9 +1,10 @@
-import os
 import uuid
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import pytest
+from pymmcore_plus import CMMCorePlus
 from useq import MDASequence
 
 from micromanager_gui import _core
@@ -15,7 +16,7 @@ ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
 
 @pytest.fixture(params=["local"])
 def global_mmcore(request):
-    _core._SESSION_CORE = None  # refresh singleton
+    _core._SESSION_CORE = CMMCorePlus()  # refresh singleton
     if request.param == "remote":
         from pymmcore_plus import server
 
@@ -23,7 +24,7 @@ def global_mmcore(request):
 
     mmc = _core.get_core_singleton(remote=request.param == "remote")
     if len(mmc.getLoadedDevices()) < 2:
-        mmc.loadSystemConfiguration()
+        mmc.loadSystemConfiguration(str(Path(__file__).parent / "test_config.cfg"))
     return mmc
 
 
@@ -31,7 +32,7 @@ def global_mmcore(request):
 def main_window(global_mmcore, make_napari_viewer):
     viewer = make_napari_viewer()
     win = MainWindow(viewer=viewer)
-    config_path = os.path.dirname(os.path.abspath(__file__)) + "/test_config.cfg"
+    config_path = str(Path(__file__).parent / "test_config.cfg")
     win.cfg_wdg.cfg_LineEdit.setText(config_path)
     win._mmc.loadSystemConfiguration(config_path)
     return win
