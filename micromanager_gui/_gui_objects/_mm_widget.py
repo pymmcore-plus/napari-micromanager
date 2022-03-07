@@ -4,12 +4,12 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
-from .._illumination import IlluminationDialog
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
 from ._objective_widget import MMObjectivesWidget
 from ._property_browser_widget import MMPropertyBrowserWidget
 from ._shutters_widget import MMShuttersWidget
+from ._slider_dialog import SliderDialog
 from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
 
@@ -116,5 +116,5 @@ class MicroManagerWidget(QtW.QWidget):
 
     def _show_illum_dialog(self):
         if not hasattr(self, "_illumination"):
-            self._illumination = IlluminationDialog(self)
+            self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
         self._illumination.show()
