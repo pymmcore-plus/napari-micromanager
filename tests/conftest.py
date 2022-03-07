@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+from pymmcore_plus import CMMCorePlus
 from useq import MDASequence
 
 from micromanager_gui import _core
@@ -15,7 +16,7 @@ ExplorerTuple = Tuple[MainWindow, MDASequence, SequenceMeta]
 
 @pytest.fixture(params=["local"])
 def global_mmcore(request):
-    _core._SESSION_CORE = None  # refresh singleton
+    _core._SESSION_CORE = CMMCorePlus()  # refresh singleton
     if request.param == "remote":
         from pymmcore_plus import server
 
