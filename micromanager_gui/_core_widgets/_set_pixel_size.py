@@ -104,8 +104,9 @@ class PixelSizeTable(QtW.QTableWidget):
     def _make_double_spinbox(self, row):
         spin = QtW.QDoubleSpinBox()
         spin.setAlignment(Qt.AlignCenter)
-        spin.setMinimum(0.0)
-        spin.setMaximum(1000.0)
+        spin.setDecimals(4)
+        spin.setMinimum(0.0000)
+        spin.setMaximum(1000.0000)
         spin.setValue(0.0)
         spin.setProperty("row", row)
         return spin
