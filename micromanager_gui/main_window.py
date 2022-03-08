@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+from napari.experimental import link_layers
 from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
@@ -12,7 +14,7 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
-from . import _core
+from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
@@ -23,8 +25,6 @@ from ._util import (
     event_indices,
     extend_array_for_index,
 )
-from .explore_sample import ExploreSample
-from .multid_widget import MultiDWidget, SequenceMeta
 
 if TYPE_CHECKING:
     import napari.layers
@@ -55,13 +55,7 @@ class MainWindow(MicroManagerWidget):
                 "MICROMANAGER_PATH."
             )
 
-        # tab widgets
-        self.mda = MultiDWidget(self._mmc)
-        self.explorer = ExploreSample(self.viewer, self._mmc)
-
         # add mda and explorer tabs to mm_tab widget
-        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
         sizepolicy = QtW.QSizePolicy(
             QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
         )
@@ -125,6 +119,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
+        self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
         self._add_menu()
 
@@ -280,63 +275,142 @@ class MainWindow(MicroManagerWidget):
         """ "create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
+        self._mda_meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
+        if self._mda_meta.mode == "":
+            # originated from user script - assume it's an mda
+            self._mda_meta.mode = "mda"
+
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        meta = self.mda.SEQUENCE_META.get(event.sequence) or SequenceMeta()
 
-        if meta.mode != "mda":
-            return
+        meta = self._mda_meta
+        if meta.mode == "mda":
 
-        # pick layer name
-        file_name = meta.file_name if meta.should_save else "Exp"
-        channelstr = (
-            f"[{event.channel.config}_idx{event.index['c']}]_"
-            if meta.split_channels
-            else ""
-        )
-        layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
+            # pick layer name
+            file_name = meta.file_name if meta.should_save else "Exp"
+            channelstr = (
+                f"[{event.channel.config}_idx{event.index['c']}]_"
+                if meta.split_channels
+                else ""
+            )
+            layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
 
-        try:  # see if we already have a layer with this sequence
-            layer = self.viewer.layers[layer_name]
+            try:  # see if we already have a layer with this sequence
+                layer = self.viewer.layers[layer_name]
 
-            # get indices of new image
-            im_idx = tuple(
-                event.index[k]
-                for k in event_indices(event)
-                if not (meta.split_channels and k == "c")
+                # get indices of new image
+                im_idx = tuple(
+                    event.index[k]
+                    for k in event_indices(event)
+                    if not (meta.split_channels and k == "c")
+                )
+
+                # make sure array shape contains im_idx, or pad with zeros
+                new_array = extend_array_for_index(layer.data, im_idx)
+                # add the incoming index at the appropriate index
+                new_array[im_idx] = image
+                # set layer data
+                layer.data = new_array
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
+
+            except KeyError:  # add the new layer to the viewer
+                seq = event.sequence
+                _image = image[(np.newaxis,) * len(seq.shape)]
+                layer = self.viewer.add_image(
+                    _image, name=layer_name, blending="additive"
+                )
+
+                # dimensions labels
+                labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
+                self.viewer.dims.axis_labels = labels
+
+                # add metadata to layer
+                layer.metadata["useq_sequence"] = seq
+                layer.metadata["uid"] = seq.uid
+                # storing event.index in addition to channel.config because it's
+                # possible to have two of the same channel in one sequence.
+                layer.metadata[
+                    "ch_id"
+                ] = f'{event.channel.config}_idx{event.index["c"]}'
+        elif meta.mode == "explorer":
+
+            seq = event.sequence
+
+            meta = _mda.SEQUENCE_META.get(seq) or _mda.SequenceMeta()
+            if meta.mode != "explorer":
+                return
+
+            x = event.x_pos / self.explorer.pixel_size
+            y = event.y_pos / self.explorer.pixel_size * (-1)
+
+            pos_idx = event.index["p"]
+            file_name = meta.file_name if meta.should_save else "Exp"
+            ch_name = event.channel.config
+            ch_id = event.index["c"]
+            layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
+
+            meta = dict(
+                useq_sequence=seq,
+                uid=seq.uid,
+                scan_coord=(y, x),
+                scan_position=f"Pos{pos_idx:03d}",
+                ch_name=ch_name,
+                ch_id=ch_id,
+            )
+            self.viewer.add_image(
+                image,
+                name=layer_name,
+                blending="additive",
+                translate=(y, x),
+                metadata=meta,
             )
 
-            # make sure array shape contains im_idx, or pad with zeros
-            new_array = extend_array_for_index(layer.data, im_idx)
-            # add the incoming index at the appropriate index
-            new_array[im_idx] = image
-            # set layer data
-            layer.data = new_array
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
-
-        except KeyError:  # add the new layer to the viewer
-            seq = event.sequence
-            _image = image[(np.newaxis,) * len(seq.shape)]
-            layer = self.viewer.add_image(_image, name=layer_name, blending="additive")
-
-            # dimensions labels
-            labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-            self.viewer.dims.axis_labels = labels
-
-            # add metadata to layer
-            layer.metadata["useq_sequence"] = seq
-            layer.metadata["uid"] = seq.uid
-            # storing event.index in addition to channel.config because it's
-            # possible to have two of the same channel in one sequence.
-            layer.metadata["ch_id"] = f'{event.channel.config}_idx{event.index["c"]}'
+            zoom_out_factor = (
+                self.explorer.scan_size_r
+                if self.explorer.scan_size_r >= self.explorer.scan_size_c
+                else self.explorer.scan_size_c
+            )
+            self.viewer.camera.zoom = 1 / zoom_out_factor
+            self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
-        meta = self.mda.SEQUENCE_META.pop(sequence, SequenceMeta())
+        meta = _mda.SEQUENCE_META.get(sequence) or _mda.SequenceMeta()
+        seq_uid = sequence.uid
+        if meta.mode == "explorer":
+
+            layergroups = defaultdict(set)
+            for lay in self.viewer.layers:
+                if lay.metadata.get("uid") == seq_uid:
+                    key = f"{lay.metadata['ch_name']}_idx{lay.metadata['ch_id']}"
+                    layergroups[key].add(lay)
+            for group in layergroups.values():
+                link_layers(group)
+        meta = _mda.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
+
+    def _get_event_explorer(self, viewer, event):
+        if not self.explorer.isVisible():
+            return
+        if self._mmc.getPixelSizeUm() > 0:
+            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+            x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+            y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+
+            # to match position coordinates with center of the image
+            x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
+            y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
+
+        else:
+            x, y = "None", "None"
+
+        self.explorer.x_lineEdit.setText(x)
+        self.explorer.y_lineEdit.setText(y)
 
     # exposure time
     def _update_exp(self, exposure: float):
