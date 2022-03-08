@@ -10,7 +10,7 @@ from napari.experimental import link_layers
 from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QTimer
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
@@ -147,8 +147,14 @@ class MainWindow(MicroManagerWidget):
             raise Warning("System Configuration not loaded!")
         if not hasattr(self, "_px_size_wdg"):
             self._px_size_wdg = PixelSizeWidget(self._mmc)
+            # self._px_size_wdg = PixelSizeWidget(self._mmc, self)
+            self._px_size_wdg.setWindowFlags(
+                Qt.Window
+                | Qt.WindowTitleHint
+                | Qt.WindowStaysOnTopHint
+                | Qt.WindowCloseButtonHint
+            )
         self._px_size_wdg.show()
-        self._px_size_wdg.raise_()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:

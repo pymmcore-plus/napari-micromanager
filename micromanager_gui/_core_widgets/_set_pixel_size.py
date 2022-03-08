@@ -19,8 +19,9 @@ class PixelSizeTable(QtW.QTableWidget):
         self,
         mmcore: Optional[CMMCorePlus] = None,
         objective_device: Optional[str] = None,
+        parent: Optional[QtW.QWidget] = None,
     ):
-        super().__init__()
+        super().__init__(parent)
 
         self._mmc = mmcore or get_core_singleton()
 
@@ -179,8 +180,10 @@ class PixelSizeTable(QtW.QTableWidget):
 class PixelSizeWidget(QtW.QWidget):
     """Make a widget to set the pixel size configuration"""
 
-    def __init__(self, mmcore: Optional[CMMCorePlus] = None):
-        super().__init__()
+    def __init__(
+        self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QtW.QWidget] = None
+    ):
+        super().__init__(parent)
 
         self._mmc = mmcore or get_core_singleton()
 
