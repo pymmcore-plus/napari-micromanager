@@ -24,8 +24,6 @@ class PixelSizeTable(QtW.QTableWidget):
 
         self._mmc = mmcore or get_core_singleton()
 
-        # self._mmc.loadSystemConfiguration()  # just to test, to remove later
-
         self._objective_device = (
             objective_device or MMObjectivesWidget()._guess_objective_device()
         )
@@ -172,9 +170,6 @@ class PixelSizeTable(QtW.QTableWidget):
                 resolutionID, self._objective_device, "Label", obj_label
             )
             self._mmc.setPixelSizeUm(resolutionID, px_size_um)
-
-            # to remove print
-            print(f"new pixel configuration:{resolutionID} -> pixel size: {px_size_um}")
 
             self.parent().parent().close()
 
