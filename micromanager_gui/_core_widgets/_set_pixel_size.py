@@ -50,7 +50,6 @@ class PixelSizeTable(QtW.QTableWidget):
 
     def _on_camera_px_size_changed(self, value: float):
         row = self.camera_px_size.property("row")
-        print("CAM ROW:", row)
         wdg = self.cellWidget(row, 3)  # image_px_size
         wdg.setText(
             str(value / (self.mag.value() * self._mmc.getMagnificationFactor()))
