@@ -6,8 +6,8 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt.utils import signals_blocked
 
-from micromanager_gui._core import get_core_singleton
-from micromanager_gui._gui_objects._objective_widget import MMObjectivesWidget
+from .._core import get_core_singleton
+from .._gui_objects._objective_widget import MMObjectivesWidget
 
 RESOLUTION_ID_PREFIX = "px_size_"
 
@@ -144,6 +144,7 @@ class PixelSizeTable(QtW.QTableWidget):
             row += 1
 
     def _set_mm_pixel_size(self):
+
         for r in range(self.rowCount()):
             obj_label = self.cellWidget(r, 0).currentText()
             px_size_um = float(self.cellWidget(r, 3).text())
@@ -162,6 +163,7 @@ class PixelSizeTable(QtW.QTableWidget):
                     )
                     if obj_label in cfg_data:
                         self._mmc.deletePixelSizeConfig(cfg)
+                        break
 
             if resolutionID in self._mmc.getAvailablePixelSizeConfigs():
                 self._mmc.deletePixelSizeConfig(resolutionID)
@@ -215,10 +217,15 @@ class PixelSizeWidget(QtW.QWidget):
         self.table.insertRow(row)
         self.table._add_to_table(row)
 
-    def _delete_selected_row(self):
-        selected_row = [r.row() for r in self.table.selectedIndexes()]
+    def _delete_selected_row(self, row: Optional[int]):
+        if row:
+            selected_row = [row]
+        else:
+            selected_row = [r.row() for r in self.table.selectedIndexes()]
+
         if not selected_row or len(selected_row) > 1:
             return
+
         self.table._disconnect(selected_row[0])
         self.table.removeRow(selected_row[0])
         self._update_row_numbers()
