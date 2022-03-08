@@ -184,6 +184,7 @@ class StringWidget(QLineEdit):
 
     def setValue(self, value: str) -> None:
         self.setText(str(value))
+        self._emit_value()
 
 
 class ReadOnlyWidget(QLabel):
