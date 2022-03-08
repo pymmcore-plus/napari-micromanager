@@ -42,7 +42,7 @@ class PixelSizeTable(QtW.QTableWidget):
         self.setHorizontalHeaderLabels(
             [
                 "Objective",
-                "Magnification",
+                "Objective Magnification",
                 "Camera Pixel Size (µm)",
                 "Image Pixel Size (µm)",
             ]
@@ -52,13 +52,15 @@ class PixelSizeTable(QtW.QTableWidget):
         row = self.camera_px_size.property("row")
         print("CAM ROW:", row)
         wdg = self.cellWidget(row, 3)  # image_px_size
-        wdg.setText(str(value / self.mag.value()))
+        wdg.setText(
+            str(value / (self.mag.value() * self._mmc.getMagnificationFactor()))
+        )
 
     def _on_mag_changed(self, x: int):
         row = self.mag.property("row")
         cam_wdg = self.cellWidget(row, 2)  # camera_px_size
         img_wdg = self.cellWidget(row, 3)  # image_px_size
-        img_wdg.setText(str(cam_wdg.value() / x))
+        img_wdg.setText(str(cam_wdg.value() / (x * self._mmc.getMagnificationFactor())))
 
     def _on_obj_combobox_changed(self, obj_label: str):
 
