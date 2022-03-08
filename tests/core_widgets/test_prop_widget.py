@@ -24,7 +24,11 @@ def _assert_equal(a, b):
 def test_property_widget(dev, prop, qtbot):
     wdg = PropertyWidget(dev, prop, core=CORE)
     qtbot.addWidget(wdg)
-    if CORE.isPropertyReadOnly(dev, prop) or prop in ("SimulateCrash", "Trigger"):
+    if CORE.isPropertyReadOnly(dev, prop) or prop in (
+        "SimulateCrash",
+        "Trigger",
+        "AsyncPropertyLeader",
+    ):
         return
 
     start_val = CORE.getProperty(dev, prop)
