@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Protocol, Sequence, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
 
 import pymmcore
 from pymmcore_plus import CMMCorePlus, DeviceType, PropertyType
@@ -76,13 +76,11 @@ class FloatWidget(QDoubleSpinBox):
 
 
 class _RangedMixin:
-    _cast = int
+    _cast = float
 
     # prefer horizontal orientation
     def __init__(
-        self: QLabeledSlider,
-        orientation=Qt.Orientation.Horizontal,
-        parent: Optional[QWidget] = None,
+        self, orientation=Qt.Orientation.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
         super().__init__(orientation, parent)
 
@@ -93,11 +91,11 @@ class _RangedMixin:
 class RangedIntegerWidget(_RangedMixin, QLabeledSlider):
     """Slider suited to managing ranged integer values"""
 
+    _cast = int
+
 
 class RangedFloatWidget(_RangedMixin, QLabeledDoubleSlider):
     """Slider suited to managing ranged float values"""
-
-    _cast = float
 
 
 class IntBoolWidget(QCheckBox):
@@ -125,21 +123,47 @@ class ChoiceWidget(QComboBox):
     valueChanged = Signal(str)
 
     def __init__(
-        self, allowed: Sequence[str] = (), parent: Optional[QWidget] = None
+        self, core: CMMCorePlus, dev: str, prop: str, parent: Optional[QWidget] = None
     ) -> None:
         super().__init__(parent)
+        self._mmc = core
+        self._dev = dev
+        self._prop = prop
+        self._allowed: Tuple[str, ...] = ()
+
+        self._mmc.events.systemConfigurationLoaded.connect(self._refresh_choices)
         self.currentTextChanged.connect(self.valueChanged.emit)
-        self._allowed = tuple(allowed)
-        if allowed:
-            self.addItems(allowed)
+        self.destroyed.connect(self._disconnect)
+        self._refresh_choices()
+
+    def _disconnect(self):
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._refresh_choices)
+
+    def _refresh_choices(self):
+        with utils.signals_blocked(self):
+            self.clear()
+            self._allowed = self._get_allowed()
+            self.addItems(self._allowed)
+
+    def _get_allowed(self) -> Tuple[str, ...]:
+        if allowed := self._mmc.getAllowedPropertyValues(self._dev, self._prop):
+            return allowed
+        if self._mmc.getDeviceType(self._dev) == DeviceType.StateDevice:
+            if self._prop == LABEL:
+                return self._mmc.getStateLabels(self._dev)
+            if self._prop == STATE:
+                n_states = self._mmc.getNumberOfStates(self._dev)
+                return tuple(str(i) for i in range(n_states))
 
     def value(self) -> str:
         return self.currentText()
 
     def setValue(self, value: str) -> None:
         value = str(value)
-        if value not in self._allowed:
-            raise ValueError(f"{value!r} must be one of {self._allowed}")
+        # while nice in theory, this check raises unnecessarily when a propertyChanged
+        # signal gets emitted during system config loading...
+        # if value not in self._allowed:
+        #     raise ValueError(f"{value!r} must be one of {self._allowed}")
         self.setCurrentText(value)
 
 
@@ -150,13 +174,17 @@ class StringWidget(QLineEdit):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.textChanged.connect(self.valueChanged.emit)
+        self.editingFinished.connect(self._emit_value)
 
     def value(self) -> str:
         return self.text()
 
+    def _emit_value(self):
+        self.valueChanged.emit(self.value())
+
     def setValue(self, value: str) -> None:
         self.setText(str(value))
+        self._emit_value()
 
 
 class ReadOnlyWidget(QLabel):
@@ -212,21 +240,18 @@ def make_property_value_widget(
                 wdg.setValue(new_val)
 
     core.events.propertyChanged.connect(_on_core_change)
-    wdg: PPropValueWidget
-    wdg.destroyed.connect(
-        lambda: core.events.propertyChanged.disconnect(_on_core_change)
-    )
+
+    @wdg.destroyed.connect
+    def _disconnect(*, _core=core):
+        _core.events.propertyChanged.disconnect(_on_core_change)
 
     @wdg.valueChanged.connect
     def _on_widget_change(value, _core=core) -> None:
         # if there's an error when updating core, reset widget value to core
         try:
             _core.setProperty(dev, prop, value)
-        except RuntimeError as e:
-            import warnings
-
-            warnings.warn(e)
-            wdg.setValue(core.getProperty(dev, prop))
+        except (RuntimeError, ValueError):
+            wdg.setValue(_core.getProperty(dev, prop))
 
     return wdg
 
@@ -241,13 +266,10 @@ def _creat_prop_widget(core: CMMCorePlus, dev: str, prop: str) -> PPropValueWidg
     if allowed := core.getAllowedPropertyValues(dev, prop):
         if ptype is PropertyType.Integer and set(allowed) == {"0", "1"}:
             return IntBoolWidget()
-        # TODO? many string properties are also choices between "Yes", "No"
-        return ChoiceWidget(allowed)
+        return ChoiceWidget(core, dev, prop)
     if prop in {STATE, LABEL} and core.getDeviceType(dev) == DeviceType.StateDevice:
         # TODO: This logic is very similar to StateDeviceWidget. use this in the future?
-        if prop == LABEL:
-            return ChoiceWidget(core.getStateLabels(dev))
-        return ChoiceWidget([str(i) for i in range(core.getNumberOfStates(dev))])
+        return ChoiceWidget(core, dev, prop)
     if ptype in (PropertyType.Integer, PropertyType.Float):
         if not core.hasPropertyLimits(dev, prop):
             return IntegerWidget() if ptype is PropertyType.Integer else FloatWidget()
@@ -327,7 +349,7 @@ class PropertyWidget(QWidget):
         """Set the current value of the *widget* (which should match core)."""
         self._value_widget.setValue(value)
 
-    def allowedValues(self) -> Tuple[str]:
+    def allowedValues(self) -> Tuple[str, ...]:
         """Return tuple of allowable values if property is categorical."""
         # this will have already been grabbed from core on creation, and will
         # have also taken into account the restrictions in the State/Label property
@@ -346,6 +368,10 @@ class PropertyWidget(QWidget):
     def propertyType(self) -> PropertyType:
         """Return property type."""
         return self._mmc.getPropertyType(*self._dp)
+
+    def deviceType(self) -> DeviceType:
+        """Return property type."""
+        return self._mmc.getDeviceType(self._device_label)
 
     def isReadOnly(self) -> bool:
         """Return True if property is read only."""
