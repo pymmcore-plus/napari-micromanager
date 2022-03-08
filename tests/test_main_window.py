@@ -6,8 +6,8 @@ import pytest
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
+from micromanager_gui import _mda
 from micromanager_gui.main_window import MainWindow
-from micromanager_gui.multid_widget import SequenceMeta
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -23,11 +23,14 @@ def test_main_window_mda(main_window: MainWindow):
         channels=["DAPI", "FITC"],
     )
 
-    main_window.mda.SEQUENCE_META[mda] = SequenceMeta(mode="mda")
+    mmc = main_window._mmc
+    _mda.SEQUENCE_META[mda] = _mda.SequenceMeta(mode="mda")
+
+    mmc.mda.events.sequenceStarted.emit(mda)
 
     for event in mda:
         frame = np.random.rand(128, 128)
-        main_window._on_mda_frame(frame, event)
+        mmc.mda.events.frameReady.emit(frame, event)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 128, 128)
 
 
@@ -98,6 +101,26 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
             else:
                 assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
                 assert data_shape == mda.shape + (512, 512)
+
+
+def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
+    # we should show the mda even if it came from outside
+    mmc = main_window._mmc
+    sequence = MDASequence(
+        channels=[{"config": "Cy5", "exposure": 1}, {"config": "FITC", "exposure": 1}],
+        time_plan={"interval": 0.1, "loops": 2},
+        z_plan={"range": 4, "step": 5},
+        axis_order="tpcz",
+        stage_positions=[(222, 1, 1), (111, 0, 0)],
+    )
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
+        mmc.run_mda(sequence)
+
+    layer_name = f"Exp_{sequence.uid}"
+    viewer = main_window.viewer
+    viewer_layer_names = [layer.name for layer in viewer.layers]
+    assert layer_name in viewer_layer_names
+    assert sequence.shape == viewer.layers[layer_name].data.shape[:-2]
 
 
 def test_refresh_safety(main_window: MainWindow):
