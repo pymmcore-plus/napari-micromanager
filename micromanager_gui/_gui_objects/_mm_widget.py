@@ -9,7 +9,6 @@ from ._config_widget import MMConfigurationWidget
 from ._group_preset_table_widget import MMGroupPresetTableWidget
 from ._mda_widget import MultiDWidget
 from ._objective_widget import MMObjectivesWidget
-from ._property_browser_widget import MMPropertyBrowserWidget
 from ._sample_explorer_widget import ExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._slider_dialog import SliderDialog
@@ -29,7 +28,6 @@ class MicroManagerWidget(QtW.QWidget):
         self.illum_btn = QtW.QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
-        self.prop_wdg = MMPropertyBrowserWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
         self.explorer = ExploreSample()
@@ -109,7 +107,6 @@ class MicroManagerWidget(QtW.QWidget):
         obj_prop_wdg_layout.setContentsMargins(5, 5, 5, 5)
         obj_prop_wdg_layout.setSpacing(7)
         obj_prop_wdg_layout.addWidget(self.obj_wdg)
-        obj_prop_wdg_layout.addWidget(self.prop_wdg)
         obj_prop_wdg.setLayout(obj_prop_wdg_layout)
         return obj_prop_wdg
 
