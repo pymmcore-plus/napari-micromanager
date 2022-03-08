@@ -24,7 +24,7 @@ class PixelSizeTable(QtW.QTableWidget):
 
         self._mmc = mmcore or get_core_singleton()
 
-        self._mmc.loadSystemConfiguration()  # just to test, to remove later
+        # self._mmc.loadSystemConfiguration()  # just to test, to remove later
 
         self._objective_device = (
             objective_device or MMObjectivesWidget()._guess_objective_device()

@@ -143,6 +143,8 @@ class MainWindow(MicroManagerWidget):
         self._prop_browser.raise_()
 
     def _show_pixel_size_table(self):
+        if len(self._mmc.getLoadedDevices()) <= 1:
+            raise Warning("System Configuration not loaded!")
         if not hasattr(self, "_px_size_wdg"):
             self._px_size_wdg = PixelSizeWidget(self._mmc)
         self._px_size_wdg.show()
