@@ -1,5 +1,4 @@
 import itertools
-import re
 from typing import Optional
 
 from pymmcore_plus import CMMCorePlus
@@ -25,7 +24,7 @@ class PixelSizeTable(QtW.QTableWidget):
 
         self._mmc = mmcore or get_core_singleton()
 
-        # self._mmc.loadSystemConfiguration()  # just to test, to remove later
+        self._mmc.loadSystemConfiguration()  # just to test, to remove later
 
         self._objective_device = (
             objective_device or MMObjectivesWidget()._guess_objective_device()
@@ -54,17 +53,17 @@ class PixelSizeTable(QtW.QTableWidget):
 
     def _on_camera_px_size_changed(self, value: float):
         row = self.sender().property("row")
-        wdg = self.cellWidget(row, 3)  # image_px_size
-        with signals_blocked(wdg):
-            wdg.setValue(
-                value / (self.mag.value() * self._mmc.getMagnificationFactor())
-            )
+        mag = self.cellWidget(row, 1)  # mag
+        img_wdg = self.cellWidget(row, 3)  # image_px_size
+        with signals_blocked(img_wdg):
+            img_wdg.setValue(value / (mag.value() * self._mmc.getMagnificationFactor()))
 
     def _on_image_px_size_changed(self, value: float):
         row = self.sender().property("row")
-        wdg = self.cellWidget(row, 2)  # camera_px_size
-        with signals_blocked(wdg):
-            wdg.setValue(value * self.mag.value())
+        mag = self.cellWidget(row, 1)  # mag
+        cam_wdg = self.cellWidget(row, 2)  # camera_px_size
+        with signals_blocked(cam_wdg):
+            cam_wdg.setValue(value * mag.value())
 
     def _on_mag_changed(self, x: int):
         row = self.sender().property("row")
@@ -73,28 +72,10 @@ class PixelSizeTable(QtW.QTableWidget):
         with signals_blocked(img_wdg):
             img_wdg.setValue(cam_wdg.value() / (x * self._mmc.getMagnificationFactor()))
 
-    def _on_obj_combobox_changed(self, obj_label: str):
-        try:
-            row = self.sender().property("row")
-        except AttributeError:
-            return
-
-        if not row:
-            return
-
-        mag_wdg = self.cellWidget(row, 1)  # mag
-
-        if match := re.search(r"(\d{1,3})[xX]", obj_label):
-            mag_wdg.setValue(int(match.groups()[0]))
-        else:
-            mag_wdg.setValue(1)
-
     def _disconnect(self, row):
-        obj_wdg = self.cellWidget(row, 0)
         mag_wdg = self.cellWidget(row, 1)
         cam_px_wdg = self.cellWidget(row, 2)
         img_px_wdg = self.cellWidget(row, 3)
-        obj_wdg.currentTextChanged.disconnect(self._on_obj_combobox_changed)
         mag_wdg.valueChanged.disconnect(self._on_mag_changed)
         cam_px_wdg.valueChanged.disconnect(self._on_camera_px_size_changed)
         img_px_wdg.valueChanged.disconnect(self._on_image_px_size_changed)
@@ -104,7 +85,6 @@ class PixelSizeTable(QtW.QTableWidget):
         self.objective_combo.setProperty("row", row)
         self.objective_labels = self._mmc.getStateLabels(self._objective_device)
         self.objective_combo.addItems(self.objective_labels)
-        self.objective_combo.currentTextChanged.connect(self._on_obj_combobox_changed)
 
         self.mag = QtW.QSpinBox()
         self.mag.setProperty("row", row)
@@ -153,7 +133,6 @@ class PixelSizeTable(QtW.QTableWidget):
     def _add_to_table(self, row: int):
         wdg_list = self._create_widgets(row)
         self._add_row(row, wdg_list)
-        self._on_obj_combobox_changed(wdg_list[0].currentText())
 
     def _add_px_cfg_to_table(self, row):
         items = self._get_px_cfg_and_objective()
@@ -163,7 +142,6 @@ class PixelSizeTable(QtW.QTableWidget):
             self._add_row(row, wdg_list)
             self.objective_combo.setCurrentText(obj)
             self.image_px_size.setValue(self._mmc.getPixelSizeUmByID(cfg))
-            self._on_obj_combobox_changed(obj)
             row += 1
 
     def _set_mm_pixel_size(self):
@@ -247,6 +225,18 @@ class PixelSizeWidget(QtW.QWidget):
             return
         self.table._disconnect(selected_row[0])
         self.table.removeRow(selected_row[0])
+        self._update_row_numbers()
+
+    def _update_row_numbers(self):
+        for r in range(self.table.rowCount()):
+            obj_wdg = self.table.cellWidget(r, 1)
+            obj_wdg.setProperty("row", r)
+            mag_wdg = self.table.cellWidget(r, 1)
+            mag_wdg.setProperty("row", r)
+            cam_px_wdg = self.table.cellWidget(r, 2)
+            cam_px_wdg.setProperty("row", r)
+            img_px_wdg = self.table.cellWidget(r, 3)
+            img_px_wdg.setProperty("row", r)
 
 
 if __name__ == "__main__":
