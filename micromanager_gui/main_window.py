@@ -16,6 +16,7 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
+from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
@@ -24,7 +25,6 @@ from ._util import (
     event_indices,
     extend_array_for_index,
 )
-from .prop_browser import PropBrowser
 
 if TYPE_CHECKING:
     import napari.layers
@@ -91,7 +91,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-        self.prop_wdg.properties_Button.clicked.connect(self._show_prop_browser)
 
         # connect comboBox
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
@@ -120,8 +119,25 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
         self.viewer.dims.events.current_step.connect(self.update_max_min)
-
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
+
+        self._add_menu()
+
+    def _add_menu(self):
+        w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
+        self._menu = QtW.QMenu("&Micro-Manager", w._qt_window)
+
+        action = self._menu.addAction("Device Property Browser...")
+        action.triggered.connect(self._show_prop_browser)
+
+        bar = w._qt_window.menuBar()
+        bar.insertMenu(list(bar.actions())[-1], self._menu)
+
+    def _show_prop_browser(self):
+        if not hasattr(self, "_prop_browser"):
+            self._prop_browser = PropertyBrowser(self._mmc, self)
+        self._prop_browser.show()
+        self._prop_browser.raise_()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
@@ -158,7 +174,6 @@ class MainWindow(MicroManagerWidget):
 
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
-        self.prop_wdg.properties_Button.setEnabled(enabled)
 
     def _refresh_options(self):
         self._refresh_channel_list()
@@ -410,11 +425,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    # property browser
-    def _show_prop_browser(self):
-        pb = PropBrowser(self._mmc, self)
-        pb.exec()
 
     # channels
     def _refresh_channel_list(self):
