@@ -16,7 +16,7 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
-from ._core_widgets import PropertyBrowser
+from ._core_widgets import PixelSizeWidget, PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import (
@@ -130,6 +130,9 @@ class MainWindow(MicroManagerWidget):
         action = self._menu.addAction("Device Property Browser...")
         action.triggered.connect(self._show_prop_browser)
 
+        action_1 = self._menu.addAction("Set Pixel Size...")
+        action_1.triggered.connect(self._show_pixel_size_table)
+
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
@@ -138,6 +141,12 @@ class MainWindow(MicroManagerWidget):
             self._prop_browser = PropertyBrowser(self._mmc, self)
         self._prop_browser.show()
         self._prop_browser.raise_()
+
+    def _show_pixel_size_table(self):
+        if not hasattr(self, "_px_size_wdg"):
+            self._px_size_wdg = PixelSizeWidget(self._mmc)
+        self._px_size_wdg.show()
+        self._px_size_wdg.raise_()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:

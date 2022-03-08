@@ -37,7 +37,7 @@ class PixelSizeTable(QtW.QTableWidget):
         vh = self.verticalHeader()
         vh.setVisible(False)
         vh.setSectionResizeMode(vh.ResizeMode.Fixed)
-        self.setSelectionBehavior(QtW.QAbstractItemView.SelectItems)
+        self.setSelectionBehavior(QtW.QAbstractItemView.SelectRows)
         self.setColumnCount(4)
         self.setHorizontalHeaderLabels(
             [
@@ -50,50 +50,44 @@ class PixelSizeTable(QtW.QTableWidget):
 
     def _on_camera_px_size_changed(self, value: float):
         row = self.camera_px_size.property("row")
+        print("CAM ROW:", row)
         wdg = self.cellWidget(row, 3)  # image_px_size
-        wdg.setValue(value / self.mag.value())
+        wdg.setText(str(value / self.mag.value()))
 
-    def _on_image_px_size_changed(self, value: float):
-        row = self.image_px_size.property("row")
-        wdg = self.cellWidget(row, 2)  # camera_px_size
-        wdg.setValue(value * self.mag.value())
-
-    def _on_mag_changed(self):
+    def _on_mag_changed(self, x: int):
         row = self.mag.property("row")
         cam_wdg = self.cellWidget(row, 2)  # camera_px_size
         img_wdg = self.cellWidget(row, 3)  # image_px_size
-        self._on_camera_px_size_changed(cam_wdg.value())
-        self._on_image_px_size_changed(img_wdg.value())
+        img_wdg.setText(str(cam_wdg.value() / x))
 
     def _on_obj_combobox_changed(self, obj_label: str):
 
         row = self.objective_combo.property("row")
         mag_wdg = self.cellWidget(row, 1)  # mag
-        cam_wdg = self.cellWidget(row, 2)  # camera_px_size
-        img_wdg = self.cellWidget(row, 3)  # image_px_size
 
         if match := re.search(r"(\d{1,3})[xX]", obj_label):
             mag_wdg.setValue(int(match.groups()[0]))
         else:
             mag_wdg.setValue(1)
-        self._on_camera_px_size_changed(cam_wdg.value())
-        self._on_image_px_size_changed(img_wdg.value())
 
     def _add_to_table(self, row: int):
 
-        self.camera_px_size = self._make_spinbox()
+        self.camera_px_size = QtW.QDoubleSpinBox()
+        self.camera_px_size.setAlignment(Qt.AlignCenter)
+        self.camera_px_size.setMinimum(0.0)
+        self.camera_px_size.setMaximum(1000.0)
+        self.camera_px_size.setValue(0.0)
         self.camera_px_size.setProperty("row", row)
         self.camera_px_size.valueChanged.connect(self._on_camera_px_size_changed)
-        self.image_px_size = self._make_spinbox()
-        self.image_px_size.setProperty("row", row)
-        self.image_px_size.setDecimals(4)
-        self.image_px_size.valueChanged.connect(self._on_image_px_size_changed)
+
+        self.image_px_size = QtW.QLineEdit()
+        self.image_px_size.setAlignment(Qt.AlignCenter)
+        self.image_px_size.setReadOnly(True)
 
         self.mag = QtW.QSpinBox()
         self.mag.setProperty("row", row)
         self.mag.setAlignment(Qt.AlignCenter)
         self.mag.setMinimum(1)
-        self.mag.setValue(10)
         self.mag.setMaximum(1000)
         self.mag.valueChanged.connect(self._on_mag_changed)
 
@@ -102,17 +96,18 @@ class PixelSizeTable(QtW.QTableWidget):
         self.objective_labels = self._mmc.getStateLabels(self._objective_device)
         self.objective_combo.addItems(self.objective_labels)
         self.objective_combo.currentTextChanged.connect(self._on_obj_combobox_changed)
-        self.objective_combo.setCurrentIndex(0)
 
-        self.a = self.setCellWidget(row, 0, self.objective_combo)
+        self.setCellWidget(row, 0, self.objective_combo)
         self.setCellWidget(row, 1, self.mag)
         self.setCellWidget(row, 2, self.camera_px_size)
         self.setCellWidget(row, 3, self.image_px_size)
 
+        self._on_obj_combobox_changed(self.objective_combo.currentText())
+
     def _set_mm_pixel_size(self):
         for r in range(self.rowCount()):
             obj_label = self.cellWidget(r, 0).currentText()
-            px_size_um = self.cellWidget(r, 3).value()
+            px_size_um = float(self.cellWidget(r, 3).text())
             mag = self.cellWidget(r, 1).value()
 
             if not px_size_um:
@@ -142,22 +137,16 @@ class PixelSizeTable(QtW.QTableWidget):
 
             self.parent().parent().close()
 
-    def _make_spinbox(self):
-        spin = QtW.QDoubleSpinBox()
-        spin.setAlignment(Qt.AlignCenter)
-        spin.setMinimum(0.0)
-        spin.setMaximum(1000.0)
-        spin.setValue(0.0)
-        return spin
-
 
 class PixelSizeWidget(QtW.QWidget):
     """Make a widget to set the pixel size configuration"""
 
-    def __init__(self) -> None:
+    def __init__(self, mmcore: Optional[CMMCorePlus] = None):
         super().__init__()
 
-        self.table = PixelSizeTable()
+        self._mmc = mmcore or get_core_singleton()
+
+        self.table = PixelSizeTable(self._mmc)
 
         main_layout = QtW.QVBoxLayout()
 
