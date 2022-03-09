@@ -5,6 +5,7 @@ from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
+from .._util import _set_font_color
 
 
 class PresetsWidget(QWidget):
@@ -38,7 +39,8 @@ class PresetsWidget(QWidget):
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
-        self._set_font_color(self.text_color)
+        # self._set_font_color(self.text_color)
+        _set_font_color(self.text_color, self._combo)
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._combo.textActivated.connect(self._on_text_activate)
 
@@ -53,17 +55,20 @@ class PresetsWidget(QWidget):
         """Used in case there is only one preset"""
         if len(self._presets) == 1:
             self._mmc.setConfig(self._group, text)
-            self._set_font_color(self.text_color)
+            # self._set_font_color(self.text_color)
+            _set_font_color(self.text_color, self._combo)
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
-        self._set_font_color(self.text_color)
+        # self._set_font_color(self.text_color)
+        _set_font_color(self.text_color, self._combo)
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                self._set_font_color(self.text_color)
+                # self._set_font_color(self.text_color)
+                _set_font_color(self.text_color, self._combo)
 
     def value(self) -> str:
         return self._combo.currentText()
@@ -89,17 +94,19 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
 
-    def _set_font_color(self, color: str):
-        self._combo.setEditable(True)
-        self._combo.setStyleSheet(f"color: {color};")
-        self._combo.setEditable(False)
+    # def _set_font_color(self, color: str):
+    #     self._combo.setEditable(True)
+    #     self._combo.setStyleSheet(f"color: {color};")
+    #     self._combo.setEditable(False)
 
     def _highlight_if_preset_state_changed(self, group: str, preset: str):
         """Set the text color to magenta if a preset has changed"""
         if group != self._group and not self._mmc.getCurrentConfig(self._group):
-            self._set_font_color("magenta")
+            # self._set_font_color("magenta")
+            _set_font_color("magenta", self._combo)
         else:
-            self._set_font_color(self.text_color)
+            # self._set_font_color(self.text_color)
+            _set_font_color(self.text_color, self._combo)
 
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
         """Set the text color to magenta if a preset property has changed"""
@@ -121,9 +128,11 @@ class PresetsWidget(QWidget):
                 return
 
         if self._mmc.getCurrentConfig(self._group) != self._combo.currentText():
-            self._set_font_color("magenta")
+            # self._set_font_color("magenta")
+            _set_font_color("magenta", self._combo)
         else:
-            self._set_font_color(self.text_color)
+            # self._set_font_color(self.text_color)
+            _set_font_color(self.text_color, self._combo)
 
     def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
