@@ -172,8 +172,8 @@ class ComboMessageBox(QDialog):
         return self._combo.currentText()
 
 
-def _set_font_color(self, color: str, wdg: QWidget):
-    if hasattr(wdg, "setEditable"):
+def _set_font_color(color: str, wdg: QWidget):
+    if isinstance(wdg, QComboBox):
         wdg.setEditable(True)
         wdg.setStyleSheet(f"color: {color};")
         wdg.setEditable(False)
