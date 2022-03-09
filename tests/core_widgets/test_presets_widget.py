@@ -19,7 +19,7 @@ def test_preset_widget(qtbot, global_mmcore):
         wdg.setValue(presets[0])
         assert global_mmcore.getCurrentConfig(group) == presets[0]
 
-        wdg._disconnect()
+        wdg.disconnect()
         # once disconnected, core changes shouldn't call out to the widget
         global_mmcore.setConfig(group, presets[-1])
         assert global_mmcore.getCurrentConfig(group) != wdg.value()
