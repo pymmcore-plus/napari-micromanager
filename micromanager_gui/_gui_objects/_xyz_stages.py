@@ -8,6 +8,8 @@ class MMStagesWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setSpacing(0)
         self._mmc = _core.get_core_singleton()
         self._on_cfg_loaded()
         self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)

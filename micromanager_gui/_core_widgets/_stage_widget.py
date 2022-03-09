@@ -10,6 +10,23 @@ from .. import _core
 
 PREFIX = MDI6.__name__.lower()
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage, DeviceType.AutoFocus}
+STYLE = """
+QPushButton {
+    border: none;
+    background: transparent;
+    color: rgb(0, 180, 0);
+}
+QPushButton:hover:!pressed {
+    color: rgb(0, 255, 0);
+}
+QPushButton:pressed {
+    color: rgb(0, 100, 0);
+}
+QSpinBox {
+    min-width: 40px;
+    height: 20px;
+}
+"""
 
 
 class StageWidget(QWidget):
@@ -36,16 +53,16 @@ class StageWidget(QWidget):
         self._mmc = mmcore or _core.get_core_singleton()
         self._device = device or self._mmc.getXYStageDevice()
         self._dtype = self._mmc.getDeviceType(self._device)
+        self.setStyleSheet(STYLE)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
 
         self.setLayout(QGridLayout())
-        self.layout().setSpacing(1)
+        self.layout().setSpacing(0)
         self._snap_on_click = True
 
         self._step = QSpinBox()
         self._step.setValue(10)
         self._step.setMaximum(9999)
-        self._step.setFixedSize(50, 25)
         self._step.valueChanged.connect(self._update_ttips)
         self._step.clearFocus()
         self._step.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
@@ -54,11 +71,11 @@ class StageWidget(QWidget):
         for glpyh, (row, col, xmag, ymag) in self.BTNS.items():
             btn = QPushButton()
             btn.setFlat(True)
-            btn.setFixedSize(30, 30)
+            btn.setFixedSize(33, 33)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
             setTextIcon(btn, glpyh)
             btn.clicked.connect(self._on_click)
-            btn.setStyleSheet("border: none; color: green")
             self.layout().addWidget(btn, row, col, Qt.AlignmentFlag.AlignCenter)
 
         # self._step.setStyleSheet("background:transparent; border: 0;")
