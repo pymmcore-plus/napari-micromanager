@@ -59,7 +59,7 @@ class ChannelWidget(QWidget):
         self, channel_group: str
     ) -> Union[PresetsWidget, QComboBox]:
         if channel_group:
-            channel_combo = PresetsWidget(channel_group)
+            channel_combo = PresetsWidget(channel_group, text_color="white")
         else:
             channel_combo = QComboBox()
             channel_combo.setEnabled(False)
