@@ -44,11 +44,10 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         self.table_wdg.setHorizontalHeaderLabels(["Group", "Preset"])
 
     def _disconnect_wdgs(self):
-        # mainly imprtant to disconnect _highlight_if_prop_changed()
         for r in range(self.table_wdg.rowCount()):
             wdg = self.table_wdg.cellWidget(r, 1)
             if isinstance(wdg, PresetsWidget):
-                wdg._disconnect()
+                wdg.disconnect()
 
     def _populate_table(self):
         self._reset_table()
@@ -58,8 +57,6 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                 self.table_wdg.setItem(row, 0, QtW.QTableWidgetItem(str(group)))
                 wdg = self.create_group_widget(group)
                 self.table_wdg.setCellWidget(row, 1, wdg)
-                if not self._mmc.getCurrentConfig(group):
-                    wdg._set_font_color("magenta")
 
     def _get_cfg_data(self, group: str, preset: str):
         """
@@ -89,6 +86,6 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         device, property, _, dev_prop_val_count = self._get_cfg_data(group, presets[0])
 
         if len(presets) > 1 or dev_prop_val_count > 1:
-            return PresetsWidget(group, text_color="white")
+            return PresetsWidget(group)
         else:
             return PropertyWidget(device, property)
