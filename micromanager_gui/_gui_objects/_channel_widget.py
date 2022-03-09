@@ -73,12 +73,9 @@ class ChannelWidget(QWidget):
 
     def _on_channel_group_changed(self, new_channel_group: str):
         """When Channel group is changed, recreate combo."""
-        if isinstance(self.channel_combo, QComboBox):
-            self._clear_previous_device_widget()
-            self.channel_combo = self._create_channel_widget(new_channel_group)
-            self.layout().addWidget(self.channel_combo)
-        else:
-            self.channel_combo.refresh()
+        self._clear_previous_device_widget()
+        self.channel_combo = self._create_channel_widget(new_channel_group)
+        self.layout().addWidget(self.channel_combo)
 
     def _clear_previous_device_widget(self):
         self.channel_combo.setParent(None)
