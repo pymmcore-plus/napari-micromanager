@@ -68,7 +68,8 @@ class ChannelWidget(QWidget):
     def _on_sys_cfg_loaded(self):
         if isinstance(self.channel_combo, QComboBox):
             self._clear_previous_device_widget()
-            self.channel_combo = self._create_channel_widget(self._channel_group)
+            channel_group = self._channel_group or self._get_channel_group()
+            self.channel_combo = self._create_channel_widget(channel_group)
             self.layout().addWidget(self.channel_combo)
 
     def _on_channel_group_changed(self, new_channel_group: str):
@@ -77,7 +78,7 @@ class ChannelWidget(QWidget):
             self._clear_previous_device_widget()
             self.channel_combo = self._create_channel_widget(new_channel_group)
             self.layout().addWidget(self.channel_combo)
-        else:  # if is a PresetsWidget()
+        else:
             self.channel_combo.refresh()
 
     def _clear_previous_device_widget(self):

@@ -5,6 +5,8 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
+from ._channel_widget import ChannelWidget
+
 ICONS = Path(__file__).parent.parent / "icons"
 
 
@@ -61,7 +63,7 @@ class MMTabWidget(QtW.QWidget):
         self.snap_channel_groupBox.setMaximumHeight(70)
         self.snap_channel_groupBox.setTitle("Channel")
         self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
-        self.snap_channel_comboBox = QtW.QComboBox()
+        self.snap_channel_comboBox = ChannelWidget()
         self.snap_channel_groupBox_layout.addWidget(self.snap_channel_comboBox)
         self.snap_channel_groupBox.setLayout(self.snap_channel_groupBox_layout)
         self.snap_live_tab_layout.addWidget(self.snap_channel_groupBox, 0, 0)
