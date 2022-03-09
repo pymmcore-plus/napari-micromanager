@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 import napari
 import numpy as np
 from napari.experimental import link_layers
-from pymmcore_plus import DeviceType
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
@@ -72,8 +71,8 @@ class MainWindow(MicroManagerWidget):
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
-        sig.stagePositionChanged.connect(self._on_stage_position_changed)
+        # sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
+        # sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
 
         # mda events
@@ -83,19 +82,13 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         # connect buttons
-        self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
-        self.stage_wdg.right_Button.clicked.connect(self.stage_x_right)
-        self.stage_wdg.y_up_Button.clicked.connect(self.stage_y_up)
-        self.stage_wdg.y_down_Button.clicked.connect(self.stage_y_down)
-        self.stage_wdg.up_Button.clicked.connect(self.stage_z_up)
-        self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
 
-        # connect comboBox
-        self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
-            self._set_focus_device
-        )
+        # # connect comboBox
+        # self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
+        #     self._set_focus_device
+        # )
 
         self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
             self._channel_changed
@@ -155,14 +148,14 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.snap_live_tab.setEnabled(False)
 
         if self._mmc.getXYStageDevice():
-            self.stage_wdg.XY_groupBox.setEnabled(enabled)
+            self.stage_wdg.setEnabled(enabled)
         else:
-            self.stage_wdg.XY_groupBox.setEnabled(False)
+            self.stage_wdg.setEnabled(False)
 
-        if self._mmc.getFocusDevice():
-            self.stage_wdg.Z_groupBox.setEnabled(enabled)
-        else:
-            self.stage_wdg.Z_groupBox.setEnabled(False)
+        # if self._mmc.getFocusDevice():
+        #     self.stage_wdg.Z_groupBox.setEnabled(enabled)
+        # else:
+        #     self.stage_wdg.Z_groupBox.setEnabled(False)
 
         self.illum_btn.setEnabled(enabled)
 
@@ -177,8 +170,8 @@ class MainWindow(MicroManagerWidget):
 
     def _refresh_options(self):
         self._refresh_channel_list()
-        self._refresh_positions()
-        self._refresh_xyz_devices()
+        # self._refresh_positions()
+        # self._refresh_xyz_devices()
 
     def update_viewer(self, data=None):
         if data is None:
@@ -466,45 +459,45 @@ class MainWindow(MicroManagerWidget):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     # stages
-    def _refresh_positions(self):
-        if self._mmc.getXYStageDevice():
-            x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
-            self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
-            self.stage_wdg.XY_groupBox.setEnabled(True)
-        else:
-            self.stage_wdg.XY_groupBox.setEnabled(False)
+    # def _refresh_positions(self):
+    #     if self._mmc.getXYStageDevice():
+    #         x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
+    #         # self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
+    #         self.stage_wdg.XY_groupBox.setEnabled(True)
+    #     else:
+    #         self.stage_wdg.XY_groupBox.setEnabled(False)
 
-        if self._mmc.getFocusDevice():
-            self.stage_wdg.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
-            self.stage_wdg.Z_groupBox.setEnabled(True)
-        else:
-            self.stage_wdg.Z_groupBox.setEnabled(False)
+    #     if self._mmc.getFocusDevice():
+    #         self.stage_wdg.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
+    #         self.stage_wdg.Z_groupBox.setEnabled(True)
+    #     else:
+    #         self.stage_wdg.Z_groupBox.setEnabled(False)
 
-    def _refresh_xyz_devices(self):
+    # def _refresh_xyz_devices(self):
 
-        # since there is no offset control yet:
-        self.stage_wdg.offset_Z_groupBox.setEnabled(False)
+    #     # since there is no offset control yet:
+    #     self.stage_wdg.offset_Z_groupBox.setEnabled(False)
 
-        self.stage_wdg.focus_device_comboBox.clear()
-        self.stage_wdg.xy_device_comboBox.clear()
+    #     self.stage_wdg.focus_device_comboBox.clear()
+    #     self.stage_wdg.xy_device_comboBox.clear()
 
-        xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
+    #     xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
 
-        focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
+    #     focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
 
-        if not xy_stage_devs:
-            self.stage_wdg.XY_groupBox.setEnabled(False)
-        else:
-            self.stage_wdg.XY_groupBox.setEnabled(True)
-            self.stage_wdg.xy_device_comboBox.addItems(xy_stage_devs)
-            self._set_xy_stage_device()
+    #     if not xy_stage_devs:
+    #         self.stage_wdg.XY_groupBox._refresh_xyz_devices(False)
+    #     else:
+    #         self.stage_wdg.XY_groupBox.setEnabled(True)
+    #         self.stage_wdg.xy_device_comboBox.addItems(xy_stage_devs)
+    #         self._set_xy_stage_device()
 
-        if not focus_devs:
-            self.stage_wdg.Z_groupBox.setEnabled(False)
-        else:
-            self.stage_wdg.Z_groupBox.setEnabled(True)
-            self.stage_wdg.focus_device_comboBox.addItems(focus_devs)
-            self._set_focus_device()
+    #     if not focus_devs:
+    #         self.stage_wdg.Z_groupBox.setEnabled(False)
+    #     else:
+    #         self.stage_wdg.Z_groupBox.setEnabled(True)
+    #         self.stage_wdg.focus_device_comboBox.addItems(focus_devs)
+    #         self._set_focus_device()
 
     def _set_xy_stage_device(self):
         if not self.stage_wdg.xy_device_comboBox.count():
@@ -516,9 +509,9 @@ class MainWindow(MicroManagerWidget):
             return
         self._mmc.setFocusDevice(self.stage_wdg.focus_device_comboBox.currentText())
 
-    def _on_xy_stage_position_changed(self, name, x, y):
-        self.stage_wdg.x_lineEdit.setText(f"{x:.1f}")
-        self.stage_wdg.y_lineEdit.setText(f"{y:.1f}")
+    # def _on_xy_stage_position_changed(self, name, x, y):
+    #     self.stage_wdg.x_lineEdit.setText(f"{x:.1f}")
+    #     self.stage_wdg.y_lineEdit.setText(f"{y:.1f}")
 
     def _on_stage_position_changed(self, name, value):
         if "z" in name.lower():  # hack

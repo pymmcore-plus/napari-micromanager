@@ -1,69 +1,30 @@
-from pathlib import Path
+from qtpy.QtWidgets import QHBoxLayout, QWidget
 
-from qtpy import QtWidgets as QtW
-from qtpy import uic
-from qtpy.QtCore import QSize
-from qtpy.QtGui import QIcon
-
-ICONS = Path(__file__).parent.parent / "icons"
+from .. import _core
+from .._core_widgets._stage_widget import StageWidget
 
 
-class MMStagesWidget(QtW.QWidget):
-
-    MM_XYZ_STAGE = str(Path(__file__).parent / "mm_xyz_stage.ui")
-
-    # The MM_XYZ_STAGE above contains these objects:
-
-    XY_groupBox: QtW.QGroupBox
-    xy_device_comboBox: QtW.QComboBox
-    xy_step_size_SpinBox: QtW.QSpinBox
-    y_up_Button: QtW.QPushButton
-    y_down_Button: QtW.QPushButton
-    left_Button: QtW.QPushButton
-    right_Button: QtW.QPushButton
-
-    Z_groupBox: QtW.QGroupBox
-    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    focus_device_comboBox: QtW.QComboBox
-    up_Button: QtW.QPushButton
-    down_Button: QtW.QPushButton
-
-    offset_Z_groupBox: QtW.QGroupBox
-    offset_device_comboBox: QtW.QComboBox
-    offset_z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    offset_up_Button: QtW.QPushButton
-    offset_down_Button: QtW.QPushButton
-
-    x_lineEdit: QtW.QLineEdit
-    y_lineEdit: QtW.QLineEdit
-    z_lineEdit: QtW.QLineEdit
-
-    snap_on_click_checkBox: QtW.QCheckBox
-
+class MMStagesWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(self.MM_XYZ_STAGE, self)
+        self.setLayout(QHBoxLayout())
+        self._mmc = _core.get_core_singleton()
+        self._on_cfg_loaded()
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
 
-        # button icons
-        for attr, icon in [
-            ("left_Button", "left_arrow_1_green.svg"),
-            ("right_Button", "right_arrow_1_green.svg"),
-            ("y_up_Button", "up_arrow_1_green.svg"),
-            ("y_down_Button", "down_arrow_1_green.svg"),
-            ("up_Button", "up_arrow_1_green.svg"),
-            ("down_Button", "down_arrow_1_green.svg"),
-            ("offset_up_Button", "up_arrow_1_green.svg"),
-            ("offset_down_Button", "down_arrow_1_green.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
+    def _on_cfg_loaded(self):
+        self._clear()
+        if dev := self._mmc.getXYStageDevice():
+            self.layout().addWidget(StageWidget(device=dev))
+        if dev := self._mmc.getFocusDevice():
+            self.layout().addWidget(StageWidget(device=dev))
+        if dev := self._mmc.getAutoFocusDevice():
+            self.layout().addWidget(StageWidget(device=dev))
+        self.resize(self.sizeHint())
 
-
-if __name__ == "__main__":
-    import sys
-
-    app = QtW.QApplication(sys.argv)
-    win = MMStagesWidget()
-    win.show()
-    sys.exit(app.exec_())
+    def _clear(self):
+        for i in range(self.layout().count()):
+            if item := self.layout().takeAt(i):
+                if wdg := item.widget():
+                    wdg.setParent(None)
+                    wdg.deleteLater()

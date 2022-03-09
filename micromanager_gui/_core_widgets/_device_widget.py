@@ -97,6 +97,10 @@ class DeviceWidget(QWidget):
         return _map[dev_type](device_label)
 
 
+class GenericDeviceWidget(DeviceWidget):
+    ...
+
+
 class StateDeviceWidget(DeviceWidget):
     """Widget with a ComboBox to control the states of a StateDevice.
 
