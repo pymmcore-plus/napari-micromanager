@@ -6,7 +6,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QGridLayout, QPushButton, QSpinBox, QWidget
 from superqt.fonticon import setTextIcon
 
-from .. import _core
+from micromanager_gui import _core
 
 PREFIX = MDI6.__name__.lower()
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage, DeviceType.AutoFocus}
@@ -23,8 +23,10 @@ QPushButton:pressed {
     color: rgb(0, 100, 0);
 }
 QSpinBox {
-    min-width: 40px;
-    height: 20px;
+    min-width: 36px;
+    height: 18px;
+    border: 1px solid #CCC;
+    background: transparent;
 }
 """
 
@@ -65,6 +67,7 @@ class StageWidget(QWidget):
         self._step.setMaximum(9999)
         self._step.valueChanged.connect(self._update_ttips)
         self._step.clearFocus()
+        self._step.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, 0)
         self._step.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self._step.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -141,6 +144,7 @@ class StageWidget(QWidget):
             self._mmc.setAutoFocusOffset(y)
         else:
             self._mmc.setRelativePosition(self._device, y)
+        self._mmc.waitForDevice(self._device)
         if self._snap_on_click:
             self._mmc.snap()
 
