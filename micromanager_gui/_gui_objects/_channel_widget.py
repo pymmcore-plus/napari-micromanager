@@ -4,8 +4,9 @@ from pymmcore_plus import CMMCorePlus
 from qtpy.QtWidgets import QApplication, QComboBox, QVBoxLayout, QWidget
 
 from micromanager_gui import _core
-from micromanager_gui._core_widgets._presets_widget import PresetsWidget
-from micromanager_gui._util import ComboMessageBox
+
+from .._core_widgets._presets_widget import PresetsWidget
+from .._util import ComboMessageBox, _set_wdg_color
 
 
 class ChannelWidget(QWidget):
@@ -68,18 +69,26 @@ class ChannelWidget(QWidget):
     def _on_sys_cfg_loaded(self):
         self._clear_previous_device_widget()
         channel_group = self._channel_group or self._get_channel_group()
-        self.channel_combo = self._create_channel_widget(channel_group)
-        self.layout().addWidget(self.channel_combo)
+        self._update_widget(channel_group)
 
     def _on_channel_group_changed(self, new_channel_group: str):
         """When Channel group is changed, recreate combo."""
         self._clear_previous_device_widget()
-        self.channel_combo = self._create_channel_widget(new_channel_group)
-        self.layout().addWidget(self.channel_combo)
+        self._update_widget(new_channel_group)
 
     def _clear_previous_device_widget(self):
         self.channel_combo.setParent(None)
         self.channel_combo.deleteLater()
+
+    def _update_widget(self, channel_group):
+        self.channel_combo = self._create_channel_widget(channel_group)
+        self.layout().addWidget(self.channel_combo)
+        if isinstance(self.channel_combo, PresetsWidget):
+            self._set_wdg_color(channel_group, self.channel_combo._combo)
+
+    def _set_wdg_color(self, channel_group: str, wdg: QWidget):
+        if not self._mmc.getCurrentConfig(channel_group):
+            _set_wdg_color("magenta", wdg)
 
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
