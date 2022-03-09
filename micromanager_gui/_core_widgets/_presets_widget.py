@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from pymmcore_plus import CMMCorePlus
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
@@ -12,12 +13,13 @@ class PresetsWidget(QWidget):
     def __init__(
         self,
         group: str,
+        mmcore: Optional[CMMCorePlus] = None,
         parent: Optional[QWidget] = None,
     ) -> None:
 
         super().__init__(parent)
 
-        self._mmc = get_core_singleton()
+        self._mmc = mmcore or get_core_singleton()
 
         self._group = group
 
