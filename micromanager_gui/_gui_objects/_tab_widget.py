@@ -17,7 +17,7 @@ class MMTabWidget(QtW.QWidget):
     tabWidget: QtW.QTabWidget
     snap_live_tab: QtW.QWidget
     snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: QtW.QComboBox
+    snap_channel_comboBox: ChannelWidget
     exp_groupBox: QtW.QGroupBox
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
