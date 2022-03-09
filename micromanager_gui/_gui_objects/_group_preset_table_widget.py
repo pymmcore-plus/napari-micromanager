@@ -5,6 +5,7 @@ from qtpy.QtWidgets import QVBoxLayout
 from .. import _core
 from .._core_widgets._presets_widget import PresetsWidget
 from .._core_widgets._property_widget import PropertyWidget
+from .._util import _set_font_color
 
 
 class MainTable(QtW.QTableWidget):
@@ -41,7 +42,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         self._disconnect_wdgs()
         self.table_wdg.clearContents()
         self.table_wdg.setRowCount(0)
-        self.table_wdg.setHorizontalHeaderLabels(["Group", "Preset"])
+        # self.table_wdg.setHorizontalHeaderLabels(["Group", "Preset"])
 
     def _disconnect_wdgs(self):
         for r in range(self.table_wdg.rowCount()):
@@ -57,6 +58,12 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                 self.table_wdg.setItem(row, 0, QtW.QTableWidgetItem(str(group)))
                 wdg = self.create_group_widget(group)
                 self.table_wdg.setCellWidget(row, 1, wdg)
+                if isinstance(wdg, PresetsWidget):
+                    wdg = wdg._combo
+                elif isinstance(wdg, PropertyWidget):
+                    wdg = wdg._value_widget
+                if not self._mmc.getCurrentConfig(group):
+                    _set_font_color("magenta", wdg)
 
     def _get_cfg_data(self, group: str, preset: str):
         """
