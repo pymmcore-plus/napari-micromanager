@@ -1,9 +1,5 @@
-from pathlib import Path
-
 from micromanager_gui._gui_objects._channel_widget import ChannelWidget
 from micromanager_gui.main_window import MainWindow
-
-test_cfg = Path(__file__).parent / "test_config.cfg"
 
 
 def test_channel_widget(
