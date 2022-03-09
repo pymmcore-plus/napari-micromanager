@@ -5,7 +5,7 @@ from qtpy.QtWidgets import QVBoxLayout
 from .. import _core
 from .._core_widgets._presets_widget import PresetsWidget
 from .._core_widgets._property_widget import PropertyWidget
-from .._util import _set_font_color
+from .._util import _set_wdg_color
 
 
 class MainTable(QtW.QTableWidget):
@@ -63,7 +63,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                 elif isinstance(wdg, PropertyWidget):
                     wdg = wdg._value_widget
                 if not self._mmc.getCurrentConfig(group):
-                    _set_font_color("magenta", wdg)
+                    _set_wdg_color("magenta", wdg)
 
     def _get_cfg_data(self, group: str, preset: str):
         """
