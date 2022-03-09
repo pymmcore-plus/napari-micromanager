@@ -48,7 +48,7 @@ class PresetsWidget(QWidget):
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
 
-        self.destroyed.connect(self._disconnect)
+        self.destroyed.connect(self.disconnect)
 
     def _on_text_activate(self, text: str):
         """Used in case there is only one preset"""
@@ -121,7 +121,7 @@ class PresetsWidget(QWidget):
         else:
             _set_wdg_color(self.text_color, self._combo)
 
-    def _disconnect(self):
+    def disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
         self._mmc.events.configSet.disconnect(self._highlight_if_preset_state_changed)
         self._mmc.events.systemConfigurationLoaded.disconnect(self.refresh)
