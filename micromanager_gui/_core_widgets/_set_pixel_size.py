@@ -50,35 +50,6 @@ class PixelSizeTable(QtW.QTableWidget):
         if self._mmc.getAvailablePixelSizeConfigs():
             self._add_px_cfg_to_table(self.rowCount())
 
-    def _on_camera_px_size_changed(self, value: float):
-        row = self.sender().property("row")
-        mag = self.cellWidget(row, 1)  # mag
-        img_wdg = self.cellWidget(row, 3)  # image_px_size
-        with signals_blocked(img_wdg):
-            img_wdg.setValue(value / (mag.value() * self._mmc.getMagnificationFactor()))
-
-    def _on_image_px_size_changed(self, value: float):
-        row = self.sender().property("row")
-        mag = self.cellWidget(row, 1)  # mag
-        cam_wdg = self.cellWidget(row, 2)  # camera_px_size
-        with signals_blocked(cam_wdg):
-            cam_wdg.setValue(value * mag.value())
-
-    def _on_mag_changed(self, x: int):
-        row = self.sender().property("row")
-        cam_wdg = self.cellWidget(row, 2)  # camera_px_size
-        img_wdg = self.cellWidget(row, 3)  # image_px_size
-        with signals_blocked(img_wdg):
-            img_wdg.setValue(cam_wdg.value() / (x * self._mmc.getMagnificationFactor()))
-
-    def _disconnect(self, row):
-        mag_wdg = self.cellWidget(row, 1)
-        cam_px_wdg = self.cellWidget(row, 2)
-        img_px_wdg = self.cellWidget(row, 3)
-        mag_wdg.valueChanged.disconnect(self._on_mag_changed)
-        cam_px_wdg.valueChanged.disconnect(self._on_camera_px_size_changed)
-        img_px_wdg.valueChanged.disconnect(self._on_image_px_size_changed)
-
     def _create_widgets(self, row):
         self.objective_combo = QtW.QComboBox()
         self.objective_combo.setProperty("row", row)
@@ -110,6 +81,35 @@ class PixelSizeTable(QtW.QTableWidget):
         spin.setProperty("row", row)
         return spin
 
+    def _on_camera_px_size_changed(self, value: float):
+        row = self.sender().property("row")
+        mag = self.cellWidget(row, 1)
+        img_wdg = self.cellWidget(row, 3)
+        with signals_blocked(img_wdg):
+            img_wdg.setValue(value / (mag.value() * self._mmc.getMagnificationFactor()))
+
+    def _on_image_px_size_changed(self, value: float):
+        row = self.sender().property("row")
+        mag = self.cellWidget(row, 1)
+        cam_wdg = self.cellWidget(row, 2)
+        with signals_blocked(cam_wdg):
+            cam_wdg.setValue(value * mag.value())
+
+    def _on_mag_changed(self, x: int):
+        row = self.sender().property("row")
+        cam_wdg = self.cellWidget(row, 2)
+        img_wdg = self.cellWidget(row, 3)
+        with signals_blocked(img_wdg):
+            img_wdg.setValue(cam_wdg.value() / (x * self._mmc.getMagnificationFactor()))
+
+    def _disconnect(self, row):
+        mag_wdg = self.cellWidget(row, 1)
+        cam_px_wdg = self.cellWidget(row, 2)
+        img_px_wdg = self.cellWidget(row, 3)
+        mag_wdg.valueChanged.disconnect(self._on_mag_changed)
+        cam_px_wdg.valueChanged.disconnect(self._on_camera_px_size_changed)
+        img_px_wdg.valueChanged.disconnect(self._on_image_px_size_changed)
+
     def _add_row(self, row, items: list):
         self.setCellWidget(row, 0, items[0])
         self.setCellWidget(row, 1, items[1])
@@ -124,7 +124,7 @@ class PixelSizeTable(QtW.QTableWidget):
         for cfg in self._mmc.getAvailablePixelSizeConfigs():
             cfg_data = list(itertools.chain(*self._mmc.getPixelSizeConfigData(cfg)))
 
-            c_o = [(o, cfg) for o in objective_labels if o in cfg_data]
+            c_o = [(obj, cfg) for obj in objective_labels if obj in cfg_data]
 
             cfg_obj.append(c_o[0])
 
@@ -180,9 +180,7 @@ class PixelSizeTable(QtW.QTableWidget):
 class PixelSizeWidget(QtW.QWidget):
     """Make a widget to set the pixel size configuration"""
 
-    def __init__(
-        self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QtW.QWidget] = None
-    ):
+    def __init__(self, mmcore: Optional[CMMCorePlus] = None, parent=None):
         super().__init__(parent)
 
         self._mmc = mmcore or get_core_singleton()

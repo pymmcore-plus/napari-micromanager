@@ -146,8 +146,7 @@ class MainWindow(MicroManagerWidget):
         if len(self._mmc.getLoadedDevices()) <= 1:
             raise Warning("System Configuration not loaded!")
         if not hasattr(self, "_px_size_wdg"):
-            self._px_size_wdg = PixelSizeWidget(self._mmc)
-            # self._px_size_wdg = PixelSizeWidget(self._mmc, self)
+            self._px_size_wdg = PixelSizeWidget(self._mmc, self)
             self._px_size_wdg.setWindowFlags(
                 Qt.Window
                 | Qt.WindowTitleHint
