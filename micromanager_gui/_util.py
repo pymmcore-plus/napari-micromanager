@@ -170,3 +170,7 @@ class ComboMessageBox(QDialog):
 
     def currentText(self) -> str:
         return self._combo.currentText()
+
+
+def _set_wdg_color(color: str, wdg: QWidget):
+    wdg.setStyleSheet(f"color: {color};")
