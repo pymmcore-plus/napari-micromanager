@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -13,7 +14,8 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-def test_main_window_mda(main_window: MainWindow):
+@pytest.mark.parametrize("zarr", ["zarr", "numpy"])
+def test_main_window_mda(main_window: MainWindow, zarr):
 
     assert not main_window.viewer.layers
 
@@ -26,19 +28,25 @@ def test_main_window_mda(main_window: MainWindow):
     mmc = main_window._mmc
     _mda.SEQUENCE_META[mda] = _mda.SequenceMeta(mode="mda")
 
-    mmc.mda.events.sequenceStarted.emit(mda)
+    if zarr == "numpy":
+        with patch("micromanager_gui.main_window.zarr", None):
+            mmc.mda.events.sequenceStarted.emit(mda)
+    else:
+        mmc.mda.events.sequenceStarted.emit(mda)
 
+    img_shape = (mmc.getImageWidth(), mmc.getImageHeight())
     for event in mda:
-        frame = np.random.rand(128, 128)
+        frame = np.random.rand(*img_shape)
         mmc.mda.events.frameReady.emit(frame, event)
-    assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 128, 128)
+    assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
 
 
+@pytest.mark.parametrize("zarr", ["zarr", "numpy"])
 @pytest.mark.parametrize("Z", ["", "withZ"])
 @pytest.mark.parametrize("splitC", ["", "splitC"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
-def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
+def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, zarr):
     import tempfile
 
     do_save = True
@@ -85,7 +93,11 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
             mda = _mda
 
         with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
-            _mda._on_run_clicked()
+            if zarr == "numpy":
+                with patch("micromanager_gui.main_window.zarr", None):
+                    _mda._on_run_clicked()
+            else:
+                _mda._on_run_clicked()
 
         assert mda is not None
         data_shape = main_window.viewer.layers[-1].data.shape

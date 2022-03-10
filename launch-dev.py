@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import napari
+import numpy as np
 from useq import MDASequence
 
 v = napari.Viewer()
@@ -11,8 +12,8 @@ core.loadSystemConfiguration(str(Path(__file__).parent / "tests" / "test_config.
 
 sequence = MDASequence(
     channels=["Cy5", {"config": "FITC", "exposure": 50}],
-    time_plan={"interval": 2, "loops": 5},
-    z_plan={"range": 4, "step": 0.5},
+    time_plan={"interval": 2, "loops": 2},
+    z_plan={"range": 2, "step": 0.5},
     axis_order="tpcz",
     stage_positions=[(222, 1, 1), (111, 0, 0)],
 )
@@ -30,7 +31,7 @@ explorer.channel_explorer_comboBox.setCurrentText("FITC")
 
 # fill napari-console with useful variables
 v.window._qt_viewer.console.push(
-    {"main_window": main_window, "mmc": core, "sequence": sequence}
+    {"main_window": main_window, "mmc": core, "sequence": sequence, "np": np}
 )
 
 napari.run()
