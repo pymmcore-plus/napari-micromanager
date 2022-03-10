@@ -71,8 +71,6 @@ class MainWindow(MicroManagerWidget):
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        # sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
-        # sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
 
         # mda events
@@ -84,11 +82,6 @@ class MainWindow(MicroManagerWidget):
         # connect buttons
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-
-        # # connect comboBox
-        # self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
-        #     self._set_focus_device
-        # )
 
         self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
             self._channel_changed
@@ -146,16 +139,6 @@ class MainWindow(MicroManagerWidget):
             self._camera_group_wdg(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
-
-        if self._mmc.getXYStageDevice():
-            self.stage_wdg.setEnabled(enabled)
-        else:
-            self.stage_wdg.setEnabled(False)
-
-        # if self._mmc.getFocusDevice():
-        #     self.stage_wdg.Z_groupBox.setEnabled(enabled)
-        # else:
-        #     self.stage_wdg.Z_groupBox.setEnabled(False)
 
         self.illum_btn.setEnabled(enabled)
 
@@ -457,106 +440,3 @@ class MainWindow(MicroManagerWidget):
 
     def _channel_changed(self, newChannel: str):
         self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
-
-    # stages
-    # def _refresh_positions(self):
-    #     if self._mmc.getXYStageDevice():
-    #         x, y = self._mmc.getXPosition(), self._mmc.getYPosition()
-    #         # self._on_xy_stage_position_changed(self._mmc.getXYStageDevice(), x, y)
-    #         self.stage_wdg.XY_groupBox.setEnabled(True)
-    #     else:
-    #         self.stage_wdg.XY_groupBox.setEnabled(False)
-
-    #     if self._mmc.getFocusDevice():
-    #         self.stage_wdg.z_lineEdit.setText(f"{self._mmc.getZPosition():.1f}")
-    #         self.stage_wdg.Z_groupBox.setEnabled(True)
-    #     else:
-    #         self.stage_wdg.Z_groupBox.setEnabled(False)
-
-    # def _refresh_xyz_devices(self):
-
-    #     # since there is no offset control yet:
-    #     self.stage_wdg.offset_Z_groupBox.setEnabled(False)
-
-    #     self.stage_wdg.focus_device_comboBox.clear()
-    #     self.stage_wdg.xy_device_comboBox.clear()
-
-    #     xy_stage_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice))
-
-    #     focus_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.StageDevice))
-
-    #     if not xy_stage_devs:
-    #         self.stage_wdg.XY_groupBox._refresh_xyz_devices(False)
-    #     else:
-    #         self.stage_wdg.XY_groupBox.setEnabled(True)
-    #         self.stage_wdg.xy_device_comboBox.addItems(xy_stage_devs)
-    #         self._set_xy_stage_device()
-
-    #     if not focus_devs:
-    #         self.stage_wdg.Z_groupBox.setEnabled(False)
-    #     else:
-    #         self.stage_wdg.Z_groupBox.setEnabled(True)
-    #         self.stage_wdg.focus_device_comboBox.addItems(focus_devs)
-    #         self._set_focus_device()
-
-    def _set_xy_stage_device(self):
-        if not self.stage_wdg.xy_device_comboBox.count():
-            return
-        self._mmc.setXYStageDevice(self.stage_wdg.xy_device_comboBox.currentText())
-
-    def _set_focus_device(self):
-        if not self.stage_wdg.focus_device_comboBox.count():
-            return
-        self._mmc.setFocusDevice(self.stage_wdg.focus_device_comboBox.currentText())
-
-    # def _on_xy_stage_position_changed(self, name, x, y):
-    #     self.stage_wdg.x_lineEdit.setText(f"{x:.1f}")
-    #     self.stage_wdg.y_lineEdit.setText(f"{y:.1f}")
-
-    def _on_stage_position_changed(self, name, value):
-        if "z" in name.lower():  # hack
-            self.stage_wdg.z_lineEdit.setText(f"{value:.1f}")
-
-    def stage_x_left(self):
-        self._mmc.setRelativeXYPosition(
-            -float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()
-
-    def stage_x_right(self):
-        self._mmc.setRelativeXYPosition(
-            float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()
-
-    def stage_y_up(self):
-        self._mmc.setRelativeXYPosition(
-            0.0,
-            float(self.stage_wdg.xy_step_size_SpinBox.value()),
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()
-
-    def stage_y_down(self):
-        self._mmc.setRelativeXYPosition(
-            0.0,
-            -float(self.stage_wdg.xy_step_size_SpinBox.value()),
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()
-
-    def stage_z_up(self):
-        self._mmc.setRelativePosition(
-            float(self.stage_wdg.z_step_size_doubleSpinBox.value())
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()
-
-    def stage_z_down(self):
-        self._mmc.setRelativePosition(
-            -float(self.stage_wdg.z_step_size_doubleSpinBox.value())
-        )
-        if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self.snap()

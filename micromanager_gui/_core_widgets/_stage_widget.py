@@ -2,12 +2,20 @@ from itertools import chain, product, repeat
 
 from fonticon_mdi6 import MDI6
 from pymmcore_plus import DeviceType
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QGridLayout, QPushButton, QSpinBox, QWidget
+from qtpy.QtCore import Qt, QTimer
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QGridLayout,
+    QLabel,
+    QPushButton,
+    QSpinBox,
+    QWidget,
+)
 from superqt.fonticon import setTextIcon
 
 from micromanager_gui import _core
 
+AlignCenter = Qt.AlignmentFlag.AlignCenter
 PREFIX = MDI6.__name__.lower()
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage, DeviceType.AutoFocus}
 STYLE = """
@@ -15,6 +23,7 @@ QPushButton {
     border: none;
     background: transparent;
     color: rgb(0, 180, 0);
+    font-size: 40px;
 }
 QPushButton:hover:!pressed {
     color: rgb(0, 255, 0);
@@ -23,10 +32,21 @@ QPushButton:pressed {
     color: rgb(0, 100, 0);
 }
 QSpinBox {
-    min-width: 36px;
-    height: 18px;
-    border: 1px solid #CCC;
-    background: transparent;
+    min-width: 35px;
+    height: 22px;
+    margin: 4px 0;
+}
+QLabel {
+    padding-top: 12px;
+    color: #999;
+}
+QCheckBox {
+    color: #999;
+    padding-left: 4px;
+}
+QCheckBox::indicator {
+    width: 11px;
+    height: 11px;
 }
 """
 
@@ -48,6 +68,7 @@ class StageWidget(QWidget):
         MDI6.chevron_double_right: (3, 5,  2,  0),
         MDI6.chevron_triple_right: (3, 6,  3,  0),
     }
+    BTN_SIZE = 36
     # fmt: on
 
     def __init__(self, levels=2, device=None, mmcore=None):
@@ -55,11 +76,11 @@ class StageWidget(QWidget):
         self._mmc = mmcore or _core.get_core_singleton()
         self._device = device or self._mmc.getXYStageDevice()
         self._dtype = self._mmc.getDeviceType(self._device)
-        self.setStyleSheet(STYLE)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
-
+        self.setStyleSheet(STYLE)
         self.setLayout(QGridLayout())
         self.layout().setSpacing(0)
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self._snap_on_click = True
 
         self._step = QSpinBox()
@@ -69,23 +90,57 @@ class StageWidget(QWidget):
         self._step.clearFocus()
         self._step.setAttribute(Qt.WidgetAttribute.WA_MacShowFocusRect, 0)
         self._step.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
-        self._step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._step.setAlignment(AlignCenter)
 
-        for glpyh, (row, col, xmag, ymag) in self.BTNS.items():
+        for glpyh, (row, col, *_) in self.BTNS.items():
             btn = QPushButton()
             btn.setFlat(True)
-            btn.setFixedSize(33, 33)
+            btn.setFixedSize(self.BTN_SIZE, self.BTN_SIZE)
             btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             setTextIcon(btn, glpyh)
             btn.clicked.connect(self._on_click)
-            self.layout().addWidget(btn, row, col, Qt.AlignmentFlag.AlignCenter)
+            self.layout().addWidget(btn, row, col, AlignCenter)
 
-        # self._step.setStyleSheet("background:transparent; border: 0;")
-        self.layout().addWidget(self._step, 3, 3, Qt.AlignmentFlag.AlignCenter)
+        self.layout().addWidget(self._step, 3, 3, AlignCenter)
         self._set_visible_levels(levels)
         self._set_xy_visible()
         self._update_ttips()
+
+        self._readout = QLabel()
+        self._update_position_label()
+        self.layout().addWidget(self._readout, 7, 0, 7, 7, AlignCenter)
+
+        self._cb = QCheckBox("poll", self)
+        self._cb.setMaximumWidth(50)
+        self._poll_timer = QTimer()
+        self._poll_timer.setInterval(500)
+        self._poll_timer.timeout.connect(self._update_position_label)
+        self._cb.toggled.connect(self._toggle_poll_timer)
+
+        self._connect_events()
+
+    def _connect_events(self):
+        if self._dtype is DeviceType.XYStage:
+            event = self._mmc.events.XYStagePositionChanged
+        elif self._dtype is DeviceType.AutoFocus:
+            event = self._mmc.events.propertyChanged
+        else:
+            event = self._mmc.events.stagePositionChanged
+        event.connect(self._update_position_label)
+
+    def _toggle_poll_timer(self, on: bool):
+        self._poll_timer.start() if on else self._poll_timer.stop()
+
+    def _update_position_label(self):
+        if self._dtype is DeviceType.XYStage:
+            pos = self._mmc.getXYPosition(self._device)
+            p = ", ".join(str(round(x, 2)) for x in pos)
+        elif self._dtype is DeviceType.AutoFocus:
+            p = ""
+        else:
+            p = round(self._mmc.getPosition(self._device), 2)
+        self._readout.setText(f"{self._device}:  {p}")
 
     def _update_ttips(self):
         coords = chain(zip(repeat(3), range(7)), zip(range(7), repeat(3)))
@@ -154,18 +209,3 @@ class StageWidget(QWidget):
         Can be used to step 1x field of view, etc...
         """
         return mag * self._step.value()
-
-
-if __name__ == "__main__":
-    from pymmcore_plus import CMMCorePlus
-    from qtpy.QtWidgets import QApplication
-
-    core = CMMCorePlus.instance()
-    core.loadSystemConfiguration()
-
-    app = QApplication([])
-
-    wdg = StageWidget()
-    wdg.show()
-
-    app.exec_()
