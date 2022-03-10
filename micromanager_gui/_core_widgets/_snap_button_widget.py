@@ -46,7 +46,7 @@ class SnapButton(QPushButton):
     def _create_button(self):
         if self.button_text:
             self.setText(self.button_text)
-        self.setIcon(icon(MDI6.camera, color=self.icon_color))
+        self.setIcon(icon(MDI6.camera_outline, color=self.icon_color))
         self.setIconSize(QSize(self.icon_size, self.icon_size))
         self.clicked.connect(self._snap)
 
