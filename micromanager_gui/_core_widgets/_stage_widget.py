@@ -6,9 +6,11 @@ from qtpy.QtCore import Qt, QTimer
 from qtpy.QtWidgets import (
     QCheckBox,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QSpinBox,
+    QVBoxLayout,
     QWidget,
 )
 from superqt.fonticon import setTextIcon
@@ -34,15 +36,12 @@ QPushButton:pressed {
 QSpinBox {
     min-width: 35px;
     height: 22px;
-    margin: 5px 0 6px 0;
 }
 QLabel {
-    padding-top: 12px;
     color: #999;
 }
 QCheckBox {
     color: #999;
-    padding-left: 4px;
 }
 QCheckBox::indicator {
     width: 11px;
@@ -78,10 +77,7 @@ class StageWidget(QWidget):
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
         self.setStyleSheet(STYLE)
-        self.setLayout(QGridLayout())
-        self.layout().setSpacing(0)
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self._snap_on_click = True
+        self._snap_on_click = True  # TODO: make widget
 
         self._step = QSpinBox()
         self._step.setValue(10)
@@ -92,6 +88,10 @@ class StageWidget(QWidget):
         self._step.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
         self._step.setAlignment(AlignCenter)
 
+        self._btns = QWidget()
+        self._btns.setLayout(QGridLayout())
+        self._btns.layout().setContentsMargins(0, 0, 0, 0)
+        self._btns.layout().setSpacing(0)
         for glpyh, (row, col, *_) in self.BTNS.items():
             btn = QPushButton()
             btn.setFlat(True)
@@ -100,23 +100,34 @@ class StageWidget(QWidget):
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             setTextIcon(btn, glpyh)
             btn.clicked.connect(self._on_click)
-            self.layout().addWidget(btn, row, col, AlignCenter)
+            self._btns.layout().addWidget(btn, row, col, AlignCenter)
 
-        self.layout().addWidget(self._step, 3, 3, AlignCenter)
+        self._btns.layout().addWidget(self._step, 3, 3, AlignCenter)
         self._set_visible_levels(levels)
         self._set_xy_visible()
         self._update_ttips()
 
         self._readout = QLabel()
         self._update_position_label()
-        self.layout().addWidget(self._readout, 7, 0, 7, 7, AlignCenter)
 
-        self._cb = QCheckBox("poll", self)
-        self._cb.setMaximumWidth(50)
+        self._poll_cb = QCheckBox("poll")
+        self._poll_cb.setMaximumWidth(50)
         self._poll_timer = QTimer()
         self._poll_timer.setInterval(500)
         self._poll_timer.timeout.connect(self._update_position_label)
-        self._cb.toggled.connect(self._toggle_poll_timer)
+        self._poll_cb.toggled.connect(self._toggle_poll_timer)
+
+        bottom_row = QWidget()
+        bottom_row.setLayout(QHBoxLayout())
+        bottom_row.layout().addWidget(self._readout)
+        if self._dtype is DeviceType.XYStage:
+            bottom_row.layout().addWidget(self._poll_cb)
+
+        self.setLayout(QVBoxLayout())
+        self.layout().setSpacing(0)
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(self._btns, AlignCenter)
+        self.layout().addWidget(bottom_row)
 
         self._connect_events()
 
@@ -149,8 +160,9 @@ class StageWidget(QWidget):
             self._dtype, "Z"
         )
 
+        btn_layout: QGridLayout = self._btns.layout()
         for r, c in coords:
-            if item := self.layout().itemAtPosition(r, c):
+            if item := btn_layout.itemAtPosition(r, c):
                 if (r, c) == (3, 3):
                     continue
                 if btn := item.widget():
@@ -162,29 +174,31 @@ class StageWidget(QWidget):
 
     def _set_xy_visible(self):
         if self._dtype is not DeviceType.XYStage:
+            btn_layout: QGridLayout = self._btns.layout()
             for c in (0, 1, 2, 4, 5, 6):
-                if item := self.layout().itemAtPosition(3, c):
+                if item := btn_layout.itemAtPosition(3, c):
                     item.widget().hide()
 
     def _set_visible_levels(self, levels: int):
         """Hide upper-level stage buttons as desired. Levels must be between 1-3."""
         assert 1 <= levels <= 3, "levels must be between 1-3"
         self._levels = levels
-        for btn in self.findChildren(QPushButton):
+        btn_layout: QGridLayout = self._btns.layout()
+        for btn in self._btns.findChildren(QPushButton):
             btn.show()
         if levels < 3:
             # hide row/col 0, 6
             for r, c in product(range(7), (0, 6)):
-                if item := self.layout().itemAtPosition(r, c):
+                if item := btn_layout.itemAtPosition(r, c):
                     item.widget().hide()
-                if item := self.layout().itemAtPosition(c, r):
+                if item := btn_layout.itemAtPosition(c, r):
                     item.widget().hide()
         if levels < 2:
             # hide row/col 1, 5
             for r, c in product(range(1, 6), (1, 5)):
-                if item := self.layout().itemAtPosition(r, c):
+                if item := btn_layout.itemAtPosition(r, c):
                     item.widget().hide()
-                if item := self.layout().itemAtPosition(c, r):
+                if item := btn_layout.itemAtPosition(c, r):
                     item.widget().hide()
 
     def _on_click(self):
