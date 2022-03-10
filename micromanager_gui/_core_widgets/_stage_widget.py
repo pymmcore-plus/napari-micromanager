@@ -34,7 +34,7 @@ QPushButton:pressed {
 QSpinBox {
     min-width: 35px;
     height: 22px;
-    margin: 4px 0;
+    margin: 5px 0 6px 0;
 }
 QLabel {
     padding-top: 12px;
