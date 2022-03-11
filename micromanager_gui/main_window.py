@@ -90,7 +90,7 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.up_Button.clicked.connect(self.stage_z_up)
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
-        self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
+        self.tab_wdg.live_Button.emitFrame.connect(self._live)
 
         # connect comboBox
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
@@ -180,6 +180,7 @@ class MainWindow(MicroManagerWidget):
         self._refresh_positions()
         self._refresh_xyz_devices()
 
+    @ensure_main_thread
     def update_viewer(self, data=None):
         if data is None:
             try:
@@ -230,37 +231,8 @@ class MainWindow(MicroManagerWidget):
             _start_thread=True,
         )
 
-    def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
-        self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.tab_wdg.exp_spinBox.value()))
-        self.tab_wdg.live_Button.setText("Stop")
-
-    def stop_live(self):
-        self._mmc.stopSequenceAcquisition()
-        if self.streaming_timer is not None:
-            self.streaming_timer.stop()
-            self.streaming_timer = None
-        self.tab_wdg.live_Button.setText("Live")
-        self.tab_wdg.live_Button.setIcon(CAM_ICON)
-
-    def toggle_live(self, event=None):
-        if self.streaming_timer is None:
-
-            ch_group = self._mmc.getChannelGroup()
-            if ch_group:
-                self._mmc.setConfig(
-                    ch_group, self.tab_wdg.snap_channel_comboBox.currentText()
-                )
-            else:
-                return
-
-            self.start_live()
-            self.tab_wdg.live_Button.setIcon(CAM_STOP_ICON)
-        else:
-            self.stop_live()
-            self.tab_wdg.live_Button.setIcon(CAM_ICON)
+    def _live(self):
+        create_worker(self.update_viewer, _start_thread=True)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
         oldEngine.events.frameReady.connect(self._on_mda_frame)

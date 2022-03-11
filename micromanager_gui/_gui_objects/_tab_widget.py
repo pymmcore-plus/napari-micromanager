@@ -5,6 +5,8 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
+from .._core_widgets._live_button import LiveButton
+
 ICONS = Path(__file__).parent.parent / "icons"
 
 
@@ -91,7 +93,12 @@ class MMTabWidget(QtW.QWidget):
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
-        self.live_Button = QtW.QPushButton(text="Live")
+        # self.live_Button = QtW.QPushButton(text="Live")
+        self.live_Button = LiveButton(
+            button_text_on_off=("Live", "Stop"),
+            icon_size=30,
+            icon_color_on_off=("green", "magenta"),
+        )
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.live_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.live_Button)
