@@ -12,7 +12,7 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import ensure_main_thread
+from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
@@ -183,6 +183,7 @@ class MainWindow(MicroManagerWidget):
         self._refresh_xyz_devices()
 
     def update_viewer(self, data=None):
+
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -224,17 +225,8 @@ class MainWindow(MicroManagerWidget):
 
     def _snap(self, img: np.ndarray):
         self.stop_live()
-        self.update_viewer(img)
-
-    # def _snap(self):
-    #     self.stop_live()
-
-    #     # snap in a thread so we don't freeze UI when using process local mmc
-    #     create_worker(
-    #         self._mmc.snapImage,
-    #         _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
-    #         _start_thread=True,
-    #     )
+        # snap in a thread so we don't freeze UI when using process local mmc
+        create_worker(self.update_viewer, img, _start_thread=True)
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
