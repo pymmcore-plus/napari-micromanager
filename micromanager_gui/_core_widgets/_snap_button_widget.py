@@ -41,6 +41,9 @@ class SnapButton(QPushButton):
         self.icon_size = icon_size
         self.icon_color = icon_color
 
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
+        self.destroyed.connect(self.disconnect)
+
         self._create_button()
 
     def _create_button(self):
@@ -51,11 +54,18 @@ class SnapButton(QPushButton):
         self.clicked.connect(self._snap)
 
     def _snap(self):
-        loaded = self._mmc.getLoadedDevices()
-        if len(loaded) > 1:
+        try:
             self._mmc.snap()
-        else:
-            raise Warning("No System Confoguration Loaded!")
+        except RuntimeError:
+            raise
+
+    def _on_system_cfg_loaded(self):
+        self.isEnabled(bool(self._mmc.getCameraDevice()))
+
+    def disconnect(self):
+        self._mmc.events.systemConfigurationLoaded.disconnect(
+            self._on_system_cfg_loaded
+        )
 
 
 if __name__ == "__main__":
