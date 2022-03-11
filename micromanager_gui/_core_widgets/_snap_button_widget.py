@@ -60,7 +60,7 @@ class SnapButton(QPushButton):
             raise
 
     def _on_system_cfg_loaded(self):
-        self.isEnabled(bool(self._mmc.getCameraDevice()))
+        self.setEnabled(bool(self._mmc.getCameraDevice()))
 
     def disconnect(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(
