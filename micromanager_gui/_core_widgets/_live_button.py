@@ -52,7 +52,7 @@ class LiveButton(QPushButton):
 
         self._create_button()
 
-    def _emit(self):
+    def _emitFrame(self):
         create_worker(self.emitFrame.emit, _start_thread=True)
 
     def _create_button(self):
@@ -85,7 +85,7 @@ class LiveButton(QPushButton):
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self._mmc.getExposure())
         self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self._emit)
+        self.streaming_timer.timeout.connect(self._emitFrame)
         self.streaming_timer.start(self._mmc.getExposure())
         self.set_icon_state(True)
 
