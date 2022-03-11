@@ -6,6 +6,7 @@ from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QPushButton
 from superqt.fonticon import icon
+from superqt.utils import create_worker
 
 from micromanager_gui._core import get_core_singleton
 
@@ -62,6 +63,8 @@ class SnapButton(QPushButton):
             self._mmc.snap()
         except RuntimeError:
             raise
+
+        create_worker(self._mmc.snap, _start_thread=True)
 
     def _on_system_cfg_loaded(self):
         self.setEnabled(bool(self._mmc.getCameraDevice()))

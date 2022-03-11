@@ -225,7 +225,7 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
     def _snap(self, img: np.ndarray):
-        # snap in a thread so we don't freeze UI when using process local mmc
+        # _snap in a thread so we don't freeze UI
         create_worker(self.update_viewer, img, _start_thread=True)
         self.stop_live()
 
