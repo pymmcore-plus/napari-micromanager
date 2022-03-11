@@ -23,9 +23,12 @@ COLOR_TYPE = Union[
 
 
 class LiveButton(QPushButton):
-    """Create a live QPushButton"""
+    """
+    Create a two-state (on-off) live mode QPushButton. When toggled on,
+    an empty signal is emitted ('_emitFrameSignal') through a QTimer.
+    """
 
-    emitFrame = Signal()
+    _emitFrameSignal = Signal()
 
     def __init__(
         self,
@@ -85,7 +88,7 @@ class LiveButton(QPushButton):
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self._mmc.getExposure())
         self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self._emitFrame)
+        self.streaming_timer.timeout.connect(self._emitFrameSignal)
         self.streaming_timer.start(self._mmc.getExposure())
         self.set_icon_state(True)
 
@@ -96,11 +99,8 @@ class LiveButton(QPushButton):
             self.streaming_timer = None
         self.set_icon_state(False)
 
-    def toggle_live(self, event=None):
+    def toggle_live(self):
         if self.streaming_timer is None:
-
-            if not self._mmc.getChannelGroup():
-                return
 
             self.start_live()
             self.set_icon_state(False)

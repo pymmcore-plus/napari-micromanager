@@ -90,7 +90,7 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.up_Button.clicked.connect(self.stage_z_up)
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
         self.tab_wdg.snap_Button.clicked.connect(self.snap)
-        self.tab_wdg.live_Button.emitFrame.connect(self._live)
+        self.tab_wdg.live_Button._emitFrameSignal.connect(self._live)
 
         # connect comboBox
         self.stage_wdg.focus_device_comboBox.currentTextChanged.connect(
