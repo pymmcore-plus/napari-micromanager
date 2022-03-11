@@ -31,7 +31,7 @@ class MMTabWidget(QtW.QWidget):
 
         for attr, icon in [
             ("snap_Button", "cam.svg"),
-            ("live_Button", "vcam.svg"),
+            # ("live_Button", "vcam.svg"),
         ]:
             btn = getattr(self, attr)
             btn.setIcon(QIcon(str(ICONS / icon)))
@@ -96,7 +96,7 @@ class MMTabWidget(QtW.QWidget):
         # self.live_Button = QtW.QPushButton(text="Live")
         self.live_Button = LiveButton(
             button_text_on_off=("Live", "Stop"),
-            icon_size=30,
+            icon_size=45,
             icon_color_on_off=("green", "magenta"),
         )
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
