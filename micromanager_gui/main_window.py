@@ -226,6 +226,7 @@ class MainWindow(MicroManagerWidget):
     def _snap(self, img: np.ndarray):
         # snap in a thread so we don't freeze UI when using process local mmc
         create_worker(self.update_viewer, img, _start_thread=True)
+        self.stop_live()
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
@@ -235,7 +236,8 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.live_Button.setText("Stop")
 
     def stop_live(self):
-        self._mmc.stopSequenceAcquisition()
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
