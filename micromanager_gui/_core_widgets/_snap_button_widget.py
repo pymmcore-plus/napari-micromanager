@@ -42,6 +42,7 @@ class SnapButton(QPushButton):
         self.icon_color = icon_color
 
         self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
+        self._on_system_cfg_loaded()
         self.destroyed.connect(self.disconnect)
 
         self._create_button()
