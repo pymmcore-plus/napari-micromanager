@@ -90,14 +90,14 @@ class LiveButton(QPushButton):
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self._emitFrameSignal)
         self.streaming_timer.start(self._mmc.getExposure())
-        self.set_icon_state(True)
+        # self.set_icon_state(True)
 
     def stop_live(self):
         self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.set_icon_state(False)
+        # self.set_icon_state(False)
 
     def toggle_live(self):
         if self.streaming_timer is None:
