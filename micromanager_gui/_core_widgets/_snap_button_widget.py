@@ -55,6 +55,9 @@ class SnapButton(QPushButton):
         self.clicked.connect(self._snap)
 
     def _snap(self):
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
+
         try:
             self._mmc.snap()
         except RuntimeError:
