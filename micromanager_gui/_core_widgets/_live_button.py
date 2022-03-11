@@ -86,7 +86,7 @@ class LiveButton(QPushButton):
         self.setIconSize(QSize(self.icon_size, self.icon_size))
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self._mmc.getExposure())
+        self._mmc.startContinuousSequenceAcquisition(0)
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self._emitFrameSignal)
         self.streaming_timer.start(self._mmc.getExposure())
