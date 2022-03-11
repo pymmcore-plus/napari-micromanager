@@ -182,6 +182,7 @@ class MainWindow(MicroManagerWidget):
         self._refresh_positions()
         self._refresh_xyz_devices()
 
+    @ensure_main_thread
     def update_viewer(self, data=None):
 
         if data is None:
