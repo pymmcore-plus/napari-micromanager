@@ -59,10 +59,7 @@ class SnapButton(QPushButton):
         if self._mmc.isSequenceRunning():
             self._mmc.stopSequenceAcquisition()
 
-        try:
-            create_worker(self._mmc.snap, _start_thread=True)
-        except RuntimeError:
-            raise
+        create_worker(self._mmc.snap, _start_thread=True)
 
     def _on_system_cfg_loaded(self):
         self.setEnabled(bool(self._mmc.getCameraDevice()))
