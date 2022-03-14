@@ -9,6 +9,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+     - cron: "0 16 * * 1" # monday at noon est
 
 jobs:
   test:
