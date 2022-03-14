@@ -82,7 +82,8 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
-        self._mmc.events.continuousSequenceAcquisition.connect(self._toggle_live)
+        self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
+        self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
 
         # connect buttons
         self.stage_wdg.left_Button.clicked.connect(self.stage_x_left)
@@ -223,6 +224,8 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
     def snap(self):
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
         # snap in a thread so we don't freeze UI when using process local mmc
         create_worker(
             self._mmc.snapImage,
@@ -230,12 +233,13 @@ class MainWindow(MicroManagerWidget):
             _start_thread=True,
         )
 
-    def _toggle_live(self, state: bool):
-        if state:
-            self.streaming_timer = QTimer()
-            self.streaming_timer.timeout.connect(self.update_viewer)
-            self.streaming_timer.start(self._mmc.getExposure())
-        elif self.streaming_timer is not None:
+    def _start_live(self):
+        self.streaming_timer = QTimer()
+        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.start(self._mmc.getExposure())
+
+    def _stop_live(self):
+        if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
 

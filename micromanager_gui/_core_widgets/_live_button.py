@@ -48,7 +48,10 @@ class LiveButton(QPushButton):
 
         self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         self._on_system_cfg_loaded()
-        self._mmc.events.continuousSequenceAcquisition.connect(self.set_icon_state)
+        self._mmc.events.startContinuousSequenceAcquisition.connect(
+            self._on_sequence_started
+        )
+        self._mmc.events.stopSequenceAcquisition.connect(self._on_sequence_stopped)
         self.destroyed.connect(self.disconnect)
 
         self._create_button()
@@ -66,10 +69,10 @@ class LiveButton(QPushButton):
     def toggle_live_mode(self):
         """start/stop SequenceAcquisition"""
         if self._mmc.isSequenceRunning():
-            self._mmc.stopSeqAcquisition()  # pymmcore-plus method
+            self._mmc.stopSequenceAcquisition()  # pymmcore-plus method
             self.set_icon_state(False)
         else:
-            self._mmc.startContinuousSeqAcquisition()  # pymmcore-plus method
+            self._mmc.startContinuousSequenceAcquisition()  # pymmcore-plus method
             self.set_icon_state(True)
 
     def set_icon_state(self, state: bool):
@@ -83,11 +86,20 @@ class LiveButton(QPushButton):
             if self.button_text_on:
                 self.setText(self.button_text_on)
 
+    def _on_sequence_started(self):
+        self.set_icon_state(True)
+
+    def _on_sequence_stopped(self):
+        self.set_icon_state(False)
+
     def disconnect(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(
             self._on_system_cfg_loaded
         )
-        self._mmc.events.continuousSequenceAcquisition.disconnect(self.set_icon_state)
+        self._mmc.events.startContinuousSequenceAcquisition.disconnect(
+            self._on_sequence_started
+        )
+        self._mmc.events.stopSequenceAcquisition.disconnect(self._on_sequence_stopped)
 
 
 if __name__ == "__main__":
