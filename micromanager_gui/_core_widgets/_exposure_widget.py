@@ -9,6 +9,8 @@ from superqt.utils import signals_blocked
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
 
+from pymmcore import g_Keyword_CoreCamera, g_Keyword_CoreDevice
+
 from micromanager_gui import _core
 
 
@@ -79,9 +81,9 @@ class DefaultCameraExposureWidget(ExposureWidget):
         self, *, parent: Optional[Qt.QWidget] = None, core: Optional[CMMCorePlus] = None
     ):
         super().__init__(core=core)
-        self._mmc.events.devicePropertyChanged("Core", "Camera").connect(
-            self._camera_updated
-        )
+        self._mmc.events.devicePropertyChanged(
+            g_Keyword_CoreDevice, g_Keyword_CoreCamera
+        ).connect(self._camera_updated)
 
     def _camera_updated(self, value: str):
         # This will not always fire
