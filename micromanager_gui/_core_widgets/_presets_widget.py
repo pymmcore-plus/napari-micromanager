@@ -44,6 +44,7 @@ class PresetsWidget(QWidget):
         self._combo.textActivated.connect(self._on_text_activate)
 
         self._mmc.events.configSet.connect(self._on_cfg_set)
+        self._mmc.events.configSet.connect(self._highlight_if_preset_state_changed)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
 
@@ -122,5 +123,6 @@ class PresetsWidget(QWidget):
 
     def disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
+        self._mmc.events.configSet.disconnect(self._highlight_if_preset_state_changed)
         self._mmc.events.systemConfigurationLoaded.disconnect(self.refresh)
         self._mmc.events.propertyChanged.disconnect(self._highlight_if_prop_changed)
