@@ -255,42 +255,59 @@ class MainWindow(MicroManagerWidget):
             return
 
         img_shape = self._mmc.getImageWidth(), self._mmc.getImageHeight()
-
-        shape = sequence.shape + img_shape
-        dtype = f"uint{self._mmc.getImageBitDepth()}"
-        if zarr is not None:
-            tmp = tempfile.TemporaryDirectory()
-            self._mda_temp_files[sequence.uid] = tmp
-            self._mda_temp_arrays[sequence.uid] = self._z = zarr.open(
-                str(tmp.name), shape=shape, dtype=dtype
-            )
-        else:
-            tmp = tempfile.NamedTemporaryFile()
-            self._mda_temp_files[sequence.uid] = tmp
-            self._mda_temp_arrays[sequence.uid] = np.memmap(
-                str(tmp.name), dtype=dtype, shape=shape
-            )
-
-        file_name = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-        layer_name = f"{file_name}_{sequence.uid}"
-        layer = self.viewer.add_image(
-            self._mda_temp_arrays[sequence.uid], name=layer_name, blending="additive"
-        )
-
         # dimensions labels
-        labels = [
-            i for i in sequence.axis_order if i in next(sequence.iter_events()).index
-        ] + ["y", "x"]
-        self.viewer.dims.axis_labels = labels
+        axis_order = event_indices(next(sequence.iter_events()))
+        labels = []
+        shape = []
+        for i, a in enumerate(axis_order):
+            dim = sequence.shape[i]
+            if dim != 1:
+                labels.append(a)
+                shape.append(dim)
+        labels.extend(["y", "x"])
+        shape.extend(img_shape)
+        if self._mda_meta.split_channels:
+            channels = [f"_{c.config}" for c in sequence.channels]
+            try:
+                c_idx = labels.index("c")
+                labels.pop(c_idx)
+                shape.pop(c_idx)
+            except ValueError:
+                pass
+        else:
+            channels = [""]
 
-        # add metadata to layer
-        layer.metadata["useq_sequence"] = sequence
-        layer.metadata["uid"] = sequence.uid
-        # storing event.index in addition to channel.config because it's
-        # possible to have two of the same channel in one sequence.
-        # layer.metadata[
-        #     "ch_id"
-        # ] = f'{event.channel.config}_idx{event.index["c"]}'
+        dtype = f"uint{self._mmc.getImageBitDepth()}"
+        for i, c in enumerate(channels):
+            id_ = str(sequence.uid) + c
+            if zarr is not None:
+                tmp = tempfile.TemporaryDirectory()
+                self._mda_temp_files[id_] = tmp
+                self._mda_temp_arrays[id_] = self._z = zarr.open(
+                    str(tmp.name), shape=shape, dtype=dtype
+                )
+            else:
+                tmp = tempfile.NamedTemporaryFile()
+                self._mda_temp_files[id_] = tmp
+                self._mda_temp_arrays[id_] = np.memmap(
+                    str(tmp.name), dtype=dtype, shape=shape
+                )
+
+            file_name = (
+                self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            )
+            layer_name = f"{file_name}_{id_}"
+            layer = self.viewer.add_image(
+                self._mda_temp_arrays[id_], name=layer_name, blending="additive"
+            )
+            # add metadata to layer
+            # storing event.index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
+            layer.metadata["useq_sequence"] = sequence
+            layer.metadata["uid"] = sequence.uid
+            layer.metadata["ch_id"] = f"{c}_idx{i}"
+
+        self.viewer.dims.axis_labels = labels
 
         if self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
@@ -301,24 +318,20 @@ class MainWindow(MicroManagerWidget):
 
         meta = self._mda_meta
         if meta.mode == "mda":
+            sequence = event.sequence
+            axis_order = list(event_indices(event))
+            idxs = [k for k in axis_order if sequence.shape[axis_order.index(k)] != 1]
 
-            # pick layer name
-            file_name = meta.file_name if meta.should_save else "Exp"
-            # channelstr = (
-            #     f"[{event.channel.config}_idx{event.index['c']}]_"
-            #     if meta.split_channels
-            #     else ""
-            # )
-            # layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
-            layer_name = f"{file_name}_{event.sequence.uid}"
-
-            # get indices of new image
-            im_idx = tuple(
-                event.index[k]
-                for k in event_indices(event)
-                if not (meta.split_channels and k == "c")
-            )
-            self._mda_temp_arrays[event.sequence.uid][im_idx] = image
+            channel = ""
+            if meta.split_channels:
+                channel = f"_{event.channel.config}"
+                try:
+                    idxs.remove("c")
+                except ValueError:
+                    # split channels checked but no channels added
+                    pass
+            im_idx = tuple(event.index[k] for k in idxs)
+            self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
 
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)

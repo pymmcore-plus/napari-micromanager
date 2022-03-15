@@ -8,6 +8,7 @@ from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
 from micromanager_gui import _mda
+from micromanager_gui._util import event_indices
 from micromanager_gui.main_window import MainWindow
 
 if TYPE_CHECKING:
@@ -77,7 +78,7 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, za
         if splitC:
             _mda.checkBox_split_channels.setChecked(True)
 
-        mda = None
+        mda: MDASequence = None
 
         mmc = main_window._mmc
         # re-register twice to fully exercise the logic of the update
@@ -101,10 +102,11 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, za
 
         assert mda is not None
         data_shape = main_window.viewer.layers[-1].data.shape
+        expected = list(mda.shape) + [512, 512]
         if splitC:
-            expected = list(mda.shape) + [512, 512]
-            expected[main_window.viewer.dims.axis_labels.index("c")] = 1
-            assert data_shape == tuple(expected)
+            expected.pop(list(event_indices(next(mda.iter_events()))).index("c"))
+        expected_shape = tuple(e for e in expected if e != 1)
+        assert data_shape == expected_shape
 
         if do_save:
             if splitC:
@@ -112,7 +114,7 @@ def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, za
                 assert nfiles == 2 if C else 1
             else:
                 assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
-                assert data_shape == mda.shape + (512, 512)
+                assert data_shape == expected_shape
 
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
