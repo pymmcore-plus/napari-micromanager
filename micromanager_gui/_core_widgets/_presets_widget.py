@@ -33,6 +33,10 @@ class PresetsWidget(QWidget):
         if not self._presets:
             raise ValueError(f"{self._group} group does not have presets.")
 
+        self.dev_prop = [
+            (k[0], k[1]) for k in self._mmc.getConfigData(self._group, self._presets[0])
+        ]
+
         self._combo = QComboBox()
         self._combo.addItems(self._presets)
 
@@ -100,20 +104,12 @@ class PresetsWidget(QWidget):
     def _highlight_if_prop_changed(self, device: str, property: str, value: str):
         """Set the text color to magenta if a preset property has changed"""
 
-        try:
-            dev_prop = [
-                (k[0], k[1])
-                for k in self._mmc.getConfigData(self._group, self._presets[0])
-            ]
-        except ValueError:
-            return
-
-        if (device, property) not in dev_prop:
+        if (device, property) not in self.dev_prop:
             if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
                 return
             # a StateDevice has also a "Label" property. If "Label" is not
             # in dev_prop, we check if the property "State" is in dev_prop.
-            if (device, "State") not in dev_prop:
+            if (device, "State") not in self.dev_prop:
                 return
 
         if self._mmc.getCurrentConfig(self._group) != self._combo.currentText():
