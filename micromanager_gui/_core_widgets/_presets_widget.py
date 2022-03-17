@@ -63,6 +63,7 @@ class PresetsWidget(QWidget):
 
     def _on_text_activate(self, text: str):
         # used if the preset is 'magenta' and you want to set it
+        # or if there is only 1 preset
         self._mmc.setConfig(self._group, text)
         set_wdg_color(self.text_color, self._combo)
 
