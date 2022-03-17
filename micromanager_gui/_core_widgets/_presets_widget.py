@@ -49,7 +49,7 @@ class PresetsWidget(QWidget):
 
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
-        self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
+        self._mmc.events.propertyChanged.connect(self._on_property_changed)
 
         self.destroyed.connect(self.disconnect)
 
@@ -71,58 +71,11 @@ class PresetsWidget(QWidget):
         self._mmc.setConfig(self._group, text)
         set_wdg_color(self.text_color, self._combo)
 
-    def _on_cfg_set(self, group: str, preset: str) -> None:
-        if group == self._group and self._combo.currentText() != preset:
-            with signals_blocked(self._combo):
-                self._combo.setCurrentText(preset)
-                set_wdg_color(self.text_color, self._combo)
-        else:
-            dev_prop_list = get_dev_prop(group, preset)
-            if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
-                self._set_if_props_match_preset()
-
-    def value(self) -> str:
-        return self._combo.currentText()
-
-    def setValue(self, value: str) -> None:
-        if value not in self._mmc.getAvailableConfigs(self._group):
-            raise ValueError(
-                f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
-            )
-        self._combo.setCurrentText(str(value))
-
-    def allowedValues(self) -> Tuple[str]:
-        return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
-
-    def refresh(self) -> None:
-        with signals_blocked(self._combo):
-            self._combo.clear()
-            if self._group not in self._mmc.getAvailableConfigGroups():
-                self._combo.addItem(f"No group named {self._group}.")
-                self._combo.setEnabled(False)
-            else:
-                presets = self._mmc.getAvailableConfigs(self._group)
-                self._combo.addItems(presets)
-                self._combo.setEnabled(True)
-
-    def _highlight_if_prop_changed(self, device: str, property: str, value: str):
-        """Set the text color to magenta if a preset property has changed"""
-
-        if (device, property) not in self.dev_prop:
-            if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
-                return
-            # a StateDevice has also a "Label" property. If "Label" is not
-            # in dev_prop, we check if the property "State" is in dev_prop.
-            if (device, "State") not in self.dev_prop:
-                return
-
-        self._set_if_props_match_preset()
-
     def _set_if_props_match_preset(self):
         """
         Check if a preset matches the current system state.
-        If True, set the combobox to the preset with 'text_color'.
-        If False, set the combobox color to magenta.
+        If true, set the combobox to the preset with 'text_color'.
+        If false, set the combobox color to 'magenta'.
         """
         for preset in self._presets:
             _set_combo = True
@@ -138,6 +91,50 @@ class PresetsWidget(QWidget):
                     return
         # None of the presets match the current system state
         set_wdg_color("magenta", self._combo)
+
+    def _on_cfg_set(self, group: str, preset: str) -> None:
+        if group == self._group and self._combo.currentText() != preset:
+            with signals_blocked(self._combo):
+                self._combo.setCurrentText(preset)
+                set_wdg_color(self.text_color, self._combo)
+        else:
+            dev_prop_list = get_dev_prop(group, preset)
+            if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
+                self._set_if_props_match_preset()
+
+    def _on_property_changed(self, device: str, property: str, value: str):
+        if (device, property) not in self.dev_prop:
+            if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
+                return
+            # a StateDevice has also a "Label" property. If "Label" is not
+            # in dev_prop, we check if the property "State" is in dev_prop.
+            if (device, "State") not in self.dev_prop:
+                return
+        self._set_if_props_match_preset()
+
+    def refresh(self) -> None:
+        with signals_blocked(self._combo):
+            self._combo.clear()
+            if self._group not in self._mmc.getAvailableConfigGroups():
+                self._combo.addItem(f"No group named {self._group}.")
+                self._combo.setEnabled(False)
+            else:
+                presets = self._mmc.getAvailableConfigs(self._group)
+                self._combo.addItems(presets)
+                self._combo.setEnabled(True)
+
+    def value(self) -> str:
+        return self._combo.currentText()
+
+    def setValue(self, value: str) -> None:
+        if value not in self._mmc.getAvailableConfigs(self._group):
+            raise ValueError(
+                f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
+            )
+        self._combo.setCurrentText(str(value))
+
+    def allowedValues(self) -> Tuple[str]:
+        return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
 
     def disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
