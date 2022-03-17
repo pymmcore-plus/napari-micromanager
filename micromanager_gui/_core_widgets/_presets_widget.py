@@ -49,7 +49,7 @@ class PresetsWidget(QWidget):
 
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
-        self._mmc.events.propertyChanged.connect(self._highlight_if_prop_changed)
+        self._mmc.events.propertyChanged.connect(self._on_property_changed)
 
         self.destroyed.connect(self.disconnect)
 
@@ -105,7 +105,7 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
 
-    def _highlight_if_prop_changed(self, device: str, property: str, value: str):
+    def _on_property_changed(self, device: str, property: str, value: str):
         if (device, property) not in self.dev_prop:
             if self._mmc.getDeviceType(device) != DeviceType.StateDevice:
                 return
