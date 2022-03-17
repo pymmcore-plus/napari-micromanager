@@ -50,6 +50,8 @@ class PresetsWidget(QWidget):
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._on_property_changed)
+        # TODO: add connections once we will implement
+        # 'deleteGroup'/'deletePreset signals
 
         self.destroyed.connect(self.disconnect)
 
