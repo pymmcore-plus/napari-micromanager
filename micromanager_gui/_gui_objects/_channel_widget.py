@@ -34,12 +34,12 @@ class ChannelWidget(QWidget):
 
         self._channel_group = channel_group or self._get_channel_group()
 
-        self.channel_combo = self._create_channel_widget(self._channel_group)
+        self.channel_wdg = self._create_channel_widget(self._channel_group)
 
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().setSpacing(0)
-        self.layout().addWidget(self.channel_combo)
+        self.layout().addWidget(self.channel_wdg)
 
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
         self._mmc.events.channelGroupChanged.connect(self._on_channel_group_changed)
@@ -60,11 +60,11 @@ class ChannelWidget(QWidget):
         self, channel_group: str
     ) -> Union[PresetsWidget, QComboBox]:
         if channel_group:
-            channel_combo = PresetsWidget(channel_group, text_color="white")
+            channel_wdg = PresetsWidget(channel_group, text_color="white")
         else:
-            channel_combo = QComboBox()
-            channel_combo.setEnabled(False)
-        return channel_combo
+            channel_wdg = QComboBox()
+            channel_wdg.setEnabled(False)
+        return channel_wdg
 
     def _on_sys_cfg_loaded(self):
         self._clear_previous_device_widget()
@@ -77,14 +77,14 @@ class ChannelWidget(QWidget):
         self._update_widget(new_channel_group)
 
     def _clear_previous_device_widget(self):
-        self.channel_combo.setParent(None)
-        self.channel_combo.deleteLater()
+        self.channel_wdg.setParent(None)
+        self.channel_wdg.deleteLater()
 
     def _update_widget(self, channel_group):
-        self.channel_combo = self._create_channel_widget(channel_group)
-        self.layout().addWidget(self.channel_combo)
-        if isinstance(self.channel_combo, PresetsWidget):
-            self._set_wdg_color(channel_group, self.channel_combo._combo)
+        self.channel_wdg = self._create_channel_widget(channel_group)
+        self.layout().addWidget(self.channel_wdg)
+        if isinstance(self.channel_wdg, PresetsWidget):
+            self._set_wdg_color(channel_group, self.channel_wdg._combo)
 
     def _set_wdg_color(self, channel_group: str, wdg: QWidget):
         if not self._mmc.getCurrentConfig(channel_group):
