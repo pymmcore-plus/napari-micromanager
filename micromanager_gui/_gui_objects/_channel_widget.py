@@ -83,12 +83,10 @@ class ChannelWidget(QWidget):
     def _update_widget(self, channel_group):
         self.channel_wdg = self._create_channel_widget(channel_group)
         self.layout().addWidget(self.channel_wdg)
-        if isinstance(self.channel_wdg, PresetsWidget):
-            self._set_wdg_color(channel_group, self.channel_wdg._combo)
-
-    def _set_wdg_color(self, channel_group: str, wdg: QWidget):
-        if not self._mmc.getCurrentConfig(channel_group):
-            set_wdg_color("magenta", wdg)
+        if isinstance(
+            self.channel_wdg, PresetsWidget
+        ) and not self._mmc.getCurrentConfig(channel_group):
+            set_wdg_color("magenta", self.channel_wdg._combo)
 
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
