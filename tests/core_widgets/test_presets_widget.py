@@ -25,7 +25,17 @@ def test_preset_widget(qtbot, global_mmcore):
             global_mmcore.setProperty("Camera", "Binning", "1")
             assert wdg._combo.styleSheet() == "color: white;"
 
+            global_mmcore.setConfig("Camera", "HighRes")
+            assert wdg._combo.currentText() == "HighRes"
+            assert wdg._combo.styleSheet() == "color: white;"
+            global_mmcore.setProperty("Camera", "Binning", "2")
+            assert wdg._combo.currentText() == "HighRes"
+            assert wdg._combo.styleSheet() == "color: magenta;"
+            global_mmcore.setProperty("Camera", "BitDepth", "10")
+            assert wdg._combo.currentText() == "MedRes"
+            assert wdg._combo.styleSheet() == "color: white;"
+
         wdg.disconnect()
         # once disconnected, core changes shouldn't call out to the widget
-        global_mmcore.setConfig(group, presets[-1])
+        global_mmcore.setConfig(group, presets[1])
         assert global_mmcore.getCurrentConfig(group) != wdg.value()

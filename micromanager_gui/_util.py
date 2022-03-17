@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Sequence
 
 import numpy as np
+from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QComboBox,
@@ -16,6 +17,8 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from ._core import get_core_singleton
 
 if TYPE_CHECKING:
     import useq
@@ -172,5 +175,17 @@ class ComboMessageBox(QDialog):
         return self._combo.currentText()
 
 
-def _set_wdg_color(color: str, wdg: QWidget):
+def set_wdg_color(color: str, wdg: QWidget):
     wdg.setStyleSheet(f"color: {color};")
+
+
+def get_dev_prop_val(
+    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
+) -> list:
+    mmc = mmcore or get_core_singleton()
+    return [(k[0], k[1], k[2]) for k in mmc.getConfigData(group, preset)]
+
+
+def get_dev_prop(group: str, preset: str, mmcore: Optional[CMMCorePlus] = None) -> list:
+    mmc = mmcore or get_core_singleton()
+    return [(k[0], k[1]) for k in mmc.getConfigData(group, preset)]
