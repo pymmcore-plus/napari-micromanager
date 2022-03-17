@@ -10,6 +10,15 @@ from superqt.utils import create_worker
 
 from micromanager_gui._core import get_core_singleton
 
+COLOR_TYPES = Union[
+    QColor,
+    int,
+    str,
+    Qt.GlobalColor,
+    Tuple[int, int, int, int],
+    Tuple[int, int, int],
+]
+
 
 class SnapButton(QPushButton):
     """
@@ -23,16 +32,7 @@ class SnapButton(QPushButton):
         mmcore: Optional[CMMCorePlus] = None,
         button_text: Optional[str] = None,
         icon_size: Optional[int] = 30,
-        icon_color: Optional[
-            Union[
-                QColor,
-                int,
-                str,
-                Qt.GlobalColor,
-                Tuple[int, int, int, int],
-                Tuple[int, int, int],
-            ]
-        ] = "black",
+        icon_color: Optional[COLOR_TYPES] = "black",
     ) -> None:
 
         super().__init__()
