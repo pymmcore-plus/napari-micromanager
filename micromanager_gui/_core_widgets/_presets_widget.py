@@ -62,10 +62,9 @@ class PresetsWidget(QWidget):
                 raise ValueError(f"{self._presets} must have the same properties.")
 
     def _on_text_activate(self, text: str):
-        """Used in case there is only one preset"""
-        if len(self._presets) == 1:
-            self._mmc.setConfig(self._group, text)
-            set_wdg_color(self.text_color, self._combo)
+        # used if the preset is 'magenta' and you want to set it
+        self._mmc.setConfig(self._group, text)
+        set_wdg_color(self.text_color, self._combo)
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
