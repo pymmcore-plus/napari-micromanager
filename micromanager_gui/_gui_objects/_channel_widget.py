@@ -6,7 +6,7 @@ from qtpy.QtWidgets import QApplication, QComboBox, QVBoxLayout, QWidget
 from micromanager_gui import _core
 
 from .._core_widgets._presets_widget import PresetsWidget
-from .._util import ComboMessageBox, _set_wdg_color
+from .._util import ComboMessageBox, set_wdg_color
 
 
 class ChannelWidget(QWidget):
@@ -88,7 +88,7 @@ class ChannelWidget(QWidget):
 
     def _set_wdg_color(self, channel_group: str, wdg: QWidget):
         if not self._mmc.getCurrentConfig(channel_group):
-            _set_wdg_color("magenta", wdg)
+            set_wdg_color("magenta", wdg)
 
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
