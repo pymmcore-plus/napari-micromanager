@@ -9,7 +9,7 @@ from .._util import get_dev_prop, set_wdg_color
 
 
 class PresetsWidget(QWidget):
-    """Create a QCombobox Widget for a specified group presets"""
+    """Create a QCombobox Widget containing the presets of the specified group"""
 
     def __init__(
         self,
