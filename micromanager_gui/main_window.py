@@ -76,7 +76,7 @@ class MainWindow(MicroManagerWidget):
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._on_exp_change)
 
-        sig.imageSnapped.connect(self._snap)
+        sig.imageSnapped.connect(self.update_viewer)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -91,7 +91,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_wdg.y_down_Button.clicked.connect(self.stage_y_down)
         self.stage_wdg.up_Button.clicked.connect(self.stage_z_up)
         self.stage_wdg.down_Button.clicked.connect(self.stage_z_down)
-        # self.tab_wdg.snap_Button.clicked.connect(self._snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
 
         # connect comboBox
@@ -224,10 +223,14 @@ class MainWindow(MicroManagerWidget):
 
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
-    def _snap(self, img: np.ndarray):
-        # update in a thread so we don't freeze UI
-        create_worker(self.update_viewer, img, _start_thread=True)
+    def _snap(self):
         self.stop_live()
+        # update in a thread so we don't freeze UI
+        create_worker(
+            self._mmc.snapImage,
+            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
+            _start_thread=True,
+        )
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
