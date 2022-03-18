@@ -1,7 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from micromanager_gui._core_widgets._snap_button_widget import SnapButton
 
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
+    from pytestqt.qtbot import QtBot
 
-def test_snap_button_widget(qtbot, global_mmcore):
+
+def test_snap_button_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
     snap_btn = SnapButton(
         button_text="Snap",
