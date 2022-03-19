@@ -13,13 +13,22 @@ RESOLUTION_ID_PREFIX = "px_size_"
 
 
 class PixelSizeTable(QtW.QTableWidget):
-    """Create a Table to set pixel size configurations"""
+    """Create a Table to set pixel size configurations
+
+    Parameters
+    ----------
+    objective_device: Optional[str]
+        A device label for which to create a widget.
+    parent : Optional[QWidget]
+        Optional parent widget.
+    """
 
     def __init__(
         self,
-        mmcore: Optional[CMMCorePlus] = None,
         objective_device: Optional[str] = None,
         parent: Optional[QtW.QWidget] = None,
+        *,
+        mmcore: Optional[CMMCorePlus] = None,
     ):
         super().__init__(parent)
 
