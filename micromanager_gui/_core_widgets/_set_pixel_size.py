@@ -1,4 +1,5 @@
 import itertools
+import re
 from typing import Optional
 
 from pymmcore_plus import CMMCorePlus
@@ -64,6 +65,7 @@ class PixelSizeTable(QtW.QTableWidget):
         self.objective_combo.setProperty("row", row)
         self.objective_labels = self._mmc.getStateLabels(self._objective_device)
         self.objective_combo.addItems(self.objective_labels)
+        self.objective_combo.currentTextChanged.connect(self._guess_magnification)
 
         self.mag = QtW.QSpinBox()
         self.mag.setProperty("row", row)
@@ -79,6 +81,11 @@ class PixelSizeTable(QtW.QTableWidget):
         self.image_px_size.valueChanged.connect(self._on_image_px_size_changed)
 
         return [self.objective_combo, self.mag, self.camera_px_size, self.image_px_size]
+
+    def _guess_magnification(self, objectve: str):
+        if match := re.search(r"(\d{1,3})[xX]", objectve):
+            mag = int(match.groups()[0])
+            self.mag.setValue(mag)
 
     def _make_double_spinbox(self, row):
         spin = QtW.QDoubleSpinBox()
@@ -149,7 +156,10 @@ class PixelSizeTable(QtW.QTableWidget):
             wdg_list = self._create_widgets(row)
             self.insertRow(row)
             self._add_row(row, wdg_list)
+            current_text = self.objective_combo.currentText()
             self.objective_combo.setCurrentText(obj)
+            if current_text == obj:
+                self._guess_magnification(obj)
             self.image_px_size.setValue(self._mmc.getPixelSizeUmByID(cfg))
             row += 1
 
@@ -194,7 +204,7 @@ class PixelSizeWidget(QtW.QWidget):
 
         self._mmc = mmcore or get_core_singleton()
 
-        self.table = PixelSizeTable(self._mmc)
+        self.table = PixelSizeTable(mmcore=self._mmc)
 
         main_layout = QtW.QVBoxLayout()
 
