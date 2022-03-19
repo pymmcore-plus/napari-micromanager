@@ -15,10 +15,10 @@ def test_channel_widget(
 
     assert isinstance(ch_combo, ChannelWidget)
 
-    ch_combo.channel_combo.setValue("DAPI")
+    ch_combo.channel_wdg.setValue("DAPI")
     assert mmc.getCurrentConfig("Channel") == "DAPI"
 
     mmc.setConfig("Channel", "FITC")
-    assert ch_combo.channel_combo.value() == "FITC"
+    assert ch_combo.channel_wdg.value() == "FITC"
 
     # TODO: continue when we have delete group/preset signals
