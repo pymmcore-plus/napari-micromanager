@@ -26,6 +26,7 @@ class ChannelWidget(QWidget):
         self,
         channel_group: Optional[str] = None,
         parent: Optional[QWidget] = None,
+        *,
         mmcore: Optional[CMMCorePlus] = None,
     ):
 
