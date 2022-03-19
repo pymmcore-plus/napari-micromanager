@@ -82,11 +82,6 @@ class PixelSizeTable(QtW.QTableWidget):
 
         return [self.objective_combo, self.mag, self.camera_px_size, self.image_px_size]
 
-    def _guess_magnification(self, objectve: str):
-        if match := re.search(r"(\d{1,3})[xX]", objectve):
-            mag = int(match.groups()[0])
-            self.mag.setValue(mag)
-
     def _make_double_spinbox(self, row):
         spin = QtW.QDoubleSpinBox()
         spin.setAlignment(Qt.AlignCenter)
@@ -96,6 +91,14 @@ class PixelSizeTable(QtW.QTableWidget):
         spin.setValue(0.0)
         spin.setProperty("row", row)
         return spin
+
+    def _guess_magnification(self, objectve: str, row: int = None):
+        if match := re.search(r"(\d{1,3})[xX]", objectve):
+            mag_value = int(match.groups()[0])
+            if not row:
+                row = self.sender().property("row")
+            mag = self.cellWidget(row, 1)
+            mag.setValue(mag_value)
 
     def _on_camera_px_size_changed(self, value: float):
         row = self.sender().property("row")
@@ -159,7 +162,7 @@ class PixelSizeTable(QtW.QTableWidget):
             current_text = self.objective_combo.currentText()
             self.objective_combo.setCurrentText(obj)
             if current_text == obj:
-                self._guess_magnification(obj)
+                self._guess_magnification(obj, row)
             self.image_px_size.setValue(self._mmc.getPixelSizeUmByID(cfg))
             row += 1
 
