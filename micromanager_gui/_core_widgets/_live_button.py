@@ -22,17 +22,29 @@ COLOR_TYPE = Union[
 
 
 class LiveButton(QPushButton):
-    """
-    Create a two-state (on-off) live mode QPushButton. When toggled on,
-    an empty signal is emitted ('_emitFrameSignal') through a QTimer.
+    """Create a two-state (on-off) live mode QPushButton.
+
+    When pressed, a 'ContinuousSequenceAcquisition' is started or stopped
+    and a pymmcore-plus signal 'startContinuousSequenceAcquisition' or
+    'stopSequenceAcquisition' is emitted.
+
+    Parameters
+    ----------
+    button_text_on_off : Optional[tuple[str, str]]
+        Text of the QPushButton in the on and off state.
+    icon_size : Optional[int]
+        Size of the QPushButton icon.
+    icon_color_on_off : Optional[tuple[COLOR_TYPE, COLOR_TYPE]]
+       Color of the QPushButton icon in the on and off state.
     """
 
     def __init__(
         self,
-        mmcore: Optional[CMMCorePlus] = None,
         button_text_on_off: Optional[tuple[str, str]] = (None, None),
         icon_size: Optional[int] = 30,
         icon_color_on_off: Optional[tuple[COLOR_TYPE, COLOR_TYPE]] = ("black", "black"),
+        *,
+        mmcore: Optional[CMMCorePlus] = None,
     ) -> None:
 
         super().__init__()
