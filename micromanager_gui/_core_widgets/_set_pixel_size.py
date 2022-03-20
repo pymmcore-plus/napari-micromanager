@@ -1,3 +1,4 @@
+import contextlib
 import itertools
 import re
 from typing import Optional
@@ -92,6 +93,23 @@ class PixelSizeTable(QtW.QTableWidget):
         spin.setProperty("row", row)
         return spin
 
+    def _get_obj_combo_starting_index(
+        self,
+    ) -> int:
+        # to get an index different from the ones already in the table
+        if len(self.objective_labels) == 1:
+            return 0
+
+        obj_indexes = []
+        for r in range(self.rowCount()):
+            obj_wdg = self.cellWidget(r, 0)
+            obj_indexes.append(obj_wdg.currentIndex())
+
+        possible_idexes = list(range(len(self.objective_labels)))
+        diff = list(set(possible_idexes) ^ set(obj_indexes))
+
+        return diff[0]
+
     def _guess_magnification(self, objectve: str, row: int = None):
         if match := re.search(r"(\d{1,3})[xX]", objectve):
             mag_value = int(match.groups()[0])
@@ -130,10 +148,14 @@ class PixelSizeTable(QtW.QTableWidget):
         img_px_wdg.valueChanged.disconnect(self._on_image_px_size_changed)
 
     def _add_row(self, row, items: list):
-        self.setCellWidget(row, 0, items[0])
-        self.setCellWidget(row, 1, items[1])
-        self.setCellWidget(row, 2, items[2])
-        self.setCellWidget(row, 3, items[3])
+        obj_combo, mag, cam_px_size, img_px_size = items
+        self.setCellWidget(row, 0, obj_combo)
+        self.setCellWidget(row, 1, mag)
+        self.setCellWidget(row, 2, cam_px_size)
+        self.setCellWidget(row, 3, img_px_size)
+
+        with contextlib.suppress(TypeError):
+            obj_combo.setCurrentIndex(self._get_obj_combo_starting_index())
 
     def _get_px_cfg_and_objective(self) -> list:
 
@@ -159,10 +181,7 @@ class PixelSizeTable(QtW.QTableWidget):
             wdg_list = self._create_widgets(row)
             self.insertRow(row)
             self._add_row(row, wdg_list)
-            current_text = self.objective_combo.currentText()
             self.objective_combo.setCurrentText(obj)
-            if current_text == obj:
-                self._guess_magnification(obj, row)
             self.image_px_size.setValue(self._mmc.getPixelSizeUmByID(cfg))
             row += 1
 
@@ -255,7 +274,7 @@ class PixelSizeWidget(QtW.QWidget):
 
     def _update_row_numbers(self):
         for r in range(self.table.rowCount()):
-            obj_wdg = self.table.cellWidget(r, 1)
+            obj_wdg = self.table.cellWidget(r, 0)
             obj_wdg.setProperty("row", r)
             mag_wdg = self.table.cellWidget(r, 1)
             mag_wdg.setProperty("row", r)
