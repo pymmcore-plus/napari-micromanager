@@ -77,6 +77,7 @@ class MainWindow(MicroManagerWidget):
         sig.exposureChanged.connect(self._on_exp_change)
 
         sig.imageSnapped.connect(self.update_viewer)
+        sig.imageSnapped.connect(self.stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
