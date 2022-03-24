@@ -139,9 +139,9 @@ class ShuttersWidget(QtW.QWidget):
 
     def _on_shutter_btn_clicked(self):
         if self._mmc.getShutterOpen(self.shutter_device):
-            self._close_shutter(self._mmc.getShutterDevice())
+            self._close_shutter(self.shutter_device)
         else:
-            self._open_shutter(self._mmc.getShutterDevice())
+            self._open_shutter(self.shutter_device)
 
     def _close_shutter(self, shutter):
         self._set_shutter_wdg_to_closed()
@@ -154,7 +154,7 @@ class ShuttersWidget(QtW.QWidget):
     def _on_autoshutter_signal(self, state: bool):
         # close any shutter that is open
         for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
-            if self._mmc.getShutterOpen(shutter):
+            if self._mmc.getShutterOpen(shutter) or shutter == "Multi Shutter":
                 self._close_shutter(shutter)
 
         if state:
@@ -167,7 +167,7 @@ class ShuttersWidget(QtW.QWidget):
 
         # close any shutter that is open
         for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
-            if self._mmc.getShutterOpen(shutter):
+            if self._mmc.getShutterOpen(shutter) or shutter == "Multi Shutter":
                 self._close_shutter(shutter)
 
         self._on_autoshutter_signal(state)
@@ -198,3 +198,39 @@ if __name__ == "__main__":
     win = ShuttersWidget(shutter_device="Shutter")
     win.show()
     sys.exit(app.exec_())
+
+
+# EXAMPLE
+# from qtpy.QtWidgets import QWidget, QHBoxLayout
+# from pymmcore_plus import DeviceType
+# from micromanager_gui._core_widgets._shutter_widget import ShuttersWidget
+# from micromanager_gui._core import get_core_singleton
+# mmc = get_core_singleton()
+# cfg = "/Users/FG/Documents/napari-micromanager/tests/test_config.cfg"
+# mmc.loadSystemConfiguration(cfg)
+
+
+# w = QWidget()
+# lay = QHBoxLayout()
+# lay.setContentsMargins(0, 0, 0, 0)
+
+# ln = len(mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice))
+
+# for idx, s in enumerate(mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice)):
+#     if idx == ln - 1:
+#         sh = ShuttersWidget(
+#             s,
+#             button_text_open_closed=(s, s),
+#             icon_color_open_closed=((0,255,0), 'magenta')
+#         )
+#     else:
+#         sh = ShuttersWidget(
+#             s,
+#             button_text_open_closed=(s, s),
+#             icon_color_open_closed=((0,255,0), 'magenta'),
+#             autoshutter=False
+#         )
+
+#     lay.addWidget(sh)
+# w.setLayout(lay)
+# w.show()
