@@ -132,7 +132,6 @@ class ShuttersWidget(QtW.QWidget):
         else:
             self.shutter_button.setText(self.button_text_closed)
             self.shutter_button.setEnabled(True)
-            self.autoshutter_checkbox.setEnabled(True)
             if self.autoshutter:
                 self.autoshutter_checkbox.setEnabled(True)
                 self.autoshutter_checkbox.setChecked(True)
