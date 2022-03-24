@@ -89,6 +89,7 @@ class ShuttersWidget(QtW.QWidget):
         self._refresh_shutter_widget()
 
         self._mmc.events.systemConfigurationLoaded.connect(self._refresh_shutter_widget)
+        self._mmc.events.autoShutterSet.connect(self._on_autoshutter_signal)
         self.destroyed.connect(self.disconnect)
 
     def _create_wdg(self):
@@ -150,9 +151,7 @@ class ShuttersWidget(QtW.QWidget):
         self._set_shutter_wdg_to_opened()
         self._mmc.setShutterOpen(shutter, True)
 
-    def _on_shutter_checkbox_toggled(self, state: bool):
-        self._mmc.setAutoShutter(state)
-
+    def _on_autoshutter_signal(self, state: bool):
         # close any shutter that is open
         for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
             if self._mmc.getShutterOpen(shutter):
@@ -162,6 +161,16 @@ class ShuttersWidget(QtW.QWidget):
             self.shutter_button.setEnabled(False)
         else:
             self.shutter_button.setEnabled(True)
+
+    def _on_shutter_checkbox_toggled(self, state: bool):
+        self._mmc.setAutoShutter(state)
+
+        # close any shutter that is open
+        for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
+            if self._mmc.getShutterOpen(shutter):
+                self._close_shutter(shutter)
+
+        self._on_autoshutter_signal(state)
 
     def _set_shutter_wdg_to_opened(self):
         if self.button_text_open:
@@ -179,6 +188,7 @@ class ShuttersWidget(QtW.QWidget):
         self._mmc.events.systemConfigurationLoaded.disconnect(
             self._refresh_shutter_widget
         )
+        self._mmc.events.autoShutterSet.disconnect(self._on_autoshutter_signal)
 
 
 if __name__ == "__main__":
