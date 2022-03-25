@@ -70,11 +70,8 @@ class ShuttersWidget(QtW.QWidget):
 
         self._mmc = mmcore or get_core_singleton()
 
-        # self._mmc.loadSystemConfiguration(
-        #     "/Users/FG/Desktop/test_config_multishutter.cfg"
-        # )  # # only for teating, to be removed
-
         self.shutter_device = shutter_device
+        self._is_multiShutter = False
         self.autoshutter = autoshutter
         self.icon_open = icon_open_closed[0]
         self.icon_closed = icon_open_closed[1]
@@ -159,11 +156,26 @@ class ShuttersWidget(QtW.QWidget):
             else:
                 self.shutter_button.setEnabled(not self._mmc.getAutoShutter())
 
+            # bool to define if the shutter_device is a Micro-Manager 'Multi Shutter'
+            props = self._mmc.getDevicePropertyNames(self.shutter_device)
+            self._is_multiShutter = bool([x for x in props if "Physical Shutter" in x])
+
     def _on_shutter_btn_clicked(self):
-        if self._mmc.getShutterOpen(self.shutter_device):
+        state = self._mmc.getShutterOpen(self.shutter_device)
+        if state:
             self._close_shutter(self.shutter_device)
         else:
             self._open_shutter(self.shutter_device)
+
+        # change the state (and the respective button if exists)
+        # of the shutter listed in Micro-Manager 'Multi Shutter'
+        if self._is_multiShutter:
+            for prop_n in range(5):
+                prop = f"Physical Shutter {prop_n + 1}"
+                shutter = self._mmc.getProperty(self.shutter_device, prop)
+                if shutter == "Undefined":
+                    continue
+                self._mmc.setShutterOpen(shutter, not state)
 
     def _close_shutter(self, shutter):
         self._set_shutter_wdg_to_closed()
