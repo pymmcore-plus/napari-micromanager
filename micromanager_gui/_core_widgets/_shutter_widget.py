@@ -10,7 +10,7 @@ from qtpy.QtGui import QColor, QIcon
 from superqt.fonticon import icon
 from superqt.utils import signals_blocked
 
-from micromanager_gui._core import get_core_singleton  # to test, to be replaced
+from .._core import get_core_singleton  # to test, to be replaced
 
 COLOR_TYPE = Union[
     QColor,
@@ -206,12 +206,3 @@ class ShuttersWidget(QtW.QWidget):
         )
         self._mmc.events.autoShutterSet.disconnect(self._on_autoshutter_changed)
         self._mmc.events.shutterSet.disconnect(self._on_shutter_changed)
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QtW.QApplication(sys.argv)
-    win = ShuttersWidget(shutter_device="Shutter")
-    win.show()
-    sys.exit(app.exec_())
