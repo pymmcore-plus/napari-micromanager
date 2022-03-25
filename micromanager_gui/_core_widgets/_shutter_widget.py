@@ -6,8 +6,9 @@ from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize, Qt
-from qtpy.QtGui import QColor
+from qtpy.QtGui import QColor, QIcon
 from superqt.fonticon import icon
+from superqt.utils import signals_blocked
 
 from micromanager_gui._core import get_core_singleton  # to test, to be replaced
 
@@ -51,7 +52,7 @@ class ShuttersWidget(QtW.QWidget):
         shutter_device: str,
         autoshutter: bool = True,
         button_text_open_closed: Optional[Tuple[str, str]] = (None, None),
-        icon_open_closed: Optional[Tuple[MDI6, MDI6]] = (
+        icon_open_closed: Optional[Tuple[QIcon, QIcon]] = (
             MDI6.hexagon_outline,
             MDI6.hexagon_slice_6,
         ),
@@ -89,7 +90,8 @@ class ShuttersWidget(QtW.QWidget):
         self._refresh_shutter_widget()
 
         self._mmc.events.systemConfigurationLoaded.connect(self._refresh_shutter_widget)
-        self._mmc.events.autoShutterSet.connect(self._on_autoshutter_signal)
+        self._mmc.events.autoShutterSet.connect(self._on_autoshutter_changed)
+        self._mmc.events.shutterSet.connect(self._on_shutter_changed)
         self.destroyed.connect(self.disconnect)
 
     def _create_wdg(self):
@@ -114,6 +116,7 @@ class ShuttersWidget(QtW.QWidget):
                 QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed
             )
             self.autoshutter_checkbox.setSizePolicy(sizepolicy_checkbox)
+            self.autoshutter_checkbox.setChecked(False)
             self.autoshutter_checkbox.toggled.connect(self._on_shutter_checkbox_toggled)
             main_layout.addWidget(self.autoshutter_checkbox)
 
@@ -121,6 +124,23 @@ class ShuttersWidget(QtW.QWidget):
 
     def _on_system_cfg_loaded(self):
         self._refresh_shutter_widget()
+
+    def _on_autoshutter_changed(self, state: bool):
+        # close any shutter that is open
+        for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
+            self._close_shutter(shutter)
+
+        if self.autoshutter:
+            with signals_blocked(self.autoshutter_checkbox):
+                self.autoshutter_checkbox.setChecked(state)
+        self.shutter_button.setEnabled(not state)
+
+    def _on_shutter_changed(self, shutter: str, state: bool):
+        if shutter == self.shutter_device:
+            if state:
+                self._set_shutter_wdg_to_opened()
+            else:
+                self._set_shutter_wdg_to_closed()
 
     def _refresh_shutter_widget(self):
         if self.shutter_device not in self._mmc.getLoadedDevicesOfType(
@@ -131,11 +151,13 @@ class ShuttersWidget(QtW.QWidget):
             if self.autoshutter:
                 self.autoshutter_checkbox.setEnabled(False)
         else:
-            self.shutter_button.setText(self.button_text_closed)
-            self.shutter_button.setEnabled(True)
+            self._close_shutter(self.shutter_device)
             if self.autoshutter:
                 self.autoshutter_checkbox.setEnabled(True)
                 self.autoshutter_checkbox.setChecked(True)
+                self.shutter_button.setEnabled(False)
+            else:
+                self.shutter_button.setEnabled(not self._mmc.getAutoShutter())
 
     def _on_shutter_btn_clicked(self):
         if self._mmc.getShutterOpen(self.shutter_device):
@@ -151,26 +173,8 @@ class ShuttersWidget(QtW.QWidget):
         self._set_shutter_wdg_to_opened()
         self._mmc.setShutterOpen(shutter, True)
 
-    def _on_autoshutter_signal(self, state: bool):
-        # close any shutter that is open
-        for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
-            if self._mmc.getShutterOpen(shutter) or shutter == "Multi Shutter":
-                self._close_shutter(shutter)
-
-        if state:
-            self.shutter_button.setEnabled(False)
-        else:
-            self.shutter_button.setEnabled(True)
-
     def _on_shutter_checkbox_toggled(self, state: bool):
         self._mmc.setAutoShutter(state)
-
-        # close any shutter that is open
-        for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
-            if self._mmc.getShutterOpen(shutter) or shutter == "Multi Shutter":
-                self._close_shutter(shutter)
-
-        self._on_autoshutter_signal(state)
 
     def _set_shutter_wdg_to_opened(self):
         if self.button_text_open:
@@ -188,7 +192,8 @@ class ShuttersWidget(QtW.QWidget):
         self._mmc.events.systemConfigurationLoaded.disconnect(
             self._refresh_shutter_widget
         )
-        self._mmc.events.autoShutterSet.disconnect(self._on_autoshutter_signal)
+        self._mmc.events.autoShutterSet.disconnect(self._on_autoshutter_changed)
+        self._mmc.events.shutterSet.disconnect(self._on_shutter_changed)
 
 
 if __name__ == "__main__":
@@ -198,39 +203,3 @@ if __name__ == "__main__":
     win = ShuttersWidget(shutter_device="Shutter")
     win.show()
     sys.exit(app.exec_())
-
-
-# EXAMPLE
-# from qtpy.QtWidgets import QWidget, QHBoxLayout
-# from pymmcore_plus import DeviceType
-# from micromanager_gui._core_widgets._shutter_widget import ShuttersWidget
-# from micromanager_gui._core import get_core_singleton
-# mmc = get_core_singleton()
-# cfg = "/Users/FG/Documents/napari-micromanager/tests/test_config.cfg"
-# mmc.loadSystemConfiguration(cfg)
-
-
-# w = QWidget()
-# lay = QHBoxLayout()
-# lay.setContentsMargins(0, 0, 0, 0)
-
-# ln = len(mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice))
-
-# for idx, s in enumerate(mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice)):
-#     if idx == ln - 1:
-#         sh = ShuttersWidget(
-#             s,
-#             button_text_open_closed=(s, s),
-#             icon_color_open_closed=((0,255,0), 'magenta')
-#         )
-#     else:
-#         sh = ShuttersWidget(
-#             s,
-#             button_text_open_closed=(s, s),
-#             icon_color_open_closed=((0,255,0), 'magenta'),
-#             autoshutter=False
-#         )
-
-#     lay.addWidget(sh)
-# w.setLayout(lay)
-# w.show()
