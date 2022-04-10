@@ -243,7 +243,10 @@ def make_property_value_widget(
 
     @wdg.destroyed.connect
     def _disconnect(*, _core=core):
-        _core.events.propertyChanged.disconnect(_on_core_change)
+        try:
+            _core.events.propertyChanged.disconnect(_on_core_change)
+        except RuntimeError:
+            pass
 
     @wdg.valueChanged.connect
     def _on_widget_change(value, _core=core) -> None:
