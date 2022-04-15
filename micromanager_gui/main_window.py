@@ -280,17 +280,18 @@ class MainWindow(MicroManagerWidget):
         dtype = f"uint{self._mmc.getImageBitDepth()}"
         for i, c in enumerate(channels):
             id_ = str(sequence.uid) + c
+            tmp = tempfile.TemporaryDirectory()
+            self._mda_temp_files[id_] = tmp
             if zarr is not None:
-                tmp = tempfile.TemporaryDirectory()
-                self._mda_temp_files[id_] = tmp
                 self._mda_temp_arrays[id_] = self._z = zarr.open(
                     str(tmp.name), shape=shape, dtype=dtype
                 )
             else:
-                tmp = tempfile.NamedTemporaryFile()
-                self._mda_temp_files[id_] = tmp
                 self._mda_temp_arrays[id_] = np.memmap(
-                    str(tmp.name), dtype=dtype, shape=tuple(shape)
+                    str(Path(tmp.name) / "mda.dat"),
+                    mode="w+",
+                    dtype=dtype,
+                    shape=tuple(shape),
                 )
 
             file_name = (
