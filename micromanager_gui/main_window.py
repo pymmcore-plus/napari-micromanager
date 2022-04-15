@@ -290,7 +290,7 @@ class MainWindow(MicroManagerWidget):
                 tmp = tempfile.NamedTemporaryFile()
                 self._mda_temp_files[id_] = tmp
                 self._mda_temp_arrays[id_] = np.memmap(
-                    str(tmp.name), dtype=dtype, shape=shape
+                    str(tmp.name), dtype=dtype, shape=tuple(shape)
                 )
 
             file_name = (
