@@ -7,7 +7,7 @@ from superqt import QCollapsible
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
 from ._mda_widget import MultiDWidget
-from ._MMshutters_widget import MMShuttersWidget
+from ._mm_shutters_widget import MMShuttersWidget
 from ._objective_widget import MMObjectivesWidget
 from ._sample_explorer_widget import ExploreSample
 from ._slider_dialog import SliderDialog

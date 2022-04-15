@@ -10,7 +10,7 @@ from qtpy.QtGui import QColor, QIcon
 from superqt.fonticon import icon
 from superqt.utils import signals_blocked
 
-from .._core import get_core_singleton  # to test, to be replaced
+from .._core import get_core_singleton
 
 COLOR_TYPE = Union[
     QColor,
@@ -66,7 +66,7 @@ class ShuttersWidget(QtW.QWidget):
         *,
         mmcore: Optional[CMMCorePlus] = None,
     ):
-        super().__init__()
+        super().__init__(parent)
 
         self._mmc = mmcore or get_core_singleton()
 
