@@ -5,7 +5,7 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
-from .._core_widgets._live_button import LiveButton
+from .._core_widgets._live_button_widget import LiveButton
 
 ICONS = Path(__file__).parent.parent / "icons"
 
