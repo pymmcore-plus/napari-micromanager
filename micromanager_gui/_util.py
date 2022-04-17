@@ -175,18 +175,6 @@ class ComboMessageBox(QDialog):
         return self._combo.currentText()
 
 
-def set_wdg_color(color: str, wdg: QWidget):
-    wdg.setStyleSheet(f"color: {color};")
-
-
-def get_dev_prop_val(
-    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
-) -> list:
-    """return a list with (device, property, values) for the selected group preset"""
-    mmc = mmcore or get_core_singleton()
-    return [(k[0], k[1], k[2]) for k in mmc.getConfigData(group, preset)]
-
-
 def get_dev_prop(group: str, preset: str, mmcore: Optional[CMMCorePlus] = None) -> list:
     """return a list with (device, property) for the selected group preset"""
     mmc = mmcore or get_core_singleton()
