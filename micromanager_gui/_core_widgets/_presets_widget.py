@@ -72,8 +72,8 @@ class PresetsWidget(QWidget):
     def _set_if_props_match_preset(self):
         """
         Check if a preset matches the current system state.
-        If true, set the combobox to the preset with 'text_color'.
-        If false, set the combobox color to 'magenta'.
+        If true, set the combobox to the preset and the text to default color.
+        If false, set the combobox text color to 'magenta'.
         """
         for preset in self._presets:
             _set_combo = True
