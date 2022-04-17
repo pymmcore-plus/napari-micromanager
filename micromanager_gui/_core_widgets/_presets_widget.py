@@ -5,7 +5,7 @@ from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
-from .._util import get_dev_prop, set_wdg_color
+from .._util import get_dev_prop
 
 
 class PresetsWidget(QWidget):
@@ -14,7 +14,6 @@ class PresetsWidget(QWidget):
     def __init__(
         self,
         group: str,
-        text_color: str = "black",
         parent: Optional[QWidget] = None,
     ) -> None:
 
@@ -23,7 +22,6 @@ class PresetsWidget(QWidget):
         self._mmc = get_core_singleton()
 
         self._group = group
-        self.text_color = text_color
 
         if self._group not in self._mmc.getAvailableConfigGroups():
             raise ValueError(f"{self._group} group does not exist.")
@@ -43,7 +41,6 @@ class PresetsWidget(QWidget):
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._combo)
-        set_wdg_color(self.text_color, self._combo)
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._combo.textActivated.connect(self._on_text_activate)
 
@@ -64,21 +61,14 @@ class PresetsWidget(QWidget):
                 raise ValueError(f"{self._presets} must have the same properties.")
 
     def _on_text_activate(self, text: str):
-        # used if the preset is 'magenta' and you want to set it
-        # or if there is only 1 preset
+        # used if there is only 1 preset
         self._mmc.setConfig(self._group, text)
-        set_wdg_color(self.text_color, self._combo)
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
-        set_wdg_color(self.text_color, self._combo)
 
     def _set_if_props_match_preset(self):
-        """
-        Check if a preset matches the current system state.
-        If true, set the combobox to the preset with 'text_color'.
-        If false, set the combobox color to 'magenta'.
-        """
+        """Check if a preset matches the current system state."""
         for preset in self._presets:
             _set_combo = True
             for (dev, prop, value) in self._mmc.getConfigData(self._group, preset):
@@ -89,16 +79,14 @@ class PresetsWidget(QWidget):
             if _set_combo:
                 with signals_blocked(self._combo):
                     self._combo.setCurrentText(preset)
-                    set_wdg_color(self.text_color, self._combo)
                     return
-        # None of the presets match the current system state
-        set_wdg_color("magenta", self._combo)
+        # TODO: if None of the presets match the current system state:
+        # set text color to 'magenta'
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
-                set_wdg_color(self.text_color, self._combo)
         else:
             dev_prop_list = get_dev_prop(group, preset)
             if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
@@ -133,7 +121,7 @@ class PresetsWidget(QWidget):
             raise ValueError(
                 f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
             )
-        self._combo.setCurrentText(str(value))
+        self._combo.setCurrentText(value)
 
     def allowedValues(self) -> Tuple[str]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
