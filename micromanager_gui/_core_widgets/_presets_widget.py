@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional, Tuple
 
 from pymmcore_plus import DeviceType
@@ -5,7 +6,7 @@ from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
-from .._util import get_dev_prop
+from .._util import get_group_dev_prop, get_preset_dev_prop
 
 
 class PresetsWidget(QWidget):
@@ -31,7 +32,7 @@ class PresetsWidget(QWidget):
         if not self._presets:
             raise ValueError(f"{self._group} group does not have presets.")
 
-        self.dev_prop = get_dev_prop(self._group, self._presets[0])
+        self.dev_prop = get_group_dev_prop(self._group, self._presets[0])
 
         self._check_if_presets_have_same_props()
 
@@ -53,12 +54,16 @@ class PresetsWidget(QWidget):
         self.destroyed.connect(self.disconnect)
 
     def _check_if_presets_have_same_props(self):
+        n_prop = 0
         for idx, preset in enumerate(self._presets):
             if idx == 0:
+                n_prop = len(get_preset_dev_prop(self._group, preset))
                 continue
-            device_property = get_dev_prop(self._group, preset)
-            if len(device_property) != len(self.dev_prop):
-                raise ValueError(f"{self._presets} must have the same properties.")
+
+            device_property = get_preset_dev_prop(self._group, preset)
+
+            if len(device_property) != n_prop:
+                warnings.warn(f"{self._presets} must have the same properties")
 
     def _on_text_activate(self, text: str):
         # used if there is only 1 preset and you want to set it
@@ -96,7 +101,7 @@ class PresetsWidget(QWidget):
                 self._combo.setCurrentText(preset)
                 self._combo.setStyleSheet("")
         else:
-            dev_prop_list = get_dev_prop(group, preset)
+            dev_prop_list = get_group_dev_prop(group, preset)
             if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
                 self._set_if_props_match_preset()
 
