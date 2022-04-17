@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
 
 import numpy as np
 from pymmcore_plus import CMMCorePlus
@@ -175,7 +175,22 @@ class ComboMessageBox(QDialog):
         return self._combo.currentText()
 
 
-def get_dev_prop(group: str, preset: str, mmcore: Optional[CMMCorePlus] = None) -> list:
-    """return a list with (device, property) for the selected group preset"""
+def get_preset_dev_prop(
+    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
+) -> list:
+    """Return a list with (device, property) for the selected group preset"""
     mmc = mmcore or get_core_singleton()
     return [(k[0], k[1]) for k in mmc.getConfigData(group, preset)]
+
+
+def get_group_dev_prop(
+    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
+) -> List[Tuple[str, str]]:
+    """
+    Return a list of all (device, property) tuples used in the config group's presets
+    """
+    mmc = mmcore or get_core_singleton()
+    dev_props = []
+    for preset in mmc.getAvailableConfigs(group):
+        dev_props.extend([(k[0], k[1]) for k in mmc.getConfigData(group, preset)])
+    return dev_props
