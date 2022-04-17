@@ -5,7 +5,6 @@ from qtpy.QtWidgets import QVBoxLayout
 from .. import _core
 from .._core_widgets._presets_widget import PresetsWidget
 from .._core_widgets._property_widget import PropertyWidget
-from .._util import set_wdg_color
 
 
 class MainTable(QtW.QTableWidget):
@@ -63,7 +62,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                 elif isinstance(wdg, PropertyWidget):
                     wdg = wdg._value_widget
                 if not self._mmc.getCurrentConfig(group):
-                    set_wdg_color("magenta", wdg)
+                    wdg.setStyleSheet("color: magenta;")
 
     def _get_cfg_data(self, group: str, preset: str):
         """
@@ -93,6 +92,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         device, property, _, dev_prop_val_count = self._get_cfg_data(group, presets[0])
 
         if len(presets) > 1 or dev_prop_val_count > 1:
-            return PresetsWidget(group, text_color="white")
+            # return PresetsWidget(group, text_color="white")
+            return PresetsWidget(group)
         else:
             return PropertyWidget(device, property)

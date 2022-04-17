@@ -61,14 +61,20 @@ class PresetsWidget(QWidget):
                 raise ValueError(f"{self._presets} must have the same properties.")
 
     def _on_text_activate(self, text: str):
-        # used if there is only 1 preset
+        # used if there is only 1 preset and you want to set it
         self._mmc.setConfig(self._group, text)
+        self._combo.setStyleSheet("")
 
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
+        self._combo.setStyleSheet("")
 
     def _set_if_props_match_preset(self):
-        """Check if a preset matches the current system state."""
+        """
+        Check if a preset matches the current system state.
+        If true, set the combobox to the preset with 'text_color'.
+        If false, set the combobox color to 'magenta'.
+        """
         for preset in self._presets:
             _set_combo = True
             for (dev, prop, value) in self._mmc.getConfigData(self._group, preset):
@@ -79,14 +85,16 @@ class PresetsWidget(QWidget):
             if _set_combo:
                 with signals_blocked(self._combo):
                     self._combo.setCurrentText(preset)
+                    self._combo.setStyleSheet("")
                     return
-        # TODO: if None of the presets match the current system state:
-        # set text color to 'magenta'
+        # if None of the presets match the current system state
+        self._combo.setStyleSheet("color: magenta;")
 
     def _on_cfg_set(self, group: str, preset: str) -> None:
         if group == self._group and self._combo.currentText() != preset:
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
+                self._combo.setStyleSheet("")
         else:
             dev_prop_list = get_dev_prop(group, preset)
             if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
