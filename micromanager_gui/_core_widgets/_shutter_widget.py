@@ -58,10 +58,10 @@ class ShuttersWidget(QtW.QWidget):
         ),
         icon_size: Optional[int] = 25,
         icon_color_open_closed: Optional[tuple[COLOR_TYPE, COLOR_TYPE]] = (
-            "black",
-            "black",
+            "",
+            "",
         ),
-        text_color_combo: Optional[COLOR_TYPE] = "black",
+        text_color_combo: Optional[COLOR_TYPE] = "",
         parent: Optional[QtW.QWidget] = None,
         *,
         mmcore: Optional[CMMCorePlus] = None,
