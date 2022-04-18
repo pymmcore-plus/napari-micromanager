@@ -45,7 +45,7 @@ class LiveButton(QPushButton):
         camera: Optional[str] = None,
         button_text_on_off: Optional[tuple[str, str]] = (None, None),
         icon_size: Optional[int] = 30,
-        icon_color_on_off: Optional[tuple[COLOR_TYPE, COLOR_TYPE]] = ("black", "black"),
+        icon_color_on_off: Optional[tuple[COLOR_TYPE, COLOR_TYPE]] = ("", ""),
         *,
         mmcore: Optional[CMMCorePlus] = None,
     ) -> None:
@@ -107,7 +107,7 @@ class LiveButton(QPushButton):
     def _on_sequence_started(self):
         self.set_icon_state(True)
 
-    def _on_sequence_stopped(self):
+    def _on_sequence_stopped(self, camera: str):
         self.set_icon_state(False)
 
     def disconnect(self):
