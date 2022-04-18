@@ -43,7 +43,7 @@ class SnapButton(QPushButton):
         camera: Optional[str] = None,
         button_text: Optional[str] = None,
         icon_size: Optional[int] = 30,
-        icon_color: Optional[COLOR_TYPES] = "black",
+        icon_color: Optional[COLOR_TYPES] = "",
         *,
         mmcore: Optional[CMMCorePlus] = None,
     ) -> None:
