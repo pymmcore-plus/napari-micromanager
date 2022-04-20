@@ -12,14 +12,14 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import create_worker, ensure_main_thread
+from superqt.utils import create_worker, ensure_main_thread, signals_blocked
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
-from ._util import blockSignals, event_indices, extend_array_for_index
+from ._util import event_indices, extend_array_for_index
 
 if TYPE_CHECKING:
     import napari.layers
@@ -415,7 +415,7 @@ class MainWindow(MicroManagerWidget):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.tab_wdg.exp_spinBox):
+        with signals_blocked(self.tab_wdg.exp_spinBox):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))

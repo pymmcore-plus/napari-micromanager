@@ -63,7 +63,7 @@ class PresetsWidget(QWidget):
             device_property = get_preset_dev_prop(self._group, preset)
 
             if len(device_property) != n_prop:
-                warnings.warn(f"{self._presets} must have the same properties")
+                warnings.warn(f"{self._presets} don't have the same properties")
 
     def _on_text_activate(self, text: str):
         # used if there is only 1 preset and you want to set it
