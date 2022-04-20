@@ -12,19 +12,14 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import create_worker, ensure_main_thread
+from superqt.utils import create_worker, ensure_main_thread, signals_blocked
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
-from ._util import (
-    SelectDeviceFromCombobox,
-    blockSignals,
-    event_indices,
-    extend_array_for_index,
-)
+from ._util import SelectDeviceFromCombobox, event_indices, extend_array_for_index
 
 if TYPE_CHECKING:
     import napari.layers
@@ -421,7 +416,7 @@ class MainWindow(MicroManagerWidget):
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
     def _on_exp_change(self, camera: str, exposure: float):
-        with blockSignals(self.tab_wdg.exp_spinBox):
+        with signals_blocked(self.tab_wdg.exp_spinBox):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
@@ -450,7 +445,7 @@ class MainWindow(MicroManagerWidget):
         channel_group = guessed_channel
         self._mmc.setChannelGroup(channel_group)
         channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with blockSignals(self.tab_wdg.snap_channel_comboBox):
+        with signals_blocked(self.tab_wdg.snap_channel_comboBox):
             self.tab_wdg.snap_channel_comboBox.clear()
             self.tab_wdg.snap_channel_comboBox.addItems(channel_list)
             self.tab_wdg.snap_channel_comboBox.setCurrentText(
@@ -459,7 +454,7 @@ class MainWindow(MicroManagerWidget):
 
     def _on_config_set(self, groupName: str, configName: str):
         if groupName == self._mmc.getOrGuessChannelGroup():
-            with blockSignals(self.tab_wdg.snap_channel_comboBox):
+            with signals_blocked(self.tab_wdg.snap_channel_comboBox):
                 self.tab_wdg.snap_channel_comboBox.setCurrentText(configName)
 
     def _channel_changed(self, newChannel: str):
