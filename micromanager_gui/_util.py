@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
 
 import numpy as np
+from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QComboBox,
@@ -17,36 +17,10 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ._core import get_core_singleton
+
 if TYPE_CHECKING:
     import useq
-
-
-def get_devices_and_props(self):
-    mmc = None
-    # List devices and properties that you can set
-    devices = mmc.getLoadedDevices()
-    print("\nDevice status:__________________________")
-    for i in range(len(devices)):
-        device = devices[i]
-        properties = mmc.getDevicePropertyNames(device)
-        for p in range(len(properties)):
-            prop = properties[p]
-            values = mmc.getAllowedPropertyValues(device, prop)
-            print(f"Device: {str(device)}  Property: {str(prop)} Value: {str(values)}")
-    print("________________________________________")
-
-
-def get_groups_list(self):
-    mmc = None
-    group = []
-    for groupName in mmc.getAvailableConfigGroups():
-        print(f"*********\nGroup_Name: {str(groupName)}")
-        for configName in mmc.getAvailableConfigs(groupName):
-            group.append(configName)
-            print(f"Config_Name: {str(configName)}")
-            props = str(mmc.getConfigData(groupName, configName).getVerbose())
-            print(f"Properties: {props}")
-        print("*********")
 
 
 def extend_array_for_index(array: np.ndarray, index: tuple[int, ...]):
@@ -107,19 +81,6 @@ def event_indices(event: useq.MDAEvent):
             yield k
 
 
-@contextmanager
-def blockSignals(widgets: QWidget | list[QWidget]):
-    if not isinstance(widgets, (list, tuple)):
-        widgets = [widgets]
-    orig_states = []
-    for w in widgets:
-        orig_states.append(w.signalsBlocked())
-        w.blockSignals(True)
-    yield
-    for w, s in zip(widgets, orig_states):
-        w.blockSignals(s)
-
-
 class SelectDeviceFromCombobox(QDialog):
     val_changed = Signal(str)
 
@@ -170,3 +131,24 @@ class ComboMessageBox(QDialog):
 
     def currentText(self) -> str:
         return self._combo.currentText()
+
+
+def get_preset_dev_prop(
+    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
+) -> list:
+    """Return a list with (device, property) for the selected group preset"""
+    mmc = mmcore or get_core_singleton()
+    return [(k[0], k[1]) for k in mmc.getConfigData(group, preset)]
+
+
+def get_group_dev_prop(
+    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
+) -> List[Tuple[str, str]]:
+    """
+    Return a list of all (device, property) tuples used in the config group's presets
+    """
+    mmc = mmcore or get_core_singleton()
+    dev_props = []
+    for preset in mmc.getAvailableConfigs(group):
+        dev_props.extend([(k[0], k[1]) for k in mmc.getConfigData(group, preset)])
+    return dev_props
