@@ -85,6 +85,15 @@ class DefaultCameraExposureWidget(ExposureWidget):
             g_Keyword_CoreDevice, g_Keyword_CoreCamera
         ).connect(self._camera_updated)
 
+    def setCamera(self, camera: str = None, force: bool = False):
+        if not force:
+            raise RuntimeError(
+                "Setting the camera on a DefaultCameraExposureWidget "
+                "may cause it to malfunction. Either use *force=True* "
+                " or create an ExposureWidget"
+            )
+        return super().setCamera(camera)
+
     def _camera_updated(self, value: str):
         # This will not always fire
         # see https://github.com/micro-manager/mmCoreAndDevices/issues/181

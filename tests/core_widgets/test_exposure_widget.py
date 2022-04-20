@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
 from pymmcore_plus import CMMCorePlus
 
 from micromanager_gui._core_widgets import DefaultCameraExposureWidget
@@ -32,4 +33,12 @@ def test_exposure_widget(qtbot: QtBot):
 
     # test updating cameraDevice
     CORE.setProperty("Core", "Camera", "")
+    assert not wdg.isEnabled()
+
+    with pytest.raises(RuntimeError):
+        wdg.setCamera("blarg")
+
+    # set to an invalid camera name
+    # should now be disabled.
+    wdg.setCamera("blarg", force=True)
     assert not wdg.isEnabled()
