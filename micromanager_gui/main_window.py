@@ -220,13 +220,8 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
     def _snap(self):
-        self.stop_live()
         # update in a thread so we don't freeze UI
-        create_worker(
-            self._mmc.snapImage,
-            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
-            _start_thread=True,
-        )
+        create_worker(self._mmc.snap, _start_thread=True)
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
