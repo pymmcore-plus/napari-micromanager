@@ -68,6 +68,9 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._on_exp_change)
 
+        # link to "snap on click" for the stage widget
+        sig.imageSnapped.connect(self.update_viewer)
+
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)

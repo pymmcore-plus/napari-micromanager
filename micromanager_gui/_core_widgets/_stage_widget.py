@@ -100,8 +100,6 @@ class StageWidget(QWidget):
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
 
-        self._snap_on_click = True  # TODO: make widget
-
         self._step = QSpinBox()
         self._step.setValue(10)
         self._step.setMaximum(9999)
@@ -248,12 +246,12 @@ class StageWidget(QWidget):
             self._mmc.setAutoFocusOffset(y)
         else:
             self._mmc.setRelativePosition(self._device, y)
-        if self._snap_on_click:
+        if self.snap_checkbox.isChecked():
             self._mmc.snap()
 
     def _scale(self, mag: int):
-        """Convert step mag of (1, 2, 3) to absolute XY units.
-
+        """
+        Convert step mag of (1, 2, 3) to absolute XY units.
         Can be used to step 1x field of view, etc...
         """
         return mag * self._step.value()
