@@ -4,11 +4,11 @@ from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QApplication, QPushButton
+from qtpy.QtWidgets import QPushButton
 from superqt.fonticon import icon
 from superqt.utils import create_worker
 
-from micromanager_gui._core import get_core_singleton
+from .._core import get_core_singleton
 
 COLOR_TYPES = Union[
     QColor,
@@ -84,12 +84,3 @@ class SnapButton(QPushButton):
         self._mmc.events.systemConfigurationLoaded.disconnect(
             self._on_system_cfg_loaded
         )
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    win = SnapButton()
-    win.show()
-    sys.exit(app.exec_())
