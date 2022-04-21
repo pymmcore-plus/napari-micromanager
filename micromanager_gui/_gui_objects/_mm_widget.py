@@ -25,7 +25,6 @@ class MicroManagerWidget(QtW.QWidget):
         self.cfg_wdg = MMConfigurationWidget()
         self.obj_wdg = MMObjectivesWidget()
         self.cam_wdg = MMCameraWidget()
-        # self.stage_wdg = MMStagesWidget()
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
@@ -129,11 +128,5 @@ class MicroManagerWidget(QtW.QWidget):
 
     def _show_stage_control(self):
         if not hasattr(self, "_stage_wdg"):
-            self._stage_wdg = MMStagesWidget(self)
-            self._stage_wdg.setWindowFlags(
-                Qt.WindowType.Window
-                | Qt.WindowType.WindowTitleHint
-                | Qt.WindowType.WindowStaysOnTopHint
-                | Qt.WindowType.WindowCloseButtonHint
-            )
+            self._stage_wdg = MMStagesWidget(parent=self)
         self._stage_wdg.show()

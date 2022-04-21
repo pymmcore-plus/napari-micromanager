@@ -52,6 +52,18 @@ QCheckBox::indicator {
 
 
 class StageWidget(QWidget):
+    """Create a widget to control a XY and/or a Z stage.
+
+    Parameters
+    ----------
+    device: str:
+        Stage device.
+    levels: Optional[int]:
+        Number of "arrow" buttons per widget per direction, by default, 2.
+    parent : Optional[QWidget]
+        Optional parent widget, by default None.
+    """
+
     # fmt: off
     BTNS = {
         # btn glyph                (r, c, xmag, ymag)
@@ -68,22 +80,26 @@ class StageWidget(QWidget):
         MDI6.chevron_double_right: (3, 5,  2,  0),
         MDI6.chevron_triple_right: (3, 6,  3,  0),
     }
-    BTN_SIZE = 36
+    BTN_SIZE = 30
     # fmt: on
 
     def __init__(
         self,
+        device: str,
         levels: Optional[int] = 2,
-        device: Optional[str] = None,
-        mmcore: Optional[CMMCorePlus] = None,
         parent: Optional[QWidget] = None,
+        *,
+        mmcore: Optional[CMMCorePlus] = None,
     ):
         super().__init__()
+
+        self.setStyleSheet(STYLE)
+
         self._mmc = mmcore or _core.get_core_singleton()
-        self._device = device or self._mmc.getXYStageDevice()
+        self._device = device
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
-        self.setStyleSheet(STYLE)
+
         self._snap_on_click = True  # TODO: make widget
 
         self._step = QSpinBox()
@@ -115,6 +131,7 @@ class StageWidget(QWidget):
         self._update_ttips()
 
         self._readout = QLabel()
+        self._readout.setAlignment(AlignCenter)
         self._update_position_label()
 
         self._poll_cb = QCheckBox("poll")
@@ -124,17 +141,28 @@ class StageWidget(QWidget):
         self._poll_timer.timeout.connect(self._update_position_label)
         self._poll_cb.toggled.connect(self._toggle_poll_timer)
 
-        bottom_row = QWidget()
-        bottom_row.setLayout(QHBoxLayout())
-        bottom_row.layout().addWidget(self._readout)
+        self.snap_checkbox = QCheckBox(text="Snap on Click")
+
+        bottom_row_1 = QWidget()
+        bottom_row_1.setLayout(QHBoxLayout())
+        bottom_row_1.layout().addWidget(self._readout)
+
+        bottom_row_2 = QWidget()
+        bottom_row_2_layout = QHBoxLayout()
+        bottom_row_2_layout.setSpacing(10)
+        bottom_row_2_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_row_2_layout.setAlignment(AlignCenter)
+        bottom_row_2.setLayout(bottom_row_2_layout)
+        bottom_row_2.layout().addWidget(self.snap_checkbox)
         if self._dtype is DeviceType.XYStage:
-            bottom_row.layout().addWidget(self._poll_cb)
+            bottom_row_2.layout().addWidget(self._poll_cb)
 
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._btns, AlignCenter)
-        self.layout().addWidget(bottom_row)
+        self.layout().addWidget(bottom_row_1)
+        self.layout().addWidget(bottom_row_2)
 
         self._connect_events()
 
@@ -220,12 +248,11 @@ class StageWidget(QWidget):
             self._mmc.setAutoFocusOffset(y)
         else:
             self._mmc.setRelativePosition(self._device, y)
-        # self._mmc.waitForDevice(self._device)
         if self._snap_on_click:
             self._mmc.snap()
 
     def _scale(self, mag: int):
-        """Convert step mag of (1, 2, 3) to absolute XY units
+        """Convert step mag of (1, 2, 3) to absolute XY units.
 
         Can be used to step 1x field of view, etc...
         """
