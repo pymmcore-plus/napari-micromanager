@@ -9,7 +9,7 @@ from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QApplication, QPushButton
 from superqt.fonticon import icon
 
-from micromanager_gui._core import get_core_singleton
+from .._core import get_core_singleton
 
 COLOR_TYPE = Union[
     QColor,
@@ -43,7 +43,7 @@ class LiveButton(QPushButton):
     def __init__(
         self,
         camera: Optional[str] = None,
-        button_text_on_off: Optional[tuple[str, str]] = (None, None),
+        button_text_on_off: Optional[tuple[str, str]] = ("", ""),
         icon_size: Optional[int] = 30,
         icon_color_on_off: Optional[tuple[COLOR_TYPE, COLOR_TYPE]] = ("", ""),
         *,
