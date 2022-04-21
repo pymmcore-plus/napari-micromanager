@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from fonticon_mdi6 import MDI6
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import Qt
+from qtpy.QtCore import QSize, Qt
 from superqt import QCollapsible
+from superqt.fonticon import icon
 
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
@@ -23,9 +25,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.cfg_wdg = MMConfigurationWidget()
         self.obj_wdg = MMObjectivesWidget()
         self.cam_wdg = MMCameraWidget()
-        self.stage_wdg = MMStagesWidget()
-        self.illum_btn = QtW.QPushButton("Light Sources")
-        self.illum_btn.clicked.connect(self._show_illum_dialog)
+        # self.stage_wdg = MMStagesWidget()
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
@@ -55,7 +55,7 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add objective, property browser, illumination and camera widgets
         obj_prop = self.add_mm_objectives_and_properties_widgets()
-        ill_shutter = self.add_ill_and_shutter_widgets()
+        ill_shutter = self.add_shutter_widgets()
         cam = self.add_camera_widget()
         self.mic_coll.addWidget(obj_prop)
         self.mic_coll.addWidget(ill_shutter)
@@ -65,21 +65,26 @@ class MicroManagerWidget(QtW.QWidget):
         self.mic_group.setLayout(self.mic_group_layout)
         self.main_layout.addWidget(self.mic_group)
 
-        # add stages collapsible
-        self.stages_group = QtW.QGroupBox()
-        self.stages_group_layout = QtW.QVBoxLayout()
-        self.stages_group_layout.setSpacing(0)
-        self.stages_group_layout.setContentsMargins(1, 0, 1, 1)
+        # add illumination and stage control button
+        stage_ill_btns_group = QtW.QGroupBox()
+        stage_ill_btns_group_layout = QtW.QHBoxLayout()
+        stage_ill_btns_group_layout.setSpacing(10)
+        stage_ill_btns_group_layout.setContentsMargins(5, 5, 5, 5)
+        stage_ill_btns_group.setLayout(stage_ill_btns_group_layout)
 
-        self.stages_coll = QCollapsible(title="Stages")
-        self.stages_coll.layout().setSpacing(0)
-        self.stages_coll.layout().setContentsMargins(0, 0, 5, 10)
-        self.stages_coll.addWidget(self.stage_wdg)
-        self.stages_coll.expand(animate=False)
+        self.illum_btn = QtW.QPushButton("Light Sources")
+        self.illum_btn.setIcon(icon(MDI6.lightbulb_on, color=(0, 255, 0)))
+        self.illum_btn.setIconSize(QSize(30, 30))
+        self.illum_btn.clicked.connect(self._show_illum_dialog)
 
-        self.stages_group_layout.addWidget(self.stages_coll)
-        self.stages_group.setLayout(self.stages_group_layout)
-        self.main_layout.addWidget(self.stages_group)
+        self.stages_button = QtW.QPushButton(text="XYZ Control Pad")
+        self.stages_button.setIcon(icon(MDI6.arrow_all, color=(0, 255, 0)))
+        self.stages_button.setIconSize(QSize(30, 30))
+        self.stages_button.clicked.connect(self._show_stage_control)
+
+        stage_ill_btns_group_layout.addWidget(self.illum_btn)
+        stage_ill_btns_group_layout.addWidget(self.stages_button)
+        self.main_layout.addWidget(stage_ill_btns_group)
 
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
@@ -108,17 +113,27 @@ class MicroManagerWidget(QtW.QWidget):
         obj_prop_wdg.setLayout(obj_prop_wdg_layout)
         return obj_prop_wdg
 
-    def add_ill_and_shutter_widgets(self):
-        ill_shutter_wdg = QtW.QWidget()
-        ill_shutter_wdg_layout = QtW.QHBoxLayout()
-        ill_shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
-        ill_shutter_wdg_layout.setSpacing(7)
-        ill_shutter_wdg_layout.addWidget(self.shutter_wdg)
-        ill_shutter_wdg_layout.addWidget(self.illum_btn)
-        ill_shutter_wdg.setLayout(ill_shutter_wdg_layout)
-        return ill_shutter_wdg
+    def add_shutter_widgets(self):
+        shutter_wdg = QtW.QWidget()
+        shutter_wdg_layout = QtW.QHBoxLayout()
+        shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
+        shutter_wdg_layout.setSpacing(7)
+        shutter_wdg_layout.addWidget(self.shutter_wdg)
+        shutter_wdg.setLayout(shutter_wdg_layout)
+        return shutter_wdg
 
     def _show_illum_dialog(self):
         if not hasattr(self, "_illumination"):
             self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
         self._illumination.show()
+
+    def _show_stage_control(self):
+        if not hasattr(self, "_stage_wdg"):
+            self._stage_wdg = MMStagesWidget(self)
+            self._stage_wdg.setWindowFlags(
+                Qt.WindowType.Window
+                | Qt.WindowType.WindowTitleHint
+                | Qt.WindowType.WindowStaysOnTopHint
+                | Qt.WindowType.WindowCloseButtonHint
+            )
+        self._stage_wdg.show()

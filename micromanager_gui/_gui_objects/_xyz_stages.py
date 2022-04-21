@@ -1,3 +1,5 @@
+from typing import Optional
+
 from qtpy.QtWidgets import QGroupBox, QHBoxLayout, QWidget
 
 from .. import _core
@@ -5,7 +7,7 @@ from .._core_widgets._stage_widget import StageWidget
 
 
 class MMStagesWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)

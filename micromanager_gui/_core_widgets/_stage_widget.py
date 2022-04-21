@@ -1,7 +1,8 @@
 from itertools import chain, product, repeat
+from typing import Optional
 
 from fonticon_mdi6 import MDI6
-from pymmcore_plus import DeviceType
+from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtWidgets import (
     QCheckBox,
@@ -70,7 +71,13 @@ class StageWidget(QWidget):
     BTN_SIZE = 36
     # fmt: on
 
-    def __init__(self, levels=2, device=None, mmcore=None):
+    def __init__(
+        self,
+        levels: Optional[int] = 2,
+        device: Optional[str] = None,
+        mmcore: Optional[CMMCorePlus] = None,
+        parent: Optional[QWidget] = None,
+    ):
         super().__init__()
         self._mmc = mmcore or _core.get_core_singleton()
         self._device = device or self._mmc.getXYStageDevice()
@@ -213,7 +220,7 @@ class StageWidget(QWidget):
             self._mmc.setAutoFocusOffset(y)
         else:
             self._mmc.setRelativePosition(self._device, y)
-        self._mmc.waitForDevice(self._device)
+        # self._mmc.waitForDevice(self._device)
         if self._snap_on_click:
             self._mmc.snap()
 
