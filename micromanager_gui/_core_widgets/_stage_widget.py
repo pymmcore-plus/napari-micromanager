@@ -6,6 +6,7 @@ from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtWidgets import (
     QCheckBox,
+    QDoubleSpinBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -100,7 +101,7 @@ class StageWidget(QWidget):
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
 
-        self._step = QSpinBox()
+        self._step = QDoubleSpinBox()
         self._step.setValue(10)
         self._step.setMaximum(9999)
         self._step.valueChanged.connect(self._update_ttips)
