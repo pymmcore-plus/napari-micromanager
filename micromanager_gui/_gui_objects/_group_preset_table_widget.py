@@ -61,8 +61,6 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                     wdg = wdg._combo
                 elif isinstance(wdg, PropertyWidget):
                     wdg = wdg._value_widget
-                if not self._mmc.getCurrentConfig(group):
-                    wdg.setStyleSheet("color: magenta;")
 
     def _get_cfg_data(self, group: str, preset: str):
         """
