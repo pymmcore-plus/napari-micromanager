@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
+    # test XY stage
     stage_xy = StageWidget("XY", levels=3)
 
     qtbot.addWidget(stage_xy)
@@ -21,8 +22,10 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
     assert stage_xy._step.value() == 5.0
     assert stage_xy._readout.text() == "XY:  -0.0, -0.0"
 
-    y_pos = global_mmcore.getYPosition()
     x_pos = global_mmcore.getXPosition()
+    y_pos = global_mmcore.getYPosition()
+    assert x_pos == -0.0
+    assert y_pos == -0.0
 
     xy_up_3 = stage_xy._btns.layout().itemAtPosition(0, 3)
     xy_up_3.widget().click()
@@ -58,4 +61,36 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
     with qtbot.waitSignal(global_mmcore.events.imageSnapped) as snap:
         global_mmcore.waitForDevice("XY")
         xy_up_3.widget().click()
+        assert isinstance(snap.args[0], np.ndarray)
+
+    # test Z stage
+    stage_z = StageWidget("Z", levels=3)
+
+    qtbot.addWidget(stage_z)
+
+    stage_z._step.setValue(15.0)
+    assert stage_z._step.value() == 15.0
+    assert stage_z._readout.text() == "Z:  0.0"
+
+    z_pos = global_mmcore.getPosition()
+    assert z_pos == 0.0
+
+    z_up_2 = stage_z._btns.layout().itemAtPosition(1, 3)
+    z_up_2.widget().click()
+    assert (
+        (z_pos + (stage_z._step.value() * 2)) - 1
+        < global_mmcore.getPosition()
+        < (z_pos + (stage_z._step.value() * 2)) + 1
+    )
+    assert stage_z._readout.text() == f"Z:  {round(global_mmcore.getPosition(), 2)}"
+
+    global_mmcore.waitForDevice("Z")
+    global_mmcore.setPosition(0.0)
+    z_pos = global_mmcore.getPosition()
+    assert stage_z._readout.text() == "Z:  0.0"
+
+    stage_z.snap_checkbox.setChecked(True)
+    with qtbot.waitSignal(global_mmcore.events.imageSnapped) as snap:
+        global_mmcore.waitForDevice("Z")
+        z_up_2.widget().click()
         assert isinstance(snap.args[0], np.ndarray)
