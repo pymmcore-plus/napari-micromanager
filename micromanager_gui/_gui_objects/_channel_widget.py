@@ -81,10 +81,10 @@ class ChannelWidget(QWidget):
     def _update_widget(self, channel_group):
         self.channel_wdg = self._create_channel_widget(channel_group)
         self.layout().addWidget(self.channel_wdg)
-        if isinstance(
-            self.channel_wdg, PresetsWidget
-        ) and not self._mmc.getCurrentConfig(channel_group):
-            self.channel_wdg._combo.setStyleSheet("color: magenta;")
+        if channel_group:
+            self.channel_wdg._combo.setCurrentText(
+                self._mmc.getCurrentConfig(channel_group)
+            )
 
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
