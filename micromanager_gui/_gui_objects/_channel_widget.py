@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 from pymmcore_plus import CMMCorePlus
-from qtpy.QtWidgets import QApplication, QComboBox, QVBoxLayout, QWidget
+from qtpy.QtWidgets import QComboBox, QVBoxLayout, QWidget
 
 from micromanager_gui import _core
 
@@ -92,12 +92,3 @@ class ChannelWidget(QWidget):
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
         self._mmc.events.channelGroupChanged.disconnect(self._on_channel_group_changed)
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    win = ChannelWidget()
-    win.show()
-    sys.exit(app.exec_())

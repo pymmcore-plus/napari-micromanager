@@ -9,7 +9,6 @@ def test_channel_widget(
 
     ch_combo = main_window.tab_wdg.snap_channel_comboBox
     mmc = main_window._mmc
-    print(mmc.getAvailableConfigGroups())
 
     assert mmc.getChannelGroup() == "Channel"
 
@@ -20,5 +19,11 @@ def test_channel_widget(
 
     mmc.setConfig("Channel", "FITC")
     assert ch_combo.channel_wdg.value() == "FITC"
+
+    mmc.setProperty("Emission", "Label", "Chroma-HQ700")
+    assert ch_combo.channel_wdg._combo.styleSheet() == "color: magenta;"
+
+    mmc.setChannelGroup("")
+    assert not ch_combo.channel_wdg.count()
 
     # TODO: continue when we have delete group/preset signals
