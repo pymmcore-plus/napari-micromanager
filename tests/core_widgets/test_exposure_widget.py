@@ -43,6 +43,8 @@ def test_exposure_widget(qtbot: QtBot):
     wdg.setCamera("blarg", force=True)
     assert not wdg.isEnabled()
 
+    # reset the camera to a working one
+    CORE.setProperty("Core", "Camera", "Camera")
     with qtbot.wait_signal(CORE.events.exposureChanged):
         wdg.spinBox.setValue(12)
     assert CORE.getExposure() == 12
