@@ -100,7 +100,13 @@ class StageWidget(QWidget):
         self._device = device
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
+        self._levels = levels
 
+        self._create_widget()
+
+        self._connect_events()
+
+    def _create_widget(self):
         self._step = QDoubleSpinBox()
         self._step.setValue(10)
         self._step.setMaximum(9999)
@@ -125,7 +131,7 @@ class StageWidget(QWidget):
             self._btns.layout().addWidget(btn, row, col, AlignCenter)
 
         self._btns.layout().addWidget(self._step, 3, 3, AlignCenter)
-        self._set_visible_levels(levels)
+        self._set_visible_levels(self._levels)
         self._set_xy_visible()
         self._update_ttips()
 
@@ -162,8 +168,6 @@ class StageWidget(QWidget):
         self.layout().addWidget(self._btns, AlignCenter)
         self.layout().addWidget(bottom_row_1)
         self.layout().addWidget(bottom_row_2)
-
-        self._connect_events()
 
     def _connect_events(self):
         if self._dtype is DeviceType.XYStage:
@@ -216,7 +220,6 @@ class StageWidget(QWidget):
     def _set_visible_levels(self, levels: int):
         """Hide upper-level stage buttons as desired. Levels must be between 1-3."""
         assert 1 <= levels <= 3, "levels must be between 1-3"
-        self._levels = levels
         btn_layout: QGridLayout = self._btns.layout()
         for btn in self._btns.findChildren(QPushButton):
             btn.show()

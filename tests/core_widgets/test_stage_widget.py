@@ -48,6 +48,7 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
     assert stage_xy._readout.text() == f"XY:  {label_x}, {label_y}"
 
     assert stage_xy._readout.text() != "XY:  -0.0, -0.0"
+    global_mmcore.waitForDevice("XY")
     global_mmcore.setXYPosition(0.0, 0.0)
     y_pos = global_mmcore.getYPosition()
     x_pos = global_mmcore.getXPosition()
