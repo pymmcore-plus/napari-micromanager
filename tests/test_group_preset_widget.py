@@ -18,8 +18,9 @@ def test_populating_group_preset_table(main_window: MainWindow, qtbot):
             wdg.setValue("FITC")
             assert mmc.getCurrentConfig(group_name) == "FITC"
 
+            combo = main_window.tab_wdg.snap_channel_comboBox.channel_wdg._combo
             with qtbot.waitSignal(main_window._mmc.events.configSet):
-                main_window.tab_wdg.snap_channel_comboBox.setCurrentText("DAPI")
+                combo.setCurrentText("DAPI")
             assert wdg.value() == "DAPI"
 
         elif group_name == "_combobox_no_preset_test":
