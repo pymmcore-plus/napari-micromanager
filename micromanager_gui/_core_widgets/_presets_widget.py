@@ -47,10 +47,6 @@ class PresetsWidget(QWidget):
         self._combo.currentTextChanged.connect(self._on_combo_changed)
         self._combo.textActivated.connect(self._on_text_activate)
 
-        # to be added to PresetWidget
-        self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-        self._set_if_props_match_preset()
-
         self._mmc.events.configSet.connect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.connect(self.refresh)
         self._mmc.events.propertyChanged.connect(self._on_property_changed)
@@ -131,10 +127,6 @@ class PresetsWidget(QWidget):
                 presets = self._mmc.getAvailableConfigs(self._group)
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
-                self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-                self._set_if_props_match_preset()
-
-                # to be added to PresetWidget
                 self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
                 self._set_if_props_match_preset()
 
