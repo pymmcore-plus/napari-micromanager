@@ -221,7 +221,7 @@ class MainWindow(MicroManagerWidget):
 
     def _snap(self):
         # update in a thread so we don't freeze UI
-        create_worker(self._mmc.snap, _start_thread=True)
+        create_worker(self._mmc.snap, _start_thread=True)  # pragma: no cover
 
     def start_live(self):
         self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
@@ -523,14 +523,14 @@ class MainWindow(MicroManagerWidget):
             -float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
 
     def stage_x_right(self):
         self._mmc.setRelativeXYPosition(
             float(self.stage_wdg.xy_step_size_SpinBox.value()), 0.0
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
 
     def stage_y_up(self):
         self._mmc.setRelativeXYPosition(
@@ -538,7 +538,7 @@ class MainWindow(MicroManagerWidget):
             float(self.stage_wdg.xy_step_size_SpinBox.value()),
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
 
     def stage_y_down(self):
         self._mmc.setRelativeXYPosition(
@@ -546,18 +546,18 @@ class MainWindow(MicroManagerWidget):
             -float(self.stage_wdg.xy_step_size_SpinBox.value()),
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
 
     def stage_z_up(self):
         self._mmc.setRelativePosition(
             float(self.stage_wdg.z_step_size_doubleSpinBox.value())
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
 
     def stage_z_down(self):
         self._mmc.setRelativePosition(
             -float(self.stage_wdg.z_step_size_doubleSpinBox.value())
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
-            self._snap()
+            self._snap()  # pragma: no cover
