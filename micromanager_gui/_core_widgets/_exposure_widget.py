@@ -86,6 +86,18 @@ class DefaultCameraExposureWidget(ExposureWidget):
         ).connect(self._camera_updated)
 
     def setCamera(self, camera: str = None, force: bool = False):
+        """
+        Set which camera this widget tracks. Using this on the
+        ``DefaultCameraExposureWidget``widget may cause unexpected
+        behavior, instead try to use an ``ExposureWidget``.
+
+        Parameters
+        ----------
+        camera : str
+            The camera device label. If None then use the current Camera device.
+        force : bool
+            Whether to force a change away from tracking the default camera.
+        """
         if not force:
             raise RuntimeError(
                 "Setting the camera on a DefaultCameraExposureWidget "
