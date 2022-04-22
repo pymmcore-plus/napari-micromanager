@@ -19,7 +19,7 @@ from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
-from ._util import SelectDeviceFromCombobox, event_indices, extend_array_for_index
+from ._util import event_indices, extend_array_for_index
 
 if TYPE_CHECKING:
     import napari.layers
@@ -92,9 +92,9 @@ class MainWindow(MicroManagerWidget):
             self._set_focus_device
         )
 
-        self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
-            self._channel_changed
-        )
+        # self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
+        #     self._channel_changed
+        # )
 
         self.cam_roi = CameraROI(
             self.viewer,
@@ -171,7 +171,6 @@ class MainWindow(MicroManagerWidget):
         self.cam_wdg.setEnabled(enabled)
 
     def _refresh_options(self):
-        self._refresh_channel_list()
         self._refresh_positions()
         self._refresh_xyz_devices()
 
@@ -420,45 +419,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.exp_spinBox.setValue(exposure)
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
-
-    # channels
-    def _refresh_channel_list(self):
-        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
-
-        if not guessed_channel_list:
-            return
-
-        if len(guessed_channel_list) == 1:
-            self._set_channel_group(guessed_channel_list[0])
-        else:
-            # if guessed_channel_list has more than 1 possible channel group,
-            # you can select the correct one through a combobox
-            ch = SelectDeviceFromCombobox(
-                guessed_channel_list,
-                "Select Channel Group:",
-                self,
-            )
-            ch.val_changed.connect(self._set_channel_group)
-            ch.show()
-
-    def _set_channel_group(self, guessed_channel: str):
-        channel_group = guessed_channel
-        self._mmc.setChannelGroup(channel_group)
-        channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-            self.tab_wdg.snap_channel_comboBox.clear()
-            self.tab_wdg.snap_channel_comboBox.addItems(channel_list)
-            self.tab_wdg.snap_channel_comboBox.setCurrentText(
-                self._mmc.getCurrentConfig(channel_group)
-            )
-
-    def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._mmc.getOrGuessChannelGroup():
-            with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-                self.tab_wdg.snap_channel_comboBox.setCurrentText(configName)
-
-    def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
 
     # stages
     def _refresh_positions(self):
