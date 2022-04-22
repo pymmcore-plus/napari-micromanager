@@ -21,7 +21,7 @@ from micromanager_gui import _core
 
 AlignCenter = Qt.AlignmentFlag.AlignCenter
 PREFIX = MDI6.__name__.lower()
-STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage, DeviceType.AutoFocus}
+STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 STYLE = """
 QPushButton {
     border: none;
@@ -172,8 +172,6 @@ class StageWidget(QWidget):
     def _connect_events(self):
         if self._dtype is DeviceType.XYStage:
             event = self._mmc.events.XYStagePositionChanged
-        elif self._dtype is DeviceType.AutoFocus:
-            event = self._mmc.events.propertyChanged
         else:
             event = self._mmc.events.stagePositionChanged
         event.connect(self._update_position_label)
@@ -185,18 +183,13 @@ class StageWidget(QWidget):
         if self._dtype is DeviceType.XYStage:
             pos = self._mmc.getXYPosition(self._device)
             p = ", ".join(str(round(x, 2)) for x in pos)
-        elif self._dtype is DeviceType.AutoFocus:
-            p = ""
         else:
             p = round(self._mmc.getPosition(self._device), 2)
         self._readout.setText(f"{self._device}:  {p}")
 
     def _update_ttips(self):
         coords = chain(zip(repeat(3), range(7)), zip(range(7), repeat(3)))
-
-        Y = {DeviceType.XYStage: "Y", DeviceType.AutoFocus: "Offset"}.get(
-            self._dtype, "Z"
-        )
+        Y = {DeviceType.XYStage: "Y"}.get(self._dtype, "Z")
 
         btn_layout: QGridLayout = self._btns.layout()
         for r, c in coords:
@@ -246,8 +239,6 @@ class StageWidget(QWidget):
     def _move_stage(self, x, y):
         if self._dtype is DeviceType.XYStage:
             self._mmc.setRelativeXYPosition(self._device, x, y)
-        elif self._dtype is DeviceType.AutoFocus:
-            self._mmc.setAutoFocusOffset(y)
         else:
             self._mmc.setRelativePosition(self._device, y)
         if self.snap_checkbox.isChecked():

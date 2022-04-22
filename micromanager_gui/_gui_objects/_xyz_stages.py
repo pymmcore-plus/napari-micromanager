@@ -36,11 +36,6 @@ class MMStagesWidget(QWidget):
             bx.setLayout(QHBoxLayout())
             bx.layout().addWidget(StageWidget(device=dev))
             self.layout().addWidget(bx)
-        if dev := self._mmc.getAutoFocusDevice():
-            bx = QGroupBox("Autofocus Offset")
-            bx.setLayout(QHBoxLayout())
-            bx.layout().addWidget(StageWidget(device=dev))
-            self.layout().addWidget(bx)
         self.resize(self.sizeHint())
 
     def _clear(self):
