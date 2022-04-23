@@ -11,11 +11,13 @@ from qtpy.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QRadioButton,
     QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 from superqt.fonticon import setTextIcon
+from superqt.utils import signals_blocked
 
 from micromanager_gui import _core
 
@@ -106,6 +108,8 @@ class StageWidget(QWidget):
 
         self._connect_events()
 
+        self._set_as_default()
+
     def _create_widget(self):
         self._step = QDoubleSpinBox()
         self._step.setValue(10)
@@ -148,6 +152,15 @@ class StageWidget(QWidget):
 
         self.snap_checkbox = QCheckBox(text="Snap on Click")
 
+        self.radiobutton = QRadioButton(text="Set as Default")
+        self.radiobutton.toggled.connect(self._on_radiobutton_toggled)
+
+        top_row = QWidget()
+        top_row_layout = QHBoxLayout()
+        top_row_layout.setAlignment(AlignCenter)
+        top_row.setLayout(top_row_layout)
+        top_row.layout().addWidget(self.radiobutton)
+
         bottom_row_1 = QWidget()
         bottom_row_1.setLayout(QHBoxLayout())
         bottom_row_1.layout().addWidget(self._readout)
@@ -165,6 +178,7 @@ class StageWidget(QWidget):
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
         self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(top_row)
         self.layout().addWidget(self._btns, AlignCenter)
         self.layout().addWidget(bottom_row_1)
         self.layout().addWidget(bottom_row_2)
@@ -172,9 +186,41 @@ class StageWidget(QWidget):
     def _connect_events(self):
         if self._dtype is DeviceType.XYStage:
             event = self._mmc.events.XYStagePositionChanged
-        else:
+        elif self._dtype is DeviceType.Stage:
             event = self._mmc.events.stagePositionChanged
         event.connect(self._update_position_label)
+        self._mmc.events.propertyChanged.connect(self._on_prop_changed)
+        self._mmc.events.systemConfigurationLoaded.connect(self._set_as_default)
+
+    def _set_as_default(self):
+        current_xy = self._mmc.getXYStageDevice()
+        current_z = self._mmc.getFocusDevice()
+        if self._dtype is DeviceType.XYStage and current_xy == self._device:
+            self.radiobutton.setChecked(True)
+        elif self._dtype is DeviceType.Stage and current_z == self._device:
+            self.radiobutton.setChecked(True)
+
+    def _on_radiobutton_toggled(self, state: bool):
+        if self._dtype is DeviceType.XYStage:
+            if state:
+                self._mmc.setProperty("Core", "XYStage", self._device)
+            else:
+                self._mmc.setProperty("Core", "XYStage", "")
+        elif self._dtype is DeviceType.Stage:
+            if state:
+                self._mmc.setProperty("Core", "Focus", self._device)
+            else:
+                self._mmc.setProperty("Core", "Focus", "")
+
+    def _on_prop_changed(self, dev, prop, val):
+        if dev != "Core":
+            return
+        if self._dtype is DeviceType.XYStage and prop == "XYStage":
+            with signals_blocked(self.radiobutton):
+                self.radiobutton.setChecked(val == self._device)
+        if self._dtype is DeviceType.Stage and prop == "Focus":
+            with signals_blocked(self.radiobutton):
+                self.radiobutton.setChecked(val == self._device)
 
     def _toggle_poll_timer(self, on: bool):
         self._poll_timer.start() if on else self._poll_timer.stop()
@@ -183,7 +229,7 @@ class StageWidget(QWidget):
         if self._dtype is DeviceType.XYStage:
             pos = self._mmc.getXYPosition(self._device)
             p = ", ".join(str(round(x, 2)) for x in pos)
-        else:
+        elif self._dtype is DeviceType.Stage:
             p = round(self._mmc.getPosition(self._device), 2)
         self._readout.setText(f"{self._device}:  {p}")
 
@@ -250,3 +296,6 @@ class StageWidget(QWidget):
         Can be used to step 1x field of view, etc...
         """
         return mag * self._step.value()
+
+    def disconnect(self):
+        pass
