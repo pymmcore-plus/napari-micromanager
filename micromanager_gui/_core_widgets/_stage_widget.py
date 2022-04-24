@@ -177,7 +177,7 @@ class StageWidget(QWidget):
 
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
-        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setContentsMargins(5, 5, 5, 5)
         self.layout().addWidget(top_row)
         self.layout().addWidget(self._btns, AlignCenter)
         self.layout().addWidget(bottom_row_1)
