@@ -64,25 +64,48 @@ class MMStagesWidget(QWidget):
 
     def dropEvent(self, event):
         pos = event.pos()
-        widget = event.source()
 
-        print(pos)
+        wdgs = [
+            (
+                n,
+                self.main_layout.itemAt(n).widget(),
+                self.main_layout.itemAt(n).widget().x(),
+                self.main_layout.itemAt(n).widget().x()
+                + self.main_layout.itemAt(n).widget().size().width(),
+            )
+            for n in range(self.main_layout.count())
+        ]
 
-        for n in range(self.main_layout.count()):
-            # Get the widget at each index in turn.
-            w = self.main_layout.itemAt(n).widget()
-            print(pos.x(), w.x(), w.size().width())
-            if pos.x() < w.x():
-                self.main_layout.insertWidget(n - 1, widget)
-            elif pos.x() > w.x():
-                self.main_layout.insertWidget(n, widget)
+        zones = [(item[2], item[3]) for item in wdgs]
+
+        for idx, w, _, _ in wdgs:
+
+            if not w.start_pos:
+                continue
+
+            curr_idx = next(
+                (i for i, z in enumerate(zones) if pos.x() >= z[0] and pos.x() <= z[1])
+            )
+
+            if curr_idx == idx:
+                w.start_pos = None
+                break
+            self.main_layout.insertWidget(curr_idx, w)
+            w.start_pos = None
+            break
         event.accept()
 
 
 class DragGroupBox(QGroupBox):
+    def __init__(self, name: str, start_pos=None) -> None:
+        super().__init__()
+        self._name = name
+        self.start_pos = start_pos
+
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            drag = QDrag(self)
-            mime = QMimeData()
-            drag.setMimeData(mime)
-            drag.exec_(Qt.MoveAction)
+        # if event.buttons() == Qt.LeftButton:
+        drag = QDrag(self)
+        mime = QMimeData()
+        drag.setMimeData(mime)
+        self.start_pos = event.pos().x()
+        drag.exec_(Qt.MoveAction)
