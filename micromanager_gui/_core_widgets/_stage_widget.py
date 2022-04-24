@@ -204,21 +204,25 @@ class StageWidget(QWidget):
     def _os_system_cfg(self):
         if self._dtype is DeviceType.XYStage:
             if self._device not in self._mmc.getLoadedDevicesOfType(DeviceType.XYStage):
-                self._readout.setText(f"{self._device} not loaded.")
-                self._enable_wdg(False)
+                self._enable_and_update(False)
             else:
-                self._enable_wdg(True)
-                self._update_position_label()
+                self._enable_and_update(True)
 
         if self._dtype is DeviceType.Stage:
             if self._device not in self._mmc.getLoadedDevicesOfType(DeviceType.Stage):
-                self._readout.setText(f"{self._device} not loaded.")
-                self._enable_wdg(False)
+                self._enable_and_update(False)
             else:
-                self._enable_wdg(True)
-                self._update_position_label()
+                self._enable_and_update(True)
 
         self._set_as_default()
+
+    def _enable_and_update(self, enable: bool):
+        if enable:
+            self._enable_wdg(True)
+            self._update_position_label()
+        else:
+            self._readout.setText(f"{self._device} not loaded.")
+            self._enable_wdg(False)
 
     def _set_as_default(self):
         current_xy = self._mmc.getXYStageDevice()
