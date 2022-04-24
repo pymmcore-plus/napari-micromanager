@@ -18,6 +18,8 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
     qtbot.addWidget(stage_xy)
 
+    assert stage_xy.radiobutton.isChecked()
+
     stage_xy._step.setValue(5.0)
     assert stage_xy._step.value() == 5.0
     assert stage_xy._readout.text() == "XY:  -0.0, -0.0"
@@ -65,8 +67,22 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
     # test Z stage
     stage_z = StageWidget("Z", levels=3)
+    stage_z1 = StageWidget("Z1", levels=3)
 
     qtbot.addWidget(stage_z)
+    qtbot.addWidget(stage_z1)
+
+    assert global_mmcore.getFocusDevice() == "Z"
+    assert stage_z.radiobutton.isChecked()
+    assert not stage_z1.radiobutton.isChecked()
+    global_mmcore.setProperty("Core", "Focus", "Z1")
+    assert global_mmcore.getFocusDevice() == "Z1"
+    assert not stage_z.radiobutton.isChecked()
+    assert stage_z1.radiobutton.isChecked()
+    stage_z.radiobutton.setChecked(True)
+    assert global_mmcore.getFocusDevice() == "Z"
+    assert stage_z.radiobutton.isChecked()
+    assert not stage_z1.radiobutton.isChecked()
 
     stage_z._step.setValue(15.0)
     assert stage_z._step.value() == 15.0
