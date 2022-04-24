@@ -270,12 +270,19 @@ class StageWidget(QWidget):
         self._poll_timer.start() if on else self._poll_timer.stop()
 
     def _update_position_label(self):
-        if self._dtype is DeviceType.XYStage:
+        if (
+            self._dtype is DeviceType.XYStage
+            and self._device in self._mmc.getLoadedDevicesOfType(DeviceType.XYStage)
+        ):
             pos = self._mmc.getXYPosition(self._device)
             p = ", ".join(str(round(x, 2)) for x in pos)
-        elif self._dtype is DeviceType.Stage:
+            self._readout.setText(f"{self._device}:  {p}")
+        elif (
+            self._dtype is DeviceType.Stage
+            and self._device in self._mmc.getLoadedDevicesOfType(DeviceType.Stage)
+        ):
             p = round(self._mmc.getPosition(self._device), 2)
-        self._readout.setText(f"{self._device}:  {p}")
+            self._readout.setText(f"{self._device}:  {p}")
 
     def _update_ttips(self):
         coords = chain(zip(repeat(3), range(7)), zip(range(7), repeat(3)))
