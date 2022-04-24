@@ -83,9 +83,16 @@ class MMStagesWidget(QWidget):
             if not w.start_pos:
                 continue
 
-            curr_idx = next(
-                (i for i, z in enumerate(zones) if pos.x() >= z[0] and pos.x() <= z[1])
-            )
+            try:
+                curr_idx = next(
+                    (
+                        i
+                        for i, z in enumerate(zones)
+                        if pos.x() >= z[0] and pos.x() <= z[1]
+                    )
+                )
+            except StopIteration:
+                break
 
             if curr_idx == idx:
                 w.start_pos = None
