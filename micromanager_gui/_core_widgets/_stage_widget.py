@@ -204,13 +204,29 @@ class StageWidget(QWidget):
         if self._dtype is DeviceType.XYStage:
             if state:
                 self._mmc.setProperty("Core", "XYStage", self._device)
+            elif (
+                not state
+                and len(self._mmc.getLoadedDevicesOfType(DeviceType.XYStage)) == 1
+            ):
+                with signals_blocked(self.radiobutton):
+                    self.radiobutton.setChecked(True)
+                return
             else:
                 self._mmc.setProperty("Core", "XYStage", "")
+
         elif self._dtype is DeviceType.Stage:
             if state:
                 self._mmc.setProperty("Core", "Focus", self._device)
+            elif (
+                not state
+                and len(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)) == 1
+            ):
+                with signals_blocked(self.radiobutton):
+                    self.radiobutton.setChecked(True)
             else:
                 self._mmc.setProperty("Core", "Focus", "")
+
+        print(self._mmc.getXYStageDevice(), self._mmc.getFocusDevice())
 
     def _on_prop_changed(self, dev, prop, val):
         if dev != "Core":
