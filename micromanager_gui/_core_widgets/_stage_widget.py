@@ -110,6 +110,8 @@ class StageWidget(QWidget):
 
         self._set_as_default()
 
+        self.destroyed.connect(self.disconnect)
+
     def _create_widget(self):
         self._step = QDoubleSpinBox()
         self._step.setValue(10)
@@ -311,4 +313,10 @@ class StageWidget(QWidget):
         return mag * self._step.value()
 
     def disconnect(self):
-        pass
+        if self._dtype is DeviceType.XYStage:
+            event = self._mmc.events.XYStagePositionChanged
+        elif self._dtype is DeviceType.Stage:
+            event = self._mmc.events.stagePositionChanged
+        event.disconnect(self._update_position_label)
+        self._mmc.events.propertyChanged.disconnect(self._on_prop_changed)
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._set_as_default)

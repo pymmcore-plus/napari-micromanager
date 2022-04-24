@@ -18,6 +18,13 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
     qtbot.addWidget(stage_xy)
 
+    assert global_mmcore.getXYStageDevice() == "XY"
+    assert stage_xy.radiobutton.isChecked()
+    global_mmcore.setProperty("Core", "XYStage", "")
+    assert not global_mmcore.getXYStageDevice()
+    assert not stage_xy.radiobutton.isChecked()
+    stage_xy.radiobutton.setChecked(True)
+    assert global_mmcore.getXYStageDevice() == "XY"
     assert stage_xy.radiobutton.isChecked()
 
     stage_xy._step.setValue(5.0)
@@ -110,3 +117,10 @@ def test_stage_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
         global_mmcore.waitForDevice("Z")
         z_up_2.widget().click()
         assert isinstance(snap.args[0], np.ndarray)
+
+    assert global_mmcore.getXYStageDevice() == "XY"
+    assert stage_xy.radiobutton.isChecked()
+    stage_xy.disconnect()
+    # once disconnected, core changes shouldn't call out to the widget
+    global_mmcore.setProperty("Core", "XYStage", "")
+    assert stage_xy.radiobutton.isChecked()
