@@ -110,7 +110,7 @@ class StageWidget(QWidget):
 
         self._set_as_default()
 
-        self.destroyed.connect(self.disconnect)
+        self.destroyed.connect(self._disconnect)
 
     def _create_widget(self):
         self._step = QDoubleSpinBox()
@@ -192,7 +192,33 @@ class StageWidget(QWidget):
             event = self._mmc.events.stagePositionChanged
         event.connect(self._update_position_label)
         self._mmc.events.propertyChanged.connect(self._on_prop_changed)
-        self._mmc.events.systemConfigurationLoaded.connect(self._set_as_default)
+        self._mmc.events.systemConfigurationLoaded.connect(self._os_system_cfg)
+
+    def _enable_wdg(self, enabled):
+        self._step.setEnabled(enabled)
+        self._btns.setEnabled(enabled)
+        self.snap_checkbox.setEnabled(enabled)
+        self.radiobutton.setEnabled(enabled)
+        self._poll_cb.setEnabled(enabled)
+
+    def _os_system_cfg(self):
+        if self._dtype is DeviceType.XYStage:
+            if self._device not in self._mmc.getLoadedDevicesOfType(DeviceType.XYStage):
+                self._readout.setText(f"{self._device} not loaded.")
+                self._enable_wdg(False)
+            else:
+                self._enable_wdg(True)
+                self._update_position_label()
+
+        if self._dtype is DeviceType.Stage:
+            if self._device not in self._mmc.getLoadedDevicesOfType(DeviceType.Stage):
+                self._readout.setText(f"{self._device} not loaded.")
+                self._enable_wdg(False)
+            else:
+                self._enable_wdg(True)
+                self._update_position_label()
+
+        self._set_as_default()
 
     def _set_as_default(self):
         current_xy = self._mmc.getXYStageDevice()
@@ -228,11 +254,14 @@ class StageWidget(QWidget):
                 self._mmc.setProperty("Core", "Focus", "")
 
     def _on_prop_changed(self, dev, prop, val):
+
         if dev != "Core":
             return
+
         if self._dtype is DeviceType.XYStage and prop == "XYStage":
             with signals_blocked(self.radiobutton):
                 self.radiobutton.setChecked(val == self._device)
+
         if self._dtype is DeviceType.Stage and prop == "Focus":
             with signals_blocked(self.radiobutton):
                 self.radiobutton.setChecked(val == self._device)
@@ -312,11 +341,11 @@ class StageWidget(QWidget):
         """
         return mag * self._step.value()
 
-    def disconnect(self):
+    def _disconnect(self):
+        self._mmc.events.propertyChanged.disconnect(self._on_prop_changed)
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._os_system_cfg)
         if self._dtype is DeviceType.XYStage:
             event = self._mmc.events.XYStagePositionChanged
         elif self._dtype is DeviceType.Stage:
             event = self._mmc.events.stagePositionChanged
         event.disconnect(self._update_position_label)
-        self._mmc.events.propertyChanged.disconnect(self._on_prop_changed)
-        self._mmc.events.systemConfigurationLoaded.disconnect(self._set_as_default)
