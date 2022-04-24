@@ -210,7 +210,6 @@ class StageWidget(QWidget):
             ):
                 with signals_blocked(self.radiobutton):
                     self.radiobutton.setChecked(True)
-                return
             else:
                 self._mmc.setProperty("Core", "XYStage", "")
 
