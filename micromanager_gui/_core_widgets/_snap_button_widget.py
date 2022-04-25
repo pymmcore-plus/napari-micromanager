@@ -63,6 +63,8 @@ class SnapButton(QPushButton):
         self._create_button()
 
         self.setEnabled(False)
+        if len(self._mmc.getLoadedDevices()) > 1:
+            self.setEnabled(True)
 
     def _create_button(self):
         if self.button_text:
@@ -72,7 +74,9 @@ class SnapButton(QPushButton):
         self.clicked.connect(self._snap)
 
     def _snap(self):
+        print("CLICKED!!!")
         if self._mmc.isSequenceRunning(self._camera):
+            print("RUNNING!!!")
             self._mmc.stopSequenceAcquisition(self._camera)
 
         create_worker(self._mmc.snap, _start_thread=True)

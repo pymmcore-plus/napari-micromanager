@@ -25,7 +25,11 @@ def test_snap_button_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
 
     global_mmcore.startContinuousSequenceAcquisition(0)
 
-    with qtbot.waitSignal(global_mmcore.events.imageSnapped) as image:
+    with qtbot.waitSignals(
+        [
+            global_mmcore.events.stopSequenceAcquisition,
+            global_mmcore.events.imageSnapped,
+        ]
+    ):
         snap_btn.click()
-        assert image
         assert not global_mmcore.isSequenceRunning()
