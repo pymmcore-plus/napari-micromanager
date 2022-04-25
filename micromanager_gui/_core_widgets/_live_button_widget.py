@@ -72,6 +72,8 @@ class LiveButton(QPushButton):
 
         self._create_button()
 
+        self.setEnabled(False)
+
     def _create_button(self):
         if self.button_text_on:
             self.setText(self.button_text_on)
