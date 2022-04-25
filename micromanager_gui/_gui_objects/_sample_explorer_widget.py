@@ -62,7 +62,7 @@ class ExploreSample(QtW.QWidget):
         self.move_to_Button.clicked.connect(self.move_to)
         self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
 
-        self.stop_scan_Button.clicked.connect(lambda e: self._mmc.cancel())
+        self.stop_scan_Button.clicked.connect(lambda e: self._mmc._mda_engine.cancel())
 
         self.x_lineEdit.setText(str(None))
         self.y_lineEdit.setText(str(None))
