@@ -74,9 +74,7 @@ class SnapButton(QPushButton):
         self.clicked.connect(self._snap)
 
     def _snap(self):
-        print("CLICKED!!!")
         if self._mmc.isSequenceRunning(self._camera):
-            print("RUNNING!!!")
             self._mmc.stopSequenceAcquisition(self._camera)
 
         create_worker(self._mmc.snap, _start_thread=True)
