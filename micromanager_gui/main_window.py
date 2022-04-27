@@ -93,7 +93,11 @@ class MainWindow(MicroManagerWidget):
             """Clean up temporary files we opened"""
             self._mda_temp_files.clear()
             for v in self._mda_temp_files.values():
-                v.cleanup()
+                try:
+                    v.cleanup()
+                except NotADirectoryError:
+                    # sometimes this errors on CI
+                    pass
 
         # TODO: consider using weakref here like in pymmc+
         # didn't implement here because this object shouldn't be del'd until
