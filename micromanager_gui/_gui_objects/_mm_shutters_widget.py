@@ -55,7 +55,7 @@ class MMShuttersWidget(QtW.QWidget):
             self.layout().addWidget(s)
 
     def _clear(self):
-        for i in range(self.layout().count()):
+        for i in reversed(range(self.layout().count())):
             if item := self.layout().takeAt(i):
                 if wdg := item.widget():
                     wdg.deleteLater()
