@@ -45,7 +45,7 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
         meta = _mda.SEQUENCE_META[seq]
 
     with qtbot.waitSignals(
-        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished]
+        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
     ):
         explorer.start_scan_Button.click()
 
