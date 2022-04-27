@@ -47,7 +47,7 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
     with qtbot.waitSignals(
         [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
     ):
-        explorer.start_scan_Button.click()
+        explorer.start_scan()
 
     # wait to finish returning to start pos
     mmc.waitForSystem()
