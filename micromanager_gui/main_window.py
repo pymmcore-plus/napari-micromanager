@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -274,6 +275,10 @@ class MainWindow(MicroManagerWidget):
         if self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
             self._mda_meta.mode = "mda"
+
+        if self._mda_meta.mode == "explorer":
+            with contextlib.suppress(ValueError):
+                self.viewer.layers.remove("preview")
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
