@@ -174,8 +174,7 @@ class StageWidget(QWidget):
         bottom_row_2_layout.setAlignment(AlignCenter)
         bottom_row_2.setLayout(bottom_row_2_layout)
         bottom_row_2.layout().addWidget(self.snap_checkbox)
-        if self._dtype is DeviceType.XYStage:
-            bottom_row_2.layout().addWidget(self._poll_cb)
+        bottom_row_2.layout().addWidget(self._poll_cb)
 
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
