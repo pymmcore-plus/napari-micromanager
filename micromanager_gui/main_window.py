@@ -139,7 +139,6 @@ class MainWindow(MicroManagerWidget):
             self.tab_wdg.snap_live_tab.setEnabled(False)
 
         self.illum_btn.setEnabled(enabled)
-        self.stages_button.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
         if self._mmc.getXYStageDevice():

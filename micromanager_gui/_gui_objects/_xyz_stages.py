@@ -16,20 +16,13 @@ class MMStagesWidget(QWidget):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.main_layout = QHBoxLayout()
-        self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(6)
+        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        self.main_layout.setSpacing(5)
         self.setLayout(self.main_layout)
 
         self._mmc = _core.get_core_singleton()
         self._on_cfg_loaded()
         self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
-
-        self.setWindowFlags(
-            Qt.WindowType.Window
-            | Qt.WindowType.WindowTitleHint
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.WindowCloseButtonHint
-        )
 
     def _on_cfg_loaded(self):
         self._clear()
