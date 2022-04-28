@@ -69,7 +69,7 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
-        sig.exposureChanged.connect(self._on_exp_change)
+        sig.exposureChanged.connect(self._update_live_exp)
 
         sig.imageSnapped.connect(self.update_viewer)
         sig.imageSnapped.connect(self.stop_live)
@@ -104,10 +104,6 @@ class MainWindow(MicroManagerWidget):
             self.cam_wdg.cam_roi_combo,
             self.cam_wdg.crop_btn,
         )
-
-        # connect spinboxes
-        self.tab_wdg.exp_spinBox.valueChanged.connect(self._update_exp)
-        self.tab_wdg.exp_spinBox.setKeyboardTracking(False)
 
         # refresh options in case a config is already loaded by another remote
         if remote:
@@ -224,10 +220,11 @@ class MainWindow(MicroManagerWidget):
         create_worker(self._mmc.snap, _start_thread=True)  # pragma: no cover
 
     def start_live(self):
-        self._mmc.startContinuousSequenceAcquisition(self.tab_wdg.exp_spinBox.value())
+        exposure = self._mmc.getExposure()
+        self._mmc.startContinuousSequenceAcquisition(0)
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(self.tab_wdg.exp_spinBox.value()))
+        self.streaming_timer.start(int(exposure))
         self.tab_wdg.live_Button.setText("Stop")
 
     def stop_live(self):
@@ -406,19 +403,11 @@ class MainWindow(MicroManagerWidget):
         self.explorer.x_lineEdit.setText(x)
         self.explorer.y_lineEdit.setText(y)
 
-    # exposure time
-    def _update_exp(self, exposure: float):
-        self._mmc.setExposure(exposure)
+    def _update_live_exp(self, camera: str, exposure: float):
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    def _on_exp_change(self, camera: str, exposure: float):
-        with signals_blocked(self.tab_wdg.exp_spinBox):
-            self.tab_wdg.exp_spinBox.setValue(exposure)
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
 
     # channels
     def _refresh_channel_list(self):
