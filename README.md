@@ -6,7 +6,7 @@
 [![Tests](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml/badge.svg)](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/tlambert03/napari-micromanager/branch/main/graph/badge.svg?token=tf6lYDWV1s)](https://codecov.io/gh/tlambert03/napari-micromanager)
 
-GUI interface between napari and micromanager
+GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.readthedocs.io/).
 
 🚧 Experimental!  Work in progress!  Here be 🐲 🚧
 
@@ -41,7 +41,7 @@ python -m pymmcore_plus.install
 this will install micromanager to the pymmcore_plus folder in your site-package; use this to see where:
 
 ```
-python -c "from pymmcore_plus import _util; print(_util.find_micromanager())"
+python -c "from pymmcore_plus import find_micromanager; print(find_micromanager())"
 ```
 
 alternatively, you can direct pymmcore_plus to your own micromanager installation with the `MICROMANAGER_PATH`
