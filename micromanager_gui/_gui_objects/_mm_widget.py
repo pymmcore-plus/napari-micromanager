@@ -53,7 +53,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.mic_coll.layout().setContentsMargins(0, 0, 5, 10)
 
         # add objective, property browser, illumination and camera widgets
-        obj_prop = self.add_mm_objectives_and_properties_widgets()
+        obj_prop = self.add_mm_objectives_widget()
         ill_shutter = self.add_shutter_widgets()
         cam = self.add_camera_widget()
         self.mic_coll.addWidget(obj_prop)
