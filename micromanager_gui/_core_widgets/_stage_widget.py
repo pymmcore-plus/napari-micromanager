@@ -94,15 +94,15 @@ class StageWidget(QWidget):
         *,
         mmcore: Optional[CMMCorePlus] = None,
     ):
-        super().__init__()
+        super().__init__(parent)
 
         self.setStyleSheet(STYLE)
 
         self._mmc = mmcore or _core.get_core_singleton()
+        self._levels = levels
         self._device = device
         self._dtype = self._mmc.getDeviceType(self._device)
         assert self._dtype in STAGE_DEVICES, f"{self._dtype} not in {STAGE_DEVICES}"
-        self._levels = levels
 
         self._create_widget()
 
@@ -186,13 +186,13 @@ class StageWidget(QWidget):
         self.layout().addWidget(bottom_row_2)
 
     def _connect_events(self):
+        self._mmc.events.propertyChanged.connect(self._on_prop_changed)
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg)
         if self._dtype is DeviceType.XYStage:
             event = self._mmc.events.XYStagePositionChanged
         elif self._dtype is DeviceType.Stage:
             event = self._mmc.events.stagePositionChanged
         event.connect(self._update_position_label)
-        self._mmc.events.propertyChanged.connect(self._on_prop_changed)
-        self._mmc.events.systemConfigurationLoaded.connect(self._os_system_cfg)
 
     def _enable_wdg(self, enabled):
         self._step.setEnabled(enabled)
@@ -201,7 +201,7 @@ class StageWidget(QWidget):
         self.radiobutton.setEnabled(enabled)
         self._poll_cb.setEnabled(enabled)
 
-    def _os_system_cfg(self):
+    def _on_system_cfg(self):
         if self._dtype is DeviceType.XYStage:
             if self._device not in self._mmc.getLoadedDevicesOfType(DeviceType.XYStage):
                 self._enable_and_update(False)
