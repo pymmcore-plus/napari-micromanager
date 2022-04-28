@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 import napari
 import numpy as np
+import zarr
 from napari.experimental import link_layers
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
@@ -15,10 +16,6 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
 from superqt.utils import create_worker, ensure_main_thread
 
-try:
-    import zarr
-except ModuleNotFoundError:
-    zarr = None
 from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
@@ -286,18 +283,9 @@ class MainWindow(MicroManagerWidget):
             id_ = str(sequence.uid) + c
             tmp = tempfile.TemporaryDirectory()
             self._mda_temp_files[id_] = tmp
-            if zarr is not None:
-                self._mda_temp_arrays[id_] = self._z = zarr.open(
-                    str(tmp.name), shape=shape, dtype=dtype
-                )
-            else:
-                self._mda_temp_arrays[id_] = np.memmap(
-                    str(Path(tmp.name) / "mda.dat"),
-                    mode="w+",
-                    dtype=dtype,
-                    shape=tuple(shape),
-                )
-
+            self._mda_temp_arrays[id_] = self._z = zarr.open(
+                str(tmp.name), shape=shape, dtype=dtype
+            )
             file_name = (
                 self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
             )
