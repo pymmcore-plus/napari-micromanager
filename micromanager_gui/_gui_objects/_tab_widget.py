@@ -5,6 +5,7 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
+from .._core_widgets import DefaultCameraExposureWidget
 from ._channel_widget import ChannelWidget
 
 ICONS = Path(__file__).parent.parent / "icons"
@@ -69,19 +70,12 @@ class MMTabWidget(QtW.QWidget):
         self.snap_live_tab_layout.addWidget(self.snap_channel_groupBox, 0, 0)
 
         # exposure in snap_live_tab
+        self.exposure_widget = DefaultCameraExposureWidget()
         self.exp_groupBox = QtW.QGroupBox()
         self.exp_groupBox.setMaximumHeight(70)
         self.exp_groupBox.setTitle("Exposure Time")
         self.exp_groupBox_layout = QtW.QHBoxLayout()
-        self.exp_label = QtW.QLabel()
-        self.exp_label.setText(" ms")
-        self.exp_label.setMaximumWidth(30)
-        self.exp_spinBox = QtW.QDoubleSpinBox()
-        self.exp_spinBox.setAlignment(QtCore.Qt.AlignCenter)
-        self.exp_spinBox.setMinimum(1.0)
-        self.exp_spinBox.setMaximum(100000.0)
-        self.exp_groupBox_layout.addWidget(self.exp_spinBox)
-        self.exp_groupBox_layout.addWidget(self.exp_label)
+        self.exp_groupBox_layout.addWidget(self.exposure_widget)
         self.exp_groupBox.setLayout(self.exp_groupBox_layout)
         self.snap_live_tab_layout.addWidget(self.exp_groupBox, 0, 1)
 
