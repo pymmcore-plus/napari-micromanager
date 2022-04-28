@@ -66,8 +66,6 @@ class MainWindow(MicroManagerWidget):
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
-        sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._update_live_exp)
 
         # link to "snap on click" for the stage widget
