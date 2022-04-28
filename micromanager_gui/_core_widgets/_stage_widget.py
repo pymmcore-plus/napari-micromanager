@@ -354,7 +354,7 @@ class StageWidget(QWidget):
 
     def _disconnect(self):
         self._mmc.events.propertyChanged.disconnect(self._on_prop_changed)
-        self._mmc.events.systemConfigurationLoaded.disconnect(self._os_system_cfg)
+        self._mmc.events.systemConfigurationLoaded.disconnect(self._on_system_cfg)
         if self._dtype is DeviceType.XYStage:
             event = self._mmc.events.XYStagePositionChanged
         elif self._dtype is DeviceType.Stage:
