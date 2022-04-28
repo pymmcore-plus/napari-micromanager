@@ -88,6 +88,8 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
 
+        self._stage_wdg = MMStagesWidget(parent=self)
+
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
 
