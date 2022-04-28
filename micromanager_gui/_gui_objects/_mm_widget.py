@@ -103,14 +103,14 @@ class MicroManagerWidget(QtW.QWidget):
         self.cam_group.setLayout(self.cam_group_layout)
         return self.cam_group
 
-    def add_mm_objectives_and_properties_widgets(self):
-        obj_prop_wdg = QtW.QWidget()
-        obj_prop_wdg_layout = QtW.QHBoxLayout()
-        obj_prop_wdg_layout.setContentsMargins(5, 5, 5, 5)
-        obj_prop_wdg_layout.setSpacing(7)
-        obj_prop_wdg_layout.addWidget(self.obj_wdg)
-        obj_prop_wdg.setLayout(obj_prop_wdg_layout)
-        return obj_prop_wdg
+    def add_mm_objectives_widget(self):
+        obj_wdg = QtW.QWidget()
+        obj_wdg_layout = QtW.QHBoxLayout()
+        obj_wdg_layout.setContentsMargins(5, 5, 5, 5)
+        obj_wdg_layout.setSpacing(7)
+        obj_wdg_layout.addWidget(self.obj_wdg)
+        obj_wdg.setLayout(obj_wdg_layout)
+        return obj_wdg
 
     def add_shutter_widgets(self):
         shutter_wdg = QtW.QWidget()
