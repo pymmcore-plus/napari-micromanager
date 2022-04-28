@@ -187,6 +187,8 @@ class ShuttersWidget(QtW.QWidget):
 
     def _on_shutter_checkbox_toggled(self, state: bool):
         self._mmc.setAutoShutter(state)
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
 
     def _set_shutter_wdg_to_opened(self):
         if self.button_text_open:
