@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus, DeviceType
@@ -158,9 +158,9 @@ class ShuttersWidget(QtW.QWidget):
         self._set_shutter_wdg_to_closed()
         self._mmc.setProperty(self.shutter_device, "State", False)
 
-    def _on_prop_changed(self, dev_name: str, prop_name: str, value: str):
+    def _on_prop_changed(self, dev_name: str, prop_name: str, value: Any):
         if dev_name == self.shutter_device and prop_name == "State":
-            if value == "1":
+            if value in [True, "1"]:
                 self._set_shutter_wdg_to_opened()
             else:
                 self._set_shutter_wdg_to_closed()
