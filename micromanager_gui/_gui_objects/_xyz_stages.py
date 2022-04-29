@@ -29,7 +29,6 @@ class MMStagesWidget(QWidget):
         stage_dev_list = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStage))
         stage_dev_list.extend(iter(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)))
         for stage_dev in stage_dev_list:
-            print(stage_dev)
             if self._mmc.getDeviceType(stage_dev) is DeviceType.XYStage:
                 bx = DragGroupBox("XY Control")
                 bx.setLayout(QHBoxLayout())
