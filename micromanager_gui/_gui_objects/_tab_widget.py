@@ -59,7 +59,7 @@ class MMTabWidget(QtW.QWidget):
         self.snap_live_tab_layout = QtW.QGridLayout()
 
         wdg_sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Expanding
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Minimum
         )
 
         # channel in snap_live_tab
