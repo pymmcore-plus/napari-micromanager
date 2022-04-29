@@ -58,9 +58,13 @@ class MMTabWidget(QtW.QWidget):
         self.snap_live_tab = QtW.QWidget()
         self.snap_live_tab_layout = QtW.QGridLayout()
 
+        wdg_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Expanding
+        )
+
         # channel in snap_live_tab
         self.snap_channel_groupBox = QtW.QGroupBox()
-        self.snap_channel_groupBox.setMaximumHeight(70)
+        self.snap_channel_groupBox.setSizePolicy(wdg_sizepolicy)
         self.snap_channel_groupBox.setTitle("Channel")
         self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
         self.snap_channel_comboBox = QtW.QComboBox()
@@ -71,7 +75,7 @@ class MMTabWidget(QtW.QWidget):
         # exposure in snap_live_tab
         self.exposure_widget = DefaultCameraExposureWidget()
         self.exp_groupBox = QtW.QGroupBox()
-        self.exp_groupBox.setMaximumHeight(70)
+        self.exp_groupBox.setSizePolicy(wdg_sizepolicy)
         self.exp_groupBox.setTitle("Exposure Time")
         self.exp_groupBox_layout = QtW.QHBoxLayout()
         self.exp_groupBox_layout.addWidget(self.exposure_widget)
