@@ -4,7 +4,7 @@ from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QPushButton
+from qtpy.QtWidgets import QPushButton, QSizePolicy
 from superqt.fonticon import icon
 from superqt.utils import create_worker
 
@@ -50,6 +50,8 @@ class SnapButton(QPushButton):
 
         super().__init__()
 
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
+
         self._mmc = mmcore or get_core_singleton()
         self._camera = camera or self._mmc.getCameraDevice()
         self.button_text = button_text
@@ -76,8 +78,8 @@ class SnapButton(QPushButton):
     def _snap(self):
         if self._mmc.isSequenceRunning(self._camera):
             self._mmc.stopSequenceAcquisition(self._camera)
-
         create_worker(self._mmc.snap, _start_thread=True)
+        self._mmc.events.shutterSet.emit(self._mmc.getShutterDevice(), True)
 
     def _on_system_cfg_loaded(self):
         if not self._camera:
