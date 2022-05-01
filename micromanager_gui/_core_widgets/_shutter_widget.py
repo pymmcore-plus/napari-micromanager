@@ -95,6 +95,7 @@ class ShuttersWidget(QtW.QWidget):
         )
         self._mmc.events.startSequenceAcquisition.connect(self._on_seq_started)
         self._mmc.events.stopSequenceAcquisition.connect(self._on_seq_stopped)
+        self._mmc.events.imageSnapped.connect(self._on_seq_stopped)
 
         self.destroyed.connect(self.disconnect)
 
