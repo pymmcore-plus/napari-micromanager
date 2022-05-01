@@ -70,6 +70,7 @@ class MainWindow(MicroManagerWidget):
         sig.XYStagePositionChanged.connect(self._on_xy_stage_position_changed)
         sig.stagePositionChanged.connect(self._on_stage_position_changed)
         sig.exposureChanged.connect(self._update_live_exp)
+        sig.configSet.connect(self._on_channel_set)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -551,3 +552,14 @@ class MainWindow(MicroManagerWidget):
         )
         if self.stage_wdg.snap_on_click_checkBox.isChecked():
             self.snap()
+
+    def _on_channel_set(self, group: str, preset: str):
+        ch = self._mmc.getChannelGroup()
+        if group != ch:
+            return
+        for d in self._mmc.getConfigData(ch, preset):
+            _dev = d[0]
+            _type = self._mmc.getDeviceType(_dev)
+            if _type is DeviceType.Shutter:
+                self._mmc.setProperty("Core", "Shutter", _dev)
+                break

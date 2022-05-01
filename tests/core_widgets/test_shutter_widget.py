@@ -53,13 +53,15 @@ def test_shutter_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
         assert not shutter.shutter_button.isEnabled()
         assert not multi_shutter.shutter_button.isEnabled()
 
-    with qtbot.waitSignal(global_mmcore.events.shutterSet):
-        global_mmcore.setShutterOpen("Shutter", False)
-        assert shutter.shutter_button.text() == "Shutter closed"
-        assert global_mmcore.getProperty("Shutter", "State") == "0"
+    with qtbot.waitSignals(
+        [global_mmcore.events.propertyChanged, global_mmcore.events.shutterSet]
+    ):
+        global_mmcore.setConfig("Channel", "DAPI")
         global_mmcore.setShutterOpen("Multi Shutter", True)
         assert multi_shutter.shutter_button.text() == "Multi Shutter opened"
         assert global_mmcore.getProperty("Multi Shutter", "State") == "1"
+        assert shutter.shutter_button.text() == "Shutter opened"
+        assert global_mmcore.getProperty("Shutter", "State") == "1"
 
     with qtbot.waitSignals(
         [
