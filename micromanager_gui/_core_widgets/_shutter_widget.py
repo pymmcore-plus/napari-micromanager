@@ -152,28 +152,35 @@ class ShuttersWidget(QtW.QWidget):
             self._is_multiShutter = bool([x for x in props if "Physical Shutter" in x])
 
     def _on_seq_started(self):
-        self._set_shutter_wdg_to_opened()
-        self._mmc.setProperty(self.shutter_device, "State", True)
+        if self._mmc.getShutterOpen(self.shutter_device):
+            self._set_shutter_wdg_to_opened()
 
     def _on_seq_stopped(self):
-        self._set_shutter_wdg_to_closed()
-        self._mmc.setProperty(self.shutter_device, "State", False)
+        self._close_shutter(self.shutter_device)
 
     def _on_prop_changed(self, dev_name: str, prop_name: str, value: Any):
-        if dev_name == self.shutter_device and prop_name == "State":
-            if value in [True, "1"]:
-                self._set_shutter_wdg_to_opened()
-            else:
-                self._set_shutter_wdg_to_closed()
+
+        if dev_name != self.shutter_device or prop_name != "State":
+            return
+
+        state = value in [True, "1"]
+
+        (
+            self._set_shutter_wdg_to_opened()
+            if state
+            else self._set_shutter_wdg_to_closed()
+        )
 
     def _on_shutter_changed(self, shutter: str, state: bool):
         if shutter == self.shutter_device:
             if state:
                 self._set_shutter_wdg_to_opened()
-                self._mmc.setProperty(self.shutter_device, "State", True)
+                if not self._mmc.getAutoShutter():
+                    self._mmc.setProperty(self.shutter_device, "State", True)
             else:
                 self._set_shutter_wdg_to_closed()
-                self._mmc.setProperty(self.shutter_device, "State", False)
+                if not self._mmc.getAutoShutter():
+                    self._mmc.setProperty(self.shutter_device, "State", False)
 
     def _on_autoshutter_changed(self, state: bool):
         if self.autoshutter:
@@ -233,3 +240,4 @@ class ShuttersWidget(QtW.QWidget):
         )
         self._mmc.events.startSequenceAcquisition.disconnect(self._on_seq_started)
         self._mmc.events.stopSequenceAcquisition.disconnect(self._on_seq_stopped)
+        self._mmc.events.imageSnapped.disconnect(self._on_seq_stopped)
