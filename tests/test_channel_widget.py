@@ -14,8 +14,12 @@ def test_channel_widget(
 
     assert isinstance(ch_combo, ChannelWidget)
 
+    mmc.setProperty("Core", "Shutter", "")
+    assert not mmc.getShutterDevice()
+
     ch_combo.channel_wdg.setValue("DAPI")
     assert mmc.getCurrentConfig("Channel") == "DAPI"
+    assert mmc.getShutterDevice() == "Multi Shutter"
 
     mmc.setConfig("Channel", "FITC")
     assert ch_combo.channel_wdg.value() == "FITC"
