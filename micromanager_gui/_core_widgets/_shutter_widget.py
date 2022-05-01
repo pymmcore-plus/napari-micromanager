@@ -192,8 +192,7 @@ class ShuttersWidget(QtW.QWidget):
             self._mmc.stopSequenceAcquisition()
 
     def _on_shutter_btn_clicked(self):
-        state = self._mmc.getShutterOpen(self.shutter_device)
-        if state:
+        if self._mmc.getShutterOpen(self.shutter_device):
             self._close_shutter(self.shutter_device)
         else:
             self._open_shutter(self.shutter_device)
@@ -201,12 +200,11 @@ class ShuttersWidget(QtW.QWidget):
         # change the state (and the respective button if exists)
         # of the shutter listed in Micro-Manager 'Multi Shutter'
         if self._is_multiShutter:
-            for prop_n in range(5):
-                prop = f"Physical Shutter {prop_n + 1}"
-                shutter = self._mmc.getProperty(self.shutter_device, prop)
-                if shutter == "Undefined":
-                    continue
-                self._mmc.events.propertyChanged.emit(shutter, "State", not state)
+            for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.Shutter):
+                if self._mmc.getShutterOpen(shutter):
+                    self._mmc.events.propertyChanged.emit(shutter, "State", True)
+                else:
+                    self._mmc.events.propertyChanged.emit(shutter, "State", False)
 
     def _close_shutter(self, shutter):
         self._set_shutter_wdg_to_closed()
