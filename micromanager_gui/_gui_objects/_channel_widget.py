@@ -1,6 +1,6 @@
 from typing import Optional, Union
 
-from pymmcore_plus import CMMCorePlus
+from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy.QtWidgets import QComboBox, QVBoxLayout, QWidget
 
 from micromanager_gui import _core
@@ -44,6 +44,8 @@ class ChannelWidget(QWidget):
 
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
         self._mmc.events.channelGroupChanged.connect(self._on_channel_group_changed)
+        self._mmc.events.configSet.connect(self._on_channel_set)
+
         self.destroyed.connect(self._disconnect_from_core)
         self._on_sys_cfg_loaded()
 
@@ -72,6 +74,17 @@ class ChannelWidget(QWidget):
         if channel_group is not None:
             self._mmc.setChannelGroup(channel_group)
 
+    def _on_channel_set(self, group: str, preset: str):
+        ch = self._mmc.getChannelGroup()
+        if group != ch:
+            return
+        for d in self._mmc.getConfigData(ch, preset):
+            _dev = d[0]
+            _type = self._mmc.getDeviceType(_dev)
+            if _type is DeviceType.Shutter:
+                self._mmc.setProperty("Core", "Shutter", _dev)
+                break
+
     def _on_channel_group_changed(self, new_channel_group: str):
         """When Channel group is changed, recreate combo."""
         self.channel_wdg.setParent(None)
@@ -85,3 +98,4 @@ class ChannelWidget(QWidget):
     def _disconnect_from_core(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_sys_cfg_loaded)
         self._mmc.events.channelGroupChanged.disconnect(self._on_channel_group_changed)
+        self._mmc.events.configSet.disconnect(self._on_channel_set)
