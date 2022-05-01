@@ -88,7 +88,7 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg_layout.addWidget(self.snap_Button)
         self.live_Button = LiveButton(
             button_text_on_off=("Live", "Stop"),
-            icon_size=45,
+            icon_size=40,
             icon_color_on_off=((0, 255, 0), "magenta"),
         )
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
