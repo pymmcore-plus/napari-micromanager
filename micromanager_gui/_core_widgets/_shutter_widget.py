@@ -5,13 +5,12 @@ from typing import Any, Optional, Tuple, Union
 from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus, DeviceType
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QSize, Qt
+from qtpy.QtCore import QObject, QSize, Qt, Signal
 from qtpy.QtGui import QColor, QIcon
 from superqt.fonticon import icon
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
-from .._signals import ShutterEvents
 
 COLOR_TYPE = Union[
     QColor,
@@ -21,6 +20,10 @@ COLOR_TYPE = Union[
     Tuple[int, int, int, int],
     Tuple[int, int, int],
 ]
+
+
+class ShutterEvents(QObject):
+    shutterStateUpdate = Signal(str, bool)  # (shutter_label, bool)
 
 
 class ShuttersWidget(QtW.QWidget):
