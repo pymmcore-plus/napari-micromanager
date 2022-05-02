@@ -178,6 +178,8 @@ class ShuttersWidget(QtW.QWidget):
         # change the state (and the respective button if exists)
         # of the shutter listed in Micro-Manager 'Multi Shutter'
         for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.Shutter):
+            if shutter == self.shutter_device:
+                continue
             if self._mmc.getShutterOpen(shutter):
                 self.shutter_events.shutterStateUpdate.emit(shutter, True)
             else:

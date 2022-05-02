@@ -57,7 +57,6 @@ def test_shutter_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
         [
             global_mmcore.events.configSet,
             global_mmcore.events.propertyChanged,
-            global_mmcore.events.shutterSet,
         ]
     ):
         global_mmcore.setConfig("Channel", "DAPI")
@@ -71,7 +70,6 @@ def test_shutter_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
         [
             global_mmcore.events.startContinuousSequenceAcquisition,
             global_mmcore.events.propertyChanged,
-            global_mmcore.events.autoShutterSet,
             global_mmcore.events.stopSequenceAcquisition,
         ]
     ):
