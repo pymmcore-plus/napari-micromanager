@@ -1,69 +1,107 @@
-from pathlib import Path
+from typing import Optional
 
-from qtpy import QtWidgets as QtW
-from qtpy import uic
-from qtpy.QtCore import QSize
-from qtpy.QtGui import QIcon
+from pymmcore_plus import DeviceType
+from qtpy.QtCore import QMimeData, Qt
+from qtpy.QtGui import QDrag
+from qtpy.QtWidgets import QGroupBox, QHBoxLayout, QWidget
 
-ICONS = Path(__file__).parent.parent / "icons"
+from .. import _core
+from .._core_widgets._stage_widget import StageWidget
+
+STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
 
-class MMStagesWidget(QtW.QWidget):
-
-    MM_XYZ_STAGE = str(Path(__file__).parent / "mm_xyz_stage.ui")
-
-    # The MM_XYZ_STAGE above contains these objects:
-
-    XY_groupBox: QtW.QGroupBox
-    xy_device_comboBox: QtW.QComboBox
-    xy_step_size_SpinBox: QtW.QSpinBox
-    y_up_Button: QtW.QPushButton
-    y_down_Button: QtW.QPushButton
-    left_Button: QtW.QPushButton
-    right_Button: QtW.QPushButton
-
-    Z_groupBox: QtW.QGroupBox
-    z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    focus_device_comboBox: QtW.QComboBox
-    up_Button: QtW.QPushButton
-    down_Button: QtW.QPushButton
-
-    offset_Z_groupBox: QtW.QGroupBox
-    offset_device_comboBox: QtW.QComboBox
-    offset_z_step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    offset_up_Button: QtW.QPushButton
-    offset_down_Button: QtW.QPushButton
-
-    x_lineEdit: QtW.QLineEdit
-    y_lineEdit: QtW.QLineEdit
-    z_lineEdit: QtW.QLineEdit
-
-    snap_on_click_checkBox: QtW.QCheckBox
-
-    def __init__(self, parent=None):
+class MMStagesWidget(QWidget):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        uic.loadUi(self.MM_XYZ_STAGE, self)
+        self.setAcceptDrops(True)
+        self.main_layout = QHBoxLayout()
+        self.main_layout.setContentsMargins(5, 5, 5, 5)
+        self.main_layout.setSpacing(5)
+        self.setLayout(self.main_layout)
 
-        # button icons
-        for attr, icon in [
-            ("left_Button", "left_arrow_1_green.svg"),
-            ("right_Button", "right_arrow_1_green.svg"),
-            ("y_up_Button", "up_arrow_1_green.svg"),
-            ("y_down_Button", "down_arrow_1_green.svg"),
-            ("up_Button", "up_arrow_1_green.svg"),
-            ("down_Button", "down_arrow_1_green.svg"),
-            ("offset_up_Button", "up_arrow_1_green.svg"),
-            ("offset_down_Button", "down_arrow_1_green.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
+        self._mmc = _core.get_core_singleton()
+        self._on_cfg_loaded()
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
+
+    def _on_cfg_loaded(self):
+        self._clear()
+        stage_dev_list = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStage))
+        stage_dev_list.extend(iter(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)))
+        for stage_dev in stage_dev_list:
+            if self._mmc.getDeviceType(stage_dev) is DeviceType.XYStage:
+                bx = DragGroupBox("XY Control")
+                bx.setLayout(QHBoxLayout())
+                bx.layout().addWidget(StageWidget(device=stage_dev))
+                self.layout().addWidget(bx)
+            if self._mmc.getDeviceType(stage_dev) is DeviceType.Stage:
+                bx = DragGroupBox("Z Control")
+                bx.setLayout(QHBoxLayout())
+                bx.layout().addWidget(StageWidget(device=stage_dev))
+                self.layout().addWidget(bx)
+        self.resize(self.sizeHint())
+
+    def _clear(self):
+        for i in reversed(range(self.layout().count())):
+            if item := self.layout().takeAt(i):
+                if wdg := item.widget():
+                    wdg.setParent(None)
+                    wdg.deleteLater()
+
+    def dragEnterEvent(self, event):
+        event.accept()
+
+    def dropEvent(self, event):
+        pos = event.pos()
+
+        wdgs = [
+            (
+                n,
+                self.main_layout.itemAt(n).widget(),
+                self.main_layout.itemAt(n).widget().x(),
+                self.main_layout.itemAt(n).widget().x()
+                + self.main_layout.itemAt(n).widget().size().width(),
+            )
+            for n in range(self.main_layout.count())
+        ]
+
+        zones = [(item[2], item[3]) for item in wdgs]
+
+        for idx, w, _, _ in wdgs:
+
+            if not w.start_pos:
+                continue
+
+            try:
+                curr_idx = next(
+                    (
+                        i
+                        for i, z in enumerate(zones)
+                        if pos.x() >= z[0] and pos.x() <= z[1]
+                    )
+                )
+            except StopIteration:
+                break
+
+            if curr_idx == idx:
+                w.start_pos = None
+                break
+            self.main_layout.insertWidget(curr_idx, w)
+            w.start_pos = None
+            break
+        event.accept()
 
 
-if __name__ == "__main__":
-    import sys
+class DragGroupBox(QGroupBox):
+    def __init__(self, name: str, start_pos=None) -> None:
+        super().__init__()
+        self._name = name
+        self.start_pos = start_pos
 
-    app = QtW.QApplication(sys.argv)
-    win = MMStagesWidget()
-    win.show()
-    sys.exit(app.exec_())
+    def mouseMoveEvent(self, event):
+        # if event.buttons() == Qt.LeftButton:
+        drag = QDrag(self)
+        mime = QMimeData()
+        drag.setMimeData(mime)
+        self.start_pos = event.pos().x()
+        drag.exec_(Qt.MoveAction)
