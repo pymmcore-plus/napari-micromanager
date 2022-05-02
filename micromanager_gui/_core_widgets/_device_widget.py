@@ -196,7 +196,7 @@ class StateDeviceWidget(DeviceWidget):
 
     def setCurrentIndex(self, index: int) -> None:
         # pass through the QComboBox interface
-        nstates = self._mmc.getNumberOfStates()
+        nstates = self._mmc.getNumberOfStates(self._device_label)
         if not (0 <= index < nstates):
             raise ValueError(f"Index must be between 0 and {nstates}")
         self._combo.setCurrentIndex(index)
