@@ -11,6 +11,7 @@ from superqt.fonticon import icon
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
+from .._signals import ShutterEvents
 
 COLOR_TYPE = Union[
     QColor,
@@ -65,10 +66,13 @@ class ShuttersWidget(QtW.QWidget):
         parent: Optional[QtW.QWidget] = None,
         *,
         mmcore: Optional[CMMCorePlus] = None,
+        events=ShutterEvents(),
     ):
         super().__init__(parent)
 
         self._mmc = mmcore or get_core_singleton()
+        self.shutter_events = events
+        self.shutter_events.shutterStateUpdate.connect(self._on_shutter_state_update)
 
         self.shutter_device = shutter_device
         self._is_multiShutter = False
@@ -88,7 +92,6 @@ class ShuttersWidget(QtW.QWidget):
 
         self._mmc.events.systemConfigurationLoaded.connect(self._refresh_shutter_widget)
         self._mmc.events.autoShutterSet.connect(self._on_autoshutter_changed)
-        self._mmc.events.shutterSet.connect(self._on_shutter_set)
         self._mmc.events.propertyChanged.connect(self._on_prop_changed)
         self._mmc.events.startContinuousSequenceAcquisition.connect(
             self._on_seq_started
@@ -161,6 +164,7 @@ class ShuttersWidget(QtW.QWidget):
     def _on_prop_changed(self, dev_name: str, prop_name: str, value: Any):
         if dev_name != self.shutter_device or prop_name != "State":
             return
+
         state = value in [True, "1"]
         (
             self._set_shutter_wdg_to_opened()
@@ -175,12 +179,12 @@ class ShuttersWidget(QtW.QWidget):
         # of the shutter listed in Micro-Manager 'Multi Shutter'
         for shutter in self._mmc.getLoadedDevicesOfType(DeviceType.Shutter):
             if self._mmc.getShutterOpen(shutter):
-                self._mmc.events.shutterSet.emit(shutter, True)
+                self.shutter_events.shutterStateUpdate.emit(shutter, True)
             else:
-                self._mmc.events.shutterSet.emit(shutter, False)
+                self.shutter_events.shutterStateUpdate.emit(shutter, False)
 
-    def _on_shutter_set(self, shutter: str, state: bool):
-        if shutter != self.shutter_device:
+    def _on_shutter_state_update(self, shutter: str, state: bool):
+        if self._is_multiShutter or shutter != self.shutter_device:
             return
         (
             self._set_shutter_wdg_to_opened()
@@ -234,7 +238,6 @@ class ShuttersWidget(QtW.QWidget):
             self._refresh_shutter_widget
         )
         self._mmc.events.autoShutterSet.disconnect(self._on_autoshutter_changed)
-        self._mmc.events.shutterSet.disconnect(self._on_shutter_set)
         self._mmc.events.propertyChanged.disconnect(self._on_prop_changed)
         self._mmc.events.startContinuousSequenceAcquisition.disconnect(
             self._on_seq_started
@@ -242,3 +245,4 @@ class ShuttersWidget(QtW.QWidget):
         self._mmc.events.startSequenceAcquisition.disconnect(self._on_seq_started)
         self._mmc.events.stopSequenceAcquisition.disconnect(self._on_seq_stopped)
         self._mmc.events.imageSnapped.disconnect(self._on_seq_stopped)
+        self.shutter_events.shutterStateUpdate.disconnect(self._on_shutter_state_update)
