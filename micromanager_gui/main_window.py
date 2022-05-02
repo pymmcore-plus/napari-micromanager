@@ -205,8 +205,7 @@ class MainWindow(MicroManagerWidget):
     def toggle_live(self, event=None):
         if self.streaming_timer is None:
 
-            ch_group = self._mmc.getChannelGroup()
-            if not ch_group:
+            if not self._mmc.getChannelGroup():
                 return
 
             self.start_live()
