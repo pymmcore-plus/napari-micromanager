@@ -140,9 +140,3 @@ def test_refresh_safety(main_window: MainWindow):
     assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
     assert "4" == mmc.getProperty("Camera", "Binning")
     assert "12" == mmc.getProperty("Camera", "BitDepth")
-
-    assert main_window.stage_wdg.xy_device_comboBox.count() == 1
-    assert main_window.stage_wdg.xy_device_comboBox.currentText() == "XY"
-
-    assert main_window.stage_wdg.focus_device_comboBox.count() == 1
-    assert main_window.stage_wdg.focus_device_comboBox.currentText() == "Z"
