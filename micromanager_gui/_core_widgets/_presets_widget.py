@@ -37,9 +37,9 @@ class PresetsWidget(QWidget):
         self._check_if_presets_have_same_props()
 
         self._combo = QComboBox()
+        self._combo.currentTextChanged.connect(self._update_tooltip)
         self._combo.addItems(self._presets)
         self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-        self._set_cfg_data_as_tool_tip(self._combo.currentText())
         self._set_if_props_match_preset()
 
         self.setLayout(QHBoxLayout())
@@ -76,7 +76,6 @@ class PresetsWidget(QWidget):
     def _on_combo_changed(self, text: str) -> None:
         self._mmc.setConfig(self._group, text)
         self._combo.setStyleSheet("")
-        self._set_cfg_data_as_tool_tip(text)
 
     def _set_if_props_match_preset(self):
         """
@@ -95,7 +94,6 @@ class PresetsWidget(QWidget):
                 with signals_blocked(self._combo):
                     self._combo.setCurrentText(preset)
                     self._combo.setStyleSheet("")
-                    self._set_cfg_data_as_tool_tip(preset)
                     return
         # if None of the presets match the current system state
         self._combo.setStyleSheet("color: magenta;")
@@ -105,7 +103,6 @@ class PresetsWidget(QWidget):
             with signals_blocked(self._combo):
                 self._combo.setCurrentText(preset)
                 self._combo.setStyleSheet("")
-                self._set_cfg_data_as_tool_tip(preset)
         else:
             dev_prop_list = get_group_dev_prop(group, preset)
             if any(dev_prop for dev_prop in dev_prop_list if dev_prop in self.dev_prop):
@@ -127,13 +124,11 @@ class PresetsWidget(QWidget):
             if self._group not in self._mmc.getAvailableConfigGroups():
                 self._combo.addItem(f"No group named {self._group}.")
                 self._combo.setEnabled(False)
-                self._set_cfg_data_as_tool_tip("")
             else:
                 presets = self._mmc.getAvailableConfigs(self._group)
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
                 self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-                self._set_cfg_data_as_tool_tip(self._combo.currentText())
                 self._set_if_props_match_preset()
 
     def value(self) -> str:
@@ -145,16 +140,14 @@ class PresetsWidget(QWidget):
                 f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
             )
         self._combo.setCurrentText(value)
-        self._set_cfg_data_as_tool_tip(value)
 
     def allowedValues(self) -> Tuple[str]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
 
-    def _set_cfg_data_as_tool_tip(self, preset: str):
-        if not preset:
-            self._combo.setToolTip("")
-        else:
-            self._combo.setToolTip(str(self._mmc.getConfigData(self._group, preset)))
+    def _update_tooltip(self, preset):
+        self._combo.setToolTip(
+            str(self._mmc.getConfigData(self._group, preset)) if preset else ""
+        )
 
     def disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
