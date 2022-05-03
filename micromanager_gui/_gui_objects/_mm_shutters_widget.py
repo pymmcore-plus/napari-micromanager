@@ -32,14 +32,18 @@ class MMShuttersWidget(QtW.QWidget):
             self.layout().addWidget(empty_shutter)
             return
 
-        len_shutter_devices = len(
-            self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice)
-        )
+        shutters_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice))
 
-        for idx, shutter in enumerate(
-            self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice)
-        ):
-            if idx == len_shutter_devices - 1:
+        for d in shutters_devs:
+            props = self._mmc.getDevicePropertyNames(d)
+            if bool([x for x in props if "Physical Shutter" in x]):
+                shutters_devs.remove(d)
+                shutters_devs.insert(0, d)
+                break
+
+        for idx, shutter in enumerate(shutters_devs):
+
+            if idx == len(shutters_devs) - 1:
                 s = ShuttersWidget(
                     shutter,
                     button_text_open_closed=(shutter, shutter),
