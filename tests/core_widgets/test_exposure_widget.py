@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from pymmcore_plus import CMMCorePlus
 
 from micromanager_gui._core_widgets import DefaultCameraExposureWidget
 
 if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
     from pytestqt.qtbot import QtBot
 
-# not sure how else to parametrize the test without instantiating here at import ...
-CORE = CMMCorePlus()
-CORE.loadSystemConfiguration(Path(__file__).parent.parent / "test_config.cfg")
 
-
-def test_exposure_widget(qtbot: QtBot):
+def test_exposure_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
+    CORE = global_mmcore
     CORE.setExposure(15)
     wdg = DefaultCameraExposureWidget(core=CORE)
     qtbot.addWidget(wdg)
