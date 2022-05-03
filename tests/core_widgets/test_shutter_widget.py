@@ -18,20 +18,20 @@ def test_shutter_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
         autoshutter=False,
     )
 
-    multi_shutter = ShuttersWidget(
-        "Multi Shutter",
-        button_text_open_closed=("Multi Shutter opened", "Multi Shutter closed"),
-        icon_color_open_closed=((0, 255, 0), "magenta"),
-    )
+    # multi_shutter = ShuttersWidget(
+    #     "Multi Shutter",
+    #     button_text_open_closed=("Multi Shutter opened", "Multi Shutter closed"),
+    #     icon_color_open_closed=((0, 255, 0), "magenta"),
+    # )
 
     qtbot.addWidget(shutter)
-    qtbot.addWidget(multi_shutter)
+    # qtbot.addWidget(multi_shutter)
 
     assert shutter.shutter_button.text() == "Shutter closed"
     assert not shutter.shutter_button.isEnabled()
-    assert multi_shutter.shutter_button.text() == "Multi Shutter closed"
-    assert multi_shutter.autoshutter_checkbox.isChecked()
-    assert not multi_shutter.shutter_button.isEnabled()
+    # assert multi_shutter.shutter_button.text() == "Multi Shutter closed"
+    # assert multi_shutter.autoshutter_checkbox.isChecked()
+    # assert not multi_shutter.shutter_button.isEnabled()
 
     # # test shutter change from core
     # with qtbot.waitSignal(global_mmcore.events.propertyChanged):
