@@ -6,11 +6,13 @@ from typing import TYPE_CHECKING
 
 import useq
 from qtpy import QtWidgets as QtW
-from qtpy import uic
 from useq import MDASequence
 
-from .. import _mda
-from .._core import get_core_singleton
+from ... import _mda
+from ..._core import get_core_singleton
+from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import (
+    MMExplorerWidget,
+)
 
 if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
@@ -19,32 +21,9 @@ if TYPE_CHECKING:
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 
-class ExploreSample(QtW.QWidget):
-    # The UI_FILE above contains these objects:
-    scan_explorer_groupBox: QtW.QGroupBox
-    scan_size_label: QtW.QLabel
-    scan_size_spinBox_r: QtW.QSpinBox
-    scan_size_spinBox_c: QtW.QSpinBox
-    channel_explorer_groupBox: QtW.QGroupBox
-    channel_explorer_tableWidget: QtW.QTableWidget
-    add_ch_explorer_Button: QtW.QPushButton
-    clear_ch_explorer_Button: QtW.QPushButton
-    remove_ch_explorer_Button: QtW.QPushButton
-    save_explorer_groupBox: QtW.QGroupBox
-    dir_explorer_lineEdit: QtW.QLineEdit
-    fname_explorer_lineEdit: QtW.QLineEdit
-    browse_save_explorer_Button: QtW.QPushButton
-    start_scan_Button: QtW.QPushButton
-    stop_scan_Button: QtW.QPushButton
-    move_to_position_groupBox: QtW.QGroupBox
-    move_to_Button: QtW.QPushButton
-    x_lineEdit: QtW.QLineEdit
-    y_lineEdit: QtW.QLineEdit
-    ovelap_spinBox: QtW.QSpinBox
-
+class ExploreSample(MMExplorerWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        uic.loadUi(UI_FILE, self)
 
         self._mmc = get_core_singleton()
 
@@ -94,16 +73,15 @@ class ExploreSample(QtW.QWidget):
         # meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
         # save_sequence(sequence, self.viewer.layers, meta)
         meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
-        if meta.mode == "explorer":
-            if (
-                self.return_to_position_x is not None
-                and self.return_to_position_y is not None
-            ):
-                self._mmc.setXYPosition(
-                    self.return_to_position_x, self.return_to_position_y
-                )
-                self.return_to_position_x = None
-                self.return_to_position_y = None
+        if meta.mode == "explorer" and (
+            self.return_to_position_x is not None
+            and self.return_to_position_y is not None
+        ):
+            self._mmc.setXYPosition(
+                self.return_to_position_x, self.return_to_position_y
+            )
+            self.return_to_position_x = None
+            self.return_to_position_y = None
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
@@ -206,7 +184,7 @@ class ExploreSample(QtW.QWidget):
         overlap_px_h = height - (height * overlap_percentage) / 100
 
         if self.scan_size_r == 1 and self.scan_size_c == 1:
-            raise Exception("RxC -> 1x1. Use MDA to acquire a single position image.")
+            raise ValueError("RxC -> 1x1. Use MDA to acquire a single position image.")
 
         move_x = (width / 2) * (self.scan_size_c - 1) - overlap_px_w
         move_y = (height / 2) * (self.scan_size_r - 1) - overlap_px_h
