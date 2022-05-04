@@ -8,7 +8,7 @@ from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
 from ._mda_widget import MultiDWidget
 from ._objective_widget import MMObjectivesWidget
-from ._sample_explorer_widget import ExploreSample
+from ._sample_explorer_widget._sample_explorer_widget import ExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._slider_dialog import SliderDialog
 from ._tab_widget import MMTabWidget
