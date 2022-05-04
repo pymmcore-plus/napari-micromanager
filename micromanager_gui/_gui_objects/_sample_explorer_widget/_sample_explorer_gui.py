@@ -16,7 +16,6 @@ from qtpy.QtWidgets import (
     QTableWidget,
     QVBoxLayout,
     QWidget,
-    QSpacerItem
 )
 from superqt.fonticon import icon
 
@@ -27,7 +26,7 @@ class MMExplorerWidget(QWidget):
 
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(0)
-        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setContentsMargins(10, 10, 10, 10)
 
         # general scroll area
         self._scroll = QScrollArea()
@@ -59,8 +58,8 @@ class MMExplorerWidget(QWidget):
         self.move_to_pos = self._create_move_to_pos()
         wdg_layout.addWidget(self.move_to_pos)
 
-        spacer = QSpacerItem(10, 10,  QSizePolicy.Minimum, QSizePolicy.Expanding)
-        wdg_layout.addItem(spacer)
+        # spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        # wdg_layout.addItem(spacer)
 
         return wdg
 
