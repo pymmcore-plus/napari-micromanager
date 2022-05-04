@@ -16,6 +16,7 @@ from qtpy.QtWidgets import (
     QTableWidget,
     QVBoxLayout,
     QWidget,
+    QSpacerItem
 )
 from superqt.fonticon import icon
 
@@ -43,20 +44,23 @@ class MMExplorerWidget(QWidget):
         wdg_layout.setContentsMargins(10, 10, 10, 10)
         wdg.setLayout(wdg_layout)
 
+        self.save_explorer_groupBox = self._create_save_group()
+        wdg_layout.addWidget(self.save_explorer_groupBox)
+
         self.scan_props = self._create_row_cols_overlap_group()
         wdg_layout.addWidget(self.scan_props)
 
         self.channel_explorer_groupBox = self._create_channel_group()
         wdg_layout.addWidget(self.channel_explorer_groupBox)
 
-        self.save_explorer_groupBox = self._create_save_group()
-        wdg_layout.addWidget(self.save_explorer_groupBox)
-
         self.btns = self._create_start_stop_buttons()
         wdg_layout.addWidget(self.btns)
 
         self.move_to_pos = self._create_move_to_pos()
         wdg_layout.addWidget(self.move_to_pos)
+
+        spacer = QSpacerItem(10, 10,  QSizePolicy.Minimum, QSizePolicy.Expanding)
+        wdg_layout.addItem(spacer)
 
         return wdg
 
@@ -65,7 +69,7 @@ class MMExplorerWidget(QWidget):
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group_layout = QHBoxLayout()
         group_layout.setSpacing(10)
-        group_layout.setContentsMargins(10, 10, 10, 10)
+        group_layout.setContentsMargins(10, 20, 10, 20)
         group.setLayout(group_layout)
 
         # row
@@ -116,16 +120,19 @@ class MMExplorerWidget(QWidget):
     def _create_channel_group(self):
 
         group = QGroupBox(title="Channels")
-        group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
+        group.setMinimumHeight(250)
         group_layout = QGridLayout()
-        group_layout.setSpacing(15)
-        group_layout.setContentsMargins(10, 10, 10, 10)
+        group_layout.setHorizontalSpacing(15)
+        group_layout.setVerticalSpacing(0)
+        group_layout.setContentsMargins(10, 0, 10, 0)
         group.setLayout(group_layout)
 
         # table
         self.channel_explorer_tableWidget = QTableWidget()
+        self.channel_explorer_tableWidget.setMinimumHeight(110)
         hdr = self.channel_explorer_tableWidget.horizontalHeader()
         hdr.setSectionResizeMode(hdr.Stretch)
+        self.channel_explorer_tableWidget.verticalHeader().setVisible(False)
         self.channel_explorer_tableWidget.setTabKeyNavigation(True)
         self.channel_explorer_tableWidget.setColumnCount(2)
         self.channel_explorer_tableWidget.setRowCount(0)
@@ -230,7 +237,7 @@ class MMExplorerWidget(QWidget):
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group_layout = QHBoxLayout()
         group_layout.setSpacing(10)
-        group_layout.setContentsMargins(10, 10, 10, 10)
+        group_layout.setContentsMargins(10, 20, 10, 20)
         group.setLayout(group_layout)
 
         self.move_to_Button = QPushButton(text="Move to")
