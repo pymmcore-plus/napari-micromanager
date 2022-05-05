@@ -74,7 +74,7 @@ class MMMDAWidget(QWidget):
         dir_group = QWidget()
         dir_group_layout = QHBoxLayout()
         dir_group_layout.setSpacing(5)
-        dir_group_layout.setContentsMargins(10, 10, 10, 10)
+        dir_group_layout.setContentsMargins(0, 5, 0, 5)
         dir_group.setLayout(dir_group_layout)
         lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         min_lbl_size = 70
@@ -93,7 +93,7 @@ class MMMDAWidget(QWidget):
         fname_group = QWidget()
         fname_group_layout = QHBoxLayout()
         fname_group_layout.setSpacing(5)
-        fname_group_layout.setContentsMargins(10, 10, 10, 10)
+        fname_group_layout.setContentsMargins(0, 5, 0, 10)
         fname_group.setLayout(fname_group_layout)
         fname_lbl = QLabel(text="File Name: ")
         fname_lbl.setMinimumWidth(min_lbl_size)
@@ -103,13 +103,14 @@ class MMMDAWidget(QWidget):
         fname_group_layout.addWidget(fname_lbl)
         fname_group_layout.addWidget(self.fname_lineEdit)
 
-        group_layout.addWidget(dir_group)
-        group_layout.addWidget(fname_group)
-
         # checkbox
         self.checkBox_save_pos = QCheckBox(
             text="Save XY Positions in separate files (ImageJ compatibility)"
         )
+        # self.checkBox_save_pos.
+
+        group_layout.addWidget(dir_group)
+        group_layout.addWidget(fname_group)
         group_layout.addWidget(self.checkBox_save_pos)
 
         return group
