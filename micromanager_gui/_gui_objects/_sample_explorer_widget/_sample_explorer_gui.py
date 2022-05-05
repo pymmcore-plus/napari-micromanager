@@ -167,7 +167,7 @@ class MMExplorerWidget(QWidget):
         group.setCheckable(True)
         group.setChecked(False)
         group_layout = QVBoxLayout()
-        group_layout.setSpacing(10)
+        group_layout.setSpacing(0)
         group_layout.setContentsMargins(10, 10, 10, 10)
         group.setLayout(group_layout)
 
