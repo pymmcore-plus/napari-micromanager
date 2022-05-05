@@ -1,6 +1,7 @@
 from typing import Optional
 
-from qtpy.QtCore import Qt
+from fonticon_mdi6 import MDI6
+from qtpy.QtCore import QSize, Qt
 from qtpy.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -13,15 +14,17 @@ from qtpy.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpacerItem,
     QSpinBox,
     QTableWidget,
     QTabWidget,
     QVBoxLayout,
     QWidget,
 )
+from superqt.fonticon import icon
 
 
-class MMMDAWidget(QWidget):
+class MultiDWidgetGui(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
@@ -37,6 +40,7 @@ class MMMDAWidget(QWidget):
         self._scroll.setWidget(self.explorer_wdg)
         self.layout().addWidget(self._scroll)
 
+        # acq order and buttons wdg
         self.bottom_wdg = self._create_bottom_wdg()
         self.layout().addWidget(self.bottom_wdg)
 
@@ -62,18 +66,15 @@ class MMMDAWidget(QWidget):
         self.stage_pos_groupBox = self._create_stage_pos_groupBox()
         wdg_layout.addWidget(self.stage_pos_groupBox)
 
-        # spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        # wdg_layout.addItem(spacer)
-
         return wdg
 
     def _create_save_group(self):
-        group = QGroupBox(title="Save MDA")
+        group = QGroupBox(title="Save MultiD Acquisition")
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group.setCheckable(True)
         group.setChecked(False)
         group_layout = QVBoxLayout()
-        group_layout.setSpacing(0)
+        group_layout.setSpacing(10)
         group_layout.setContentsMargins(10, 10, 10, 10)
         group.setLayout(group_layout)
 
@@ -212,6 +213,13 @@ class MMMDAWidget(QWidget):
         wdg1_lay.addWidget(self.interval_spinBox)
         group_layout.addWidget(wdg1)
 
+        self.time_comboBox = QComboBox()
+        self.time_comboBox.setSizePolicy(
+            QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        )
+        self.time_comboBox.addItems(["ms", "sec", "min"])
+        group_layout.addWidget(self.time_comboBox)
+
         return group
 
     def _create_stack_groupBox(self):
@@ -219,8 +227,8 @@ class MMMDAWidget(QWidget):
         group.setCheckable(True)
         group.setChecked(False)
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
-        group_layout = QHBoxLayout()
-        group_layout.setSpacing(0)
+        group_layout = QVBoxLayout()
+        group_layout.setSpacing(10)
         group_layout.setContentsMargins(10, 10, 10, 10)
         group.setLayout(group_layout)
 
@@ -235,6 +243,7 @@ class MMMDAWidget(QWidget):
         # top bottom
         tb = QWidget()
         tb_layout = QGridLayout()
+        tb_layout.setContentsMargins(10, 10, 10, 10)
         tb.setLayout(tb_layout)
 
         self.set_top_Button = QPushButton(text="Set Top")
@@ -274,7 +283,7 @@ class MMMDAWidget(QWidget):
         ra = QWidget()
         ra_layout = QHBoxLayout()
         ra_layout.setSpacing(10)
-        ra_layout.setContentsMargins(0, 0, 0, 0)
+        ra_layout.setContentsMargins(10, 10, 10, 10)
         ra.setLayout(ra_layout)
 
         lbl_range_ra = QLabel(text="Range (µm):")
@@ -298,6 +307,7 @@ class MMMDAWidget(QWidget):
         # above below wdg
         ab = QWidget()
         ab_layout = QGridLayout()
+        ab_layout.setContentsMargins(10, 0, 10, 15)
         ab.setLayout(ab_layout)
 
         lbl_above = QLabel(text="Above (µm):")
@@ -335,6 +345,36 @@ class MMMDAWidget(QWidget):
 
         self.z_tabWidget.addTab(ab, "AboveBelow")
 
+        # step size wdg
+        step_wdg = QWidget()
+        step_wdg_layout = QHBoxLayout()
+        step_wdg_layout.setSpacing(15)
+        step_wdg_layout.setContentsMargins(0, 10, 0, 0)
+        step_wdg.setLayout(step_wdg_layout)
+
+        s = QWidget()
+        s_layout = QHBoxLayout()
+        s_layout.setSpacing(0)
+        s_layout.setContentsMargins(0, 0, 0, 0)
+        s.setLayout(s_layout)
+        lbl = QLabel(text="Step Size (µm):")
+        lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        lbl.setSizePolicy(lbl_sizepolicy)
+        self.step_size_doubleSpinBox = QDoubleSpinBox()
+        self.step_size_doubleSpinBox.setAlignment(Qt.AlignCenter)
+        self.step_size_doubleSpinBox.setMinimum(0.05)
+        self.step_size_doubleSpinBox.setMaximum(10000)
+        self.step_size_doubleSpinBox.setSingleStep(0.5)
+        self.step_size_doubleSpinBox.setDecimals(2)
+        s_layout.addWidget(lbl)
+        s_layout.addWidget(self.step_size_doubleSpinBox)
+
+        self.n_images_label = QLabel(text="Number of Images:")
+
+        step_wdg_layout.addWidget(s)
+        step_wdg_layout.addWidget(self.n_images_label)
+        group_layout.addWidget(step_wdg)
+
         return group
 
     def _create_stage_pos_groupBox(self):
@@ -349,16 +389,16 @@ class MMMDAWidget(QWidget):
         group.setLayout(group_layout)
 
         # table
-        self.channel_tableWidget = QTableWidget()
-        self.channel_tableWidget.setMinimumHeight(90)
-        hdr = self.channel_tableWidget.horizontalHeader()
+        self.stage_tableWidget = QTableWidget()
+        self.stage_tableWidget.setMinimumHeight(90)
+        hdr = self.stage_tableWidget.horizontalHeader()
         hdr.setSectionResizeMode(hdr.Stretch)
-        self.channel_tableWidget.verticalHeader().setVisible(False)
-        self.channel_tableWidget.setTabKeyNavigation(True)
-        self.channel_tableWidget.setColumnCount(3)
-        self.channel_tableWidget.setRowCount(0)
-        self.channel_tableWidget.setHorizontalHeaderLabels(["X", "Y", "Z"])
-        group_layout.addWidget(self.channel_tableWidget, 0, 0, 3, 1)
+        self.stage_tableWidget.verticalHeader().setVisible(False)
+        self.stage_tableWidget.setTabKeyNavigation(True)
+        self.stage_tableWidget.setColumnCount(3)
+        self.stage_tableWidget.setRowCount(0)
+        self.stage_tableWidget.setHorizontalHeaderLabels(["X", "Y", "Z"])
+        group_layout.addWidget(self.stage_tableWidget, 0, 0, 3, 1)
 
         # buttons
         btn_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -382,9 +422,11 @@ class MMMDAWidget(QWidget):
     def _create_bottom_wdg(self):
 
         wdg = QWidget()
+        wdg.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         wdg_layout = QHBoxLayout()
+        wdg_layout.setAlignment(Qt.AlignVCenter)
         wdg_layout.setSpacing(10)
-        wdg_layout.setContentsMargins(0, 0, 0, 0)
+        wdg_layout.setContentsMargins(10, 15, 10, 10)
         wdg.setLayout(wdg_layout)
 
         acq_wdg = QWidget()
@@ -396,15 +438,35 @@ class MMMDAWidget(QWidget):
         lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         acquisition_order_label.setSizePolicy(lbl_sizepolicy)
         self.acquisition_order_comboBox = QComboBox()
+        self.acquisition_order_comboBox.setMinimumWidth(100)
         self.acquisition_order_comboBox.addItems(["tpzc", "tpcz", "ptzc", "ptcz"])
         acq_wdg_layout.addWidget(acquisition_order_label)
         acq_wdg_layout.addWidget(self.acquisition_order_comboBox)
 
+        btn_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        min_width = 130
+        icon_size = 40
         self.run_Button = QPushButton(text="Run")
+        self.run_Button.setMinimumWidth(min_width)
+        self.run_Button.setStyleSheet("QPushButton { text-align: center; }")
+        self.run_Button.setSizePolicy(btn_sizepolicy)
+        self.run_Button.setIcon(icon(MDI6.play, color=(0, 255, 0)))
+        self.run_Button.setIconSize(QSize(icon_size, icon_size))
         self.pause_Button = QPushButton("Pause")
+        self.pause_Button.setStyleSheet("QPushButton { text-align: center; }")
+        self.pause_Button.setSizePolicy(btn_sizepolicy)
+        self.pause_Button.setIcon(icon(MDI6.pause, color="green"))
+        self.pause_Button.setIconSize(QSize(icon_size, icon_size))
         self.cancel_Button = QPushButton("Cancel")
+        self.cancel_Button.setStyleSheet("QPushButton { text-align: center; }")
+        self.cancel_Button.setSizePolicy(btn_sizepolicy)
+        self.cancel_Button.setIcon(icon(MDI6.stop, color="magenta"))
+        self.cancel_Button.setIconSize(QSize(icon_size, icon_size))
+
+        spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         wdg_layout.addWidget(acq_wdg)
+        wdg_layout.addItem(spacer)
         wdg_layout.addWidget(self.run_Button)
         wdg_layout.addWidget(self.pause_Button)
         wdg_layout.addWidget(self.cancel_Button)
@@ -418,6 +480,6 @@ if __name__ == "__main__":
     from qtpy.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
-    win = MMMDAWidget()
+    win = MultiDWidgetGui()
     win.show()
     sys.exit(app.exec_())
