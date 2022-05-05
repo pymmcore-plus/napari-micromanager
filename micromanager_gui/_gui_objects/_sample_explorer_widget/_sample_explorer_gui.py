@@ -121,7 +121,7 @@ class MMExplorerWidget(QWidget):
     def _create_channel_group(self):
 
         group = QGroupBox(title="Channels")
-        group.setMinimumHeight(250)
+        group.setMinimumHeight(230)
         group_layout = QGridLayout()
         group_layout.setHorizontalSpacing(15)
         group_layout.setVerticalSpacing(0)
@@ -130,7 +130,7 @@ class MMExplorerWidget(QWidget):
 
         # table
         self.channel_explorer_tableWidget = QTableWidget()
-        self.channel_explorer_tableWidget.setMinimumHeight(110)
+        self.channel_explorer_tableWidget.setMinimumHeight(90)
         hdr = self.channel_explorer_tableWidget.horizontalHeader()
         hdr.setSectionResizeMode(hdr.Stretch)
         self.channel_explorer_tableWidget.verticalHeader().setVisible(False)
@@ -138,7 +138,7 @@ class MMExplorerWidget(QWidget):
         self.channel_explorer_tableWidget.setColumnCount(2)
         self.channel_explorer_tableWidget.setRowCount(0)
         self.channel_explorer_tableWidget.setHorizontalHeaderLabels(
-            ["Channel", "Exp. Time (ms)"]
+            ["Channel", "Exposure Time (ms)"]
         )
         group_layout.addWidget(self.channel_explorer_tableWidget, 0, 0, 3, 1)
 
