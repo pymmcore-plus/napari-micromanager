@@ -20,7 +20,7 @@ from qtpy.QtWidgets import (
 from superqt.fonticon import icon
 
 
-class MMExplorerWidget(QWidget):
+class ExplorerGui(QWidget):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
@@ -167,7 +167,7 @@ class MMExplorerWidget(QWidget):
         group.setCheckable(True)
         group.setChecked(False)
         group_layout = QVBoxLayout()
-        group_layout.setSpacing(0)
+        group_layout.setSpacing(10)
         group_layout.setContentsMargins(10, 10, 10, 10)
         group.setLayout(group_layout)
 
@@ -259,3 +259,14 @@ class MMExplorerWidget(QWidget):
         group_layout.addWidget(self.y_lineEdit)
 
         return group
+
+
+if __name__ == "__main__":
+    import sys
+
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication(sys.argv)
+    win = ExplorerGui()
+    win.show()
+    sys.exit(app.exec_())

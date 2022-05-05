@@ -10,9 +10,7 @@ from useq import MDASequence
 
 from ... import _mda
 from ..._core import get_core_singleton
-from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import (
-    MMExplorerWidget,
-)
+from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
 if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
@@ -21,7 +19,7 @@ if TYPE_CHECKING:
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 
-class ExploreSample(MMExplorerWidget):
+class MMExploreSample(ExplorerGui):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -281,13 +279,4 @@ class ExploreSample(MMExplorerWidget):
         else:
             move_to_x = float(move_to_x)
             move_to_y = float(move_to_y)
-            self._mmc.setXYPosition(float(move_to_x), float(move_to_y))
-
-
-if __name__ == "__main__":
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication([])
-    window = ExploreSample()
-    window.show()
-    app.exec_()
+            self._mmc.setXYPosition(move_to_x, move_to_y)
