@@ -85,7 +85,7 @@ class MultiDWidgetGui(QWidget):
         dir_group_layout.setContentsMargins(0, 10, 0, 5)
         dir_group.setLayout(dir_group_layout)
         lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        min_lbl_size = 70
+        min_lbl_size = 80
         btn_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         dir_lbl = QLabel(text="Directory:")
         dir_lbl.setMinimumWidth(min_lbl_size)
