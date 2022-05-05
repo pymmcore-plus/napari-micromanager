@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
 
 
-class MultiDWidget(MultiDWidgetGui):
+class MMMultiDWidget(MultiDWidgetGui):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -439,12 +439,3 @@ class MultiDWidget(MultiDWidgetGui):
         )
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
-
-
-if __name__ == "__main__":
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication([])
-    window = MultiDWidget()
-    window.show()
-    app.exec_()
