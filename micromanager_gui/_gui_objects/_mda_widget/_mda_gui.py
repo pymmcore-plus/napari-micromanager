@@ -3,6 +3,7 @@ from typing import Optional
 from fonticon_mdi6 import MDI6
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -267,7 +268,9 @@ class MultiDWidgetGui(QWidget):
         self.z_range_topbottom_doubleSpinBox = QDoubleSpinBox()
         self.z_range_topbottom_doubleSpinBox.setAlignment(Qt.AlignCenter)
         self.z_range_topbottom_doubleSpinBox.setMaximum(10000000)
-        self.z_range_topbottom_doubleSpinBox.setButtonSymbols(2)
+        self.z_range_topbottom_doubleSpinBox.setButtonSymbols(
+            QAbstractSpinBox.NoButtons
+        )
         self.z_range_topbottom_doubleSpinBox.setReadOnly(True)
 
         tb_layout.addWidget(self.set_top_Button, 0, 0)
@@ -333,7 +336,9 @@ class MultiDWidgetGui(QWidget):
         self.z_range_abovebelow_doubleSpinBox = QDoubleSpinBox()
         self.z_range_abovebelow_doubleSpinBox.setAlignment(Qt.AlignCenter)
         self.z_range_abovebelow_doubleSpinBox.setMaximum(10000000)
-        self.z_range_abovebelow_doubleSpinBox.setButtonSymbols(2)
+        self.z_range_abovebelow_doubleSpinBox.setButtonSymbols(
+            QAbstractSpinBox.NoButtons
+        )
         self.z_range_abovebelow_doubleSpinBox.setReadOnly(True)
 
         ab_layout.addWidget(lbl_above, 0, 0)
