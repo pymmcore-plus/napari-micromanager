@@ -40,70 +40,67 @@ def test_main_window_mda(main_window: MainWindow):
 @pytest.mark.parametrize("splitC", ["", "splitC"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
-def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
-    import tempfile
+def test_saving_mda(
+    qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, tmp_path: Path
+):
 
-    do_save = True
-    with tempfile.TemporaryDirectory() as td:
-        tmp_path = Path(td)
-        NAME = "test_mda"
-        _mda = main_window.mda
-        _mda.save_groupBox.setChecked(do_save)
-        _mda.dir_lineEdit.setText(str(tmp_path))
-        _mda.fname_lineEdit.setText(NAME)
+    NAME = "test_mda"
+    _mda = main_window.mda
+    _mda.save_groupBox.setChecked(True)
+    _mda.dir_lineEdit.setText(str(tmp_path))
+    _mda.fname_lineEdit.setText(NAME)
 
-        _mda.time_groupBox.setChecked(bool(T))
-        _mda.time_comboBox.setCurrentText("ms")
-        _mda.timepoints_spinBox.setValue(3)
-        _mda.interval_spinBox.setValue(1)
+    _mda.time_groupBox.setChecked(bool(T))
+    _mda.time_comboBox.setCurrentText("ms")
+    _mda.timepoints_spinBox.setValue(3)
+    _mda.interval_spinBox.setValue(1)
 
-        _mda.stack_groupBox.setChecked(bool(Z))
-        _mda.zrange_spinBox.setValue(3)
-        _mda.step_size_doubleSpinBox.setValue(1)
+    _mda.stack_groupBox.setChecked(bool(Z))
+    _mda.zrange_spinBox.setValue(3)
+    _mda.step_size_doubleSpinBox.setValue(1)
 
-        # 2 Channels
+    # 2 Channels
+    _mda.add_ch_Button.click()
+    _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
+    _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    if C:
         _mda.add_ch_Button.click()
-        _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-        _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
-        if C:
-            _mda.add_ch_Button.click()
-            _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
-        if splitC:
-            _mda.checkBox_split_channels.setChecked(True)
+        _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
+    if splitC:
+        _mda.checkBox_split_channels.setChecked(True)
 
-        mda: MDASequence = None
+    mda: MDASequence = None
 
-        mmc = main_window._mmc
-        # re-register twice to fully exercise the logic of the update
-        # functions - the initial connections are made in init
-        # then after that they are fully handled by the _update_mda_engine
-        # callbacks
-        mmc.register_mda_engine(MDAEngine(mmc))
-        mmc.register_mda_engine(MDAEngine(mmc))
+    mmc = main_window._mmc
+    # re-register twice to fully exercise the logic of the update
+    # functions - the initial connections are made in init
+    # then after that they are fully handled by the _update_mda_engine
+    # callbacks
+    mmc.register_mda_engine(MDAEngine(mmc))
+    mmc.register_mda_engine(MDAEngine(mmc))
 
-        @mmc.mda.events.sequenceStarted.connect
-        def _store_mda(_mda):
-            nonlocal mda
-            mda = _mda
+    @mmc.mda.events.sequenceStarted.connect
+    def _store_mda(_mda):
+        nonlocal mda
+        mda = _mda
 
-        with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
-            _mda._on_run_clicked()
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
+        _mda._on_run_clicked()
 
-        assert mda is not None
-        data_shape = main_window.viewer.layers[-1].data.shape
-        expected = list(mda.shape) + [512, 512]
-        if splitC:
-            expected.pop(list(event_indices(next(mda.iter_events()))).index("c"))
-        expected_shape = tuple(e for e in expected if e != 1)
+    assert mda is not None
+    data_shape = main_window.viewer.layers[-1].data.shape
+    expected = list(mda.shape) + [512, 512]
+    if splitC:
+        expected.pop(list(event_indices(next(mda.iter_events()))).index("c"))
+    expected_shape = tuple(e for e in expected if e != 1)
+    assert data_shape == expected_shape
+
+    if splitC:
+        nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
+        assert nfiles == 2 if C else 1
+    else:
+        assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
         assert data_shape == expected_shape
-
-        if do_save:
-            if splitC:
-                nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
-                assert nfiles == 2 if C else 1
-            else:
-                assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
-                assert data_shape == expected_shape
 
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
