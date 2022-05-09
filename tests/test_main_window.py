@@ -84,7 +84,7 @@ def test_saving_mda(
         nonlocal mda
         mda = _mda
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=3000):
         _mda._on_run_clicked()
 
     assert mda is not None
