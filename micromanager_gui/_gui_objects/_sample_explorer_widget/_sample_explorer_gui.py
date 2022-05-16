@@ -12,6 +12,7 @@ from qtpy.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpacerItem,
     QSpinBox,
     QTableWidget,
     QVBoxLayout,
@@ -58,8 +59,8 @@ class ExplorerGui(QWidget):
         self.move_to_pos = self._create_move_to_pos()
         wdg_layout.addWidget(self.move_to_pos)
 
-        # spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        # wdg_layout.addItem(spacer)
+        spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        wdg_layout.addItem(spacer)
 
         return wdg
 
