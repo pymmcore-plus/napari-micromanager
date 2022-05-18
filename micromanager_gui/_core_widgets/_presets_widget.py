@@ -38,7 +38,6 @@ class PresetsWidget(QWidget):
 
         self._combo = QComboBox()
         self._combo.addItems(self._presets)
-        self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
         self._set_if_props_match_preset()
 
         self.setLayout(QHBoxLayout())
