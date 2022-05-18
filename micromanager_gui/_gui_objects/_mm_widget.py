@@ -44,9 +44,13 @@ class MicroManagerWidget(QtW.QWidget):
         self.mic_group_layout = QtW.QVBoxLayout()
         self.mic_group_layout.setSpacing(0)
         self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
+        coll_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
+        )
         self.mic_coll = QCollapsible(title="Microscope")
         self.mic_coll.layout().setSpacing(0)
-        self.mic_coll.layout().setContentsMargins(0, 0, 5, 10)
+        self.mic_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.mic_coll.setSizePolicy(coll_sizepolicy)
 
         # add objective, property browser, illumination and camera widgets
         obj_prop = self.add_mm_objectives_widget()
@@ -67,8 +71,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_group_layout.setContentsMargins(1, 0, 1, 1)
 
         self.stages_coll = QCollapsible(title="Stages")
-        sizepolicy = QtW.QSizePolicy(QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Minimum)
-        self.stages_coll.setSizePolicy(sizepolicy)
+        self.stages_coll.setSizePolicy(coll_sizepolicy)
         self.stages_coll.layout().setSpacing(0)
         self.stages_coll.layout().setContentsMargins(0, 0, 0, 0)
         self.stages_coll.addWidget(self.stage_wdg)
