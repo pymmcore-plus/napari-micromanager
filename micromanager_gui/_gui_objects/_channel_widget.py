@@ -73,6 +73,10 @@ class ChannelWidget(QWidget):
         channel_group = self._channel_group or self._get_channel_group()
         if channel_group is not None:
             self._mmc.setChannelGroup(channel_group)
+            # if the channel_group name is the same as the one in the previously
+            # loaded cfg and it contains different presets, the 'channelGroupChanged'
+            # signal is not emitted and we get a ValueError. So we need to call:
+            self._on_channel_group_changed(channel_group)
 
     def _on_channel_set(self, group: str, preset: str):
         ch = self._mmc.getChannelGroup()
