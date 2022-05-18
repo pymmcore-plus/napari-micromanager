@@ -127,7 +127,6 @@ class PresetsWidget(QWidget):
                 presets = self._mmc.getAvailableConfigs(self._group)
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
-                self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
                 self._set_if_props_match_preset()
 
     def value(self) -> str:
