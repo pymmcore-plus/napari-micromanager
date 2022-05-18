@@ -53,7 +53,7 @@ def test_saving_mda(
     _mda.time_groupBox.setChecked(bool(T))
     _mda.time_comboBox.setCurrentText("ms")
     _mda.timepoints_spinBox.setValue(3)
-    _mda.interval_spinBox.setValue(1)
+    _mda.interval_spinBox.setValue(250)
 
     _mda.stack_groupBox.setChecked(bool(Z))
     _mda.zrange_spinBox.setValue(3)
@@ -84,7 +84,7 @@ def test_saving_mda(
         nonlocal mda
         mda = _mda
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=3000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
         _mda._on_run_clicked()
 
     assert mda is not None
