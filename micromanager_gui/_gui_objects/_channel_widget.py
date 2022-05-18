@@ -87,8 +87,6 @@ class ChannelWidget(QWidget):
 
     def _on_channel_group_changed(self, new_channel_group: str):
         """When Channel group is changed, recreate combo."""
-        if not new_channel_group:
-            return
         self.channel_wdg.setParent(None)
         self.channel_wdg.deleteLater()
         self._update_widget(new_channel_group)
