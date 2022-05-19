@@ -37,6 +37,7 @@ class PresetsWidget(QWidget):
         self._check_if_presets_have_same_props()
 
         self._combo = QComboBox()
+        self._combo.currentTextChanged.connect(self._update_tooltip)
         self._combo.addItems(self._presets)
         self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
         self._set_if_props_match_preset()
@@ -142,6 +143,11 @@ class PresetsWidget(QWidget):
 
     def allowedValues(self) -> Tuple[str]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
+
+    def _update_tooltip(self, preset):
+        self._combo.setToolTip(
+            str(self._mmc.getConfigData(self._group, preset)) if preset else ""
+        )
 
     def disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
