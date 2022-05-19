@@ -75,7 +75,7 @@ jobs:
         run: |
           git tag
           pip install --upgrade pip
-          pip install -U setuptools twine check-manifest
+          pip install -U build twine check-manifest
           check-manifest
           python -m build
 
