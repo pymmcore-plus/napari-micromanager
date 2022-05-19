@@ -6,6 +6,7 @@ from qtpy.QtCore import QSize
 from qtpy.QtGui import QIcon
 
 from .._core_widgets import DefaultCameraExposureWidget
+from .._core_widgets._snap_button_widget import SnapButton
 
 ICONS = Path(__file__).parent.parent / "icons"
 
@@ -30,7 +31,6 @@ class MMTabWidget(QtW.QWidget):
         self.setup_gui()
 
         for attr, icon in [
-            ("snap_Button", "cam.svg"),
             ("live_Button", "vcam.svg"),
         ]:
             btn = getattr(self, attr)
@@ -58,9 +58,13 @@ class MMTabWidget(QtW.QWidget):
         self.snap_live_tab = QtW.QWidget()
         self.snap_live_tab_layout = QtW.QGridLayout()
 
+        wdg_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Minimum
+        )
+
         # channel in snap_live_tab
         self.snap_channel_groupBox = QtW.QGroupBox()
-        self.snap_channel_groupBox.setMaximumHeight(70)
+        self.snap_channel_groupBox.setSizePolicy(wdg_sizepolicy)
         self.snap_channel_groupBox.setTitle("Channel")
         self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
         self.snap_channel_comboBox = QtW.QComboBox()
@@ -71,7 +75,7 @@ class MMTabWidget(QtW.QWidget):
         # exposure in snap_live_tab
         self.exposure_widget = DefaultCameraExposureWidget()
         self.exp_groupBox = QtW.QGroupBox()
-        self.exp_groupBox.setMaximumHeight(70)
+        self.exp_groupBox.setSizePolicy(wdg_sizepolicy)
         self.exp_groupBox.setTitle("Exposure Time")
         self.exp_groupBox_layout = QtW.QHBoxLayout()
         self.exp_groupBox_layout.addWidget(self.exposure_widget)
@@ -82,7 +86,9 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = QtW.QPushButton(text="Snap")
+        self.snap_Button = SnapButton(
+            button_text="Snap", icon_size=40, icon_color=(0, 255, 0)
+        )
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)

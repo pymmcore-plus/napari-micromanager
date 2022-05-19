@@ -68,8 +68,8 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._update_live_exp)
 
-        # link to "snap on click" for the stage widget
         sig.imageSnapped.connect(self.update_viewer)
+        sig.imageSnapped.connect(self.stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -78,7 +78,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         # connect buttons
-        self.tab_wdg.snap_Button.clicked.connect(self.snap)
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
 
         self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
@@ -150,7 +149,9 @@ class MainWindow(MicroManagerWidget):
         # self._refresh_positions()
         # self._refresh_xyz_devices()
 
+    @ensure_main_thread
     def update_viewer(self, data=None):
+
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -190,15 +191,9 @@ class MainWindow(MicroManagerWidget):
 
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
-    def snap(self):
-        self.stop_live()
-
-        # snap in a thread so we don't freeze UI when using process local mmc
-        create_worker(
-            self._mmc.snapImage,
-            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
-            _start_thread=True,
-        )
+    def _snap(self):
+        # update in a thread so we don't freeze UI
+        create_worker(self._mmc.snap, _start_thread=True)
 
     def start_live(self):
         exposure = self._mmc.getExposure()
@@ -209,7 +204,8 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.live_Button.setText("Stop")
 
     def stop_live(self):
-        self._mmc.stopSequenceAcquisition()
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
         if self.streaming_timer is not None:
             self.streaming_timer.stop()
             self.streaming_timer = None
