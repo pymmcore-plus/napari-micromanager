@@ -13,7 +13,7 @@ core.loadSystemConfiguration(str(Path(__file__).parent / "tests" / "test_config.
 sequence = MDASequence(
     channels=["Cy5", {"config": "FITC", "exposure": 50}],
     time_plan={"interval": 2, "loops": 5},
-    z_plan={"range": 2, "step": 0.5},
+    z_plan={"range": 4, "step": 0.5},
     axis_order="tpcz",
     stage_positions=[(222, 1, 1), (111, 0, 0)],
 )
