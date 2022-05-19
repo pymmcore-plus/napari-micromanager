@@ -43,7 +43,13 @@ jobs:
           python -m pip install -e .[testing,${{ matrix.backend }}]
 
       - name: Install Micro-Manager
+        if: runner.os == 'Windows'
         run: python -m pymmcore_plus.install
+
+      - name: Install Micro-Manager
+        if: runner.os == 'macOS'
+        # need to figure out what happened on mac with the utilities
+        run: python -m pymmcore_plus.install -r 20220420
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
