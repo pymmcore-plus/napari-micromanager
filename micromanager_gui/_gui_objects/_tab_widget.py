@@ -2,11 +2,11 @@ from pathlib import Path
 
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QSize
-from qtpy.QtGui import QIcon
 
 from .._core_widgets import DefaultCameraExposureWidget
 from .._core_widgets._live_button_widget import LiveButton
+from .._core_widgets._snap_button_widget import SnapButton
+from ._channel_widget import ChannelWidget
 
 ICONS = Path(__file__).parent.parent / "icons"
 
@@ -18,7 +18,7 @@ class MMTabWidget(QtW.QWidget):
     tabWidget: QtW.QTabWidget
     snap_live_tab: QtW.QWidget
     snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: QtW.QComboBox
+    snap_channel_comboBox: ChannelWidget
     exp_groupBox: QtW.QGroupBox
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
@@ -29,13 +29,6 @@ class MMTabWidget(QtW.QWidget):
     def __init__(self):
         super().__init__()
         self.setup_gui()
-
-        for attr, icon in [
-            ("snap_Button", "cam.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
 
     def setup_gui(self):
 
@@ -58,12 +51,16 @@ class MMTabWidget(QtW.QWidget):
         self.snap_live_tab = QtW.QWidget()
         self.snap_live_tab_layout = QtW.QGridLayout()
 
+        wdg_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Minimum
+        )
+
         # channel in snap_live_tab
         self.snap_channel_groupBox = QtW.QGroupBox()
-        self.snap_channel_groupBox.setMaximumHeight(70)
+        self.snap_channel_groupBox.setSizePolicy(wdg_sizepolicy)
         self.snap_channel_groupBox.setTitle("Channel")
         self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
-        self.snap_channel_comboBox = QtW.QComboBox()
+        self.snap_channel_comboBox = ChannelWidget()
         self.snap_channel_groupBox_layout.addWidget(self.snap_channel_comboBox)
         self.snap_channel_groupBox.setLayout(self.snap_channel_groupBox_layout)
         self.snap_live_tab_layout.addWidget(self.snap_channel_groupBox, 0, 0)
@@ -71,7 +68,7 @@ class MMTabWidget(QtW.QWidget):
         # exposure in snap_live_tab
         self.exposure_widget = DefaultCameraExposureWidget()
         self.exp_groupBox = QtW.QGroupBox()
-        self.exp_groupBox.setMaximumHeight(70)
+        self.exp_groupBox.setSizePolicy(wdg_sizepolicy)
         self.exp_groupBox.setTitle("Exposure Time")
         self.exp_groupBox_layout = QtW.QHBoxLayout()
         self.exp_groupBox_layout.addWidget(self.exposure_widget)
@@ -82,7 +79,9 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = QtW.QPushButton(text="Snap")
+        self.snap_Button = SnapButton(
+            button_text="Snap", icon_size=40, icon_color=(0, 255, 0)
+        )
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)

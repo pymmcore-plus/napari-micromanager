@@ -11,14 +11,14 @@ from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import create_worker, ensure_main_thread, signals_blocked
+from superqt.utils import create_worker, ensure_main_thread
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
-from ._util import SelectDeviceFromCombobox, event_indices, extend_array_for_index
+from ._util import event_indices, extend_array_for_index
 
 if TYPE_CHECKING:
     import napari.layers
@@ -68,8 +68,8 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._update_live_exp)
 
-        # link to "snap on click" for the stage widget
         sig.imageSnapped.connect(self.update_viewer)
+        sig.imageSnapped.connect(self._stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -81,11 +81,7 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
 
         # connect buttons
-        self.tab_wdg.snap_Button.clicked.connect(self.snap)
-
-        self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
-            self._channel_changed
-        )
+        # self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
 
         self.cam_roi = CameraROI(
             self.viewer,
@@ -93,10 +89,6 @@ class MainWindow(MicroManagerWidget):
             self.cam_wdg.cam_roi_combo,
             self.cam_wdg.crop_btn,
         )
-
-        # refresh options in case a config is already loaded by another remote
-        if remote:
-            self._refresh_options()
 
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
@@ -124,7 +116,6 @@ class MainWindow(MicroManagerWidget):
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
             self._set_enabled(True)
-            self._refresh_options()
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
@@ -147,13 +138,9 @@ class MainWindow(MicroManagerWidget):
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
 
-    def _refresh_options(self):
-        self._refresh_channel_list()
-        # self._refresh_positions()
-        # self._refresh_xyz_devices()
-
     @ensure_main_thread
     def update_viewer(self, data=None):
+
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -193,15 +180,9 @@ class MainWindow(MicroManagerWidget):
 
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
-    def snap(self):
-        if self._mmc.isSequenceRunning():
-            self._mmc.stopSequenceAcquisition()
-        # snap in a thread so we don't freeze UI when using process local mmc
-        create_worker(
-            self._mmc.snapImage,
-            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
-            _start_thread=True,
-        )
+    def _snap(self):
+        # update in a thread so we don't freeze UI
+        create_worker(self._mmc.snap, _start_thread=True)
 
     def _start_live(self):
         self.streaming_timer = QTimer()
@@ -368,42 +349,3 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    # channels
-    def _refresh_channel_list(self):
-        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
-
-        if not guessed_channel_list:
-            return
-
-        if len(guessed_channel_list) == 1:
-            self._set_channel_group(guessed_channel_list[0])
-        else:
-            # if guessed_channel_list has more than 1 possible channel group,
-            # you can select the correct one through a combobox
-            ch = SelectDeviceFromCombobox(
-                guessed_channel_list,
-                "Select Channel Group:",
-                self,
-            )
-            ch.val_changed.connect(self._set_channel_group)
-            ch.show()
-
-    def _set_channel_group(self, guessed_channel: str):
-        channel_group = guessed_channel
-        self._mmc.setChannelGroup(channel_group)
-        channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-            self.tab_wdg.snap_channel_comboBox.clear()
-            self.tab_wdg.snap_channel_comboBox.addItems(channel_list)
-            self.tab_wdg.snap_channel_comboBox.setCurrentText(
-                self._mmc.getCurrentConfig(channel_group)
-            )
-
-    def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._mmc.getOrGuessChannelGroup():
-            with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-                self.tab_wdg.snap_channel_comboBox.setCurrentText(configName)
-
-    def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)
