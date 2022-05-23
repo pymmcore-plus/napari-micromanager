@@ -80,9 +80,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
         self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
 
-        # connect buttons
-        # self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-
         self.cam_roi = CameraROI(
             self.viewer,
             self._mmc,
