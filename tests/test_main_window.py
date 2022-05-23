@@ -121,22 +121,3 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
     viewer_layer_names = [layer.name for layer in viewer.layers]
     assert layer_name in viewer_layer_names
     assert sequence.shape == viewer.layers[layer_name].data.shape[:-2]
-
-
-def test_refresh_safety(main_window: MainWindow):
-    mmc = main_window._mmc
-
-    # change properties from their default values
-    mmc.setConfig("Channel", "DAPI")
-    mmc.setStateLabel("Objective", "Nikon 10X S Fluor")
-    mmc.setProperty("Camera", "Binning", 4)
-    mmc.setProperty("Camera", "BitDepth", "12")
-
-    main_window._refresh_options()
-
-    # check that nothing was changed
-
-    assert "DAPI" == mmc.getCurrentConfig("Channel")
-    assert "Nikon 10X S Fluor" == mmc.getStateLabel("Objective")
-    assert "4" == mmc.getProperty("Camera", "Binning")
-    assert "12" == mmc.getProperty("Camera", "BitDepth")
