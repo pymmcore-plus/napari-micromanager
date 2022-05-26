@@ -196,12 +196,6 @@ class MMMultiDWidget(MultiDWidgetGui):
 
     def _toggle_checkbox(self):
 
-        print("toggled")
-        print(
-            self.stage_pos_groupBox.isChecked()
-            and self.stage_tableWidget.rowCount() > 0
-        )
-
         if (
             self.stage_pos_groupBox.isChecked()
             and self.stage_tableWidget.rowCount() > 0
