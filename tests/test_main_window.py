@@ -84,12 +84,15 @@ def test_saving_mda(
         nonlocal mda
         mda = _mda
 
+    # make the images non-square
+    mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
+
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
         _mda._on_run_clicked()
 
     assert mda is not None
     data_shape = main_window.viewer.layers[-1].data.shape
-    expected = list(mda.shape) + [512, 512]
+    expected = list(mda.shape) + [500, 512]
     if splitC:
         expected.pop(list(event_indices(next(mda.iter_events()))).index("c"))
     expected_shape = tuple(e for e in expected if e != 1)

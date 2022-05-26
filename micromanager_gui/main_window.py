@@ -276,7 +276,7 @@ class MainWindow(MicroManagerWidget):
         Determine the shape of layers and the dimension labels based
         on whether we are splitting on channels
         """
-        img_shape = self._mmc.getImageWidth(), self._mmc.getImageHeight()
+        img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         # dimensions labels
         axis_order = event_indices(next(sequence.iter_events()))
         labels = []
