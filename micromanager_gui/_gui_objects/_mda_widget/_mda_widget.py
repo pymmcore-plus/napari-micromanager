@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
+from superqt.utils import signals_blocked
 from useq import MDASequence
 
 from ..._core import get_core_singleton
@@ -60,8 +61,11 @@ class MMMultiDWidget(MultiDWidgetGui):
         self.stack_groupBox.toggled.connect(self._update_n_images)
 
         # toggle connect
-        self.save_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
-        self.stage_pos_groupBox.toggled.connect(self.toggle_checkbox_save_pos)
+        self.save_groupBox.toggled.connect(self._toggle_checkbox)
+        self.stage_pos_groupBox.toggled.connect(self._toggle_checkbox)
+        self.checkBox_split_pos.toggled.connect(self._toggle_checkbox)
+        self.save_groupBox.toggled.connect(self.toggle_save_group)
+        self.stage_pos_groupBox.toggled.connect(self.toggle_pos_group)
 
         # connect position table double click
         self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
@@ -131,7 +135,7 @@ class MMMultiDWidget(MultiDWidgetGui):
         self.n_images_label.setText(f"Number of Images: {round((_range / step) + 1)}")
 
     def _on_mda_started(self, sequence):
-        self._set_enabled(False)
+        # self._set_enabled(False)
         self.pause_Button.show()
         self.cancel_Button.show()
         self.run_Button.hide()
@@ -182,16 +186,41 @@ class MMMultiDWidget(MultiDWidgetGui):
         self.channel_tableWidget.clearContents()
         self.channel_tableWidget.setRowCount(0)
 
-    def toggle_checkbox_save_pos(self):
+    def toggle_save_group(self, state: bool):
+        if not state:
+            self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
+
+    def toggle_pos_group(self, state: bool):
+        if not state:
+            self.checkBox_split_pos.setCheckState(Qt.CheckState.Unchecked)
+
+    def _toggle_checkbox(self):
+
+        print("toggled")
+        print(
+            self.stage_pos_groupBox.isChecked()
+            and self.stage_tableWidget.rowCount() > 0
+        )
+
         if (
             self.stage_pos_groupBox.isChecked()
             and self.stage_tableWidget.rowCount() > 0
         ):
-            self.checkBox_save_pos.setEnabled(True)
+            self.checkBox_split_pos.setEnabled(True)
 
+            if not self.checkBox_split_pos.isChecked():
+                self.checkBox_save_pos.setEnabled(True)
+            else:
+                with signals_blocked(self.checkBox_save_pos):
+                    self.checkBox_save_pos.setEnabled(False)
+                    self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
         else:
-            self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
-            self.checkBox_save_pos.setEnabled(False)
+            with signals_blocked(self.checkBox_split_pos):
+                self.checkBox_split_pos.setEnabled(False)
+                self.checkBox_split_pos.setCheckState(Qt.CheckState.Unchecked)
+            with signals_blocked(self.checkBox_save_pos):
+                self.checkBox_save_pos.setEnabled(False)
+                self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
 
     # add, remove, clear, move_to positions table
     def add_position(self):
@@ -209,8 +238,8 @@ class MMMultiDWidget(MultiDWidgetGui):
                 item = QtW.QTableWidgetItem(str(cur))
                 item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
                 self.stage_tableWidget.setItem(idx, c, item)
-
-            self.toggle_checkbox_save_pos()
+            self._toggle_checkbox()
+            # self.toggle_checkbox_save_pos()
 
     def _add_position_row(self) -> int:
         idx = self.stage_tableWidget.rowCount()
@@ -222,13 +251,15 @@ class MMMultiDWidget(MultiDWidgetGui):
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
-        self.toggle_checkbox_save_pos()
+        self._toggle_checkbox()
+        # self.toggle_checkbox_save_pos()
 
     def clear_positions(self):
         # clear all positions
         self.stage_tableWidget.clearContents()
         self.stage_tableWidget.setRowCount(0)
-        self.toggle_checkbox_save_pos()
+        self._toggle_checkbox()
+        # self.toggle_checkbox_save_pos()
 
     def move_to_position(self):
         if not self._mmc.getXYStageDevice():
