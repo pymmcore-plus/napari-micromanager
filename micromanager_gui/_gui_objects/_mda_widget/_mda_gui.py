@@ -3,6 +3,7 @@ from typing import Optional
 from fonticon_mdi6 import MDI6
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtWidgets import (
+    QAbstractItemView,
     QAbstractSpinBox,
     QCheckBox,
     QComboBox,
@@ -113,7 +114,9 @@ class MultiDWidgetGui(QWidget):
         fname_group_layout.addWidget(self.fname_lineEdit)
 
         # checkbox
-        self.checkBox_save_pos = QCheckBox(text="Save XY Positions in separate files")
+        self.checkBox_save_pos = QCheckBox(
+            text="Save XY Positions in separate files (ImageJ compatibility)"
+        )
 
         group_layout.addWidget(dir_group)
         group_layout.addWidget(fname_group)
@@ -393,6 +396,8 @@ class MultiDWidgetGui(QWidget):
 
         # table
         self.stage_tableWidget = QTableWidget()
+        self.stage_tableWidget.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.stage_tableWidget.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.stage_tableWidget.setMinimumHeight(90)
         hdr = self.stage_tableWidget.horizontalHeader()
         hdr.setSectionResizeMode(hdr.Stretch)
@@ -419,9 +424,6 @@ class MultiDWidgetGui(QWidget):
         group_layout.addWidget(self.add_pos_Button, 0, 1, 1, 1)
         group_layout.addWidget(self.remove_pos_Button, 1, 1, 1, 2)
         group_layout.addWidget(self.clear_pos_Button, 2, 1, 1, 2)
-
-        self.checkBox_split_pos = QCheckBox(text="Split Positions")
-        group_layout.addWidget(self.checkBox_split_pos, 3, 0, 1, 1)
 
         return group
 
@@ -456,17 +458,17 @@ class MultiDWidgetGui(QWidget):
         self.run_Button.setMinimumWidth(min_width)
         self.run_Button.setStyleSheet("QPushButton { text-align: center; }")
         self.run_Button.setSizePolicy(btn_sizepolicy)
-        self.run_Button.setIcon(icon(MDI6.play, color=(0, 255, 0)))
+        self.run_Button.setIcon(icon(MDI6.play_circle_outline, color=(0, 255, 0)))
         self.run_Button.setIconSize(QSize(icon_size, icon_size))
         self.pause_Button = QPushButton("Pause")
         self.pause_Button.setStyleSheet("QPushButton { text-align: center; }")
         self.pause_Button.setSizePolicy(btn_sizepolicy)
-        self.pause_Button.setIcon(icon(MDI6.pause, color="green"))
+        self.pause_Button.setIcon(icon(MDI6.pause_circle_outline, color="green"))
         self.pause_Button.setIconSize(QSize(icon_size, icon_size))
         self.cancel_Button = QPushButton("Cancel")
         self.cancel_Button.setStyleSheet("QPushButton { text-align: center; }")
         self.cancel_Button.setSizePolicy(btn_sizepolicy)
-        self.cancel_Button.setIcon(icon(MDI6.stop, color="magenta"))
+        self.cancel_Button.setIcon(icon(MDI6.stop_circle_outline, color="magenta"))
         self.cancel_Button.setIconSize(QSize(icon_size, icon_size))
 
         spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Expanding)
