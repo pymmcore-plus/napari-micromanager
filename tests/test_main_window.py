@@ -92,10 +92,13 @@ def test_saving_mda(
 
     assert mda is not None
     data_shape = main_window.viewer.layers[-1].data.shape
-    expected = list(mda.shape) + [500, 512]
+    expected_shape = list(mda.shape) + [500, 512]
     if splitC:
-        expected.pop(list(event_indices(next(mda.iter_events()))).index("c"))
-    expected_shape = tuple(e for e in expected if e != 1)
+        expected_shape.pop(list(event_indices(next(mda.iter_events()))).index("c"))
+    # back to tuple after manipulations with pop
+    # need to be tuple to compare equality to a tuple
+    expected_shape = tuple(expected_shape)
+
     assert data_shape == expected_shape
 
     if splitC:

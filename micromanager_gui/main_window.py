@@ -283,9 +283,8 @@ class MainWindow(MicroManagerWidget):
         shape = []
         for i, a in enumerate(axis_order):
             dim = sequence.shape[i]
-            if dim != 1:
-                labels.append(a)
-                shape.append(dim)
+            labels.append(a)
+            shape.append(dim)
         labels.extend(["y", "x"])
         shape.extend(img_shape)
         if self._mda_meta.split_channels:
@@ -347,13 +346,7 @@ class MainWindow(MicroManagerWidget):
 
         meta = self._mda_meta
         if meta.mode == "mda":
-            sequence = event.sequence
             axis_order = list(event_indices(event))
-
-            # Get the dimensions that we need to keep track of for display.
-            # This will filter out any dimensions with length 1 as we don't display them
-            # necessary for easy indexing of the zarr array.
-            idxs = [k for k in axis_order if sequence.shape[axis_order.index(k)] != 1]
 
             # Remove 'c' from idxs if we are splitting channels
             # also prepare the channel suffix that we use for keeping track of arrays
@@ -361,14 +354,14 @@ class MainWindow(MicroManagerWidget):
             if meta.split_channels:
                 channel = f"_{event.channel.config}"
                 try:
-                    idxs.remove("c")
+                    axis_order.remove("c")
                 except ValueError:
                     # split channels checked but no channels added
                     pass
 
             # get the actual index of this image into the array and
             # add it to the zarr store
-            im_idx = tuple(event.index[k] for k in idxs)
+            im_idx = tuple(event.index[k] for k in axis_order)
             self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
 
             # move the viewer step to the most recently added image
