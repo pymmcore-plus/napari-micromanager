@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import napari
+import numpy as np
 from useq import MDASequence
 
 v = napari.Viewer()
@@ -30,7 +31,7 @@ explorer.channel_explorer_comboBox.setCurrentText("FITC")
 
 # fill napari-console with useful variables
 v.window._qt_viewer.console.push(
-    {"main_window": main_window, "mmc": core, "sequence": sequence}
+    {"main_window": main_window, "mmc": core, "sequence": sequence, "np": np}
 )
 
 napari.run()
