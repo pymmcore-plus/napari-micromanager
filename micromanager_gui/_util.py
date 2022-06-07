@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
 
-import numpy as np
 from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
@@ -21,25 +20,6 @@ from ._core import get_core_singleton
 
 if TYPE_CHECKING:
     import useq
-
-
-def extend_array_for_index(array: np.ndarray, index: tuple[int, ...]):
-    """Return `array` padded with zeros if necessary to contain `index`."""
-
-    # if the incoming index is outside of the bounds of the current layer.data
-    # pad layer.data with zeros to accomodate the incoming index
-    if any(x >= y for x, y in zip(index, array.shape)):
-        newshape = list(array.shape)
-        for i, (x, y) in enumerate(zip(index, array.shape)):
-            newshape[i] = max(x + 1, y)
-
-        new_array = np.zeros(newshape)
-        # populate with existing data
-        new_array[tuple(slice(s) for s in array.shape)] = array
-        return new_array
-
-    # otherwise just return the incoming array
-    return array
 
 
 def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3):
