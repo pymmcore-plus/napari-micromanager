@@ -7,6 +7,7 @@ from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
 from micromanager_gui import _mda
+from micromanager_gui._util import event_indices
 from micromanager_gui.main_window import MainWindow
 
 if TYPE_CHECKING:
@@ -28,79 +29,84 @@ def test_main_window_mda(main_window: MainWindow):
 
     mmc.mda.events.sequenceStarted.emit(mda)
 
+    img_shape = (mmc.getImageWidth(), mmc.getImageHeight())
     for event in mda:
-        frame = np.random.rand(128, 128)
+        frame = np.random.rand(*img_shape)
         mmc.mda.events.frameReady.emit(frame, event)
-    assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 128, 128)
+    assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
 
 
 @pytest.mark.parametrize("Z", ["", "withZ"])
 @pytest.mark.parametrize("splitC", ["", "splitC"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
-def test_saving_mda(qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z):
-    import tempfile
+def test_saving_mda(
+    qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, tmp_path: Path
+):
 
-    do_save = True
-    with tempfile.TemporaryDirectory() as td:
-        tmp_path = Path(td)
-        NAME = "test_mda"
-        _mda = main_window.mda
-        _mda.save_groupBox.setChecked(do_save)
-        _mda.dir_lineEdit.setText(str(tmp_path))
-        _mda.fname_lineEdit.setText(NAME)
+    NAME = "test_mda"
+    _mda = main_window.mda
+    _mda.save_groupBox.setChecked(True)
+    _mda.dir_lineEdit.setText(str(tmp_path))
+    _mda.fname_lineEdit.setText(NAME)
 
-        _mda.time_groupBox.setChecked(bool(T))
-        _mda.time_comboBox.setCurrentText("ms")
-        _mda.timepoints_spinBox.setValue(3)
-        _mda.interval_spinBox.setValue(1)
+    _mda.time_groupBox.setChecked(bool(T))
+    _mda.time_comboBox.setCurrentText("ms")
+    _mda.timepoints_spinBox.setValue(3)
+    _mda.interval_spinBox.setValue(250)
 
-        _mda.stack_groupBox.setChecked(bool(Z))
-        _mda.zrange_spinBox.setValue(3)
-        _mda.step_size_doubleSpinBox.setValue(1)
+    _mda.stack_groupBox.setChecked(bool(Z))
+    _mda.zrange_spinBox.setValue(3)
+    _mda.step_size_doubleSpinBox.setValue(1)
 
-        # 2 Channels
+    # 2 Channels
+    _mda.add_ch_Button.click()
+    _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
+    _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    if C:
         _mda.add_ch_Button.click()
-        _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-        _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
-        if C:
-            _mda.add_ch_Button.click()
-            _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
-        if splitC:
-            _mda.checkBox_split_channels.setChecked(True)
+        _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
+    if splitC:
+        _mda.checkBox_split_channels.setChecked(True)
 
-        mda = None
+    mda: MDASequence = None
 
-        mmc = main_window._mmc
-        # re-register twice to fully exercise the logic of the update
-        # functions - the initial connections are made in init
-        # then after that they are fully handled by the _update_mda_engine
-        # callbacks
-        mmc.register_mda_engine(MDAEngine(mmc))
-        mmc.register_mda_engine(MDAEngine(mmc))
+    mmc = main_window._mmc
+    # re-register twice to fully exercise the logic of the update
+    # functions - the initial connections are made in init
+    # then after that they are fully handled by the _update_mda_engine
+    # callbacks
+    mmc.register_mda_engine(MDAEngine(mmc))
+    mmc.register_mda_engine(MDAEngine(mmc))
 
-        @mmc.mda.events.sequenceStarted.connect
-        def _store_mda(_mda):
-            nonlocal mda
-            mda = _mda
+    @mmc.mda.events.sequenceStarted.connect
+    def _store_mda(_mda):
+        nonlocal mda
+        mda = _mda
 
-        with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
-            _mda._on_run_clicked()
+    # make the images non-square
+    mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-        assert mda is not None
-        data_shape = main_window.viewer.layers[-1].data.shape
-        if splitC:
-            expected = list(mda.shape) + [512, 512]
-            expected[main_window.viewer.dims.axis_labels.index("c")] = 1
-            assert data_shape == tuple(expected)
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
+        _mda._on_run_clicked()
 
-        if do_save:
-            if splitC:
-                nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
-                assert nfiles == 2 if C else 1
-            else:
-                assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
-                assert data_shape == mda.shape + (512, 512)
+    assert mda is not None
+    data_shape = main_window.viewer.layers[-1].data.shape
+    expected_shape = list(mda.shape) + [500, 512]
+    if splitC:
+        expected_shape.pop(list(event_indices(next(mda.iter_events()))).index("c"))
+    # back to tuple after manipulations with pop
+    # need to be tuple to compare equality to a tuple
+    expected_shape = tuple(expected_shape)
+
+    assert data_shape == expected_shape
+
+    if splitC:
+        nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
+        assert nfiles == 2 if C else 1
+    else:
+        assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]
+        assert data_shape == expected_shape
 
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
