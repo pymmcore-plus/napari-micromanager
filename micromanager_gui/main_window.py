@@ -337,7 +337,6 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-        QtW.QApplication.processEvents()
         meta = self._mda_meta
         if meta.mode == "mda":
             axis_order = list(event_indices(event))
