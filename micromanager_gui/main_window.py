@@ -5,7 +5,7 @@ import contextlib
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, List, Tuple
 
 import napari
 import numpy as np
@@ -26,7 +26,7 @@ from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-    from typing import Dict, Union
+    from typing import Dict
 
     import napari.layers
     import napari.viewer
