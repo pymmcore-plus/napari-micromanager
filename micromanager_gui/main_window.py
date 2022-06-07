@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Tuple
 
 import napari
 import numpy as np
@@ -82,27 +83,25 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
-        self._mda_temp_arrays = {}
-        self._mda_temp_files: Dict[
-            str, Union[tempfile.TemporaryDirectory, tempfile.TemporaryFile]
-        ] = {}
 
-        def cleanup():
-            """Clean up temporary files we opened"""
-            self._mda_temp_files.clear()
-            for v in self._mda_temp_files.values():
-                try:
-                    v.cleanup()
-                except NotADirectoryError:
-                    # sometimes this errors on CI
-                    pass
+        # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
+        # being added during an MDA
+        self._mda_temp_arrays: Dict[str, zarr.Array] = {}
+        # mapping of str `str(sequence.uid) + channel` -> temporary directory where
+        # the zarr.Array is stored
+        self._mda_temp_files: Dict[str, tempfile.TemporaryDirectory] = {}
 
         # TODO: consider using weakref here like in pymmc+
         # didn't implement here because this object shouldn't be del'd until
         # napari is closed so probably not a big issue
         # and more importantly because I couldn't get it working with pytest
         # because tempfile seems to register an atexit before we do.
-        atexit.register(cleanup)
+        @atexit.register
+        def cleanup():
+            """Clean up temporary files we opened"""
+            for v in self._mda_temp_files.values():
+                with contextlib.suppress(NotADirectoryError):
+                    v.cleanup()
 
         # connect buttons
         self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
@@ -264,7 +263,7 @@ class MainWindow(MicroManagerWidget):
         shape, channels, labels = self._interpret_split_channels(sequence)
 
         # acutally create the viewer layers backed by zarr stores
-        self._add_mda_channel_layers(shape, channels, sequence)
+        self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
@@ -289,19 +288,17 @@ class MainWindow(MicroManagerWidget):
         shape.extend(img_shape)
         if self._mda_meta.split_channels:
             channels = [f"_{c.config}" for c in sequence.channels]
-            try:
+            with contextlib.suppress(ValueError):
                 c_idx = labels.index("c")
                 labels.pop(c_idx)
                 shape.pop(c_idx)
-            except ValueError:
-                pass
         else:
             channels = [""]
 
         return shape, channels, labels
 
     def _add_mda_channel_layers(
-        self, shape: Tuple[int], channels: List[str], sequence: MDASequence
+        self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
     ):
         """
         Create Zarr stores and for the images of the MDA and display as a new
@@ -319,21 +316,18 @@ class MainWindow(MicroManagerWidget):
         for i, channel in enumerate(channels):
             id_ = str(sequence.uid) + channel
             tmp = tempfile.TemporaryDirectory()
+
             # keep track of temp files so we can clean them up when we quit
             # we can't have them auto clean up because then the zarr wouldn't last
             # till the end
             # TODO: when the layer is deleted we should release the zarr store.
             self._mda_temp_files[id_] = tmp
-            self._mda_temp_arrays[id_] = self._z = zarr.open(
+            self._mda_temp_arrays[id_] = z = zarr.open(
                 str(tmp.name), shape=shape, dtype=dtype
             )
-            file_name = (
-                self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-            )
-            layer_name = f"{file_name}_{id_}"
-            layer = self.viewer.add_image(
-                self._mda_temp_arrays[id_], name=layer_name, blending="additive"
-            )
+            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+
             # add metadata to layer
             # storing event.index in addition to channel.config because it's
             # possible to have two of the same channel in one sequence.
@@ -343,7 +337,7 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
+        QtW.QApplication.processEvents()
         meta = self._mda_meta
         if meta.mode == "mda":
             axis_order = list(event_indices(event))
@@ -353,11 +347,9 @@ class MainWindow(MicroManagerWidget):
             channel = ""
             if meta.split_channels:
                 channel = f"_{event.channel.config}"
-                try:
+                # split channels checked but no channels added
+                with contextlib.suppress(ValueError):
                     axis_order.remove("c")
-                except ValueError:
-                    # split channels checked but no channels added
-                    pass
 
             # get the actual index of this image into the array and
             # add it to the zarr store
