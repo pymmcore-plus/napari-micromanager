@@ -82,12 +82,13 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_group.setLayout(self.stages_group_layout)
         self.main_layout.addWidget(self.stages_group)
 
+        self.group_preset_table_wdg = MMGroupPresetTableWidget()
+
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
-        self.group_preset_table_wdg = MMGroupPresetTableWidget()
-        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
