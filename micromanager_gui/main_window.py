@@ -106,9 +106,6 @@ class MainWindow(MicroManagerWidget):
                 with contextlib.suppress(NotADirectoryError):
                     v.cleanup()
 
-        # connect buttons
-        self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
-
         self.cam_roi = CameraROI(
             self.viewer,
             self._mmc,
