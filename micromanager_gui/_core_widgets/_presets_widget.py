@@ -63,7 +63,6 @@ class PresetsWidget(QWidget):
         view_height = sum(
             self._combo.view().sizeHintForRow(i) for i in range(self._combo.count())
         )
-        print(self._combo.currentText(), view_height)
         view.setFixedSize(self._combo.sizeHint().width(), view_height)
         self._combo.setView(view)
 
