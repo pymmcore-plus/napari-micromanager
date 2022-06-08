@@ -27,20 +27,20 @@ def test_live_button_widget(qtbot: QtBot, global_mmcore: CMMCorePlus):
     # test from direct mmcore signals
     with qtbot.waitSignal(global_mmcore.events.startContinuousSequenceAcquisition):
         global_mmcore.startContinuousSequenceAcquisition(0)
-        assert live_btn.text() == "Stop"
+    assert live_btn.text() == "Stop"
 
     with qtbot.waitSignal(global_mmcore.events.stopSequenceAcquisition):
         global_mmcore.stopSequenceAcquisition()
-        assert not global_mmcore.isSequenceRunning()
-        assert live_btn.text() == "Live"
+    assert not global_mmcore.isSequenceRunning()
+    assert live_btn.text() == "Live"
 
     # test when button is pressed
     with qtbot.waitSignal(global_mmcore.events.startContinuousSequenceAcquisition):
         live_btn.click()
-        assert live_btn.text() == "Stop"
-        assert global_mmcore.isSequenceRunning()
+    assert live_btn.text() == "Stop"
+    assert global_mmcore.isSequenceRunning()
 
     with qtbot.waitSignal(global_mmcore.events.stopSequenceAcquisition):
         live_btn.click()
-        assert not global_mmcore.isSequenceRunning()
-        assert live_btn.text() == "Live"
+    assert not global_mmcore.isSequenceRunning()
+    assert live_btn.text() == "Live"
