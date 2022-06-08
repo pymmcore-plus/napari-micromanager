@@ -40,7 +40,8 @@ class PresetsWidget(QWidget):
         self._combo.currentTextChanged.connect(self._update_tooltip)
         self._combo.addItems(self._presets)
         self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-        self._set_combo_view()
+        if len(self._presets) > 1:
+            self._set_combo_view()
         self._set_if_props_match_preset()
 
         self.setLayout(QHBoxLayout())
@@ -62,6 +63,7 @@ class PresetsWidget(QWidget):
         view_height = sum(
             self._combo.view().sizeHintForRow(i) for i in range(self._combo.count())
         )
+        print(self._combo.currentText(), view_height)
         view.setFixedSize(self._combo.sizeHint().width(), view_height)
         self._combo.setView(view)
 
@@ -138,7 +140,8 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
                 self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
-                self._set_combo_view()
+                if len(presets) > 1:
+                    self._set_combo_view()
                 self._set_if_props_match_preset()
 
     def value(self) -> str:
