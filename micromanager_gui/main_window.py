@@ -76,13 +76,16 @@ class MainWindow(MicroManagerWidget):
         sig.exposureChanged.connect(self._update_live_exp)
 
         sig.imageSnapped.connect(self.update_viewer)
-        sig.imageSnapped.connect(self.stop_live)
+        sig.imageSnapped.connect(self._stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
+
+        self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
+        self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
@@ -102,9 +105,6 @@ class MainWindow(MicroManagerWidget):
             for v in self._mda_temp_files.values():
                 with contextlib.suppress(NotADirectoryError):
                     v.cleanup()
-
-        # connect buttons
-        self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
 
         self.cam_roi = CameraROI(
             self.viewer,
@@ -207,34 +207,15 @@ class MainWindow(MicroManagerWidget):
         # update in a thread so we don't freeze UI
         create_worker(self._mmc.snap, _start_thread=True)
 
-    def start_live(self):
-        exposure = self._mmc.getExposure()
-        self._mmc.startContinuousSequenceAcquisition(0)
+    def _start_live(self):
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(exposure))
-        self.tab_wdg.live_Button.setText("Stop")
+        self.streaming_timer.start(self._mmc.getExposure())
 
-    def stop_live(self):
-        if self._mmc.isSequenceRunning():
-            self._mmc.stopSequenceAcquisition()
-        if self.streaming_timer is not None:
+    def _stop_live(self):
+        if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.tab_wdg.live_Button.setText("Live")
-        self.tab_wdg.live_Button.setIcon(CAM_ICON)
-
-    def toggle_live(self, event=None):
-        if self.streaming_timer is None:
-
-            if not self._mmc.getChannelGroup():
-                return
-
-            self.start_live()
-            self.tab_wdg.live_Button.setIcon(CAM_STOP_ICON)
-        else:
-            self.stop_live()
-            self.tab_wdg.live_Button.setIcon(CAM_ICON)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
         oldEngine.events.frameReady.connect(self._on_mda_frame)
