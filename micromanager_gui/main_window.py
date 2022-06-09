@@ -1,26 +1,33 @@
 from __future__ import annotations
 
+import atexit
+import contextlib
+import tempfile
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 import napari
 import numpy as np
+import zarr
 from napari.experimental import link_layers
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor, QIcon
-from superqt.utils import create_worker, ensure_main_thread, signals_blocked
+from superqt.utils import create_worker, ensure_main_thread
+from useq import MDASequence
 
 from . import _core, _mda
 from ._camera_roi import CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
-from ._util import SelectDeviceFromCombobox, event_indices, extend_array_for_index
+from ._util import event_indices
 
 if TYPE_CHECKING:
+    from typing import Dict
+
     import napari.layers
     import napari.viewer
     import useq
@@ -68,8 +75,8 @@ class MainWindow(MicroManagerWidget):
         sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._update_live_exp)
 
-        # link to "snap on click" for the stage widget
         sig.imageSnapped.connect(self.update_viewer)
+        sig.imageSnapped.connect(self._stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -77,13 +84,27 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
-        # connect buttons
-        self.tab_wdg.snap_Button.clicked.connect(self.snap)
-        self.tab_wdg.live_Button.clicked.connect(self.toggle_live)
+        self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
+        self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
 
-        self.tab_wdg.snap_channel_comboBox.currentTextChanged.connect(
-            self._channel_changed
-        )
+        # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
+        # being added during an MDA
+        self._mda_temp_arrays: Dict[str, zarr.Array] = {}
+        # mapping of str `str(sequence.uid) + channel` -> temporary directory where
+        # the zarr.Array is stored
+        self._mda_temp_files: Dict[str, tempfile.TemporaryDirectory] = {}
+
+        # TODO: consider using weakref here like in pymmc+
+        # didn't implement here because this object shouldn't be del'd until
+        # napari is closed so probably not a big issue
+        # and more importantly because I couldn't get it working with pytest
+        # because tempfile seems to register an atexit before we do.
+        @atexit.register
+        def cleanup():
+            """Clean up temporary files we opened"""
+            for v in self._mda_temp_files.values():
+                with contextlib.suppress(NotADirectoryError):
+                    v.cleanup()
 
         self.cam_roi = CameraROI(
             self.viewer,
@@ -91,10 +112,6 @@ class MainWindow(MicroManagerWidget):
             self.cam_wdg.cam_roi_combo,
             self.cam_wdg.crop_btn,
         )
-
-        # refresh options in case a config is already loaded by another remote
-        if remote:
-            self._refresh_options()
 
         self.viewer.layers.events.connect(self.update_max_min)
         self.viewer.layers.selection.events.active.connect(self.update_max_min)
@@ -122,7 +139,6 @@ class MainWindow(MicroManagerWidget):
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
             self._set_enabled(True)
-            self._refresh_options()
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
@@ -145,12 +161,9 @@ class MainWindow(MicroManagerWidget):
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
 
-    def _refresh_options(self):
-        self._refresh_channel_list()
-        # self._refresh_positions()
-        # self._refresh_xyz_devices()
-
+    @ensure_main_thread
     def update_viewer(self, data=None):
+
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -190,48 +203,19 @@ class MainWindow(MicroManagerWidget):
 
         self.tab_wdg.max_min_val_label.setText(min_max_txt)
 
-    def snap(self):
-        self.stop_live()
+    def _snap(self):
+        # update in a thread so we don't freeze UI
+        create_worker(self._mmc.snap, _start_thread=True)
 
-        # snap in a thread so we don't freeze UI when using process local mmc
-        create_worker(
-            self._mmc.snapImage,
-            _connect={"finished": lambda: self.update_viewer(self._mmc.getImage())},
-            _start_thread=True,
-        )
-
-    def start_live(self):
-        exposure = self._mmc.getExposure()
-        self._mmc.startContinuousSequenceAcquisition(0)
+    def _start_live(self):
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(int(exposure))
-        self.tab_wdg.live_Button.setText("Stop")
+        self.streaming_timer.start(self._mmc.getExposure())
 
-    def stop_live(self):
-        self._mmc.stopSequenceAcquisition()
-        if self.streaming_timer is not None:
+    def _stop_live(self):
+        if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
-        self.tab_wdg.live_Button.setText("Live")
-        self.tab_wdg.live_Button.setIcon(CAM_ICON)
-
-    def toggle_live(self, event=None):
-        if self.streaming_timer is None:
-
-            ch_group = self._mmc.getChannelGroup()
-            if ch_group:
-                self._mmc.setConfig(
-                    ch_group, self.tab_wdg.snap_channel_comboBox.currentText()
-                )
-            else:
-                return
-
-            self.start_live()
-            self.tab_wdg.live_Button.setIcon(CAM_STOP_ICON)
-        else:
-            self.stop_live()
-            self.tab_wdg.live_Button.setIcon(CAM_ICON)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
         oldEngine.events.frameReady.connect(self._on_mda_frame)
@@ -242,68 +226,119 @@ class MainWindow(MicroManagerWidget):
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
+    @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence):
         """ "create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
         self._mda_meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
-        if self._mda_meta.mode == "":
+        if self._mda_meta.mode == "explorer":
+            # shortcircuit - nothing to do
+            return
+        elif self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
             self._mda_meta.mode = "mda"
 
+        # work out what the shapes of the layers will be
+        # this depends on whether the user selected Split Channels or not
+        shape, channels, labels = self._interpret_split_channels(sequence)
+
+        # acutally create the viewer layers backed by zarr stores
+        self._add_mda_channel_layers(tuple(shape), channels, sequence)
+
+        # set axis_labels after adding the images to ensure that the dims exist
+        self.viewer.dims.axis_labels = labels
+
+    def _interpret_split_channels(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """
+        Determine the shape of layers and the dimension labels based
+        on whether we are splitting on channels
+        """
+        img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
+        # dimensions labels
+        axis_order = event_indices(next(sequence.iter_events()))
+        labels = []
+        shape = []
+        for i, a in enumerate(axis_order):
+            dim = sequence.shape[i]
+            labels.append(a)
+            shape.append(dim)
+        labels.extend(["y", "x"])
+        shape.extend(img_shape)
+        if self._mda_meta.split_channels:
+            channels = [f"_{c.config}" for c in sequence.channels]
+            with contextlib.suppress(ValueError):
+                c_idx = labels.index("c")
+                labels.pop(c_idx)
+                shape.pop(c_idx)
+        else:
+            channels = [""]
+
+        return shape, channels, labels
+
+    def _add_mda_channel_layers(
+        self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
+    ):
+        """
+        Create Zarr stores and for the images of the MDA and display as a new
+        viewer layer.
+
+        If splitting on Channels then channels will look like ["BF", "GFP",...]
+        and if we do not split on channels it will look like [""] and only one
+        layer/zarr store will be created.
+        """
+
+        dtype = f"uint{self._mmc.getImageBitDepth()}"
+
+        # create a zarr store for each channel (or all channels when not splitting)
+        # to store the images to display so we don't overflow memory.
+        for i, channel in enumerate(channels):
+            id_ = str(sequence.uid) + channel
+            tmp = tempfile.TemporaryDirectory()
+
+            # keep track of temp files so we can clean them up when we quit
+            # we can't have them auto clean up because then the zarr wouldn't last
+            # till the end
+            # TODO: when the layer is deleted we should release the zarr store.
+            self._mda_temp_files[id_] = tmp
+            self._mda_temp_arrays[id_] = z = zarr.open(
+                str(tmp.name), shape=shape, dtype=dtype
+            )
+            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+
+            # add metadata to layer
+            # storing event.index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
+            layer.metadata["useq_sequence"] = sequence
+            layer.metadata["uid"] = sequence.uid
+            layer.metadata["ch_id"] = f"{channel}_idx{i}"
+
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
         meta = self._mda_meta
         if meta.mode == "mda":
+            axis_order = list(event_indices(event))
 
-            # pick layer name
-            file_name = meta.file_name if meta.should_save else "Exp"
-            channelstr = (
-                f"[{event.channel.config}_idx{event.index['c']}]_"
-                if meta.split_channels
-                else ""
-            )
-            layer_name = f"{file_name}_{channelstr}{event.sequence.uid}"
+            # Remove 'c' from idxs if we are splitting channels
+            # also prepare the channel suffix that we use for keeping track of arrays
+            channel = ""
+            if meta.split_channels:
+                channel = f"_{event.channel.config}"
+                # split channels checked but no channels added
+                with contextlib.suppress(ValueError):
+                    axis_order.remove("c")
 
-            try:  # see if we already have a layer with this sequence
-                layer = self.viewer.layers[layer_name]
+            # get the actual index of this image into the array and
+            # add it to the zarr store
+            im_idx = tuple(event.index[k] for k in axis_order)
+            self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
 
-                # get indices of new image
-                im_idx = tuple(
-                    event.index[k]
-                    for k in event_indices(event)
-                    if not (meta.split_channels and k == "c")
-                )
-
-                # make sure array shape contains im_idx, or pad with zeros
-                new_array = extend_array_for_index(layer.data, im_idx)
-                # add the incoming index at the appropriate index
-                new_array[im_idx] = image
-                # set layer data
-                layer.data = new_array
-                for a, v in enumerate(im_idx):
-                    self.viewer.dims.set_point(a, v)
-
-            except KeyError:  # add the new layer to the viewer
-                seq = event.sequence
-                _image = image[(np.newaxis,) * len(seq.shape)]
-                layer = self.viewer.add_image(
-                    _image, name=layer_name, blending="additive"
-                )
-
-                # dimensions labels
-                labels = [i for i in seq.axis_order if i in event.index] + ["y", "x"]
-                self.viewer.dims.axis_labels = labels
-
-                # add metadata to layer
-                layer.metadata["useq_sequence"] = seq
-                layer.metadata["uid"] = seq.uid
-                # storing event.index in addition to channel.config because it's
-                # possible to have two of the same channel in one sequence.
-                layer.metadata[
-                    "ch_id"
-                ] = f'{event.channel.config}_idx{event.index["c"]}'
+            # move the viewer step to the most recently added image
+            for a, v in enumerate(im_idx):
+                self.viewer.dims.set_point(a, v)
         elif meta.mode == "explorer":
 
             seq = event.sequence
@@ -388,42 +423,3 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
-
-    # channels
-    def _refresh_channel_list(self):
-        guessed_channel_list = self._mmc.getOrGuessChannelGroup()
-
-        if not guessed_channel_list:
-            return
-
-        if len(guessed_channel_list) == 1:
-            self._set_channel_group(guessed_channel_list[0])
-        else:
-            # if guessed_channel_list has more than 1 possible channel group,
-            # you can select the correct one through a combobox
-            ch = SelectDeviceFromCombobox(
-                guessed_channel_list,
-                "Select Channel Group:",
-                self,
-            )
-            ch.val_changed.connect(self._set_channel_group)
-            ch.show()
-
-    def _set_channel_group(self, guessed_channel: str):
-        channel_group = guessed_channel
-        self._mmc.setChannelGroup(channel_group)
-        channel_list = self._mmc.getAvailableConfigs(channel_group)
-        with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-            self.tab_wdg.snap_channel_comboBox.clear()
-            self.tab_wdg.snap_channel_comboBox.addItems(channel_list)
-            self.tab_wdg.snap_channel_comboBox.setCurrentText(
-                self._mmc.getCurrentConfig(channel_group)
-            )
-
-    def _on_config_set(self, groupName: str, configName: str):
-        if groupName == self._mmc.getOrGuessChannelGroup():
-            with signals_blocked(self.tab_wdg.snap_channel_comboBox):
-                self.tab_wdg.snap_channel_comboBox.setCurrentText(configName)
-
-    def _channel_changed(self, newChannel: str):
-        self._mmc.setConfig(self._mmc.getChannelGroup(), newChannel)

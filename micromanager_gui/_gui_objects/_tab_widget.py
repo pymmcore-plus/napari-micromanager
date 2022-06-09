@@ -2,10 +2,11 @@ from pathlib import Path
 
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QSize
-from qtpy.QtGui import QIcon
 
 from .._core_widgets import DefaultCameraExposureWidget
+from .._core_widgets._live_button_widget import LiveButton
+from .._core_widgets._snap_button_widget import SnapButton
+from ._channel_widget import ChannelWidget
 
 ICONS = Path(__file__).parent.parent / "icons"
 
@@ -17,7 +18,7 @@ class MMTabWidget(QtW.QWidget):
     tabWidget: QtW.QTabWidget
     snap_live_tab: QtW.QWidget
     snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: QtW.QComboBox
+    snap_channel_comboBox: ChannelWidget
     exp_groupBox: QtW.QGroupBox
     exp_spinBox: QtW.QDoubleSpinBox
     snap_Button: QtW.QPushButton
@@ -28,14 +29,6 @@ class MMTabWidget(QtW.QWidget):
     def __init__(self):
         super().__init__()
         self.setup_gui()
-
-        for attr, icon in [
-            ("snap_Button", "cam.svg"),
-            ("live_Button", "vcam.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
 
     def setup_gui(self):
 
@@ -67,7 +60,7 @@ class MMTabWidget(QtW.QWidget):
         self.snap_channel_groupBox.setSizePolicy(wdg_sizepolicy)
         self.snap_channel_groupBox.setTitle("Channel")
         self.snap_channel_groupBox_layout = QtW.QHBoxLayout()
-        self.snap_channel_comboBox = QtW.QComboBox()
+        self.snap_channel_comboBox = ChannelWidget()
         self.snap_channel_groupBox_layout.addWidget(self.snap_channel_comboBox)
         self.snap_channel_groupBox.setLayout(self.snap_channel_groupBox_layout)
         self.snap_live_tab_layout.addWidget(self.snap_channel_groupBox, 0, 0)
@@ -86,11 +79,17 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = QtW.QPushButton(text="Snap")
+        self.snap_Button = SnapButton(
+            button_text="Snap", icon_size=40, icon_color=(0, 255, 0)
+        )
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
-        self.live_Button = QtW.QPushButton(text="Live")
+        self.live_Button = LiveButton(
+            button_text_on_off=("Live", "Stop"),
+            icon_size=40,
+            icon_color_on_off=((0, 255, 0), "magenta"),
+        )
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.live_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.live_Button)
