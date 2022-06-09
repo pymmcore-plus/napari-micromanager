@@ -52,15 +52,16 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
     # wait to finish returning to start pos
     mmc.waitForSystem()
     assert main_win.explorer.set_grid() == [
-        [-256.0, 256.0, 0.0],
-        [256.0, 256.0, 0.0],
-        [256.0, -256.0, 0.0],
-        [-256.0, -256.0, 0.0],
+        (-256.0, 256.0, 0.0),
+        (256.0, 256.0, 0.0),
+        (256.0, -256.0, 0.0),
+        (-256.0, -256.0, 0.0),
     ]
     assert mmc.getPixelSizeUm() == 1
     assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
     assert mmc.getROI(mmc.getCameraDevice())[-2] == 512
 
+    assert meta
     assert meta.mode == "explorer"
 
     assert main_win.viewer.layers[-1].data.shape == (512, 512)
