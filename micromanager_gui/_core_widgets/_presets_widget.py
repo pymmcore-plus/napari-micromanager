@@ -2,7 +2,7 @@ import warnings
 from typing import Optional, Tuple
 
 from pymmcore_plus import DeviceType
-from qtpy.QtWidgets import QComboBox, QHBoxLayout, QWidget
+from qtpy.QtWidgets import QComboBox, QHBoxLayout, QListView, QWidget
 from superqt.utils import signals_blocked
 
 from .._core import get_core_singleton
@@ -40,6 +40,8 @@ class PresetsWidget(QWidget):
         self._combo.currentTextChanged.connect(self._update_tooltip)
         self._combo.addItems(self._presets)
         self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
+        if len(self._presets) > 1:
+            self._set_combo_view()
         self._set_if_props_match_preset()
 
         self.setLayout(QHBoxLayout())
@@ -55,6 +57,14 @@ class PresetsWidget(QWidget):
         # 'deleteGroup'/'deletePreset signals
 
         self.destroyed.connect(self.disconnect)
+
+    def _set_combo_view(self):
+        view = QListView()
+        view_height = sum(
+            self._combo.view().sizeHintForRow(i) for i in range(self._combo.count())
+        )
+        view.setFixedSize(self._combo.sizeHint().width(), view_height)
+        self._combo.setView(view)
 
     def _check_if_presets_have_same_props(self):
         n_prop = 0
@@ -129,6 +139,8 @@ class PresetsWidget(QWidget):
                 self._combo.addItems(presets)
                 self._combo.setEnabled(True)
                 self._combo.setCurrentText(self._mmc.getCurrentConfig(self._group))
+                if len(presets) > 1:
+                    self._set_combo_view()
                 self._set_if_props_match_preset()
 
     def value(self) -> str:
