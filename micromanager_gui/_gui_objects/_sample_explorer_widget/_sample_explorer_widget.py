@@ -8,7 +8,8 @@ import useq
 from qtpy import QtWidgets as QtW
 from useq import MDASequence
 
-from ... import _mda
+from micromanager_gui import _mda
+
 from ..._core import get_core_singleton
 from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
@@ -162,7 +163,7 @@ class MMExploreSample(ExplorerGui):
             ],
         }
 
-    def set_grid(self) -> list[tuple[float, float, float]]:
+    def set_grid(self) -> list[tuple[float, ...]]:
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
@@ -201,7 +202,7 @@ class MMExploreSample(ExplorerGui):
             increment_x = width * self.pixel_size
             increment_y = height * self.pixel_size
 
-        list_pos_order = []
+        list_pos_order: list[tuple[float, ...]] = []
         for r in range(self.scan_size_r):
             if r % 2:  # for odd rows
                 col = self.scan_size_c - 1
@@ -209,9 +210,9 @@ class MMExploreSample(ExplorerGui):
                     if c == 0:
                         y_pos -= increment_y
                     if self._mmc.getFocusDevice():
-                        list_pos_order.append([x_pos, y_pos, z_pos])
+                        list_pos_order.append((x_pos, y_pos, z_pos))
                     else:
-                        list_pos_order.append([x_pos, y_pos])
+                        list_pos_order.append((x_pos, y_pos))
                     if col > 0:
                         col -= 1
                         x_pos -= increment_x
@@ -220,9 +221,9 @@ class MMExploreSample(ExplorerGui):
                     if r > 0 and c == 0:
                         y_pos -= increment_y
                     if self._mmc.getFocusDevice():
-                        list_pos_order.append([x_pos, y_pos, z_pos])
+                        list_pos_order.append((x_pos, y_pos, z_pos))
                     else:
-                        list_pos_order.append([x_pos, y_pos])
+                        list_pos_order.append((x_pos, y_pos))
                     if c < self.scan_size_c - 1:
                         x_pos += increment_x
 

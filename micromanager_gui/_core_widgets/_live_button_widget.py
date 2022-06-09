@@ -43,9 +43,9 @@ class LiveButton(QPushButton):
     def __init__(
         self,
         camera: Optional[str] = None,
-        button_text_on_off: Optional[Tuple[str, str]] = ("", ""),
-        icon_size: Optional[int] = 30,
-        icon_color_on_off: Optional[Tuple[COLOR_TYPE, COLOR_TYPE]] = ("", ""),
+        button_text_on_off: Tuple[str, str] = ("", ""),
+        icon_size: int = 30,
+        icon_color_on_off: Tuple[COLOR_TYPE, COLOR_TYPE] = ("", ""),
         *,
         mmcore: Optional[CMMCorePlus] = None,
     ) -> None:

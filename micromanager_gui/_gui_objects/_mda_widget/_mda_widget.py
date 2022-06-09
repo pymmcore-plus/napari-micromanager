@@ -34,7 +34,7 @@ class MMMultiDWidget(MultiDWidgetGui):
         self.add_pos_Button.clicked.connect(self.add_position)
         self.remove_pos_Button.clicked.connect(self.remove_position)
         self.clear_pos_Button.clicked.connect(self.clear_positions)
-        self.add_ch_Button.clicked.connect(self.add_channel)
+        self.add_ch_Button.clicked.connect(self._add_channel)
         self.remove_ch_Button.clicked.connect(self.remove_channel)
         self.clear_ch_Button.clicked.connect(self.clear_channel)
 
@@ -147,14 +147,14 @@ class MMMultiDWidget(MultiDWidgetGui):
     def _on_mda_paused(self, paused):
         self.pause_Button.setText("GO" if paused else "PAUSE")
 
-    # add, remove, clear channel table
-    def add_channel(self) -> bool:
+    def _add_channel(self) -> bool:
+        """Add, remove or clear channel table.  Return True if anyting was changed."""
         if len(self._mmc.getLoadedDevices()) <= 1:
             return False
 
         channel_group = self._mmc.getChannelGroup()
         if not channel_group:
-            return
+            return False
 
         idx = self.channel_tableWidget.rowCount()
         self.channel_tableWidget.insertRow(idx)
@@ -275,7 +275,7 @@ class MMMultiDWidget(MultiDWidgetGui):
         else:
             channel_list = []
         for idx, ch in enumerate(state.channels):
-            if not self.add_channel():
+            if not self._add_channel():
                 break
             if ch.config in channel_list:
                 self.channel_tableWidget.cellWidget(idx, 0).setCurrentText(ch.config)

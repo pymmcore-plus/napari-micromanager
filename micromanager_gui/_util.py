@@ -101,7 +101,7 @@ class ComboMessageBox(QDialog):
         self._combo.addItems(items)
 
         btn_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel  # type: ignore  # noqa
         )
         btn_box.accepted.connect(self.accept)
         btn_box.rejected.connect(self.reject)

@@ -46,7 +46,7 @@ class _PropertyTable(QTableWidget):
         vh.setSectionResizeMode(vh.ResizeMode.Fixed)
         vh.setDefaultSectionSize(24)
         vh.setVisible(False)
-        self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)  # type: ignore
         self.setSelectionMode(self.SelectionMode.NoSelection)
         self.resize(500, 500)
         self._rebuild_table()

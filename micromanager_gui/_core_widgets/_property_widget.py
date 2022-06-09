@@ -1,5 +1,5 @@
 import contextlib
-from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
+from typing import Any, Callable, Optional, Protocol, Tuple, Type, TypeVar, Union, cast
 
 import pymmcore
 from pymmcore_plus import CMMCorePlus, DeviceType, PropertyType
@@ -79,16 +79,17 @@ class FloatWidget(QDoubleSpinBox):
 
 
 class _RangedMixin:
-    _cast = float
+    _cast: Union[Type[int], Type[float]] = float
 
     # prefer horizontal orientation
     def __init__(
         self, orientation=Qt.Orientation.Horizontal, parent: Optional[QWidget] = None
     ) -> None:
-        super().__init__(orientation, parent)
+        super().__init__(orientation, parent)  # type: ignore
 
-    def setValue(self: QLabeledSlider, v: float) -> None:
-        return super().setValue(_stretch_range_to_contain(self, self._cast(v)))
+    def setValue(self, v: float) -> None:
+        val = _stretch_range_to_contain(self, self._cast(v))
+        return super().setValue(val)  # type: ignore
 
 
 class RangedIntegerWidget(_RangedMixin, QLabeledSlider):
@@ -158,6 +159,7 @@ class ChoiceWidget(QComboBox):
             if self._prop == STATE:
                 n_states = self._mmc.getNumberOfStates(self._dev)
                 return tuple(str(i) for i in range(n_states))
+        return ()
 
     def value(self) -> str:
         """Get value."""
@@ -281,16 +283,17 @@ def _creat_prop_widget(core: CMMCorePlus, dev: str, prop: str) -> PPropValueWidg
         return ChoiceWidget(core, dev, prop)
     if ptype in (PropertyType.Integer, PropertyType.Float):
         if not core.hasPropertyLimits(dev, prop):
-            return IntegerWidget() if ptype is PropertyType.Integer else FloatWidget()
+            wdg = IntegerWidget() if ptype is PropertyType.Integer else FloatWidget()
+            return wdg  # type: ignore
         wdg = (
             RangedIntegerWidget()
             if ptype is PropertyType.Integer
             else RangedFloatWidget()
         )
-        wdg.setMinimum(wdg._cast(core.getPropertyLowerLimit(dev, prop)))
-        wdg.setMaximum(wdg._cast(core.getPropertyUpperLimit(dev, prop)))
-        return wdg
-    return StringWidget()
+        wdg.setMinimum(wdg._cast(core.getPropertyLowerLimit(dev, prop)))  # type: ignore
+        wdg.setMaximum(wdg._cast(core.getPropertyUpperLimit(dev, prop)))  # type: ignore
+        return wdg  # type: ignore
+    return cast(PPropValueWidget, StringWidget())
 
 
 # -----------------------------------------------------------------------
@@ -348,7 +351,7 @@ class PropertyWidget(QWidget):
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self._value_widget = make_property_value_widget(*self._dp, self._mmc)
-        self.layout().addWidget(self._value_widget)
+        self.layout().addWidget(cast(QWidget, self._value_widget))
 
     def value(self) -> Any:
         """Get value.""" """
@@ -372,7 +375,7 @@ class PropertyWidget(QWidget):
         (If all goes well this shouldn't be necessary, but if a propertyChanged
         event is missed, this can be used).
         """
-        with utils.signals_blocked(self._value_widget):
+        with utils.signals_blocked(self._value_widget):  # type: ignore
             self._value_widget.setValue(self._mmc.getProperty(*self._dp))
 
     def propertyType(self) -> PropertyType:
