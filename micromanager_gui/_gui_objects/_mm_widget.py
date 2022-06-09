@@ -6,6 +6,7 @@ from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
+from ._group_preset_table_widget import MMGroupPresetTableWidget
 from ._mda_widget._mda_widget import MMMultiDWidget
 from ._mm_shutters_widget import MMShuttersWidget
 from ._objective_widget import MMObjectivesWidget
@@ -81,10 +82,14 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_group.setLayout(self.stages_group_layout)
         self.main_layout.addWidget(self.stages_group)
 
-        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.group_preset_table_wdg = MMGroupPresetTableWidget()
+
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
+
         # set main_layout layout
         self.setLayout(self.main_layout)
 
