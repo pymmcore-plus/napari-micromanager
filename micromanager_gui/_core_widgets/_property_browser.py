@@ -23,12 +23,13 @@ from ._property_widget import PropertyWidget
 
 
 def iter_dev_props(mmc: CMMCorePlus) -> Iterator[Tuple[str, str]]:
+    """Iterate over (device, property) pairs."""
     for dev in mmc.getLoadedDevices():
         for prop in mmc.getDevicePropertyNames(dev):
             yield dev, prop
 
 
-class PropertyTable(QTableWidget):
+class _PropertyTable(QTableWidget):
     def __init__(
         self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QWidget] = None
     ):
@@ -81,13 +82,15 @@ DevTypeLabels["other devices"] = tuple(set(DeviceType) - _d)
 
 
 class PropertyBrowser(QDialog):
+    """Dialog to browse and change properties of all devices."""
+
     def __init__(
         self, mmcore: Optional[CMMCorePlus] = None, parent: Optional[QWidget] = None
     ):
         super().__init__(parent)
         self._mmc = mmcore or get_core_singleton()
 
-        self._prop_table = PropertyTable(mmcore)
+        self._prop_table = _PropertyTable(mmcore)
         self._show_read_only: bool = True
 
         self._filters: Set[DeviceType] = set()

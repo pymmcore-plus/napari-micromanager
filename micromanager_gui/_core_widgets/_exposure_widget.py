@@ -15,6 +15,8 @@ from micromanager_gui import _core
 
 
 class ExposureWidget(QtW.QWidget):
+    """Generic widget to get/set exposure time on a camera."""
+
     def __init__(
         self,
         camera: str = None,
@@ -46,8 +48,7 @@ class ExposureWidget(QtW.QWidget):
         self.spinBox.valueChanged.connect(self._mmc.setExposure)
 
     def setCamera(self, camera: str = None):
-        """
-        Set which camera this widget tracks
+        """Set which camera this widget tracks.
 
         Parameters
         ----------
@@ -77,6 +78,8 @@ class ExposureWidget(QtW.QWidget):
 
 
 class DefaultCameraExposureWidget(ExposureWidget):
+    """Widget to get/set exposure on the default camera."""
+
     def __init__(
         self, *, parent: Optional[Qt.QWidget] = None, core: Optional[CMMCorePlus] = None
     ):
@@ -86,9 +89,9 @@ class DefaultCameraExposureWidget(ExposureWidget):
         ).connect(self._camera_updated)
 
     def setCamera(self, camera: str = None, force: bool = False):
-        """
-        Set which camera this widget tracks. Using this on the
-        ``DefaultCameraExposureWidget``widget may cause unexpected
+        """Set which camera this widget tracks.
+
+        Using this on the ``DefaultCameraExposureWidget``widget may cause unexpected
         behavior, instead try to use an ``ExposureWidget``.
 
         Parameters

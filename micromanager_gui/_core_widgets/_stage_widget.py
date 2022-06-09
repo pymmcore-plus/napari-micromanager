@@ -345,8 +345,8 @@ class StageWidget(QWidget):
             self._mmc.snap()
 
     def _scale(self, mag: int):
-        """
-        Convert step mag of (1, 2, 3) to absolute XY units.
+        """Convert step mag of (1, 2, 3) to absolute XY units.
+
         Can be used to step 1x field of view, etc...
         """
         return mag * self._step.value()

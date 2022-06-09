@@ -21,6 +21,8 @@ UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 
 class MMExploreSample(ExplorerGui):
+    """Widget to create/run tiled acquisitions."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 

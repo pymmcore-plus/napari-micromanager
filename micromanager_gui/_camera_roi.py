@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 CAM_ROI_LAYER = "Camera_ROI"
 
 
-class CameraROI:
+class _CameraROI:
     def __init__(
         self,
         viewer: napari.viewer.Viewer,

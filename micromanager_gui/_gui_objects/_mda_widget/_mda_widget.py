@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 
 class MMMultiDWidget(MultiDWidgetGui):
+    """Multi-dimensional acquisition Widget."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
