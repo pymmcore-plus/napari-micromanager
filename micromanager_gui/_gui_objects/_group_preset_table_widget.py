@@ -67,7 +67,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
     def _get_cfg_data(self, group: str, preset: str):
         # Return last device-property-value for the preset and the
         # total number of device-property-value included in the preset.
-        data = self._mmc.getConfigData(group, preset)
+        data = list(self._mmc.getConfigData(group, preset))
         assert len(data), "No config data"
         dev, prop, val = data[-1]
         return dev, prop, val, len(data) + 1
