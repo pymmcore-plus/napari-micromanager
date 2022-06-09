@@ -6,10 +6,8 @@ from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
-
 from ._group_preset_table_widget import MMGroupPresetTableWidget
 from ._mda_widget._mda_widget import MMMultiDWidget
-
 from ._objective_widget import MMObjectivesWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
