@@ -1,10 +1,10 @@
 from useq import MDASequence
 
-from micromanager_gui._gui_objects._mda_widget import MultiDWidget
+from micromanager_gui._gui_objects._mda_widget._mda_widget import MMMultiDWidget
 
 
 def test_multid_load_state(qtbot, global_mmcore):
-    wdg = MultiDWidget()
+    wdg = MMMultiDWidget()
     qtbot.addWidget(wdg)
     assert wdg.stage_tableWidget.rowCount() == 0
     assert wdg.channel_tableWidget.rowCount() == 0
