@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from napari.components import LayerList
     from useq import MDASequence
 
-    from ._gui_objects._mda_widget import SequenceMeta
+    from ._mda import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
@@ -20,6 +20,17 @@ def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
 
 
 def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+    """Save `layers` associated with an MDA `sequence` to disk.
+
+    Parameters
+    ----------
+    sequence : MDASequence
+        An MDA sequence being run.
+    layers : LayerList
+        A list of layers acquired during the MDA sequence.
+    meta : SequenceMeta
+        Internal metadata associated with the sequence.
+    """
     if not meta.should_save:
         return
     if meta.mode == "mda":

@@ -12,19 +12,7 @@ ICONS = Path(__file__).parent.parent / "icons"
 
 
 class MMTabWidget(QtW.QWidget):
-    """
-    Contains the following objects:
-
-    tabWidget: QtW.QTabWidget
-    snap_live_tab: QtW.QWidget
-    snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: ChannelWidget
-    exp_groupBox: QtW.QGroupBox
-    exp_spinBox: QtW.QDoubleSpinBox
-    snap_Button: QtW.QPushButton
-    live_Button: QtW.QPushButton
-    max_min_val_label: QtW.QLabel
-    """
+    """Tabs shown in the main window."""
 
     def __init__(self):
         super().__init__()

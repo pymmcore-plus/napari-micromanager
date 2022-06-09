@@ -35,7 +35,7 @@ def test_preset_widget(qtbot, global_mmcore):
             assert wdg._combo.currentText() == "MedRes"
             assert wdg._combo.styleSheet() == ""
 
-        wdg.disconnect()
+        wdg._disconnect()
         # once disconnected, core changes shouldn't call out to the widget
         global_mmcore.setConfig(group, presets[1])
         assert global_mmcore.getCurrentConfig(group) != wdg.value()

@@ -1,3 +1,4 @@
+import contextlib
 from typing import Any, Callable, Optional, Protocol, Tuple, TypeVar, Union
 
 import pymmcore
@@ -23,7 +24,8 @@ LABEL = pymmcore.g_Keyword_Label
 
 # fmt: off
 class PSignalInstance(Protocol):
-    """The protocol expected of a signal instance"""
+    """The protocol expected of a signal instance."""
+
     def connect(self, callback: Callable) -> Callable: ...
     def disconnect(self, callback: Callable) -> None: ...
     def emit(self, *args: Any) -> None: ...
@@ -31,6 +33,7 @@ class PSignalInstance(Protocol):
 
 class PPropValueWidget(Protocol):
     """The protocol expected of a ValueWidget."""
+
     valueChanged: PSignalInstance
     destroyed: PSignalInstance
     def value(self) -> Union[str, float]: ...
@@ -58,14 +61,14 @@ def _stretch_range_to_contain(wdg: QLabeledDoubleSlider, val: T) -> T:
 
 
 class IntegerWidget(QSpinBox):
-    """Slider suited to managing integer values"""
+    """Slider suited to managing integer values."""
 
     def setValue(self, v: Any) -> None:
         return super().setValue(_stretch_range_to_contain(self, int(v)))
 
 
 class FloatWidget(QDoubleSpinBox):
-    """Slider suited to managing float values"""
+    """Slider suited to managing float values."""
 
     def setValue(self, v: Any) -> None:
         # stretch decimals to fit value
@@ -89,17 +92,17 @@ class _RangedMixin:
 
 
 class RangedIntegerWidget(_RangedMixin, QLabeledSlider):
-    """Slider suited to managing ranged integer values"""
+    """Slider suited to managing ranged integer values."""
 
     _cast = int
 
 
 class RangedFloatWidget(_RangedMixin, QLabeledDoubleSlider):
-    """Slider suited to managing ranged float values"""
+    """Slider suited to managing ranged float values."""
 
 
 class IntBoolWidget(QCheckBox):
-    """Checkbox for boolean values, which are integers in pymmcore"""
+    """Checkbox for boolean values, which are integers in pymmcore."""
 
     valueChanged = Signal(int)
 
@@ -111,6 +114,7 @@ class IntBoolWidget(QCheckBox):
         self.valueChanged.emit(int(state))
 
     def value(self) -> int:
+        """Get value."""
         return int(self.isChecked())
 
     def setValue(self, val: Union[str, int]) -> None:
@@ -156,9 +160,11 @@ class ChoiceWidget(QComboBox):
                 return tuple(str(i) for i in range(n_states))
 
     def value(self) -> str:
+        """Get value."""
         return self.currentText()
 
     def setValue(self, value: str) -> None:
+        """Set current value."""
         value = str(value)
         # while nice in theory, this check raises unnecessarily when a propertyChanged
         # signal gets emitted during system config loading...
@@ -177,12 +183,14 @@ class StringWidget(QLineEdit):
         self.editingFinished.connect(self._emit_value)
 
     def value(self) -> str:
+        """Get value."""
         return self.text()
 
     def _emit_value(self):
         self.valueChanged.emit(self.value())
 
     def setValue(self, value: str) -> None:
+        """Set current value."""
         self.setText(str(value))
         self._emit_value()
 
@@ -193,6 +201,7 @@ class ReadOnlyWidget(QLabel):
     valueChanged = Signal()  # just for the protocol... not used
 
     def value(self) -> str:
+        """Get value."""
         return self.text()
 
     def setValue(self, value: str) -> None:
@@ -243,10 +252,8 @@ def make_property_value_widget(
 
     @wdg.destroyed.connect
     def _disconnect(*, _core=core):
-        try:
+        with contextlib.suppress(RuntimeError):
             _core.events.propertyChanged.disconnect(_on_core_change)
-        except RuntimeError:
-            pass
 
     @wdg.valueChanged.connect
     def _on_widget_change(value, _core=core) -> None:
@@ -261,7 +268,6 @@ def make_property_value_widget(
 
 def _creat_prop_widget(core: CMMCorePlus, dev: str, prop: str) -> PPropValueWidget:
     """The type -> widget selection part used in the above function."""
-
     if core.isPropertyReadOnly(dev, prop):
         return ReadOnlyWidget()
 
@@ -345,7 +351,8 @@ class PropertyWidget(QWidget):
         self.layout().addWidget(self._value_widget)
 
     def value(self) -> Any:
-        """Return the current value of the *widget* (which should match core)."""
+        """Get value.""" """
+        Return the current value of the *widget* (which should match core)."""
         return self._value_widget.value()
 
     def setValue(self, value: Any) -> None:
@@ -382,5 +389,5 @@ class PropertyWidget(QWidget):
 
     @property
     def _dp(self) -> Tuple[str, str]:
-        """commonly requested pair for mmcore calls."""
+        """Commonly requested pair for mmcore calls."""
         return self._device_label, self._prop_name

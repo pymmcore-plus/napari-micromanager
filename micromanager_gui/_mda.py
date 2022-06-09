@@ -1,4 +1,4 @@
-"""metadata class and shared state for managing MDAs"""
+"""Metadata class for managing MDAs."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +15,12 @@ __all__ = [
 
 @dataclass
 class SequenceMeta:
-    mode: Union[Literal["mda"], Literal["explorer"]] = ""
+    """Metadata associated with an MDA sequence.
+
+    TODO: much of this may well move to useq-schema.
+    """
+
+    mode: Union[Literal["mda"], Literal["explorer"], Literal[""]] = ""
     split_channels: bool = False
     should_save: bool = False
     file_name: str = ""

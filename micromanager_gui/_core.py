@@ -29,7 +29,7 @@ def get_core_singleton(remote=False) -> CMMCorePlus:
 
 
 def load_system_config(config: str = ""):
-    """Internal convenience for `loadSystemConfiguration(config)`
+    """Internal convenience for `loadSystemConfiguration(config)`.
 
     This also unloads all devices first and resets the STATE.
     If config is `None` or empty string, will load the MMConfig_demo.
