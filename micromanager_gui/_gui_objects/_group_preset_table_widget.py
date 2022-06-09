@@ -7,7 +7,7 @@ from .._core_widgets._presets_widget import PresetsWidget
 from .._core_widgets._property_widget import PropertyWidget
 
 
-class MainTable(QtW.QTableWidget):
+class _MainTable(QtW.QTableWidget):
     def __init__(self) -> None:
         super().__init__()
         hdr = self.horizontalHeader()
@@ -23,12 +23,14 @@ class MainTable(QtW.QTableWidget):
 
 
 class MMGroupPresetTableWidget(QtW.QWidget):
+    """Widget to get/set group presets."""
+
     def __init__(self):
         super().__init__()
 
         self._mmc = _core.get_core_singleton()
         self._mmc.events.systemConfigurationLoaded.connect(self._populate_table)
-        self.table_wdg = MainTable()
+        self.table_wdg = _MainTable()
         self.table_wdg.show()
         self.setLayout(QVBoxLayout())
         self.setContentsMargins(0, 0, 0, 0)
@@ -63,22 +65,15 @@ class MMGroupPresetTableWidget(QtW.QWidget):
                     wdg = wdg._value_widget
 
     def _get_cfg_data(self, group: str, preset: str):
-        """
-        Return last device-property-value for the preset and the
-        total number of device-property-value included in the preset.
-        """
-
-        for dev_prop_val_count, key in enumerate(
-            self._mmc.getConfigData(group, preset)
-        ):
-            dev = key[0]
-            prop = key[1]
-            val = key[2]
-        return dev, prop, val, (dev_prop_val_count + 1)
+        # Return last device-property-value for the preset and the
+        # total number of device-property-value included in the preset.
+        data = self._mmc.getConfigData(group, preset)
+        assert len(data), "No config data"
+        dev, prop, val = data[-1]
+        return dev, prop, val, len(data) + 1
 
     def create_group_widget(self, group: str):
-        """Return a widget depending on presets and device-property"""
-
+        """Return a widget depending on presets and device-property."""
         # get group presets
         presets = list(self._mmc.getAvailableConfigs(group))
 

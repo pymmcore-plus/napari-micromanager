@@ -27,6 +27,8 @@ from superqt.fonticon import icon
 
 
 class MultiDWidgetGui(QWidget):
+    """Just the UI portion of the MDA widget. Runtime logic in MMMultiDWidget."""
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
 

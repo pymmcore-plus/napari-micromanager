@@ -10,7 +10,7 @@ from .._util import get_group_dev_prop, get_preset_dev_prop
 
 
 class PresetsWidget(QWidget):
-    """Create a QCombobox Widget containing the presets of the specified group"""
+    """Create a QCombobox Widget containing the presets of the specified group."""
 
     def __init__(
         self,
@@ -56,7 +56,7 @@ class PresetsWidget(QWidget):
         # TODO: add connections once we will implement
         # 'deleteGroup'/'deletePreset signals
 
-        self.destroyed.connect(self.disconnect)
+        self.destroyed.connect(self._disconnect)
 
     def _set_combo_view(self):
         view = QListView()
@@ -88,11 +88,6 @@ class PresetsWidget(QWidget):
         self._combo.setStyleSheet("")
 
     def _set_if_props_match_preset(self):
-        """
-        Check if a preset matches the current system state.
-        If true, set the combobox to the preset and the text to default color.
-        If false, set the combobox text color to 'magenta'.
-        """
         for preset in self._presets:
             _set_combo = True
             for (dev, prop, value) in self._mmc.getConfigData(self._group, preset):
@@ -129,6 +124,7 @@ class PresetsWidget(QWidget):
         self._set_if_props_match_preset()
 
     def refresh(self) -> None:
+        """Refresh widget based on mmcore."""
         with signals_blocked(self._combo):
             self._combo.clear()
             if self._group not in self._mmc.getAvailableConfigGroups():
@@ -144,9 +140,11 @@ class PresetsWidget(QWidget):
                 self._set_if_props_match_preset()
 
     def value(self) -> str:
+        """Get current value."""
         return self._combo.currentText()
 
     def setValue(self, value: str) -> None:
+        """Set the combobox to the given value."""
         if value not in self._mmc.getAvailableConfigs(self._group):
             raise ValueError(
                 f"{value!r} must be one of {self._mmc.getAvailableConfigs(self._group)}"
@@ -154,6 +152,7 @@ class PresetsWidget(QWidget):
         self._combo.setCurrentText(value)
 
     def allowedValues(self) -> Tuple[str]:
+        """Return the allowed values for this widget."""
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
 
     def _update_tooltip(self, preset):
@@ -161,7 +160,7 @@ class PresetsWidget(QWidget):
             str(self._mmc.getConfigData(self._group, preset)) if preset else ""
         )
 
-    def disconnect(self):
+    def _disconnect(self):
         self._mmc.events.configSet.disconnect(self._on_cfg_set)
         self._mmc.events.systemConfigurationLoaded.disconnect(self.refresh)
         self._mmc.events.propertyChanged.disconnect(self._on_property_changed)

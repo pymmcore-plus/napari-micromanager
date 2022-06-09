@@ -22,6 +22,8 @@ from superqt.fonticon import icon
 
 
 class ExplorerGui(QWidget):
+    """Just the UI of the explorer widget. Runtime logic in MMExploreSample."""
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
