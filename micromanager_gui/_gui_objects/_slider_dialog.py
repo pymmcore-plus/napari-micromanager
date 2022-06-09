@@ -32,7 +32,7 @@ class SliderDialog(QDialog):
         super().__init__(parent)
         ptrn = re.compile(property_regex, re.IGNORECASE)
 
-        self.setLayout(QGridLayout())
+        _grid = QGridLayout()
         core: CMMCorePlus = mmcore or get_core_singleton()
         lights = [
             dp
@@ -42,9 +42,10 @@ class SliderDialog(QDialog):
             and core.getPropertyType(*dp) in {PropertyType.Integer, PropertyType.Float}
         ]
         for i, (dev, prop) in enumerate(lights):
-            self.layout().addWidget(QLabel(f"{dev}::{prop}"), i, 0)
-            self.layout().addWidget(PropertyWidget(dev, prop, core=core), i, 1)
+            _grid.addWidget(QLabel(f"{dev}::{prop}"), i, 0)
+            _grid.addWidget(PropertyWidget(dev, prop, core=core), i, 1)
 
+        self.setLayout(_grid)
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowTitleHint

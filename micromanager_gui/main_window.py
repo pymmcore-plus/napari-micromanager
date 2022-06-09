@@ -356,7 +356,7 @@ class MainWindow(MicroManagerWidget):
             ch_id = event.index["c"]
             layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
 
-            meta = dict(
+            _metadata = dict(
                 useq_sequence=seq,
                 uid=seq.uid,
                 scan_coord=(y, x),
@@ -369,7 +369,7 @@ class MainWindow(MicroManagerWidget):
                 name=layer_name,
                 blending="additive",
                 translate=(y, x),
-                metadata=meta,
+                metadata=_metadata,
             )
 
             zoom_out_factor = (

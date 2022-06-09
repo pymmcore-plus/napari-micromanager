@@ -153,7 +153,7 @@ class PresetsWidget(QWidget):
             )
         self._combo.setCurrentText(value)
 
-    def allowedValues(self) -> Tuple[str]:
+    def allowedValues(self) -> Tuple[str, ...]:
         return tuple(self._combo.itemText(i) for i in range(self._combo.count()))
 
     def _update_tooltip(self, preset):

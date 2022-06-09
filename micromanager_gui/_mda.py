@@ -15,7 +15,7 @@ __all__ = [
 
 @dataclass
 class SequenceMeta:
-    mode: Union[Literal["mda"], Literal["explorer"]] = ""
+    mode: Union[Literal["mda"], Literal["explorer"], Literal[""]] = ""
     split_channels: bool = False
     should_save: bool = False
     file_name: str = ""

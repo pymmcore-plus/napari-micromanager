@@ -18,7 +18,7 @@ class CameraROI:
     def __init__(
         self,
         viewer: napari.viewer.Viewer,
-        mmcore: CMMCorePlus or RemoteMMCore,
+        mmcore: CMMCorePlus | RemoteMMCore,
         combobox: QtW.QComboBox,
         push_btn: QtW.QPushButton,
     ):
