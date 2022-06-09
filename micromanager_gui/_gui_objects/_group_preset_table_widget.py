@@ -70,7 +70,7 @@ class MMGroupPresetTableWidget(QtW.QWidget):
         data = list(self._mmc.getConfigData(group, preset))
         assert len(data), "No config data"
         dev, prop, val = data[-1]
-        return dev, prop, val, len(data) + 1
+        return dev, prop, val, len(data)
 
     def create_group_widget(self, group: str):
         """Return a widget depending on presets and device-property."""
