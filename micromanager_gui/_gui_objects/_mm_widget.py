@@ -86,9 +86,9 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
-        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
