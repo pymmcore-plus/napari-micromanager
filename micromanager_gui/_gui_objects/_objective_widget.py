@@ -61,7 +61,7 @@ class MMObjectivesWidget(QWidget):
             self.layout().addWidget(self._combo)
 
     def _guess_objective_device(self) -> Optional[str]:
-        """Try to update the list of objective choices
+        """Try to update the list of objective choices.
 
         1. get a list of potential objective devices from pymmcore
         2. if there is only one, use it, if there are >1, show a dialog box

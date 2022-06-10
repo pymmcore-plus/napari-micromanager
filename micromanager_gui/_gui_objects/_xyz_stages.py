@@ -12,6 +12,8 @@ STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
 
 class MMStagesWidget(QWidget):
+    """UI elements for stage control widgets."""
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setAcceptDrops(True)
@@ -30,12 +32,12 @@ class MMStagesWidget(QWidget):
         stage_dev_list.extend(iter(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)))
         for stage_dev in stage_dev_list:
             if self._mmc.getDeviceType(stage_dev) is DeviceType.XYStage:
-                bx = DragGroupBox("XY Control")
+                bx = _DragGroupBox("XY Control")
                 bx.setLayout(QHBoxLayout())
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
             if self._mmc.getDeviceType(stage_dev) is DeviceType.Stage:
-                bx = DragGroupBox("Z Control")
+                bx = _DragGroupBox("Z Control")
                 bx.setLayout(QHBoxLayout())
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
@@ -92,7 +94,7 @@ class MMStagesWidget(QWidget):
         event.accept()
 
 
-class DragGroupBox(QGroupBox):
+class _DragGroupBox(QGroupBox):
     def __init__(self, name: str, start_pos=None) -> None:
         super().__init__()
         self._name = name

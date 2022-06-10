@@ -17,6 +17,8 @@ from ._xyz_stages import MMStagesWidget
 
 
 class MicroManagerWidget(QtW.QWidget):
+    """GUI elements for the Main Window."""
+
     def __init__(self):
         super().__init__()
         # sub_widgets

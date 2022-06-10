@@ -19,7 +19,7 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _core, _mda
-from ._camera_roi import CameraROI
+from ._camera_roi import _CameraROI
 from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
@@ -40,6 +40,8 @@ CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MicroManagerWidget):
+    """The main napari-micromanager widget that gets added to napari."""
+
     def __init__(self, viewer: napari.viewer.Viewer, remote=False):
         super().__init__()
 
@@ -101,21 +103,21 @@ class MainWindow(MicroManagerWidget):
         # because tempfile seems to register an atexit before we do.
         @atexit.register
         def cleanup():
-            """Clean up temporary files we opened"""
+            """Clean up temporary files we opened."""
             for v in self._mda_temp_files.values():
                 with contextlib.suppress(NotADirectoryError):
                     v.cleanup()
 
-        self.cam_roi = CameraROI(
+        self.cam_roi = _CameraROI(
             self.viewer,
             self._mmc,
             self.cam_wdg.cam_roi_combo,
             self.cam_wdg.crop_btn,
         )
 
-        self.viewer.layers.events.connect(self.update_max_min)
-        self.viewer.layers.selection.events.active.connect(self.update_max_min)
-        self.viewer.dims.events.current_step.connect(self.update_max_min)
+        self.viewer.layers.events.connect(self._update_max_min)
+        self.viewer.layers.selection.events.active.connect(self._update_max_min)
+        self.viewer.dims.events.current_step.connect(self._update_max_min)
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
         self._add_menu()
@@ -163,7 +165,7 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def update_viewer(self, data=None):
-
+        """Update viewer with the latest image from the camera."""
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -176,12 +178,12 @@ class MainWindow(MicroManagerWidget):
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
 
-        self.update_max_min()
+        self._update_max_min()
 
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def update_max_min(self, event=None):
+    def _update_max_min(self, event=None):
 
         if self.tab_wdg.tabWidget.currentIndex() != 0:
             return
@@ -228,7 +230,7 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence):
-        """ "create temp folder and block gui when mda starts."""
+        """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
         self._mda_meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
@@ -252,9 +254,9 @@ class MainWindow(MicroManagerWidget):
     def _interpret_split_channels(
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
-        """
-        Determine the shape of layers and the dimension labels based
-        on whether we are splitting on channels
+        """Determine the shape of layers and the dimension labels.
+
+        ...based on whether we are splitting on channels
         """
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         # dimensions labels
@@ -281,15 +283,12 @@ class MainWindow(MicroManagerWidget):
     def _add_mda_channel_layers(
         self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
     ):
-        """
-        Create Zarr stores and for the images of the MDA and display as a new
-        viewer layer.
+        """Create Zarr stores to back MDA and display as new viewer layer(s).
 
         If splitting on Channels then channels will look like ["BF", "GFP",...]
         and if we do not split on channels it will look like [""] and only one
         layer/zarr store will be created.
         """
-
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
         # create a zarr store for each channel (or all channels when not splitting)
@@ -356,7 +355,7 @@ class MainWindow(MicroManagerWidget):
             ch_id = event.index["c"]
             layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
 
-            meta = dict(
+            _metadata = dict(
                 useq_sequence=seq,
                 uid=seq.uid,
                 scan_coord=(y, x),
@@ -369,7 +368,7 @@ class MainWindow(MicroManagerWidget):
                 name=layer_name,
                 blending="additive",
                 translate=(y, x),
-                metadata=meta,
+                metadata=_metadata,
             )
 
             zoom_out_factor = (

@@ -2,11 +2,7 @@ from qtpy import QtWidgets as QtW
 
 
 class MMShuttersWidget(QtW.QWidget):
-    """
-    Contains the following objects:
-
-    shutter_comboBox: QtW.QComboBox
-    """
+    """Just the UI elements for a widget to control shutters."""
 
     def __init__(self):
         super().__init__()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Iterator, List, Optional, Sequence, Tuple
 
 from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import Signal
@@ -22,10 +22,10 @@ if TYPE_CHECKING:
     import useq
 
 
-def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3):
-    """
-    Get next suitable filepath (extension = ".tif") or
-    folderpath (extension = ""), appended with a counter of ndigits.
+def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path:
+    """Get next suitable filepath (extension = ".tif") or folderpath (extension = "").
+
+    Result is appended with a counter of ndigits.
     """
     p = path
     stem = p.stem
@@ -55,13 +55,16 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3):
 
 
 # move these to useq:
-def event_indices(event: useq.MDAEvent):
+def event_indices(event: useq.MDAEvent) -> Iterator[str]:
+    """Yield ordered axis names in an event."""
     for k in event.sequence.axis_order if event.sequence else []:
         if k in event.index:
             yield k
 
 
 class SelectDeviceFromCombobox(QDialog):
+    """Convenience dialog to retrieve a device from a list of devices."""
+
     val_changed = Signal(str)
 
     def __init__(self, obj_dev: list, label: str, parent=None):
@@ -98,7 +101,7 @@ class ComboMessageBox(QDialog):
         self._combo.addItems(items)
 
         btn_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel  # type: ignore  # noqa
         )
         btn_box.accepted.connect(self.accept)
         btn_box.rejected.connect(self.reject)
@@ -116,7 +119,7 @@ class ComboMessageBox(QDialog):
 def get_preset_dev_prop(
     group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
 ) -> list:
-    """Return a list with (device, property) for the selected group preset"""
+    """Return a list with (device, property) for the selected group preset."""
     mmc = mmcore or get_core_singleton()
     return [(k[0], k[1]) for k in mmc.getConfigData(group, preset)]
 
@@ -124,9 +127,7 @@ def get_preset_dev_prop(
 def get_group_dev_prop(
     group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
 ) -> List[Tuple[str, str]]:
-    """
-    Return a list of all (device, property) tuples used in the config group's presets
-    """
+    """Return list of all (device, prop) tuples used in the config group's presets."""
     mmc = mmcore or get_core_singleton()
     dev_props = []
     for preset in mmc.getAvailableConfigs(group):
