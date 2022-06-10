@@ -5,84 +5,25 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qtpy import QtWidgets as QtW
-from qtpy import uic
-from qtpy.QtCore import QSize, Qt
-from qtpy.QtGui import QIcon
+from qtpy.QtCore import Qt
 from useq import MDASequence
 
-from .._core import get_core_singleton
-from .._mda import SEQUENCE_META, SequenceMeta
+from ..._core import get_core_singleton
+from ..._mda import SEQUENCE_META, SequenceMeta
+from ._mda_gui import MultiDWidgetGui
 
 if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
 
-ICONS = Path(__file__).parent.parent / "icons"
 
+class MMMultiDWidget(MultiDWidgetGui):
+    """Multi-dimensional acquisition Widget."""
 
-class _MultiDUI:
-    UI_FILE = str(Path(__file__).parent / "multid_gui.ui")
-
-    # The UI_FILE above contains these objects:
-    save_groupBox: QtW.QGroupBox
-    fname_lineEdit: QtW.QLineEdit
-    dir_lineEdit: QtW.QLineEdit
-    browse_save_Button: QtW.QPushButton
-    checkBox_save_pos: QtW.QCheckBox
-    checkBox_split_channels: QtW.QCheckBox
-
-    channel_groupBox: QtW.QGroupBox
-    channel_tableWidget: QtW.QTableWidget  # TODO: extract
-    add_ch_Button: QtW.QPushButton
-    clear_ch_Button: QtW.QPushButton
-    remove_ch_Button: QtW.QPushButton
-
-    time_groupBox: QtW.QGroupBox
-    timepoints_spinBox: QtW.QSpinBox
-    interval_spinBox: QtW.QSpinBox
-    time_comboBox: QtW.QComboBox
-
-    stack_groupBox: QtW.QGroupBox
-    z_tabWidget: QtW.QTabWidget
-    step_size_doubleSpinBox: QtW.QDoubleSpinBox
-    n_images_label: QtW.QLabel
-    # TopBottom
-    set_top_Button: QtW.QPushButton
-    set_bottom_Button: QtW.QPushButton
-    z_top_doubleSpinBox: QtW.QDoubleSpinBox
-    z_bottom_doubleSpinBox: QtW.QDoubleSpinBox
-    z_range_topbottom_doubleSpinBox: QtW.QDoubleSpinBox
-    # RangeAround
-    zrange_spinBox: QtW.QSpinBox
-    range_around_label: QtW.QLabel
-    # AboveBelow
-    above_doubleSpinBox: QtW.QDoubleSpinBox
-    below_doubleSpinBox: QtW.QDoubleSpinBox
-    z_range_abovebelow_doubleSpinBox: QtW.QDoubleSpinBox
-
-    stage_pos_groupBox: QtW.QGroupBox
-    stage_tableWidget: QtW.QTableWidget  # TODO: extract
-    add_pos_Button: QtW.QPushButton
-    clear_pos_Button: QtW.QPushButton
-    remove_pos_Button: QtW.QPushButton
-
-    acquisition_order_comboBox: QtW.QComboBox
-    run_Button: QtW.QPushButton
-    pause_Button: QtW.QPushButton
-    cancel_Button: QtW.QPushButton
-
-    def setup_ui(self):
-        uic.loadUi(self.UI_FILE, self)  # load QtDesigner .ui file
-        self.pause_Button.hide()
-        self.cancel_Button.hide()
-        # button icon
-        self.run_Button.setIcon(QIcon(str(ICONS / "play-button_1.svg")))
-        self.run_Button.setIconSize(QSize(20, 0))
-
-
-class MultiDWidget(QtW.QWidget, _MultiDUI):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setup_ui()
+
+        self.pause_Button.hide()
+        self.cancel_Button.hide()
 
         self._mmc = get_core_singleton()
 
@@ -93,7 +34,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         self.add_pos_Button.clicked.connect(self.add_position)
         self.remove_pos_Button.clicked.connect(self.remove_position)
         self.clear_pos_Button.clicked.connect(self.clear_positions)
-        self.add_ch_Button.clicked.connect(self.add_channel)
+        self.add_ch_Button.clicked.connect(self._add_channel)
         self.remove_ch_Button.clicked.connect(self.remove_channel)
         self.clear_ch_Button.clicked.connect(self.clear_channel)
 
@@ -183,13 +124,13 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         step = self.step_size_doubleSpinBox.value()
         # set what is the range to consider depending on the z_stack mode
         if self.z_tabWidget.currentIndex() == 0:
-            range = self.z_range_topbottom_doubleSpinBox.value()
+            _range = self.z_range_topbottom_doubleSpinBox.value()
         if self.z_tabWidget.currentIndex() == 1:
-            range = self.zrange_spinBox.value()
+            _range = self.zrange_spinBox.value()
         if self.z_tabWidget.currentIndex() == 2:
-            range = self.z_range_abovebelow_doubleSpinBox.value()
+            _range = self.z_range_abovebelow_doubleSpinBox.value()
 
-        self.n_images_label.setText(f"{round((range / step) + 1)}")
+        self.n_images_label.setText(f"Number of Images: {round((_range / step) + 1)}")
 
     def _on_mda_started(self, sequence):
         self._set_enabled(False)
@@ -206,14 +147,14 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
     def _on_mda_paused(self, paused):
         self.pause_Button.setText("GO" if paused else "PAUSE")
 
-    # add, remove, clear channel table
-    def add_channel(self) -> bool:
+    def _add_channel(self) -> bool:
+        """Add, remove or clear channel table.  Return True if anyting was changed."""
         if len(self._mmc.getLoadedDevices()) <= 1:
             return False
 
         channel_group = self._mmc.getChannelGroup()
         if not channel_group:
-            return
+            return False
 
         idx = self.channel_tableWidget.rowCount()
         self.channel_tableWidget.insertRow(idx)
@@ -334,7 +275,7 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         else:
             channel_list = []
         for idx, ch in enumerate(state.channels):
-            if not self.add_channel():
+            if not self._add_channel():
                 break
             if ch.config in channel_list:
                 self.channel_tableWidget.cellWidget(idx, 0).setCurrentText(ch.config)
@@ -500,12 +441,3 @@ class MultiDWidget(QtW.QWidget, _MultiDUI):
         )
         self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
         return
-
-
-if __name__ == "__main__":
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication([])
-    window = MultiDWidget()
-    window.show()
-    app.exec_()

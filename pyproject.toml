@@ -4,3 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 write_to = "micromanager_gui/_version.py"
+
+
+# https://mypy.readthedocs.io/en/stable/config_file.html
+[tool.mypy]
+files = "micromanager_gui"
+disallow_untyped_defs = false
+show_error_codes = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true

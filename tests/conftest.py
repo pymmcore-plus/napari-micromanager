@@ -5,10 +5,12 @@ import pytest
 from pymmcore_plus import CMMCorePlus
 
 from micromanager_gui import _core
-from micromanager_gui._gui_objects._sample_explorer_widget import ExploreSample
+from micromanager_gui._gui_objects._sample_explorer_widget._sample_explorer_widget import (  # noqa: E501
+    MMExploreSample,
+)
 from micromanager_gui.main_window import MainWindow
 
-ExplorerTuple = Tuple[MainWindow, ExploreSample]
+ExplorerTuple = Tuple[MainWindow, MMExploreSample]
 
 
 @pytest.fixture(params=["local"])

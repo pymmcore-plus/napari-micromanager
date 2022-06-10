@@ -6,9 +6,10 @@ from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
 from ._config_widget import MMConfigurationWidget
-from ._mda_widget import MultiDWidget
+from ._group_preset_table_widget import MMGroupPresetTableWidget
+from ._mda_widget._mda_widget import MMMultiDWidget
 from ._objective_widget import MMObjectivesWidget
-from ._sample_explorer_widget import ExploreSample
+from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._slider_dialog import SliderDialog
 from ._tab_widget import MMTabWidget
@@ -16,6 +17,8 @@ from ._xyz_stages import MMStagesWidget
 
 
 class MicroManagerWidget(QtW.QWidget):
+    """GUI elements for the Main Window."""
+
     def __init__(self):
         super().__init__()
         # sub_widgets
@@ -27,8 +30,8 @@ class MicroManagerWidget(QtW.QWidget):
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
-        self.mda = MultiDWidget()
-        self.explorer = ExploreSample()
+        self.mda = MMMultiDWidget()
+        self.explorer = MMExploreSample()
         self.create_gui()
 
     def create_gui(self):
@@ -81,10 +84,14 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_group.setLayout(self.stages_group_layout)
         self.main_layout.addWidget(self.stages_group)
 
-        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
-        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.group_preset_table_wdg = MMGroupPresetTableWidget()
+
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
+        self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
+
         # set main_layout layout
         self.setLayout(self.main_layout)
 

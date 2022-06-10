@@ -2,10 +2,9 @@ from pathlib import Path
 
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QSize
-from qtpy.QtGui import QIcon
 
 from .._core_widgets import DefaultCameraExposureWidget
+from .._core_widgets._live_button_widget import LiveButton
 from .._core_widgets._snap_button_widget import SnapButton
 from ._channel_widget import ChannelWidget
 
@@ -13,30 +12,11 @@ ICONS = Path(__file__).parent.parent / "icons"
 
 
 class MMTabWidget(QtW.QWidget):
-    """
-    Contains the following objects:
-
-    tabWidget: QtW.QTabWidget
-    snap_live_tab: QtW.QWidget
-    snap_channel_groupBox: QtW.QGroupBox
-    snap_channel_comboBox: ChannelWidget
-    exp_groupBox: QtW.QGroupBox
-    exp_spinBox: QtW.QDoubleSpinBox
-    snap_Button: QtW.QPushButton
-    live_Button: QtW.QPushButton
-    max_min_val_label: QtW.QLabel
-    """
+    """Tabs shown in the main window."""
 
     def __init__(self):
         super().__init__()
         self.setup_gui()
-
-        for attr, icon in [
-            ("live_Button", "vcam.svg"),
-        ]:
-            btn = getattr(self, attr)
-            btn.setIcon(QIcon(str(ICONS / icon)))
-            btn.setIconSize(QSize(30, 30))
 
     def setup_gui(self):
 
@@ -93,7 +73,11 @@ class MMTabWidget(QtW.QWidget):
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
-        self.live_Button = QtW.QPushButton(text="Live")
+        self.live_Button = LiveButton(
+            button_text_on_off=("Live", "Stop"),
+            icon_size=40,
+            icon_color_on_off=((0, 255, 0), "magenta"),
+        )
         self.live_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.live_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.live_Button)

@@ -60,7 +60,7 @@ class ChannelWidget(QWidget):
         return None
 
     def _create_channel_widget(
-        self, channel_group: str
+        self, channel_group: Optional[str]
     ) -> Union[PresetsWidget, QComboBox]:
         if channel_group:
             channel_wdg = PresetsWidget(channel_group)
@@ -91,7 +91,8 @@ class ChannelWidget(QWidget):
 
     def _on_channel_group_changed(self, new_channel_group: str):
         """When Channel group is changed, recreate combo."""
-        self.channel_wdg.setParent(None)
+        _wdg = QWidget()
+        self.channel_wdg.setParent(_wdg)
         self.channel_wdg.deleteLater()
         self._update_widget(new_channel_group)
 
