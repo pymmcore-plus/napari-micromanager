@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import useq
 from qtpy import QtWidgets as QtW
+from qtpy.QtCore import Qt
 from useq import MDASequence
 
 from micromanager_gui import _mda
@@ -33,11 +34,38 @@ class MMExploreSample(ExplorerGui):
         self.return_to_position_x = None
         self.return_to_position_y = None
 
-        # connect buttons
+        # connect for channel
         self.add_ch_explorer_Button.clicked.connect(self.add_channel)
         self.remove_ch_explorer_Button.clicked.connect(self.remove_channel)
         self.clear_ch_explorer_Button.clicked.connect(self.clear_channel)
 
+        # connect for z stack
+        self.set_top_Button.clicked.connect(self._set_top)
+        self.set_bottom_Button.clicked.connect(self._set_bottom)
+        self.z_top_doubleSpinBox.valueChanged.connect(self._update_topbottom_range)
+        self.z_bottom_doubleSpinBox.valueChanged.connect(self._update_topbottom_range)
+
+        self.zrange_spinBox.valueChanged.connect(self._update_rangearound_label)
+
+        self.above_doubleSpinBox.valueChanged.connect(self._update_abovebelow_range)
+        self.below_doubleSpinBox.valueChanged.connect(self._update_abovebelow_range)
+
+        self.z_range_abovebelow_doubleSpinBox.valueChanged.connect(
+            self._update_n_images
+        )
+        self.zrange_spinBox.valueChanged.connect(self._update_n_images)
+        self.z_range_topbottom_doubleSpinBox.valueChanged.connect(self._update_n_images)
+        self.step_size_doubleSpinBox.valueChanged.connect(self._update_n_images)
+        self.z_tabWidget.currentChanged.connect(self._update_n_images)
+        self.stack_groupBox.toggled.connect(self._update_n_images)
+
+        # connect for positions
+        self.add_pos_Button.clicked.connect(self.add_position)
+        self.remove_pos_Button.clicked.connect(self.remove_position)
+        self.clear_pos_Button.clicked.connect(self.clear_positions)
+        self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
+
+        # connect buttons
         self.start_scan_Button.clicked.connect(self.start_scan)
         self.move_to_Button.clicked.connect(self.move_to)
         self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
@@ -145,89 +173,225 @@ class MMExploreSample(ExplorerGui):
         self.channel_explorer_tableWidget.clearContents()
         self.channel_explorer_tableWidget.setRowCount(0)
 
+    def _set_top(self):
+        self.z_top_doubleSpinBox.setValue(self._mmc.getZPosition())
+
+    def _set_bottom(self):
+        self.z_bottom_doubleSpinBox.setValue(self._mmc.getZPosition())
+
+    def _update_topbottom_range(self):
+        self.z_range_topbottom_doubleSpinBox.setValue(
+            abs(self.z_top_doubleSpinBox.value() - self.z_bottom_doubleSpinBox.value())
+        )
+
+    def _update_rangearound_label(self, value):
+        self.range_around_label.setText(f"-{value/2} µm <- z -> +{value/2} µm")
+
+    def _update_abovebelow_range(self):
+        self.z_range_abovebelow_doubleSpinBox.setValue(
+            self.above_doubleSpinBox.value() + self.below_doubleSpinBox.value()
+        )
+
+    def _update_n_images(self):
+        step = self.step_size_doubleSpinBox.value()
+        # set what is the range to consider depending on the z_stack mode
+        if self.z_tabWidget.currentIndex() == 0:
+            _range = self.z_range_topbottom_doubleSpinBox.value()
+        if self.z_tabWidget.currentIndex() == 1:
+            _range = self.zrange_spinBox.value()
+        if self.z_tabWidget.currentIndex() == 2:
+            _range = self.z_range_abovebelow_doubleSpinBox.value()
+
+        self.n_images_label.setText(f"Number of Images: {round((_range / step) + 1)}")
+
+    # add, remove, clear, move_to positions table
+    def add_position(self):
+
+        if not self._mmc.getXYStageDevice():
+            return
+
+        if len(self._mmc.getLoadedDevices()) > 1:
+            idx = self._add_position_row()
+
+            for c, ax in enumerate("XYZ"):
+                if not self._mmc.getFocusDevice() and ax == "Z":
+                    continue
+                cur = getattr(self._mmc, f"get{ax}Position")()
+                item = QtW.QTableWidgetItem(str(cur))
+                item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+                self.stage_tableWidget.setItem(idx, c, item)
+
+    def _add_position_row(self) -> int:
+        idx = self.stage_tableWidget.rowCount()
+        self.stage_tableWidget.insertRow(idx)
+        return idx
+
+    def remove_position(self):
+        # remove selected position
+        rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
+        for idx in sorted(rows, reverse=True):
+            self.stage_tableWidget.removeRow(idx)
+
+    def clear_positions(self):
+        # clear all positions
+        self.stage_tableWidget.clearContents()
+        self.stage_tableWidget.setRowCount(0)
+
+    def move_to_position(self):
+        if not self._mmc.getXYStageDevice():
+            return
+        curr_row = self.stage_tableWidget.currentRow()
+        x_val = self.stage_tableWidget.item(curr_row, 0).text()
+        y_val = self.stage_tableWidget.item(curr_row, 1).text()
+        z_val = self.stage_tableWidget.item(curr_row, 2).text()
+        self._mmc.setXYPosition(float(x_val), float(y_val))
+        self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
+
     def _get_state_dict(self) -> dict:
-        # position settings
+
         table = self.channel_explorer_tableWidget
-        return {
+
+        state = {
             "axis_order": "tpzc",
+            "channels": [],
             "stage_positions": [dict(zip("xyz", g)) for g in self.set_grid()],
             "z_plan": None,
             "time_plan": None,
-            "channels": [
-                {
-                    "config": table.cellWidget(c, 0).currentText(),
-                    "group": self._mmc.getChannelGroup() or "Channel",
-                    "exposure": table.cellWidget(c, 1).value(),
-                }
-                for c in range(table.rowCount())
-            ],
         }
+
+        state["channels"] = [
+            {
+                "config": table.cellWidget(c, 0).currentText(),
+                "group": self._mmc.getChannelGroup() or "Channel",
+                "exposure": table.cellWidget(c, 1).value(),
+            }
+            for c in range(table.rowCount())
+        ]
+
+        if self.stack_groupBox.isChecked():
+
+            if self.z_tabWidget.currentIndex() == 0:
+                state["z_plan"] = {  # type: ignore
+                    "top": self.z_top_doubleSpinBox.value(),
+                    "bottom": self.z_bottom_doubleSpinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+
+            elif self.z_tabWidget.currentIndex() == 1:
+                state["z_plan"] = {  # type: ignore
+                    "range": self.zrange_spinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+            elif self.z_tabWidget.currentIndex() == 2:
+                state["z_plan"] = {  # type: ignore
+                    "above": self.above_doubleSpinBox.value(),
+                    "below": self.below_doubleSpinBox.value(),
+                    "step": self.step_size_doubleSpinBox.value(),
+                }
+
+        if self.time_groupBox.isChecked():
+            unit = {"min": "minutes", "sec": "seconds", "ms": "milliseconds"}[
+                self.time_comboBox.currentText()
+            ]
+            state["time_plan"] = {  # type: ignore
+                "interval": {unit: self.interval_spinBox.value()},
+                "loops": self.timepoints_spinBox.value(),
+            }
+
+        return state
 
     def set_grid(self) -> list[tuple[float, ...]]:
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
 
-        # get current position
-        x_pos = float(self._mmc.getXPosition())
-        y_pos = float(self._mmc.getYPosition())
-        if self._mmc.getFocusDevice():
-            z_pos = float(self._mmc.getZPosition())
+        explorer_starting_positions = []
+        if (
+            self.stage_pos_groupBox.isChecked()
+            and self.stage_tableWidget.rowCount() > 0
+        ):
+            for r in range(self.stage_tableWidget.rowCount()):
+                x = float(self.stage_tableWidget.item(r, 0).text())
+                y = float(self.stage_tableWidget.item(r, 1).text())
+                z = float(self.stage_tableWidget.item(r, 2).text())
+                coords = (x, y, z) if self._mmc.getFocusDevice() else (x, y)
+                explorer_starting_positions.append(coords)
 
-        self.return_to_position_x = x_pos
-        self.return_to_position_y = y_pos
-
-        # calculate initial scan position
-        _, _, width, height = self._mmc.getROI(self._mmc.getCameraDevice())
-
-        overlap_percentage = self.ovelap_spinBox.value()
-        overlap_px_w = width - (width * overlap_percentage) / 100
-        overlap_px_h = height - (height * overlap_percentage) / 100
-
-        if self.scan_size_r == 1 and self.scan_size_c == 1:
-            raise ValueError("RxC -> 1x1. Use MDA to acquire a single position image.")
-
-        move_x = (width / 2) * (self.scan_size_c - 1) - overlap_px_w
-        move_y = (height / 2) * (self.scan_size_r - 1) - overlap_px_h
-
-        # to match position coordinates with center of the image
-        x_pos -= self.pixel_size * (move_x + width)
-        y_pos += self.pixel_size * (move_y + height)
-
-        # calculate position increments depending on pixle size
-        if overlap_percentage > 0:
-            increment_x = overlap_px_w * self.pixel_size
-            increment_y = overlap_px_h * self.pixel_size
         else:
-            increment_x = width * self.pixel_size
-            increment_y = height * self.pixel_size
+            x = float(self._mmc.getXPosition())
+            y = float(self._mmc.getYPosition())
+            if self._mmc.getFocusDevice():
+                z = float(self._mmc.getZPosition())
+                coords = (x, y, z)
+            else:
+                coords = (x, y)
+            explorer_starting_positions.append(coords)
 
-        list_pos_order: list[tuple[float, ...]] = []
-        for r in range(self.scan_size_r):
-            if r % 2:  # for odd rows
-                col = self.scan_size_c - 1
-                for c in range(self.scan_size_c):
-                    if c == 0:
-                        y_pos -= increment_y
-                    if self._mmc.getFocusDevice():
-                        list_pos_order.append((x_pos, y_pos, z_pos))
-                    else:
-                        list_pos_order.append((x_pos, y_pos))
-                    if col > 0:
-                        col -= 1
-                        x_pos -= increment_x
-            else:  # for even rows
-                for c in range(self.scan_size_c):
-                    if r > 0 and c == 0:
-                        y_pos -= increment_y
-                    if self._mmc.getFocusDevice():
-                        list_pos_order.append((x_pos, y_pos, z_pos))
-                    else:
-                        list_pos_order.append((x_pos, y_pos))
-                    if c < self.scan_size_c - 1:
-                        x_pos += increment_x
+        full_pos_list = []
+        for pe in explorer_starting_positions:
 
-        return list_pos_order
+            x_pos, y_pos = pe[0], pe[1]
+            if self._mmc.getFocusDevice():
+                z_pos = pe[2]
+
+            self.return_to_position_x = x_pos
+            self.return_to_position_y = y_pos
+
+            # calculate initial scan position
+            _, _, width, height = self._mmc.getROI(self._mmc.getCameraDevice())
+
+            overlap_percentage = self.ovelap_spinBox.value()
+            overlap_px_w = width - (width * overlap_percentage) / 100
+            overlap_px_h = height - (height * overlap_percentage) / 100
+
+            if self.scan_size_r == 1 and self.scan_size_c == 1:
+                raise ValueError(
+                    "RxC -> 1x1. Use MDA to acquire a single position image."
+                )
+
+            move_x = (width / 2) * (self.scan_size_c - 1) - overlap_px_w
+            move_y = (height / 2) * (self.scan_size_r - 1) - overlap_px_h
+
+            # to match position coordinates with center of the image
+            x_pos -= self.pixel_size * (move_x + width)
+            y_pos += self.pixel_size * (move_y + height)
+
+            # calculate position increments depending on pixle size
+            if overlap_percentage > 0:
+                increment_x = overlap_px_w * self.pixel_size
+                increment_y = overlap_px_h * self.pixel_size
+            else:
+                increment_x = width * self.pixel_size
+                increment_y = height * self.pixel_size
+
+            list_pos_order: list[tuple[float, ...]] = []
+            for r in range(self.scan_size_r):
+                if r % 2:  # for odd rows
+                    col = self.scan_size_c - 1
+                    for c in range(self.scan_size_c):
+                        if c == 0:
+                            y_pos -= increment_y
+                        if self._mmc.getFocusDevice():
+                            list_pos_order.append((x_pos, y_pos, z_pos))
+                        else:
+                            list_pos_order.append((x_pos, y_pos))
+                        if col > 0:
+                            col -= 1
+                            x_pos -= increment_x
+                else:  # for even rows
+                    for c in range(self.scan_size_c):
+                        if r > 0 and c == 0:
+                            y_pos -= increment_y
+                        if self._mmc.getFocusDevice():
+                            list_pos_order.append((x_pos, y_pos, z_pos))
+                        else:
+                            list_pos_order.append((x_pos, y_pos))
+                        if c < self.scan_size_c - 1:
+                            x_pos += increment_x
+
+            full_pos_list.extend(list_pos_order)
+
+        return full_pos_list
 
     def set_explorer_dir(self):
         # set the directory
