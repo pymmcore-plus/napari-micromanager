@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import useq
 from qtpy import QtWidgets as QtW
@@ -213,9 +213,17 @@ class MMExploreSample(ExplorerGui):
         if len(self._mmc.getLoadedDevices()) > 1:
             idx = self._add_position_row()
 
-            for c, ax in enumerate("XYZ"):
+            for c, ax in enumerate("GXYZ"):
+                if ax == "G":
+                    count = self.stage_tableWidget.rowCount()
+                    item = QtW.QTableWidgetItem(f"Grid_{count:03d}")
+                    item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+                    self.stage_tableWidget.setItem(idx, c, item)
+                    continue
+
                 if not self._mmc.getFocusDevice() and ax == "Z":
                     continue
+
                 cur = getattr(self._mmc, f"get{ax}Position")()
                 item = QtW.QTableWidgetItem(str(cur))
                 item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
@@ -241,9 +249,9 @@ class MMExploreSample(ExplorerGui):
         if not self._mmc.getXYStageDevice():
             return
         curr_row = self.stage_tableWidget.currentRow()
-        x_val = self.stage_tableWidget.item(curr_row, 0).text()
-        y_val = self.stage_tableWidget.item(curr_row, 1).text()
-        z_val = self.stage_tableWidget.item(curr_row, 2).text()
+        x_val = self.stage_tableWidget.item(curr_row, 1).text()
+        y_val = self.stage_tableWidget.item(curr_row, 2).text()
+        z_val = self.stage_tableWidget.item(curr_row, 3).text()
         self._mmc.setXYPosition(float(x_val), float(y_val))
         self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
 
@@ -254,13 +262,13 @@ class MMExploreSample(ExplorerGui):
         state = {
             "axis_order": "tpzc",
             "channels": [],
-            "stage_positions": [dict(zip("xyz", g)) for g in self.set_grid()],
+            "stage_positions": [],
             "z_plan": None,
             "time_plan": None,
         }
 
         state["channels"] = [
-            {
+            {  # type: ignore
                 "config": table.cellWidget(c, 0).currentText(),
                 "group": self._mmc.getChannelGroup() or "Channel",
                 "exposure": table.cellWidget(c, 1).value(),
@@ -298,9 +306,15 @@ class MMExploreSample(ExplorerGui):
                 "loops": self.timepoints_spinBox.value(),
             }
 
+        for g in self.set_grid():
+            pos = {"name": g[0], "x": g[1], "y": g[2]}
+            if len(g) == 4:
+                pos["z"] = g[3]
+            state["stage_positions"].append(pos)  # type: ignore
+
         return state
 
-    def set_grid(self) -> list[tuple[float, ...]]:
+    def set_grid(self) -> list[tuple[str, float, float, Optional[float]]]:
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
@@ -311,28 +325,32 @@ class MMExploreSample(ExplorerGui):
             and self.stage_tableWidget.rowCount() > 0
         ):
             for r in range(self.stage_tableWidget.rowCount()):
-                x = float(self.stage_tableWidget.item(r, 0).text())
-                y = float(self.stage_tableWidget.item(r, 1).text())
-                z = float(self.stage_tableWidget.item(r, 2).text())
-                coords = (x, y, z) if self._mmc.getFocusDevice() else (x, y)
-                explorer_starting_positions.append(coords)
+                name = self.stage_tableWidget.item(r, 0).text()
+                x = float(self.stage_tableWidget.item(r, 1).text())
+                y = float(self.stage_tableWidget.item(r, 2).text())
+                z = float(self.stage_tableWidget.item(r, 3).text())
+                pos_info = (
+                    (name, x, y, z) if self._mmc.getFocusDevice() else (name, x, y)
+                )
+                explorer_starting_positions.append(pos_info)
 
         else:
+            name = "Grid_001"
             x = float(self._mmc.getXPosition())
             y = float(self._mmc.getYPosition())
             if self._mmc.getFocusDevice():
                 z = float(self._mmc.getZPosition())
-                coords = (x, y, z)
+                pos_info = (name, x, y, z)
             else:
-                coords = (x, y)
-            explorer_starting_positions.append(coords)
+                pos_info = (name, x, y)
+            explorer_starting_positions.append(pos_info)
 
         full_pos_list = []
         for pe in explorer_starting_positions:
 
-            x_pos, y_pos = pe[0], pe[1]
+            name, x_pos, y_pos = pe[0], pe[1], pe[2]
             if self._mmc.getFocusDevice():
-                z_pos = pe[2]
+                z_pos = pe[3]
 
             self.return_to_position_x = x_pos
             self.return_to_position_y = y_pos
@@ -364,30 +382,39 @@ class MMExploreSample(ExplorerGui):
                 increment_x = width * self.pixel_size
                 increment_y = height * self.pixel_size
 
-            list_pos_order: list[tuple[float, ...]] = []
+            list_pos_order = []
+            pos_count = 0
             for r in range(self.scan_size_r):
                 if r % 2:  # for odd rows
                     col = self.scan_size_c - 1
                     for c in range(self.scan_size_c):
                         if c == 0:
                             y_pos -= increment_y
+                        pos_name = f"{name}_Pos{pos_count:03d}"
                         if self._mmc.getFocusDevice():
-                            list_pos_order.append((x_pos, y_pos, z_pos))
+                            list_pos_order.append((pos_name, x_pos, y_pos, z_pos))
                         else:
-                            list_pos_order.append((x_pos, y_pos))
+                            list_pos_order.append(
+                                (pos_name, x_pos, y_pos)  # type: ignore
+                            )
                         if col > 0:
                             col -= 1
                             x_pos -= increment_x
+                        pos_count += 1
                 else:  # for even rows
                     for c in range(self.scan_size_c):
                         if r > 0 and c == 0:
                             y_pos -= increment_y
+                        pos_name = f"{name}_Pos{pos_count:03d}"
                         if self._mmc.getFocusDevice():
-                            list_pos_order.append((x_pos, y_pos, z_pos))
+                            list_pos_order.append((pos_name, x_pos, y_pos, z_pos))
                         else:
-                            list_pos_order.append((x_pos, y_pos))
+                            list_pos_order.append(
+                                (pos_name, x_pos, y_pos)  # type: ignore
+                            )
                         if c < self.scan_size_c - 1:
                             x_pos += increment_x
+                        pos_count += 1
 
             full_pos_list.extend(list_pos_order)
 

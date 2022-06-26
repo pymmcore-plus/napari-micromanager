@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, List, Tuple
 import napari
 import numpy as np
 import zarr
-from napari.experimental import link_layers
+from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus._util import find_micromanager
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
@@ -329,9 +329,7 @@ class MainWindow(MicroManagerWidget):
     ) -> Tuple[List[int], List[str], List[str]]:
         """Remove positions index and set layer names."""
         labels, shape = self._get_shape_and_labels(sequence)
-        positions = [
-            f"Pos{pos_n:03d}_" for pos_n, _ in enumerate(sequence.stage_positions)
-        ]
+        positions = [f"{p.name}_" for p in sequence.stage_positions]
         with contextlib.suppress(ValueError):
             p_idx = labels.index("p")
             labels.pop(p_idx)
@@ -369,7 +367,6 @@ class MainWindow(MicroManagerWidget):
             # possible to have two of the same channel in one sequence.
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
-            # TODO: modify id_ to try and divede the grids when saving
             layer.metadata["grid"] = pos
 
     @ensure_main_thread
@@ -407,20 +404,28 @@ class MainWindow(MicroManagerWidget):
             # get the actual index of this image into the array
             # add it to the zarr store
             im_idx = tuple(event.index[k] for k in axis_order)
-            pos_idx = event.index["p"]
-            self._mda_temp_arrays[f"Pos{pos_idx:03d}_{event.sequence.uid}"][
-                im_idx
-            ] = image
+            pos_name = event.pos_name
+            layer_name = f"{pos_name}_{event.sequence.uid}"
+            self._mda_temp_arrays[layer_name][im_idx] = image
 
             # translate layer depending on stage position
             x = event.x_pos / self.explorer.pixel_size
             y = event.y_pos / self.explorer.pixel_size * (-1)
 
+            layergroups = self._get_defaultdict_layers(event)
+            # unlink layers to translate
+            for group in layergroups.values():
+                unlink_layers(group)
+
             # translate only once
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-            layer = self.viewer.layers[f"{fname}_Pos{pos_idx:03d}_{event.sequence.uid}"]
-            if layer.translate[-2] != y and layer.translate[-1] != x:
+            layer = self.viewer.layers[f"{fname}_{layer_name}"]
+            if (layer.translate[-2], layer.translate[-1]) != (y, x):
                 layer.translate = (y, x)
+
+            # link layers after translation
+            for group in layergroups.values():
+                link_layers(group)
 
             # move the viewer step to the most recently added image
             for a, v in enumerate(im_idx):
@@ -434,6 +439,14 @@ class MainWindow(MicroManagerWidget):
             self.viewer.camera.zoom = 1 / zoom_out_factor
             self.viewer.reset_view()
 
+    def _get_defaultdict_layers(self, event):
+        layergroups = defaultdict(set)
+        for lay in self.viewer.layers:
+            if lay.metadata.get("uid") == event.sequence.uid:
+                key = lay.metadata.get("grid")[:8]
+                layergroups[key].add(lay)
+        return layergroups
+
     def _translate_layer(self, event, pos_idx, x, y):
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         self.viewer.layers[
@@ -443,16 +456,6 @@ class MainWindow(MicroManagerWidget):
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""
         meta = _mda.SEQUENCE_META.get(sequence) or _mda.SequenceMeta()
-        # TODO: fix
-        seq_uid = sequence.uid
-        if meta.mode == "explorer":
-            layergroups = defaultdict(set)
-            for lay in self.viewer.layers:
-                if lay.metadata.get("uid") == seq_uid:
-                    key = f"{lay.metadata['ch_name']}_idx{lay.metadata['ch_id']}"
-                    layergroups[key].add(lay)
-            for group in layergroups.values():
-                link_layers(group)
         meta = _mda.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
