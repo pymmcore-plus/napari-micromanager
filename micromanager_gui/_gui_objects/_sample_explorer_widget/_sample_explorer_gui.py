@@ -23,6 +23,7 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from superqt import QCollapsible
 from superqt.fonticon import icon
 
 
@@ -47,7 +48,7 @@ class ExplorerGui(QWidget):
     def _create_gui(self):
         wdg = QWidget()
         wdg_layout = QVBoxLayout()
-        wdg_layout.setSpacing(20)
+        wdg_layout.setSpacing(15)
         wdg_layout.setContentsMargins(10, 10, 10, 10)
         wdg.setLayout(wdg_layout)
 
@@ -60,14 +61,14 @@ class ExplorerGui(QWidget):
         self.channel_explorer_groupBox = self._create_channel_group()
         wdg_layout.addWidget(self.channel_explorer_groupBox)
 
-        self.time_groupBox = self._create_time_group()
-        wdg_layout.addWidget(self.time_groupBox)
+        self.time_coll_group = self._create_time_collapsible_groups()
+        wdg_layout.addWidget(self.time_coll_group)
 
-        self.stack_groupBox = self._create_stack_groupBox()
-        wdg_layout.addWidget(self.stack_groupBox)
+        self.stack_coll_group = self._create_stack_collapsible_groups()
+        wdg_layout.addWidget(self.stack_coll_group)
 
-        self.stage_pos_groupBox = self._create_stage_pos_groupBox()
-        wdg_layout.addWidget(self.stage_pos_groupBox)
+        self.positions_coll_group = self._create_positions_collapsible_groups()
+        wdg_layout.addWidget(self.positions_coll_group)
 
         self.btns = self._create_start_stop_buttons()
         wdg_layout.addWidget(self.btns)
@@ -83,19 +84,22 @@ class ExplorerGui(QWidget):
     def _create_row_cols_overlap_group(self):
         group = QGroupBox(title="Grid Parameters")
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
-        group_layout = QHBoxLayout()
+        group_layout = QGridLayout()
         group_layout.setSpacing(10)
         group_layout.setContentsMargins(10, 20, 10, 20)
         group.setLayout(group_layout)
 
-        # row
+        fix_lbl_size = 80
         lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
+        # row
         self.row_wdg = QWidget()
         row_wdg_lay = QHBoxLayout()
         row_wdg_lay.setSpacing(0)
         row_wdg_lay.setContentsMargins(0, 0, 0, 0)
         self.row_wdg.setLayout(row_wdg_lay)
         row_label = QLabel(text="Rows:")
+        row_label.setMaximumWidth(fix_lbl_size)
         row_label.setSizePolicy(lbl_sizepolicy)
         self.scan_size_spinBox_r = QSpinBox()
         self.scan_size_spinBox_r.setMinimum(1)
@@ -110,6 +114,7 @@ class ExplorerGui(QWidget):
         col_wdg_lay.setContentsMargins(0, 0, 0, 0)
         self.col_wdg.setLayout(col_wdg_lay)
         col_label = QLabel(text="Columns:")
+        col_label.setMaximumWidth(fix_lbl_size)
         col_label.setSizePolicy(lbl_sizepolicy)
         self.scan_size_spinBox_c = QSpinBox()
         self.scan_size_spinBox_c.setSizePolicy
@@ -125,15 +130,16 @@ class ExplorerGui(QWidget):
         ovl_wdg_lay.setContentsMargins(0, 0, 0, 0)
         self.ovl_wdg.setLayout(ovl_wdg_lay)
         overlap_label = QLabel(text="Overlap (%):")
+        overlap_label.setMaximumWidth(fix_lbl_size)
         overlap_label.setSizePolicy(lbl_sizepolicy)
         self.ovelap_spinBox = QSpinBox()
         self.ovelap_spinBox.setAlignment(Qt.AlignCenter)
         ovl_wdg_lay.addWidget(overlap_label)
         ovl_wdg_lay.addWidget(self.ovelap_spinBox)
 
-        group_layout.addWidget(self.row_wdg)
-        group_layout.addWidget(self.col_wdg)
-        group_layout.addWidget(self.ovl_wdg)
+        group_layout.addWidget(self.row_wdg, 0, 0)
+        group_layout.addWidget(self.col_wdg, 1, 0)
+        group_layout.addWidget(self.ovl_wdg, 0, 1)
         return group
 
     def _create_channel_group(self):
@@ -227,8 +233,85 @@ class ExplorerGui(QWidget):
 
         return group
 
+    def _create_time_collapsible_groups(self):
+        wdg = QWidget()
+        wdg_layout = QVBoxLayout()
+        wdg_layout.setSpacing(0)
+        wdg_layout.setContentsMargins(0, 0, 0, 0)
+        wdg.setLayout(wdg_layout)
+
+        group_time = QGroupBox()
+        group_time_layout = QVBoxLayout()
+        group_time_layout.setSpacing(0)
+        group_time_layout.setContentsMargins(0, 0, 0, 0)
+        group_time.setLayout(group_time_layout)
+        coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.time_coll = QCollapsible(title="Time")
+        self.time_coll.setSizePolicy(coll_sizepolicy)
+        self.time_coll.layout().setSpacing(5)
+        self.time_coll.layout().setContentsMargins(0, 0, 5, 5)
+        self.time_groupBox = self._create_time_group()
+        self.time_coll.addWidget(self.time_groupBox)
+        group_time_layout.addWidget(self.time_coll)
+
+        wdg_layout.addWidget(group_time)
+
+        return wdg
+
+    def _create_stack_collapsible_groups(self):
+        wdg = QWidget()
+        wdg_layout = QVBoxLayout()
+        wdg_layout.setSpacing(0)
+        wdg_layout.setContentsMargins(0, 0, 0, 0)
+        wdg.setLayout(wdg_layout)
+
+        group_stack = QGroupBox()
+        group_stack_layout = QVBoxLayout()
+        group_stack_layout.setSpacing(0)
+        group_stack_layout.setContentsMargins(0, 0, 0, 0)
+        group_stack.setLayout(group_stack_layout)
+        coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.stack_coll = QCollapsible(title="Z Stack")
+        self.stack_coll.setSizePolicy(coll_sizepolicy)
+        self.stack_coll.layout().setSpacing(5)
+        self.stack_coll.layout().setContentsMargins(0, 0, 5, 5)
+        self.stack_groupBox = self._create_stack_groupBox()
+        self.stack_coll.addWidget(self.stack_groupBox)
+        group_stack_layout.addWidget(self.stack_coll)
+
+        wdg_layout.addWidget(group_stack)
+
+        return wdg
+
+    def _create_positions_collapsible_groups(self):
+        wdg = QWidget()
+        wdg_layout = QVBoxLayout()
+        wdg_layout.setSpacing(0)
+        wdg_layout.setContentsMargins(0, 0, 0, 0)
+        wdg.setLayout(wdg_layout)
+
+        group_pos = QGroupBox()
+        group_pos_layout = QVBoxLayout()
+        group_pos_layout.setSpacing(0)
+        group_pos_layout.setContentsMargins(0, 0, 0, 0)
+        group_pos.setLayout(group_pos_layout)
+        coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        self.pos_coll = QCollapsible(title="Grid Starting Positions")
+        self.pos_coll.setSizePolicy(coll_sizepolicy)
+        self.pos_coll.layout().setSpacing(5)
+        self.pos_coll.layout().setContentsMargins(0, 0, 5, 5)
+        self.stage_pos_groupBox = self._create_stage_pos_groupBox()
+        self.pos_coll.addWidget(self.stage_pos_groupBox)
+        group_pos_layout.addWidget(self.pos_coll)
+
+        wdg_layout.addWidget(group_pos)
+
+        return wdg
+
     def _create_time_group(self):
-        group = QGroupBox(title="Time")
+        group = QGroupBox()
         group.setCheckable(True)
         group.setChecked(False)
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
@@ -281,7 +364,7 @@ class ExplorerGui(QWidget):
         return group
 
     def _create_stack_groupBox(self):
-        group = QGroupBox(title="Z Stacks")
+        group = QGroupBox()
         group.setCheckable(True)
         group.setChecked(False)
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
@@ -440,9 +523,7 @@ class ExplorerGui(QWidget):
         return group
 
     def _create_stage_pos_groupBox(self):
-        group = QGroupBox(
-            title="Grid Starting Positions (double-click to move to position)"
-        )
+        group = QGroupBox(title="(double-click to move to position)")
         group.setCheckable(True)
         group.setChecked(False)
         group.setMinimumHeight(230)
