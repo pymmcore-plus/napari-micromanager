@@ -360,6 +360,9 @@ class MainWindow(MicroManagerWidget):
                 str(tmp.name), shape=shape, dtype=dtype
             )
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+
+            # TODO: try and translate here!!!
+
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
             # add metadata to layer
@@ -431,6 +434,8 @@ class MainWindow(MicroManagerWidget):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
+            # TODO: fix zoom and reset view. on s15 it doesnt work
+            # see line 364
             zoom_out_factor = (
                 self.explorer.scan_size_r
                 if self.explorer.scan_size_r >= self.explorer.scan_size_c
