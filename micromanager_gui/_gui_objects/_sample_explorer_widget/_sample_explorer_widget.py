@@ -421,8 +421,8 @@ class MMExploreSample(ExplorerGui):
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
         move_x = cam_size_x - (self.ovelap_spinBox.value() * cam_size_x) / 100
         move_y = cam_size_y - (self.ovelap_spinBox.value() * cam_size_y) / 100
-        x = -((cols - 1) * (cam_size_y / 2))
-        y = (rows - 1) * (cam_size_x / 2)
+        x = -((cols - 1) * (cam_size_x / 2))
+        y = (rows - 1) * (cam_size_y / 2)
 
         # for 'snake' acquisition
         points = []
