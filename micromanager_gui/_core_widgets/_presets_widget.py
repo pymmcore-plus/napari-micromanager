@@ -60,9 +60,7 @@ class PresetsWidget(QWidget):
 
     def _set_combo_view(self):
         view = QListView()
-        view_height = sum(
-            self._combo.view().sizeHintForRow(i) for i in range(self._combo.count())
-        )
+        view_height = self._combo.view().sizeHintForRow(0) * (self._combo.count() + 1.5)
         view.setFixedSize(self._combo.sizeHint().width(), view_height)
         self._combo.setView(view)
 
