@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -80,18 +79,15 @@ class MMExploreSample(ExplorerGui):
 
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-        self._mmc.mda.events.sequenceFinished.connect(self._refresh_positions)
 
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
         oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
-        oldEngine.events.sequenceFinished.disconnect(self._refresh_positions)
 
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
-        newEngine.events.sequenceFinished.connect(self._refresh_positions)
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Block gui when mda starts."""
@@ -121,15 +117,6 @@ class MMExploreSample(ExplorerGui):
         self.move_to_Button.setEnabled(enabled)
         self.start_scan_Button.setEnabled(enabled)
         self.channel_explorer_groupBox.setEnabled(enabled)
-
-    def _refresh_positions(self):
-        if self._mmc.getXYStageDevice():
-            x, y = f"{self._mmc.getXPosition():.1f}", f"{self._mmc.getYPosition():.1f}"
-        else:
-            x, y = "None", "None"
-
-        self.x_lineEdit.setText(x)
-        self.y_lineEdit.setText(y)
 
     # add, remove, clear channel table
     def add_channel(self):
@@ -428,6 +415,46 @@ class MMExploreSample(ExplorerGui):
         self.dir_explorer_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
+    def _create_translation_points(self, rows, cols) -> list:
+
+        cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+        cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+        move_x = cam_size_x - (self.ovelap_spinBox.value() * cam_size_x) / 100
+        move_y = cam_size_y - (self.ovelap_spinBox.value() * cam_size_y) / 100
+        x = -((cols - 1) * (cam_size_y / 2))
+        y = (rows - 1) * (cam_size_x / 2)
+
+        # for 'snake' acquisition
+        points = []
+        for r in range(rows):
+            if r % 2:  # for odd rows
+                col = cols - 1
+                for c in range(cols):
+                    if c == 0:
+                        y -= move_y
+                    points.append((x, y))
+                    if col > 0:
+                        col -= 1
+                        x -= move_x
+            else:  # for even rows
+                for c in range(cols):
+                    if r > 0 and c == 0:
+                        y -= move_y
+                    points.append((x, y))
+                    if c < cols - 1:
+                        x += move_x
+        return points
+
+    def _set_translate_point_list(self) -> list:
+
+        if self.display_checkbox.isChecked():
+            return []
+
+        t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
+        if self.stage_tableWidget.rowCount() > 0:
+            t_list = t_list * self.stage_tableWidget.rowCount()
+        return t_list
+
     def start_scan(self):
 
         self.pixel_size = self._mmc.getPixelSizeUm()
@@ -436,7 +463,7 @@ class MMExploreSample(ExplorerGui):
             raise ValueError("Load a cfg file first.")
 
         if self.pixel_size <= 0:
-            raise ValueError("PIXEL SIZE NOT SET.")
+            raise ValueError("Pixel Size not set.")
 
         if self.channel_explorer_tableWidget.rowCount() <= 0:
             raise ValueError("Select at least one channel.")
@@ -458,6 +485,7 @@ class MMExploreSample(ExplorerGui):
             should_save=self.save_explorer_groupBox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text(),
+            explorer_translation_points=self._set_translate_point_list(),
         )
 
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
@@ -465,12 +493,13 @@ class MMExploreSample(ExplorerGui):
 
     def move_to(self):
 
+        if self.pixel_size <= 0:
+            raise ValueError("Pixel Size not set.")
+
         move_to_x = self.x_lineEdit.text()
         move_to_y = self.y_lineEdit.text()
 
-        if move_to_x == "None" and move_to_y == "None":
-            warnings.warn("PIXEL SIZE NOT SET.")
-        else:
+        if move_to_x != "None" and move_to_y != "None":
             move_to_x = float(move_to_x)
             move_to_y = float(move_to_y)
             self._mmc.setXYPosition(move_to_x, move_to_y)

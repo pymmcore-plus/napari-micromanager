@@ -6,6 +6,7 @@ from qtpy.QtCore import QSize, Qt
 from qtpy.QtWidgets import (
     QAbstractItemView,
     QAbstractSpinBox,
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QGridLayout,
@@ -69,6 +70,9 @@ class ExplorerGui(QWidget):
 
         self.positions_coll_group = self._create_positions_collapsible_groups()
         wdg_layout.addWidget(self.positions_coll_group)
+
+        self.checkbox = self._create_display_checkbox()
+        wdg_layout.addWidget(self.display_checkbox)
 
         self.btns = self._create_start_stop_buttons()
         wdg_layout.addWidget(self.btns)
@@ -563,6 +567,19 @@ class ExplorerGui(QWidget):
         group_layout.addWidget(self.add_pos_Button, 0, 1, 1, 1)
         group_layout.addWidget(self.remove_pos_Button, 1, 1, 1, 2)
         group_layout.addWidget(self.clear_pos_Button, 2, 1, 1, 2)
+
+        return group
+
+    def _create_display_checkbox(self):
+        group = QGroupBox()
+        group.setChecked(False)
+        group_layout = QHBoxLayout()
+        group_layout.setSpacing(0)
+        group_layout.setContentsMargins(10, 10, 10, 10)
+        group.setLayout(group_layout)
+
+        self.display_checkbox = QCheckBox(text="Display Layers in Real Coordinates.")
+        group_layout.addWidget(self.display_checkbox)
 
         return group
 

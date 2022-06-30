@@ -361,8 +361,6 @@ class MainWindow(MicroManagerWidget):
             )
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
 
-            # TODO: try and translate here!!!
-
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
             # add metadata to layer
@@ -412,8 +410,12 @@ class MainWindow(MicroManagerWidget):
             self._mda_temp_arrays[layer_name][im_idx] = image
 
             # translate layer depending on stage position
-            x = event.x_pos / self.explorer.pixel_size
-            y = event.y_pos / self.explorer.pixel_size * (-1)
+            if self.explorer.display_checkbox.isChecked():
+                x = event.x_pos / self.explorer.pixel_size
+                y = event.y_pos / self.explorer.pixel_size * (-1)
+            else:
+                x = meta.explorer_translation_points[event.index["p"]][0]
+                y = -meta.explorer_translation_points[event.index["p"]][1]
 
             layergroups = self._get_defaultdict_layers(event)
             # unlink layers to translate
@@ -426,6 +428,10 @@ class MainWindow(MicroManagerWidget):
             if (layer.translate[-2], layer.translate[-1]) != (y, x):
                 layer.translate = (y, x)
 
+            layer.metadata[
+                "display_checkbox"
+            ] = self.explorer.display_checkbox.isChecked()
+
             # link layers after translation
             for group in layergroups.values():
                 link_layers(group)
@@ -435,7 +441,7 @@ class MainWindow(MicroManagerWidget):
                 self.viewer.dims.set_point(a, v)
 
             # TODO: fix zoom and reset view. on s15 it doesnt work
-            # see line 364
+            # when explorer.display_checkbox.isChecked()
             zoom_out_factor = (
                 self.explorer.scan_size_r
                 if self.explorer.scan_size_r >= self.explorer.scan_size_c
@@ -467,8 +473,20 @@ class MainWindow(MicroManagerWidget):
         self._set_enabled(True)
 
     def _get_event_explorer(self, viewer, event):
+
         if not self.explorer.isVisible():
             return
+
+        if layer := self.viewer.layers.selection.active:
+            if not layer.metadata.get("display_checkbox"):
+                self.explorer.x_lineEdit.setText("None")
+                self.explorer.y_lineEdit.setText("None")
+                return
+        else:
+            self.explorer.x_lineEdit.setText("None")
+            self.explorer.y_lineEdit.setText("None")
+            return
+
         if self._mmc.getPixelSizeUm() > 0:
             width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
             height = self._mmc.getROI(self._mmc.getCameraDevice())[3]

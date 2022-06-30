@@ -1,7 +1,7 @@
 """Metadata class for managing MDAs."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 
 from typing_extensions import Literal
@@ -26,6 +26,7 @@ class SequenceMeta:
     file_name: str = ""
     save_dir: str = ""
     save_pos: bool = False
+    explorer_translation_points: list = field(default_factory=list)
 
 
 SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
