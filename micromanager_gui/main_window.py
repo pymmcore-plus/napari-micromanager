@@ -436,11 +436,11 @@ class MainWindow(MicroManagerWidget):
             for group in layergroups.values():
                 link_layers(group)
 
-            layer.reset_contrast_limits()
-
             # move the viewer step to the most recently added image
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
+                
+            layer.reset_contrast_limits()
 
             # TODO: fix zoom and reset view. on s15 it doesnt work
             # when explorer.display_checkbox.isChecked()
