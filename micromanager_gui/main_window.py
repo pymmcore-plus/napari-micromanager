@@ -435,6 +435,8 @@ class MainWindow(MicroManagerWidget):
             # link layers after translation
             for group in layergroups.values():
                 link_layers(group)
+            
+            layer.reset_contrast_limits()
 
             # move the viewer step to the most recently added image
             for a, v in enumerate(im_idx):
