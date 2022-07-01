@@ -100,22 +100,21 @@ def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
 def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
 
     path = Path(meta.save_dir)
-    file_name = f"scan_{meta.file_name}"
 
-    folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
+    folder_name = ensure_unique(path / meta.file_name, extension="", ndigits=3)
     folder_name.mkdir(parents=True, exist_ok=True)
 
     for layer in sorted(
         (i for i in layers if i.metadata.get("uid") == sequence.uid),
-        key=lambda x: x.metadata.get("ch_id"),
+        key=lambda x: x.metadata.get("grid"),
     ):
-        data = layer.data[np.newaxis, ...]
+        # create grid subfolders
+        f_name = f"{meta.file_name}_Grid_{layer.metadata.get('grid')}"
+        grid_folder = folder_name / f_name
+        grid_folder.mkdir(parents=True, exist_ok=True)
 
-        if layer.metadata.get("scan_position") == "Pos000":
-            scan_stack = data
-        else:
-            scan_stack = np.concatenate((scan_stack, data))
-
-        if scan_stack.shape[0] > 1:
-            ch_name = layer.metadata.get("ch_name")
-            _imsave(folder_name / f"{ch_name}.tif", scan_stack)
+        # save layer in grid subfolder
+        if f_name in layer.name:
+            save_folder = folder_name / f_name
+            pos_name = layer.metadata.get("grid_pos")
+            _imsave(save_folder / f"{f_name}_{pos_name}.tif", layer.data)

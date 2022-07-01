@@ -19,17 +19,26 @@ if TYPE_CHECKING:
     ExplorerTuple = Tuple[MainWindow, ExploreSample]
 
 
-def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
+def test_explorer(explorer_two_channels: ExplorerTuple, qtbot: QtBot):
 
-    main_win, explorer = explorer_one_channel
+    main_win, explorer = explorer_two_channels
 
     mmc = main_win._mmc
-    mmc.setXYPosition(0.0, 0.0)
-    mmc.setPosition(0.0)
 
     mmc.setConfig(
         "Objective", "10X"
     )  # this it is also setting mmc.setPixelSizeConfig('Res10x')
+
+    assert main_win.explorer.set_grid() == [
+        ("Grid_001_Pos000", -256.0, 256.0, 0.0),
+        ("Grid_001_Pos001", 256.0, 256.0, 0.0),
+        ("Grid_001_Pos002", 256.0, -256.0, 0.0),
+        ("Grid_001_Pos003", -256.0, -256.0, 0.0),
+        ("Grid_002_Pos000", -256.0, 256.0, 0.0),
+        ("Grid_002_Pos001", 256.0, 256.0, 0.0),
+        ("Grid_002_Pos002", 256.0, -256.0, 0.0),
+        ("Grid_002_Pos003", -256.0, -256.0, 0.0),
+    ]
 
     assert not main_win.viewer.layers
 
@@ -51,12 +60,7 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
 
     # wait to finish returning to start pos
     mmc.waitForSystem()
-    assert main_win.explorer.set_grid() == [
-        (-256.0, 256.0, 0.0),
-        (256.0, 256.0, 0.0),
-        (256.0, -256.0, 0.0),
-        (-256.0, -256.0, 0.0),
-    ]
+
     assert mmc.getPixelSizeUm() == 1
     assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
     assert mmc.getROI(mmc.getCameraDevice())[-2] == 512
@@ -64,27 +68,39 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
     assert meta
     assert meta.mode == "explorer"
 
-    assert main_win.viewer.layers[-1].data.shape == (512, 512)
-    assert len(main_win.viewer.layers) == 4
+    assert len(main_win.viewer.layers) == 8
+    for layer in main_win.viewer.layers:
+        assert layer.data.shape == (3, 2, 512, 512)
+        # assert layer.data.shape == (2, 3, 1, 512, 512)
 
-    _layer = main_win.viewer.layers[-1]
-    assert _layer.metadata["ch_name"] == "Cy5"
-    assert _layer.metadata["ch_id"] == 0
-    assert _layer.metadata["uid"] == sequence.uid
+    _layer_1 = main_win.viewer.layers[0]
+    assert _layer_1.metadata["uid"] == sequence.uid
+    assert _layer_1.metadata["grid"] == "001"
+    assert _layer_1.metadata["grid_pos"] == "Pos000"
+
+    _layer_8 = main_win.viewer.layers[-1]
+    assert _layer_8.metadata["uid"] == sequence.uid
+    assert _layer_8.metadata["grid"] == "002"
+    assert _layer_8.metadata["grid_pos"] == "Pos003"
 
     # checking the linking  of the layers
-    assert len(main_win.viewer.layers) == 4
+    assert len(main_win.viewer.layers) == 8
     layer_0 = main_win.viewer.layers[0]
     layer_0.visible = False
 
+    layer_8 = main_win.viewer.layers[-1]
+    layer_8.visible = False
+
     # check that also the last layer is not visible
     layer_1 = main_win.viewer.layers[1]
+    layer_7 = main_win.viewer.layers[-2]
     assert not layer_1.visible
+    assert not layer_7.visible
 
 
-def test_saving_explorer(qtbot: QtBot, explorer_two_channel: ExplorerTuple):
+def test_saving_explorer(qtbot: QtBot, explorer_two_channels: ExplorerTuple):
 
-    main_win, explorer = explorer_two_channel
+    main_win, explorer = explorer_two_channels
     mmc = main_win._mmc
     # grab these in callback so we get the real meta that is
     # created once we start the scan
@@ -109,16 +125,24 @@ def test_saving_explorer(qtbot: QtBot, explorer_two_channel: ExplorerTuple):
 
         layer_list = list(main_win.viewer.layers)
         assert len(layer_list) == 8
+        for layer in main_win.viewer.layers:
+            assert layer.data.shape == (3, 2, 512, 512)
+            # assert layer.data.shape == (2, 3, 1, 512, 512)
 
         save_sequence(sequence, layer_list, meta)
 
-        folder = tmp_path / "scan_Experiment_000"  # after _imsave()
+        main_folder = tmp_path / f"{meta.file_name}_000"  # after _imsave()
 
-        file_list = sorted(pth.name for pth in folder.iterdir())
-        assert file_list == ["Cy5.tif", "FITC.tif"]
+        file_list = sorted(pth.name for pth in main_folder.iterdir())
+        assert file_list == [f"{meta.file_name}_Grid_001", f"{meta.file_name}_Grid_002"]
 
-        saved_file = tifffile.imread(folder / "Cy5.tif")
-        assert saved_file.shape == (4, 512, 512)
+        grid_subfolder_1 = main_folder / f"{meta.file_name}_Grid_001"
+        filename_list = sorted(file.name for file in grid_subfolder_1.iterdir())
+        for idx, fname in enumerate(filename_list):
+            assert fname == f"{meta.file_name}_Grid_001_Pos{idx:03d}.tif"
 
-        saved_file = tifffile.imread(folder / "FITC.tif")
-        assert saved_file.shape == (4, 512, 512)
+        saved_file = tifffile.imread(
+            grid_subfolder_1 / f"{meta.file_name}_Grid_001_Pos000.tif"
+        )
+        assert saved_file.shape == (3, 2, 512, 512)
+        # assert saved_file.shape == (2, 3, 1, 512, 512)

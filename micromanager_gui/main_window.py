@@ -368,7 +368,8 @@ class MainWindow(MicroManagerWidget):
             # possible to have two of the same channel in one sequence.
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
-            layer.metadata["grid"] = pos
+            layer.metadata["grid"] = pos.split("_")[-3]
+            layer.metadata["grid_pos"] = pos.split("_")[-2]
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):

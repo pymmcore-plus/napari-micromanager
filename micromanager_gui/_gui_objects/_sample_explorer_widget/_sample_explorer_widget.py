@@ -305,6 +305,7 @@ class MMExploreSample(ExplorerGui):
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
+        self.pixel_size = self._mmc.getPixelSizeUm()
 
         explorer_starting_positions = []
         if (
