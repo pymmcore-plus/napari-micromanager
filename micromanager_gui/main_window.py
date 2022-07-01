@@ -212,7 +212,7 @@ class MainWindow(MicroManagerWidget):
     def _start_live(self):
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(self._mmc.getExposure())
+        self.streaming_timer.start(int(self._mmc.getExposure()))
 
     def _stop_live(self):
         if self.streaming_timer:
