@@ -250,7 +250,7 @@ class MainWindow(MicroManagerWidget):
 
         elif self._mda_meta.mode == "explorer":
 
-            shape, positions, labels = self._interpret_positions(sequence)
+            shape, positions, labels = self._interpret_explorer_positions(sequence)
 
             self._add_explorer_positions_layers(tuple(shape), positions, sequence)
 
@@ -324,7 +324,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}_idx{i}"
 
-    def _interpret_positions(
+    def _interpret_explorer_positions(
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
         """Remove positions index and set layer names."""
