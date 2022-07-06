@@ -230,6 +230,7 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence):
+        # sourcery skip: merge-duplicate-blocks, remove-redundant-if
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
@@ -250,9 +251,17 @@ class MainWindow(MicroManagerWidget):
 
         elif self._mda_meta.mode == "explorer":
 
-            shape, positions, labels = self._interpret_explorer_positions(sequence)
+            if self._mda_meta.translate_explorer:
 
-            self._add_explorer_positions_layers(tuple(shape), positions, sequence)
+                shape, positions, labels = self._interpret_explorer_positions(sequence)
+
+                self._add_explorer_positions_layers(tuple(shape), positions, sequence)
+
+            else:
+
+                shape, channels, labels = self._interpret_split_channels(sequence)
+
+                self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
@@ -400,58 +409,69 @@ class MainWindow(MicroManagerWidget):
 
         elif meta.mode == "explorer":
 
-            with contextlib.suppress(ValueError):
-                axis_order.remove("p")
+            if meta.translate_explorer:
 
-            # get the actual index of this image into the array
-            # add it to the zarr store
-            im_idx = tuple(event.index[k] for k in axis_order)
-            pos_name = event.pos_name
-            layer_name = f"{pos_name}_{event.sequence.uid}"
-            self._mda_temp_arrays[layer_name][im_idx] = image
+                with contextlib.suppress(ValueError):
+                    axis_order.remove("p")
 
-            # translate layer depending on stage position
-            if self.explorer.display_checkbox.isChecked():
-                x = event.x_pos / self.explorer.pixel_size
-                y = event.y_pos / self.explorer.pixel_size * (-1)
+                # get the actual index of this image into the array
+                # add it to the zarr store
+                im_idx = tuple(event.index[k] for k in axis_order)
+                pos_name = event.pos_name
+                layer_name = f"{pos_name}_{event.sequence.uid}"
+                self._mda_temp_arrays[layer_name][im_idx] = image
+
+                # translate layer depending on stage position
+                if self.explorer.display_checkbox_real.isChecked():
+                    x = event.x_pos / self.explorer.pixel_size
+                    y = event.y_pos / self.explorer.pixel_size * (-1)
+                else:
+                    x = meta.explorer_translation_points[event.index["p"]][0]
+                    y = -meta.explorer_translation_points[event.index["p"]][1]
+
+                layergroups = self._get_defaultdict_layers(event)
+                # unlink layers to translate
+                for group in layergroups.values():
+                    unlink_layers(group)
+
+                # translate only once
+                fname = (
+                    self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+                )
+                layer = self.viewer.layers[f"{fname}_{layer_name}"]
+                if (layer.translate[-2], layer.translate[-1]) != (y, x):
+                    layer.translate = (y, x)
+
+                # link layers after translation
+                for group in layergroups.values():
+                    link_layers(group)
+
+                # move the viewer step to the most recently added image
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
+
+                layer.reset_contrast_limits()
+
+                # TODO: fix zoom and reset view. on s15 it doesnt work
+                # when explorer.display_checkbox.isChecked()
+                zoom_out_factor = (
+                    self.explorer.scan_size_r
+                    if self.explorer.scan_size_r >= self.explorer.scan_size_c
+                    else self.explorer.scan_size_c
+                )
+                self.viewer.camera.zoom = 1 / zoom_out_factor
+                self.viewer.reset_view()
+
             else:
-                x = meta.explorer_translation_points[event.index["p"]][0]
-                y = -meta.explorer_translation_points[event.index["p"]][1]
+                # get the actual index of this image into the array
+                # add it to the zarr store
+                im_idx = tuple(event.index[k] for k in axis_order)
+                # add index of this image to the zarr store
+                self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
 
-            layergroups = self._get_defaultdict_layers(event)
-            # unlink layers to translate
-            for group in layergroups.values():
-                unlink_layers(group)
-
-            # translate only once
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-            layer = self.viewer.layers[f"{fname}_{layer_name}"]
-            if (layer.translate[-2], layer.translate[-1]) != (y, x):
-                layer.translate = (y, x)
-
-            layer.metadata[
-                "display_checkbox"
-            ] = self.explorer.display_checkbox.isChecked()
-
-            # link layers after translation
-            for group in layergroups.values():
-                link_layers(group)
-
-            # move the viewer step to the most recently added image
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
-
-            layer.reset_contrast_limits()
-
-            # TODO: fix zoom and reset view. on s15 it doesnt work
-            # when explorer.display_checkbox.isChecked()
-            zoom_out_factor = (
-                self.explorer.scan_size_r
-                if self.explorer.scan_size_r >= self.explorer.scan_size_c
-                else self.explorer.scan_size_c
-            )
-            self.viewer.camera.zoom = 1 / zoom_out_factor
-            self.viewer.reset_view()
+                # move the viewer step to the most recently added image
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
 
     def _get_defaultdict_layers(self, event):
         layergroups = defaultdict(set)
@@ -460,12 +480,6 @@ class MainWindow(MicroManagerWidget):
                 key = lay.metadata.get("grid")[:8]
                 layergroups[key].add(lay)
         return layergroups
-
-    def _translate_layer(self, event, pos_idx, x, y):
-        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-        self.viewer.layers[
-            f"{fname}_Pos{pos_idx:03d}_{event.sequence.uid}"
-        ].translate = (y, x)
 
     def _on_mda_finished(self, sequence: useq.MDASequence):
         """Save layer and add increment to save name."""

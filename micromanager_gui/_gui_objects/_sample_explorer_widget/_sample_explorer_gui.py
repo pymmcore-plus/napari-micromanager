@@ -72,7 +72,7 @@ class ExplorerGui(QWidget):
         wdg_layout.addWidget(self.positions_coll_group)
 
         self.checkbox = self._create_display_checkbox()
-        wdg_layout.addWidget(self.display_checkbox)
+        wdg_layout.addWidget(self.checkbox)
 
         self.btns = self._create_start_stop_buttons()
         wdg_layout.addWidget(self.btns)
@@ -574,14 +574,45 @@ class ExplorerGui(QWidget):
         group = QGroupBox()
         group.setChecked(False)
         group_layout = QHBoxLayout()
-        group_layout.setSpacing(0)
+        group_layout.setSpacing(7)
         group_layout.setContentsMargins(10, 10, 10, 10)
         group.setLayout(group_layout)
 
-        self.display_checkbox = QCheckBox(text="Display Layers in Real Coordinates.")
+        fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
+        lbl = QLabel(text="Display as:")
+        lbl.setSizePolicy(fixed_policy)
+
+        self.multid_stack_checkbox = QCheckBox(text="multiD stack")
+        self.multid_stack_checkbox.setSizePolicy(fixed_policy)
+        self.multid_stack_checkbox.setChecked(True)
+        self.display_checkbox = QCheckBox(text="layers translation")
+        self.display_checkbox.setSizePolicy(fixed_policy)
+        self.display_checkbox_real = QCheckBox(text="...in stage coords")
+        self.display_checkbox_real.setSizePolicy(fixed_policy)
+        self.display_checkbox_real.setEnabled(False)
+
+        self.multid_stack_checkbox.toggled.connect(self._toggle_checkboxes)
+        self.display_checkbox.toggled.connect(self._toggle_checkboxes)
+        self.display_checkbox.toggled.connect(self._toggle_display_checkboxes)
+
+        group_layout.addWidget(lbl)
+        group_layout.addWidget(self.multid_stack_checkbox)
         group_layout.addWidget(self.display_checkbox)
+        group_layout.addWidget(self.display_checkbox_real)
 
         return group
+
+    def _toggle_checkboxes(self, state: bool) -> None:
+        if self.sender() == self.multid_stack_checkbox:
+            self.display_checkbox.setChecked(not state)
+
+        elif self.sender() == self.display_checkbox:
+            self.multid_stack_checkbox.setChecked(not state)
+
+    def _toggle_display_checkboxes(self, state: bool) -> None:
+        self.display_checkbox_real.setEnabled(state)
+        self.display_checkbox_real.setChecked(False)
 
     def _create_start_stop_buttons(self):
         wdg = QWidget()

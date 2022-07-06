@@ -433,7 +433,7 @@ class MMExploreSample(ExplorerGui):
                 for c in range(cols):
                     if c == 0:
                         y -= move_y
-                    points.append((x, y))
+                    points.append((x, y, r, c))
                     if col > 0:
                         col -= 1
                         x -= move_x
@@ -441,14 +441,14 @@ class MMExploreSample(ExplorerGui):
                 for c in range(cols):
                     if r > 0 and c == 0:
                         y -= move_y
-                    points.append((x, y))
+                    points.append((x, y, r, c))
                     if c < cols - 1:
                         x += move_x
         return points
 
     def _set_translate_point_list(self) -> list:
 
-        if self.display_checkbox.isChecked():
+        if self.display_checkbox_real.isChecked():
             return []
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
@@ -482,10 +482,10 @@ class MMExploreSample(ExplorerGui):
 
         _mda.SEQUENCE_META[explore_sample] = _mda.SequenceMeta(
             mode="explorer",
-            split_channels=True,
             should_save=self.save_explorer_groupBox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text(),
+            translate_explorer=self.display_checkbox.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
         )
 

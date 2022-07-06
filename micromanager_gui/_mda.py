@@ -26,6 +26,7 @@ class SequenceMeta:
     file_name: str = ""
     save_dir: str = ""
     save_pos: bool = False
+    translate_explorer: bool = False
     explorer_translation_points: list = field(default_factory=list)
 
 
