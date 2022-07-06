@@ -583,23 +583,22 @@ class ExplorerGui(QWidget):
         lbl = QLabel(text="Display as:")
         lbl.setSizePolicy(fixed_policy)
 
-        self.multid_stack_checkbox = QCheckBox(text="multiD stack")
-        self.multid_stack_checkbox.setSizePolicy(fixed_policy)
-        self.multid_stack_checkbox.setChecked(True)
         self.display_checkbox = QCheckBox(text="layers translation")
         self.display_checkbox.setSizePolicy(fixed_policy)
+        self.display_checkbox.setChecked(True)
         self.display_checkbox_real = QCheckBox(text="...in stage coords")
         self.display_checkbox_real.setSizePolicy(fixed_policy)
-        self.display_checkbox_real.setEnabled(False)
+        self.multid_stack_checkbox = QCheckBox(text="multiD stack")
+        self.multid_stack_checkbox.setSizePolicy(fixed_policy)
 
-        self.multid_stack_checkbox.toggled.connect(self._toggle_checkboxes)
         self.display_checkbox.toggled.connect(self._toggle_checkboxes)
         self.display_checkbox.toggled.connect(self._toggle_display_checkboxes)
+        self.multid_stack_checkbox.toggled.connect(self._toggle_checkboxes)
 
         group_layout.addWidget(lbl)
-        group_layout.addWidget(self.multid_stack_checkbox)
         group_layout.addWidget(self.display_checkbox)
         group_layout.addWidget(self.display_checkbox_real)
+        group_layout.addWidget(self.multid_stack_checkbox)
 
         return group
 
