@@ -104,17 +104,27 @@ def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: Sequence
     folder_name = ensure_unique(path / meta.file_name, extension="", ndigits=3)
     folder_name.mkdir(parents=True, exist_ok=True)
 
-    for layer in sorted(
-        (i for i in layers if i.metadata.get("uid") == sequence.uid),
-        key=lambda x: x.metadata.get("grid"),
-    ):
-        # create grid subfolders
-        f_name = f"{meta.file_name}_Grid_{layer.metadata.get('grid')}"
-        grid_folder = folder_name / f_name
-        grid_folder.mkdir(parents=True, exist_ok=True)
+    if meta.translate_explorer:
 
-        # save layer in grid subfolder
-        if f_name in layer.name:
-            save_folder = folder_name / f_name
-            pos_name = layer.metadata.get("grid_pos")
-            _imsave(save_folder / f"{f_name}_{pos_name}.tif", layer.data)
+        for layer in sorted(
+            (i for i in layers if i.metadata.get("uid") == sequence.uid),
+            key=lambda x: x.metadata.get("grid"),
+        ):
+            # create grid subfolders
+            f_name = f"{meta.file_name}_Grid_{layer.metadata.get('grid')}"
+            grid_folder = folder_name / f_name
+            grid_folder.mkdir(parents=True, exist_ok=True)
+
+            # save layer in grid subfolder
+            if f_name in layer.name:
+                save_folder = folder_name / f_name
+                pos_name = layer.metadata.get("grid_pos")
+                _imsave(save_folder / f"{f_name}_{pos_name}.tif", layer.data)
+    else:
+
+        active_layer = next(x for x in layers if x.metadata.get("uid") == sequence.uid)
+        save_path = ensure_unique(
+            folder_name / meta.file_name, extension=".tif", ndigits=3
+        )
+        # TODO: see above TODO
+        _imsave(save_path, np.squeeze(active_layer.data))
