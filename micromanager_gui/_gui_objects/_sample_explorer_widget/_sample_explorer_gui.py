@@ -538,22 +538,19 @@ class ExplorerGui(QWidget):
         return group
 
     def _create_display_checkbox(self):
-        group = QGroupBox()
+        group = QGroupBox(title="Display as:")
         group.setChecked(False)
         group_layout = QHBoxLayout()
         group_layout.setSpacing(7)
-        group_layout.setContentsMargins(10, 10, 10, 10)
+        group_layout.setContentsMargins(10, 15, 10, 15)
         group.setLayout(group_layout)
 
         fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        lbl = QLabel(text="Display as:")
-        lbl.setSizePolicy(fixed_policy)
-
-        self.display_checkbox = QCheckBox(text="layers translation")
+        self.display_checkbox = QCheckBox(text="layers translation  (")
         self.display_checkbox.setSizePolicy(fixed_policy)
         self.display_checkbox.setChecked(True)
-        self.display_checkbox_real = QCheckBox(text="...in stage coords")
+        self.display_checkbox_real = QCheckBox(text="using stage coordinates   )")
         self.display_checkbox_real.setSizePolicy(fixed_policy)
         self.multid_stack_checkbox = QCheckBox(text="multiD stack")
         self.multid_stack_checkbox.setSizePolicy(fixed_policy)
@@ -562,10 +559,15 @@ class ExplorerGui(QWidget):
         self.display_checkbox.toggled.connect(self._toggle_display_checkboxes)
         self.multid_stack_checkbox.toggled.connect(self._toggle_checkboxes)
 
-        group_layout.addWidget(lbl)
         group_layout.addWidget(self.display_checkbox)
         group_layout.addWidget(self.display_checkbox_real)
+
+        spacer = QSpacerItem(30, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
+        group_layout.addItem(spacer)
         group_layout.addWidget(self.multid_stack_checkbox)
+
+        spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        group_layout.addItem(spacer)
 
         return group
 

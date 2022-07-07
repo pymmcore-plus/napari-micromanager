@@ -489,6 +489,9 @@ class MMExploreSample(ExplorerGui):
             explorer_translation_points=self._set_translate_point_list(),
         )
 
+        self.x_lineEdit.setText("None")
+        self.y_lineEdit.setText("None")
+
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
 

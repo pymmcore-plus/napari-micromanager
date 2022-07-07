@@ -441,6 +441,7 @@ class MainWindow(MicroManagerWidget):
                 layer = self.viewer.layers[f"{fname}_{layer_name}"]
                 if (layer.translate[-2], layer.translate[-1]) != (y, x):
                     layer.translate = (y, x)
+                layer.metadata["translate"] = True
 
                 # link layers after translation
                 for group in layergroups.values():
@@ -453,7 +454,7 @@ class MainWindow(MicroManagerWidget):
                 layer.reset_contrast_limits()
 
                 # TODO: fix zoom and reset view. on s15 it doesnt work
-                # when explorer.display_checkbox.isChecked()
+                # when dysplay with stage coords
                 zoom_out_factor = (
                     self.explorer.scan_size_r
                     if self.explorer.scan_size_r >= self.explorer.scan_size_c
@@ -495,7 +496,7 @@ class MainWindow(MicroManagerWidget):
             return
 
         if layer := self.viewer.layers.selection.active:
-            if not layer.metadata.get("display_checkbox"):
+            if not layer.metadata.get("translate"):
                 self.explorer.x_lineEdit.setText("None")
                 self.explorer.y_lineEdit.setText("None")
                 return
