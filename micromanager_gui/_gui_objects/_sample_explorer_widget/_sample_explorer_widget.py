@@ -75,7 +75,7 @@ class MMExploreSample(ExplorerGui):
         self.y_lineEdit.setText(str(None))
 
         # connect mmcore signals
-        self._mmc.events.systemConfigurationLoaded.connect(self.clear_channel)
+        self._mmc.events.systemConfigurationLoaded.connect(self._clear_channel)
 
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
