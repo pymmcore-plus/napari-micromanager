@@ -449,7 +449,7 @@ class MultiDWidgetGui(QWidget):
         acquisition_order_label.setSizePolicy(lbl_sizepolicy)
         self.acquisition_order_comboBox = QComboBox()
         self.acquisition_order_comboBox.setMinimumWidth(100)
-        self.acquisition_order_comboBox.addItems(["tpzc", "tpcz", "ptzc", "ptcz"])
+        self.acquisition_order_comboBox.addItems(["tpcz", "tpzc", "ptzc", "ptcz"])
         acq_wdg_layout.addWidget(acquisition_order_label)
         acq_wdg_layout.addWidget(self.acquisition_order_comboBox)
 
