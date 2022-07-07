@@ -65,15 +65,6 @@ class ExplorerGui(QWidget):
         mda_options = self._create_mda_options()
         wdg_layout.addWidget(mda_options)
 
-        # self.time_coll_group = self._create_time_collapsible_groups()
-        # wdg_layout.addWidget(self.time_coll_group)
-
-        # self.stack_coll_group = self._create_stack_collapsible_groups()
-        # wdg_layout.addWidget(self.stack_coll_group)
-
-        # self.positions_coll_group = self._create_positions_collapsible_groups()
-        # wdg_layout.addWidget(self.positions_coll_group)
-
         self.checkbox = self._create_display_checkbox()
         wdg_layout.addWidget(self.checkbox)
 
@@ -289,104 +280,6 @@ class ExplorerGui(QWidget):
         group_layout.addWidget(self.pos_coll)
 
         return group
-
-    # def _create_time_collapsible_groups(self):
-    #     wdg = QWidget()
-    #     wdg_layout = QVBoxLayout()
-    #     wdg_layout.setSpacing(0)
-    #     wdg_layout.setContentsMargins(0, 0, 0, 0)
-    #     wdg.setLayout(wdg_layout)
-
-    #     group_time = QGroupBox()
-    #     group_time_layout = QVBoxLayout()
-    #     group_time_layout.setSpacing(0)
-    #     group_time_layout.setContentsMargins(0, 0, 0, 0)
-    #     group_time.setLayout(group_time_layout)
-    #     coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-    #     self.time_coll = QCollapsible(title="Time")
-    #     self.time_coll.setSizePolicy(coll_sizepolicy)
-    #     self.time_coll.layout().setSpacing(0)
-    #     self.time_coll.layout().setContentsMargins(3, 3, 3, 3)
-
-    #     spacer_before = self._spacer()
-    #     self.time_coll.addWidget(spacer_before)
-
-    #     self.time_groupBox = self._create_time_group()
-    #     self.time_coll.addWidget(self.time_groupBox)
-    #     group_time_layout.addWidget(self.time_coll)
-
-    #     spacer_after = self._spacer()
-    #     self.time_coll.addWidget(spacer_after)
-
-    #     wdg_layout.addWidget(group_time)
-
-    #     return wdg
-
-    # def _create_stack_collapsible_groups(self):
-    #     wdg = QWidget()
-    #     wdg_layout = QVBoxLayout()
-    #     wdg_layout.setSpacing(0)
-    #     wdg_layout.setContentsMargins(0, 0, 0, 0)
-    #     wdg.setLayout(wdg_layout)
-
-    #     group_stack = QGroupBox()
-    #     group_stack_layout = QVBoxLayout()
-    #     group_stack_layout.setSpacing(0)
-    #     group_stack_layout.setContentsMargins(0, 0, 0, 0)
-    #     group_stack.setLayout(group_stack_layout)
-    #     coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-
-    #     self.stack_coll = QCollapsible(title="Z Stack")
-    #     self.stack_coll.setSizePolicy(coll_sizepolicy)
-    #     self.stack_coll.layout().setSpacing(0)
-    #     self.stack_coll.layout().setContentsMargins(3, 3, 3, 3)
-
-    #     spacer_before = self._spacer()
-    #     self.stack_coll.addWidget(spacer_before)
-
-    #     self.stack_groupBox = self._create_stack_groupBox()
-    #     self.stack_coll.addWidget(self.stack_groupBox)
-    #     group_stack_layout.addWidget(self.stack_coll)
-
-    #     spacer_after = self._spacer()
-    #     self.stack_coll.addWidget(spacer_after)
-
-    #     wdg_layout.addWidget(group_stack)
-
-    #     return wdg
-
-    # def _create_positions_collapsible_groups(self):
-    #     wdg = QWidget()
-    #     wdg_layout = QVBoxLayout()
-    #     wdg_layout.setSpacing(0)
-    #     wdg_layout.setContentsMargins(0, 0, 0, 0)
-    #     wdg.setLayout(wdg_layout)
-
-    #     group_pos = QGroupBox()
-    #     group_pos_layout = QVBoxLayout()
-    #     group_pos_layout.setSpacing(0)
-    #     group_pos_layout.setContentsMargins(0, 0, 0, 0)
-    #     group_pos.setLayout(group_pos_layout)
-    #     coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-
-    #     self.pos_coll = QCollapsible(title="Grid Starting Positions")
-    #     self.pos_coll.setSizePolicy(coll_sizepolicy)
-    #     self.pos_coll.layout().setSpacing(0)
-    #     self.pos_coll.layout().setContentsMargins(3, 3, 3, 3)
-
-    #     spacer_before = self._spacer()
-    #     self.pos_coll.addWidget(spacer_before)
-
-    #     self.stage_pos_groupBox = self._create_stage_pos_groupBox()
-    #     self.pos_coll.addWidget(self.stage_pos_groupBox)
-    #     group_pos_layout.addWidget(self.pos_coll)
-
-    #     spacer_after = self._spacer()
-    #     self.pos_coll.addWidget(spacer_after)
-
-    #     wdg_layout.addWidget(group_pos)
-
-    #     return wdg
 
     def _create_time_group(self):
         group = QGroupBox()
