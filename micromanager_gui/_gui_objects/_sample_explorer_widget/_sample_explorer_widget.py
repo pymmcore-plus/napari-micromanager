@@ -34,9 +34,9 @@ class MMExploreSample(ExplorerGui):
         self.return_to_position_y = None
 
         # connect for channel
-        self.add_ch_explorer_Button.clicked.connect(self.add_channel)
-        self.remove_ch_explorer_Button.clicked.connect(self.remove_channel)
-        self.clear_ch_explorer_Button.clicked.connect(self.clear_channel)
+        self.add_ch_explorer_Button.clicked.connect(self._add_channel)
+        self.remove_ch_explorer_Button.clicked.connect(self._remove_channel)
+        self.clear_ch_explorer_Button.clicked.connect(self._clear_channel)
 
         # connect for z stack
         self.set_top_Button.clicked.connect(self._set_top)
@@ -59,10 +59,10 @@ class MMExploreSample(ExplorerGui):
         self.stack_groupBox.toggled.connect(self._update_n_images)
 
         # connect for positions
-        self.add_pos_Button.clicked.connect(self.add_position)
-        self.remove_pos_Button.clicked.connect(self.remove_position)
-        self.clear_pos_Button.clicked.connect(self.clear_positions)
-        self.stage_tableWidget.cellDoubleClicked.connect(self.move_to_position)
+        self.add_pos_Button.clicked.connect(self._add_position)
+        self.remove_pos_Button.clicked.connect(self._remove_position)
+        self.clear_pos_Button.clicked.connect(self._clear_positions)
+        self.stage_tableWidget.cellDoubleClicked.connect(self._move_to_position)
 
         # connect buttons
         self.start_scan_Button.clicked.connect(self.start_scan)
@@ -119,7 +119,7 @@ class MMExploreSample(ExplorerGui):
         self.channel_explorer_groupBox.setEnabled(enabled)
 
     # add, remove, clear channel table
-    def add_channel(self):
+    def _add_channel(self):
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
@@ -149,13 +149,13 @@ class MMExploreSample(ExplorerGui):
                 idx, 1, self.channel_explorer_exp_spinBox
             )
 
-    def remove_channel(self):
+    def _remove_channel(self):
         # remove selected position
         rows = {r.row() for r in self.channel_explorer_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.channel_explorer_tableWidget.removeRow(idx)
 
-    def clear_channel(self):
+    def _clear_channel(self):
         # clear all positions
         self.channel_explorer_tableWidget.clearContents()
         self.channel_explorer_tableWidget.setRowCount(0)
@@ -192,7 +192,7 @@ class MMExploreSample(ExplorerGui):
         self.n_images_label.setText(f"Number of Images: {round((_range / step) + 1)}")
 
     # add, remove, clear, move_to positions table
-    def add_position(self):
+    def _add_position(self):
 
         if not self._mmc.getXYStageDevice():
             return
@@ -221,18 +221,18 @@ class MMExploreSample(ExplorerGui):
         self.stage_tableWidget.insertRow(idx)
         return idx
 
-    def remove_position(self):
+    def _remove_position(self):
         # remove selected position
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
 
-    def clear_positions(self):
+    def _clear_positions(self):
         # clear all positions
         self.stage_tableWidget.clearContents()
         self.stage_tableWidget.setRowCount(0)
 
-    def move_to_position(self):
+    def _move_to_position(self):
         if not self._mmc.getXYStageDevice():
             return
         curr_row = self.stage_tableWidget.currentRow()
