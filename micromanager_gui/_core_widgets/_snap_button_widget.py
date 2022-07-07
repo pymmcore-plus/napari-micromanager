@@ -28,8 +28,6 @@ class SnapButton(QPushButton):
 
     Parameters
     ----------
-    camera:
-        Camera device. If 'None' -> getCameraDevice()
     button_text : Optional[str]
         Text of the QPushButton.
     icon_size : Optional[int]
@@ -40,7 +38,6 @@ class SnapButton(QPushButton):
 
     def __init__(
         self,
-        camera: Optional[str] = None,
         button_text: Optional[str] = None,
         icon_size: Optional[int] = 30,
         icon_color: Optional[COLOR_TYPES] = "",
@@ -53,7 +50,7 @@ class SnapButton(QPushButton):
         self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
 
         self._mmc = mmcore or get_core_singleton()
-        self._camera = camera or self._mmc.getCameraDevice()
+        self._camera = self._mmc.getCameraDevice()
         self.button_text = button_text
         self.icon_size = icon_size
         self.icon_color = icon_color
@@ -85,8 +82,7 @@ class SnapButton(QPushButton):
         create_worker(self._mmc.snap, _start_thread=True)
 
     def _on_system_cfg_loaded(self):
-        if not self._camera:
-            self._camera = self._mmc.getCameraDevice()
+        self._camera = self._mmc.getCameraDevice()
         self.setEnabled(bool(self._camera))
 
     def disconnect(self):
