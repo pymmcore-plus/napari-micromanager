@@ -2,11 +2,11 @@ import re
 from typing import Optional
 
 from pymmcore_plus import CMMCorePlus, PropertyType
+from pymmcore_widgets._property_widget import PropertyWidget
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QDialog, QGridLayout, QLabel, QWidget
 
 from .._core import get_core_singleton, iter_dev_props
-from .._core_widgets._property_widget import PropertyWidget
 
 
 class SliderDialog(QDialog):

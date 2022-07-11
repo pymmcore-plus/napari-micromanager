@@ -1,10 +1,10 @@
 from typing import Optional, Union
 
 from pymmcore_plus import CMMCorePlus
+from pymmcore_widgets import StateDeviceWidget
 from qtpy.QtWidgets import QComboBox, QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from .. import _core
-from .._core_widgets import StateDeviceWidget
 from .._util import ComboMessageBox
 
 

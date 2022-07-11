@@ -1,11 +1,11 @@
 from typing import Optional, Union
 
 from pymmcore_plus import CMMCorePlus, DeviceType
+from pymmcore_widgets._presets_widget import PresetsWidget
 from qtpy.QtWidgets import QComboBox, QVBoxLayout, QWidget
 
 from micromanager_gui import _core
 
-from .._core_widgets._presets_widget import PresetsWidget
 from .._util import ComboMessageBox
 
 

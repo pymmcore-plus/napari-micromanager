@@ -1,10 +1,10 @@
+from pymmcore_widgets._presets_widget import PresetsWidget
+from pymmcore_widgets._property_widget import PropertyWidget
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QVBoxLayout
 
 from .. import _core
-from .._core_widgets._presets_widget import PresetsWidget
-from .._core_widgets._property_widget import PropertyWidget
 
 
 class _MainTable(QtW.QTableWidget):

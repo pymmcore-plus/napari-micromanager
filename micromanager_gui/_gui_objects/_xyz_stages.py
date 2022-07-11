@@ -1,12 +1,12 @@
 from typing import Optional
 
 from pymmcore_plus import DeviceType
+from pymmcore_widgets._stage_widget import StageWidget
 from qtpy.QtCore import QMimeData, Qt
 from qtpy.QtGui import QDrag
 from qtpy.QtWidgets import QGroupBox, QHBoxLayout, QWidget
 
 from .. import _core
-from .._core_widgets._stage_widget import StageWidget
 
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
