@@ -5,8 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from pymmcore_plus import CMMCorePlus
-
-from micromanager_gui._core_widgets import DefaultCameraExposureWidget
+from pymmcore_widgets import DefaultCameraExposureWidget
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot

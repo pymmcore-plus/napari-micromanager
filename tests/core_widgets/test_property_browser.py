@@ -1,6 +1,5 @@
 from pymmcore_plus import CMMCorePlus
-
-from micromanager_gui._core_widgets import PropertyBrowser
+from pymmcore_widgets import PropertyBrowser
 
 
 def test_prop_browser(global_mmcore, qtbot):

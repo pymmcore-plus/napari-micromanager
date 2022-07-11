@@ -1,7 +1,6 @@
 import pytest
 from pymmcore_plus import CMMCorePlus, PropertyType
-
-from micromanager_gui._core_widgets import PropertyWidget
+from pymmcore_widgets import PropertyWidget
 
 # not sure how else to parametrize the test without instantiating here at import ...
 CORE = CMMCorePlus()

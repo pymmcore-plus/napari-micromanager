@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from micromanager_gui._core_widgets._live_button_widget import LiveButton
+from pymmcore_widgets._live_button_widget import LiveButton
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus

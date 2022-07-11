@@ -1,4 +1,4 @@
-from micromanager_gui._core_widgets._presets_widget import PresetsWidget
+from pymmcore_widgets._presets_widget import PresetsWidget
 
 
 def test_preset_widget(qtbot, global_mmcore):

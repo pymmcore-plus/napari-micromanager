@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from micromanager_gui._core_widgets._snap_button_widget import SnapButton
+from pymmcore_widgets._snap_button_widget import SnapButton
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus

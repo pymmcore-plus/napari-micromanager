@@ -1,6 +1,5 @@
 from pymmcore_plus import CMMCorePlus, DeviceType
-
-from micromanager_gui._core_widgets import DeviceWidget, StateDeviceWidget
+from pymmcore_widgets import DeviceWidget, StateDeviceWidget
 
 
 def test_state_device_widget(qtbot, global_mmcore: CMMCorePlus):
