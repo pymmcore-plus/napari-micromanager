@@ -19,9 +19,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-latest]
+        platform: [windows-latest, macos-latest, ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10"]
         backend: [pyside2, pyqt5]
+    env:
+      DISPLAY: ":99.0"
 
     steps:
       - uses: actions/checkout@v2
@@ -31,11 +33,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Windows OpenGL
-        if: runner.os == 'Windows'
-        run: |
-          git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-          powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      - name: Setup headless display
+        uses: pyvista/setup-headless-display-action@v1
 
       - name: Install dependencies
         run: |
@@ -50,6 +49,67 @@ jobs:
         if: runner.os == 'macOS'
         # need to figure out what happened on mac with the utilities
         run: python -m pymmcore_plus.install -r 20220420
+
+      - name: Install Linux Micro-Manager build tools and dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install build-essential autoconf automake libtool autoconf-archive pkg-config
+          sudo apt-get -y install libboost-all-dev
+          sudo apt-get -y install libpcre3-dev  # For SWIG-3
+          sudo apt install -y qt5-default libgl1-mesa-glx xvfb # Qt(5) and headless display dependencies
+          # Below are specific to gh actions https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
+          sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0
+          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
+
+      - name: Cache SWIG-3
+        if: runner.os == 'Linux'
+        id: cache-swig-3
+        uses: actions/cache@v2
+        with:
+          path: swig-3.0.12
+          key: mmstudio-javadoc-swig-3.0.12
+
+      - name: Build SWIG-3
+        if: runner.os == 'Linux' && steps.cache-swig-3.outputs.cache-hit != 'true'
+        run: |
+          curl -LO http://prdownloads.sourceforge.net/swig/swig-3.0.12.tar.gz
+          tar xzf swig-3.0.12.tar.gz
+          cd swig-3.0.12
+          ./configure
+          make -j$(nproc)
+
+      - name: Install SWIG-3
+        if: runner.os == 'Linux'
+        run: |
+          cd swig-3.0.12
+          sudo make install
+
+      - name: Cache micro-manager
+        if: runner.os == 'Linux'
+        id: cache-micro-manager
+        uses: actions/cache@v2
+        with:
+          path: micro-manager
+          key: ${{ runner.os }}-micro-manager-cache-key
+
+      - name: Build micro-manager
+        if: runner.os == 'Linux' && steps.cache-micro-manager.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/micro-manager/micro-manager.git
+          cd micro-manager
+          git submodule update --init --recursive
+          ./autogen.sh
+          ./configure --without-java
+          make -C mmCoreAndDevices/MMDevice -j$(nproc)
+          make -C mmCoreAndDevices/MMCore -j$(nproc)
+
+      - name: Install micro-manager
+        if: runner.os == 'Linux'
+        run: |
+          cd micro-manager
+          sudo make install
+          sudo cp bindist/any-platform/*cfg /usr/local/lib/micro-manager
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
