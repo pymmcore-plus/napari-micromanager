@@ -4,7 +4,6 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 
 import napari
@@ -12,14 +11,14 @@ import numpy as np
 import zarr
 from napari.experimental import link_layers
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
+from pymmcore_widgets import PropertyBrowser, _core
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
-from qtpy.QtGui import QColor, QIcon
+from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
-from . import _core, _mda
+from . import _mda
 from ._camera_roi import _CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
@@ -33,10 +32,6 @@ if TYPE_CHECKING:
     import useq
     from pymmcore_plus.core.events import QCoreSignaler
     from pymmcore_plus.mda import PMDAEngine
-
-ICONS = Path(__file__).parent / "icons"
-CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
-CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
 
 
 class MainWindow(MicroManagerWidget):

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from pymmcore_widgets._group_preset_table_widget import GroupPresetTableWidget
-from pymmcore_widgets._load_system_cfg_widget import ConfigurationWidget
-from pymmcore_widgets._objective_widget import ObjectivesWidget
-from pymmcore_widgets._slider_dialog_widget import SliderDialog
+from pymmcore_widgets import (
+    ConfigurationWidget,
+    GroupPresetTableWidget,
+    ObjectivesWidget,
+    SliderDialog,
+)
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible

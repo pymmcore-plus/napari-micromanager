@@ -1,12 +1,13 @@
 from pathlib import Path
 
-from pymmcore_widgets import DefaultCameraExposureWidget
-from pymmcore_widgets._live_button_widget import LiveButton
-from pymmcore_widgets._snap_button_widget import SnapButton
+from pymmcore_widgets import (
+    ChannelWidget,
+    DefaultCameraExposureWidget,
+    LiveButton,
+    SnapButton,
+)
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-
-from ._channel_widget import ChannelWidget
 
 ICONS = Path(__file__).parent.parent / "icons"
 
