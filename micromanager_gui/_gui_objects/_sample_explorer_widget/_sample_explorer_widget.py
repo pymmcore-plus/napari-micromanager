@@ -91,7 +91,7 @@ class MMExploreSample(ExplorerGui):
 
     def _on_sys_cfg_loaded(self):
         self.pixel_size = self._mmc.getPixelSizeUm()
-        self.clear_channel()
+        self._clear_channel()
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Block gui when mda starts."""
