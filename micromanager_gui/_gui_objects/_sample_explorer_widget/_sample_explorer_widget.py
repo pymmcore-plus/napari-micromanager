@@ -28,7 +28,7 @@ class MMExploreSample(ExplorerGui):
 
         self._mmc = get_core_singleton()
 
-        self.pixel_size = 0
+        self.pixel_size = self._mmc.getPixelSizeUm()
 
         self.return_to_position_x = None
         self.return_to_position_y = None
@@ -75,7 +75,7 @@ class MMExploreSample(ExplorerGui):
         self.y_lineEdit.setText(str(None))
 
         # connect mmcore signals
-        self._mmc.events.systemConfigurationLoaded.connect(self._clear_channel)
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
 
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
@@ -88,6 +88,10 @@ class MMExploreSample(ExplorerGui):
 
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
+       
+    def _on_sys_cfg_loaded(self):
+        self.pixel_size = self._mmc.getPixelSizeUm()
+        self.clear_channel()
 
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Block gui when mda starts."""
