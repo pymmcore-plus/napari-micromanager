@@ -88,7 +88,7 @@ class MMExploreSample(ExplorerGui):
 
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
-       
+
     def _on_sys_cfg_loaded(self):
         self.pixel_size = self._mmc.getPixelSizeUm()
         self.clear_channel()
