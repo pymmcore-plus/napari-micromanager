@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, List, Optional, Sequence, Tuple
 
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets._core import get_core_singleton
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QComboBox,
@@ -17,6 +16,8 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from micromanager_gui._core import get_core_singleton
 
 if TYPE_CHECKING:
     import useq

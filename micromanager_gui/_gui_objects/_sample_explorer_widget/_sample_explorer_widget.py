@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import useq
-from pymmcore_widgets._core import get_core_singleton
 from qtpy import QtWidgets as QtW
 from useq import MDASequence
 
 from micromanager_gui import _mda
+from micromanager_gui._core import get_core_singleton
 
 from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
