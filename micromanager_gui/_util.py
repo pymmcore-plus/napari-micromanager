@@ -2,20 +2,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Iterator, Optional
 
 from pymmcore_plus import CMMCorePlus
-from qtpy.QtCore import Signal
-from qtpy.QtWidgets import (
-    QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
 
 from micromanager_gui._core import get_core_singleton
 
@@ -64,79 +53,6 @@ def event_indices(event: useq.MDAEvent) -> Iterator[str]:
     for k in event.sequence.axis_order if event.sequence else []:
         if k in event.index:
             yield k
-
-
-class SelectDeviceFromCombobox(QDialog):
-    """Convenience dialog to retrieve a device from a list of devices."""
-
-    val_changed = Signal(str)
-
-    def __init__(self, obj_dev: list, label: str, parent=None):
-        super().__init__(parent)
-
-        self.setLayout(QHBoxLayout())
-        self.label = QLabel()
-        self.label.setText(label)
-        self.combobox = QComboBox()
-        self.combobox.addItems(obj_dev)
-        self.button = QPushButton("Set")
-        self.button.clicked.connect(self._on_click)
-
-        self.layout().addWidget(self.label)
-        self.layout().addWidget(self.combobox)
-        self.layout().addWidget(self.button)
-
-    def _on_click(self):
-        self.val_changed.emit(self.combobox.currentText())
-
-
-class ComboMessageBox(QDialog):
-    """Dialog that presents a combo box of `items`."""
-
-    def __init__(
-        self,
-        items: Sequence[str] = (),
-        text: str = "",
-        parent: Optional[QWidget] = None,
-    ):
-        super().__init__(parent)
-
-        self._combo = QComboBox()
-        self._combo.addItems(items)
-
-        btn_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel  # type: ignore  # noqa
-        )
-        btn_box.accepted.connect(self.accept)
-        btn_box.rejected.connect(self.reject)
-
-        self.setLayout(QVBoxLayout())
-        if text:
-            self.layout().addWidget(QLabel(text))
-        self.layout().addWidget(self._combo)
-        self.layout().addWidget(btn_box)
-
-    def currentText(self) -> str:
-        return self._combo.currentText()
-
-
-def get_preset_dev_prop(
-    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
-) -> list:
-    """Return a list with (device, property) for the selected group preset."""
-    mmc = mmcore or get_core_singleton()
-    return [(k[0], k[1]) for k in mmc.getConfigData(group, preset)]
-
-
-def get_group_dev_prop(
-    group: str, preset: str, mmcore: Optional[CMMCorePlus] = None
-) -> List[Tuple[str, str]]:
-    """Return list of all (device, prop) tuples used in the config group's presets."""
-    mmc = mmcore or get_core_singleton()
-    dev_props = []
-    for preset in mmc.getAvailableConfigs(group):
-        dev_props.extend([(k[0], k[1]) for k in mmc.getConfigData(group, preset)])
-    return dev_props
 
 
 def update_pixel_size(
