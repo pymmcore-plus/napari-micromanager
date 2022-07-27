@@ -2,6 +2,7 @@ from micromanager_gui.main_window import MainWindow
 
 
 def test_crop_camera(main_window: MainWindow):
+
     assert not main_window.viewer.layers
 
     cbox = main_window.cam_wdg.cam_roi_combo

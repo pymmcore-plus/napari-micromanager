@@ -12,7 +12,12 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-def test_multid_load_state(qtbot: QtBot, core: CMMCorePlus, session_core: CMMCorePlus):
+def test_multid_load_state(
+    qtbot: QtBot,
+    core: CMMCorePlus,
+    session_core_napari_micromanager,
+    session_core_pymmcore_widgets,
+):
     wdg = MMMultiDWidget()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     wdg._mmc.loadSystemConfiguration(config_path)
