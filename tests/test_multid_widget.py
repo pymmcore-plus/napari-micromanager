@@ -1,10 +1,21 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 from useq import MDASequence
 
 from micromanager_gui._gui_objects._mda_widget._mda_widget import MMMultiDWidget
 
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
+    from pytestqt.qtbot import QtBot
 
-def test_multid_load_state(qtbot, global_mmcore):
+
+def test_multid_load_state(qtbot: QtBot, core: CMMCorePlus, session_core: CMMCorePlus):
     wdg = MMMultiDWidget()
+    config_path = str(Path(__file__).parent / "test_config.cfg")
+    wdg._mmc.loadSystemConfiguration(config_path)
     qtbot.addWidget(wdg)
     assert wdg.stage_tableWidget.rowCount() == 0
     assert wdg.channel_tableWidget.rowCount() == 0
