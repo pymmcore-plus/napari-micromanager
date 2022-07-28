@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import useq
+from pymmcore_plus import CMMCorePlus
 from qtpy import QtWidgets as QtW
 from useq import MDASequence
 
 from micromanager_gui import _mda
-from micromanager_gui._core import get_core_singleton
 
 from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
@@ -26,7 +26,7 @@ class MMExploreSample(ExplorerGui):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._mmc = get_core_singleton()
+        self._mmc = CMMCorePlus.instance()
 
         self.pixel_size = 0
 

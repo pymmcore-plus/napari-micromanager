@@ -10,6 +10,7 @@ import napari
 import numpy as np
 import zarr
 from napari.experimental import link_layers
+from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PropertyBrowser
 from qtpy import QtWidgets as QtW
@@ -17,8 +18,6 @@ from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
-
-from micromanager_gui._core import get_core_singleton
 
 from . import _mda
 from ._camera_roi import _CameraROI
@@ -43,7 +42,7 @@ class MainWindow(MicroManagerWidget):
         super().__init__()
 
         # create connection to mmcore server or process-local variant
-        self._mmc = get_core_singleton(remote)
+        self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
 

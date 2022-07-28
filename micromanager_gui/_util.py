@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING, Iterator, Optional
 
 from pymmcore_plus import CMMCorePlus
 
-from micromanager_gui._core import get_core_singleton
-
 if TYPE_CHECKING:
     import useq
 
@@ -77,7 +75,7 @@ def update_pixel_size(
         # presumably it was here because the default value of the spinbox is 1.0?
         return
 
-    mmc = mmc or get_core_singleton()
+    mmc = mmc or CMMCorePlus.instance()
     # if pixel size is already set, and we're not providing a new value, return.
     if current_px_size_cfg := mmc.getCurrentPixelSizeConfig():
         if not pixel_size:
