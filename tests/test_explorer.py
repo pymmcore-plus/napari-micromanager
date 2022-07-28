@@ -56,7 +56,7 @@ def test_explorer(explorer_two_channels: ExplorerTuple, qtbot: QtBot):
         meta = _mda.SEQUENCE_META[seq]
 
     with qtbot.waitSignals(
-        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=10000
+        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=30000
     ):
         explorer.start_scan()
 
@@ -122,7 +122,7 @@ def test_saving_explorer(qtbot: QtBot, explorer_two_channels: ExplorerTuple):
 
         with qtbot.waitSignals(
             [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished],
-            timeout=10000,
+            timeout=30000,
         ):
             explorer.start_scan()
 
