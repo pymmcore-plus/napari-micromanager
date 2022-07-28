@@ -13,10 +13,12 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
     from useq import MDASequence
 
-    from micromanager_gui._gui_objects._sample_explorer_widget import ExploreSample
+    from micromanager_gui._gui_objects._sample_explorer_widget._sample_explorer_widget import (  # noqa: E501
+        MMExploreSample,
+    )
     from micromanager_gui.main_window import MainWindow
 
-    ExplorerTuple = Tuple[MainWindow, ExploreSample]
+    ExplorerTuple = Tuple[MainWindow, MMExploreSample]
 
 
 def test_explorer(explorer_two_channels: ExplorerTuple, qtbot: QtBot):
@@ -121,7 +123,7 @@ def test_saving_explorer(qtbot: QtBot, explorer_two_channels: ExplorerTuple):
         with qtbot.waitSignals(
             [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished]
         ):
-            explorer.start_scan_Button.click()
+            explorer.start_scan()
 
         layer_list = list(main_win.viewer.layers)
         assert len(layer_list) == 8
