@@ -56,7 +56,7 @@ def test_explorer(explorer_two_channels: ExplorerTuple, qtbot: QtBot):
         meta = _mda.SEQUENCE_META[seq]
 
     with qtbot.waitSignals(
-        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
+        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=10000
     ):
         explorer.start_scan()
 
@@ -121,9 +121,12 @@ def test_saving_explorer(qtbot: QtBot, explorer_two_channels: ExplorerTuple):
         explorer.save_explorer_groupBox.setChecked(True)
 
         with qtbot.waitSignals(
-            [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished]
+            [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished],
+            timeout=10000,
         ):
             explorer.start_scan()
+
+        mmc.waitForSystem()
 
         layer_list = list(main_win.viewer.layers)
         assert len(layer_list) == 8
