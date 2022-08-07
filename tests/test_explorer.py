@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 import tifffile
 
@@ -13,17 +13,12 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
     from useq import MDASequence
 
-    from micromanager_gui._gui_objects._sample_explorer_widget import ExploreSample
     from micromanager_gui.main_window import MainWindow
 
-    ExplorerTuple = Tuple[MainWindow, ExploreSample]
 
+def test_explorer(main_window: MainWindow, qtbot: QtBot):
 
-def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
-
-    main_win, explorer = explorer_one_channel
-
-    mmc = main_win._mmc
+    mmc = main_window._mmc
     mmc.setXYPosition(0.0, 0.0)
     mmc.setPosition(0.0)
 
@@ -31,7 +26,13 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
         "Objective", "10X"
     )  # this it is also setting mmc.setPixelSizeConfig('Res10x')
 
-    assert not main_win.viewer.layers
+    explorer = main_window.explorer
+    explorer.scan_size_spinBox_r.setValue(2)
+    explorer.scan_size_spinBox_c.setValue(2)
+    explorer.ovelap_spinBox.setValue(0)
+    explorer.add_ch_explorer_Button.click()
+
+    assert not main_window.viewer.layers
 
     # grab these in callback so we get the real meta that is
     # created once we start the scan
@@ -51,7 +52,7 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
 
     # wait to finish returning to start pos
     mmc.waitForSystem()
-    assert main_win.explorer.set_grid() == [
+    assert main_window.explorer.set_grid() == [
         (-256.0, 256.0, 0.0),
         (256.0, 256.0, 0.0),
         (256.0, -256.0, 0.0),
@@ -64,32 +65,40 @@ def test_explorer(explorer_one_channel: ExplorerTuple, qtbot: QtBot):
     assert meta
     assert meta.mode == "explorer"
 
-    assert main_win.viewer.layers[-1].data.shape == (512, 512)
-    assert len(main_win.viewer.layers) == 4
+    assert main_window.viewer.layers[-1].data.shape == (512, 512)
+    assert len(main_window.viewer.layers) == 4
 
-    _layer = main_win.viewer.layers[-1]
+    _layer = main_window.viewer.layers[-1]
     assert _layer.metadata["ch_name"] == "Cy5"
     assert _layer.metadata["ch_id"] == 0
     assert _layer.metadata["uid"] == sequence.uid
 
     # checking the linking  of the layers
-    assert len(main_win.viewer.layers) == 4
-    layer_0 = main_win.viewer.layers[0]
+    assert len(main_window.viewer.layers) == 4
+    layer_0 = main_window.viewer.layers[0]
     layer_0.visible = False
 
     # check that also the last layer is not visible
-    layer_1 = main_win.viewer.layers[1]
+    layer_1 = main_window.viewer.layers[1]
     assert not layer_1.visible
 
 
-def test_saving_explorer(qtbot: QtBot, explorer_two_channel: ExplorerTuple):
+def test_saving_explorer(main_window: MainWindow, qtbot: QtBot):
 
-    main_win, explorer = explorer_two_channel
-    mmc = main_win._mmc
+    mmc = main_window._mmc
     # grab these in callback so we get the real meta that is
     # created once we start the scan
     sequence = None
     meta = None
+
+    explorer = main_window.explorer
+    explorer.scan_size_spinBox_r.setValue(2)
+    explorer.scan_size_spinBox_c.setValue(2)
+    explorer.ovelap_spinBox.setValue(0)
+    explorer.add_ch_explorer_Button.click()
+    explorer.channel_explorer_comboBox.setCurrentText("Cy5")
+    explorer.add_ch_explorer_Button.click()
+    explorer.channel_explorer_comboBox.setCurrentText("FITC")
 
     @mmc.mda.events.sequenceStarted.connect
     def get_seq(seq: MDASequence):
@@ -107,7 +116,7 @@ def test_saving_explorer(qtbot: QtBot, explorer_two_channel: ExplorerTuple):
         ):
             explorer.start_scan_Button.click()
 
-        layer_list = list(main_win.viewer.layers)
+        layer_list = list(main_window.viewer.layers)
         assert len(layer_list) == 8
 
         save_sequence(sequence, layer_list, meta)
