@@ -75,7 +75,7 @@ class DeviceWidget(QWidget):
 
     @classmethod
     def for_device(cls, device_label: str) -> "DeviceWidget":
-        """Create a device-type appropriate subclass for device with label `device_label`.
+        """Create a device-type appropriate subclass for device with `device_label`.
 
         Parameters
         ----------
