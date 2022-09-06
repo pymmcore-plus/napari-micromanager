@@ -1,12 +1,13 @@
 from pathlib import Path
 
+from pymmcore_widgets import (
+    ChannelWidget,
+    DefaultCameraExposureWidget,
+    LiveButton,
+    SnapButton,
+)
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-
-from .._core_widgets import DefaultCameraExposureWidget
-from .._core_widgets._live_button_widget import LiveButton
-from .._core_widgets._snap_button_widget import SnapButton
-from ._channel_widget import ChannelWidget
 
 ICONS = Path(__file__).parent.parent / "icons"
 
@@ -67,9 +68,7 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = SnapButton(
-            button_text="Snap", icon_size=40, icon_color=(0, 255, 0)
-        )
+        self.snap_Button = SnapButton()
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
