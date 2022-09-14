@@ -206,7 +206,7 @@ class SampleExplorer(ExplorerGui):
 
             for c, ax in enumerate("GXYZ"):
                 if ax == "G":
-                    count = self.stage_tableWidget.rowCount()
+                    count = self.stage_tableWidget.rowCount() - 1
                     item = QtW.QTableWidgetItem(f"Grid_{count:03d}")
                     item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
                     self.stage_tableWidget.setItem(idx, c, item)
@@ -230,6 +230,24 @@ class SampleExplorer(ExplorerGui):
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
+        self._rename_positions()
+
+    def _rename_positions(self) -> None:
+        pos_list = []
+        for r in range(self.stage_tableWidget.rowCount()):
+            curr_name = self.stage_tableWidget.item(r, 0).text()
+            curr_pos = int(curr_name[-3:])
+            pos_list.append(curr_pos)
+
+        missing = [x for x in range(pos_list[0], pos_list[-1] + 1) if x not in pos_list]
+
+        full = sorted(missing + pos_list)[: self.stage_tableWidget.rowCount()]
+
+        for r in range(self.stage_tableWidget.rowCount()):
+            new_name = f"Grid_{full[r]:03d}"
+            item = QtW.QTableWidgetItem(new_name)
+            item.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+            self.stage_tableWidget.setItem(r, 0, item)
 
     def _clear_positions(self) -> None:
         # clear all positions
@@ -327,7 +345,7 @@ class SampleExplorer(ExplorerGui):
                 explorer_starting_positions.append(pos_info)
 
         else:
-            name = "Grid_001"
+            name = "Grid_000"
             x = float(self._mmc.getXPosition())
             y = float(self._mmc.getYPosition())
             if self._mmc.getFocusDevice():
