@@ -1,195 +1,125 @@
-# from __future__ import annotations
+from __future__ import annotations
 
-# import tempfile
-# from pathlib import Path
-# from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-# import tifffile
+from micromanager_gui import _mda
+from micromanager_gui.main_window import MainWindow
 
-# from micromanager_gui import _mda
-# from micromanager_gui._saving import save_sequence
-
-# if TYPE_CHECKING:
-#     from pytestqt.qtbot import QtBot
-#     from useq import MDASequence
-
-#     from micromanager_gui._gui_objects._sample_explorer_widget._sample_explorer_widget import (  # noqa: E501
-#         MMExploreSample,
-#     )
-#     from micromanager_gui.main_window import MainWindow
-
-#     ExplorerTuple = Tuple[MainWindow, MMExploreSample]
+if TYPE_CHECKING:
+    from pytestqt.qtbot import QtBot
+    from useq import MDASequence
 
 
-# def test_explorer(main_window: MainWindow, qtbot: QtBot):
+def test_explorer(qtbot: QtBot, main_window: MainWindow):
+    # sourcery skip: remove-duplicate-set-key
 
-#     # def test_explorer(explorer_two_channels: ExplorerTuple, qtbot: QtBot):
+    s_exp = main_window.explorer
+    qtbot.add_widget(s_exp)
+    mmc = main_window._mmc
 
-#     #     main_win, explorer = explorer_two_channels
+    assert len(s_exp._mmc.getLoadedDevices()) > 2
+    assert mmc.getChannelGroup() == "Channel"
 
-#     #     mmc = main_win._mmc
-#     mmc = main_window._mmc
-#     mmc.setXYPosition(0.0, 0.0)
-#     mmc.setPosition(0.0)
+    s_exp.scan_size_spinBox_c.setValue(2)
+    s_exp.scan_size_spinBox_r.setValue(2)
+    s_exp.ovelap_spinBox.setValue(10)
 
-#     mmc.setConfig(
-#         "Objective", "10X"
-#     )  # this it is also setting mmc.setPixelSizeConfig('Res10x')
+    s_exp.add_ch_explorer_Button.click()
+    assert s_exp.channel_explorer_tableWidget.rowCount() == 1
 
-#     # assert main_win.explorer.set_grid() == [
-#     #     ("Grid_001_Pos000", -256.0, 256.0, 0.0),
-#     #     ("Grid_001_Pos001", 256.0, 256.0, 0.0),
-#     #     ("Grid_001_Pos002", 256.0, -256.0, 0.0),
-#     #     ("Grid_001_Pos003", -256.0, -256.0, 0.0),
-#     #     ("Grid_002_Pos000", -256.0, 256.0, 0.0),
-#     #     ("Grid_002_Pos001", 256.0, 256.0, 0.0),
-#     #     ("Grid_002_Pos002", 256.0, -256.0, 0.0),
-#     #     ("Grid_002_Pos003", -256.0, -256.0, 0.0),
-#     # ]
+    s_exp.time_groupBox.setChecked(True)
+    s_exp.timepoints_spinBox.setValue(2)
+    s_exp.interval_spinBox.setValue(0)
 
-#     # assert not main_win.viewer.layers
-#     explorer = main_window.explorer
-#     explorer.scan_size_spinBox_r.setValue(2)
-#     explorer.scan_size_spinBox_c.setValue(2)
-#     explorer.ovelap_spinBox.setValue(0)
-#     explorer.add_ch_explorer_Button.click()
+    s_exp.stack_groupBox.setChecked(True)
+    s_exp.z_tabWidget.setCurrentIndex(1)
+    s_exp.zrange_spinBox.setValue(2)
+    s_exp.step_size_doubleSpinBox.setValue(1.0)
+    assert s_exp.n_images_label.text() == "Number of Images: 3"
 
-#     assert not main_window.viewer.layers
+    s_exp.stage_pos_groupBox.setChecked(True)
+    s_exp.add_pos_Button.click()
+    assert s_exp.stage_tableWidget.rowCount() == 1
+    mmc.setXYPosition(2000.0, 2000.0)
+    mmc.waitForSystem()
+    s_exp.add_pos_Button.click()
 
-#     # grab these in callback so we get the real meta that is
-#     # created once we start the scan
-#     sequence = None
-#     meta = None
+    assert s_exp.stage_tableWidget.rowCount() == 2
 
-#     @mmc.mda.events.sequenceStarted.connect
-#     def get_seq(seq: MDASequence):
-#         nonlocal sequence, meta
-#         sequence = seq
-#         meta = _mda.SEQUENCE_META[seq]
+    state = s_exp._get_state_dict()
 
-#     with qtbot.waitSignals(
-#         [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=30000  # noqa: E501
-#     ):
-#         explorer.start_scan()
+    assert state["channels"] == [
+        {
+            "config": "Cy5",
+            "group": "Channel",
+            "exposure": 100,
+        }
+    ]
 
-#     # wait to finish returning to start pos
-#     mmc.waitForSystem()
+    assert state["stage_positions"] == [
+        {"name": "Grid_001_Pos000", "x": -307.2, "y": 307.2, "z": 0.0},
+        {"name": "Grid_001_Pos001", "x": 153.60000000000002, "y": 307.2, "z": 0.0},
+        {
+            "name": "Grid_001_Pos002",
+            "x": 153.60000000000002,
+            "y": -153.60000000000002,
+            "z": 0.0,
+        },
+        {"name": "Grid_001_Pos003", "x": -307.2, "y": -153.60000000000002, "z": 0.0},
+        {
+            "name": "Grid_002_Pos000",
+            "x": 1692.7949999999998,
+            "y": 2307.1949999999997,
+            "z": 0.0,
+        },
+        {"name": "Grid_002_Pos001", "x": 2153.595, "y": 2307.1949999999997, "z": 0.0},
+        {"name": "Grid_002_Pos002", "x": 2153.595, "y": 1846.3949999999998, "z": 0.0},
+        {
+            "name": "Grid_002_Pos003",
+            "x": 1692.7949999999998,
+            "y": 1846.3949999999998,
+            "z": 0.0,
+        },
+    ]
 
-#     assert main_window.explorer.set_grid() == [
-#         (-256.0, 256.0, 0.0),
-#         (256.0, 256.0, 0.0),
-#         (256.0, -256.0, 0.0),
-#         (-256.0, -256.0, 0.0),
-#     ]
-#     assert mmc.getPixelSizeUm() == 1
-#     assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
-#     assert mmc.getROI(mmc.getCameraDevice())[-2] == 512
+    assert state["time_plan"] == {"interval": {"milliseconds": 0}, "loops": 2}
 
-#     assert meta
-#     assert meta.mode == "explorer"
+    assert state["z_plan"] == {
+        "range": 2,
+        "step": 1,
+    }
 
-#     # assert len(main_win.viewer.layers) == 8
-#     # for layer in main_win.viewer.layers:
-#     #     assert layer.data.shape == (3, 2, 512, 512)
-#     #     # assert layer.data.shape == (2, 3, 1, 512, 512)
+    # grab these in callback so we get the real meta that is
+    # created once we start the scan
+    sequence = None
+    meta = None
 
-#     # _layer_1 = main_win.viewer.layers[0]
-#     # assert _layer_1.metadata["uid"] == sequence.uid
-#     # assert _layer_1.metadata["grid"] == "001"
-#     # assert _layer_1.metadata["grid_pos"] == "Pos000"
+    @mmc.mda.events.sequenceStarted.connect
+    def get_seq(seq: MDASequence):
+        nonlocal sequence, meta
+        sequence = seq
+        meta = _mda.SEQUENCE_META[seq]
 
-#     # _layer_8 = main_win.viewer.layers[-1]
-#     # assert _layer_8.metadata["uid"] == sequence.uid
-#     # assert _layer_8.metadata["grid"] == "002"
-#     # assert _layer_8.metadata["grid_pos"] == "Pos003"
+    with qtbot.waitSignals(
+        [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=15000
+    ):
+        s_exp._start_scan()
 
-#     # # checking the linking  of the layers
-#     # assert len(main_win.viewer.layers) == 8
-#     # layer_0 = main_win.viewer.layers[0]
-#     assert main_window.viewer.layers[-1].data.shape == (512, 512)
-#     assert len(main_window.viewer.layers) == 4
-
-#     _layer = main_window.viewer.layers[-1]
-#     assert _layer.metadata["ch_name"] == "Cy5"
-#     assert _layer.metadata["ch_id"] == 0
-#     assert _layer.metadata["uid"] == sequence.uid
-
-#     # checking the linking  of the layers
-#     assert len(main_window.viewer.layers) == 4
-#     layer_0 = main_window.viewer.layers[0]
-#     layer_0.visible = False
-
-#     layer_8 = main_win.viewer.layers[-1]
-#     layer_8.visible = False
-
-#     # check that also the last layer is not visible
-#     # layer_1 = main_win.viewer.layers[1]
-#     # layer_7 = main_win.viewer.layers[-2]
-#     layer_1 = main_window.viewer.layers[1]
-#     assert not layer_1.visible
-#     assert not layer_7.visible
+    assert meta
+    assert meta.mode == "explorer"
+    assert meta.should_save == s_exp.save_explorer_groupBox.isChecked()
+    assert meta.translate_explorer
+    assert not meta.translate_explorer_real_coords
+    assert meta.explorer_translation_points == [
+        (-256.0, 256.0, 0, 0),
+        (204.8, 256.0, 0, 1),
+        (204.8, -204.8, 1, 0),
+        (-256.0, -204.8, 1, 1),
+        (-256.0, 256.0, 0, 0),
+        (204.8, 256.0, 0, 1),
+        (204.8, -204.8, 1, 0),
+        (-256.0, -204.8, 1, 1),
+    ]
 
 
-# # def test_saving_explorer(qtbot: QtBot, explorer_two_channels: ExplorerTuple):
-
-# #     main_win, explorer = explorer_two_channels
-# #     mmc = main_win._mmc
-# def test_saving_explorer(main_window: MainWindow, qtbot: QtBot):
-
-#     mmc = main_window._mmc
-#     # grab these in callback so we get the real meta that is
-#     # created once we start the scan
-#     sequence = None
-#     meta = None
-
-#     explorer = main_window.explorer
-#     explorer.scan_size_spinBox_r.setValue(2)
-#     explorer.scan_size_spinBox_c.setValue(2)
-#     explorer.ovelap_spinBox.setValue(0)
-#     explorer.add_ch_explorer_Button.click()
-#     explorer.channel_explorer_comboBox.setCurrentText("Cy5")
-#     explorer.add_ch_explorer_Button.click()
-#     explorer.channel_explorer_comboBox.setCurrentText("FITC")
-
-#     @mmc.mda.events.sequenceStarted.connect
-#     def get_seq(seq: MDASequence):
-#         nonlocal sequence, meta
-#         sequence = seq
-#         meta = _mda.SEQUENCE_META[seq]
-
-#     with tempfile.TemporaryDirectory() as td:
-#         tmp_path = Path(td)
-#         explorer.dir_explorer_lineEdit.setText(str(tmp_path))
-#         explorer.save_explorer_groupBox.setChecked(True)
-
-#         with qtbot.waitSignals(
-#             [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished],
-#             timeout=30000,
-#         ):
-#             explorer.start_scan()
-
-#         mmc.waitForSystem()
-
-#         layer_list = list(main_window.viewer.layers)
-#         assert len(layer_list) == 8
-#         for layer in main_win.viewer.layers:
-#             assert layer.data.shape == (3, 2, 512, 512)
-#             # assert layer.data.shape == (2, 3, 1, 512, 512)
-
-#         save_sequence(sequence, layer_list, meta)
-
-#         main_folder = tmp_path / f"{meta.file_name}_000"  # after _imsave()
-
-#         file_list = sorted(pth.name for pth in main_folder.iterdir())
-#         assert file_list == [f"{meta.file_name}_Grid_001", f"{meta.file_name}_Grid_002"]  # noqa: E501
-
-#         grid_subfolder_1 = main_folder / f"{meta.file_name}_Grid_001"
-#         filename_list = sorted(file.name for file in grid_subfolder_1.iterdir())
-#         for idx, fname in enumerate(filename_list):
-#             assert fname == f"{meta.file_name}_Grid_001_Pos{idx:03d}.tif"
-
-#         saved_file = tifffile.imread(
-#             grid_subfolder_1 / f"{meta.file_name}_Grid_001_Pos000.tif"
-#         )
-#         assert saved_file.shape == (3, 2, 512, 512)
-#         # assert saved_file.shape == (2, 3, 1, 512, 512)
+# TODO: add test_saving_explorer
