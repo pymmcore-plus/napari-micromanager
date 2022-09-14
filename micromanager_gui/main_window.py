@@ -354,7 +354,7 @@ class MainWindow(MicroManagerWidget):
         # create a zarr store for each channel (or all channels when not splitting)
         # to store the images to display so we don't overflow memory.
         for pos in positions:
-            # TODO: modify id_ to try and divede the grids when saving
+            # TODO: modify id_ to try and divide the grids when saving
             # see also line 378 (layer.metadata["grid"])
             id_ = pos + str(sequence.uid)
 
@@ -422,7 +422,7 @@ class MainWindow(MicroManagerWidget):
                 self._mda_temp_arrays[layer_name][im_idx] = image
 
                 # translate layer depending on stage position
-                if self.explorer.display_checkbox_real.isChecked():
+                if meta.translate_explorer_real_coords:
                     x = event.x_pos / self.explorer.pixel_size
                     y = event.y_pos / self.explorer.pixel_size * (-1)
                 else:
@@ -441,7 +441,7 @@ class MainWindow(MicroManagerWidget):
                 layer = self.viewer.layers[f"{fname}_{layer_name}"]
                 if (layer.translate[-2], layer.translate[-1]) != (y, x):
                     layer.translate = (y, x)
-                layer.metadata["translate"] = True
+                layer.metadata["translate"] = meta.translate_explorer_real_coords
 
                 # link layers after translation
                 for group in layergroups.values():

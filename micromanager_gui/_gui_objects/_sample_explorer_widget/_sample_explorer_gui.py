@@ -31,7 +31,7 @@ from superqt.fonticon import icon
 class ExplorerGui(QWidget):
     """Just the UI of the explorer widget. Runtime logic in MMExploreSample."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setLayout(QVBoxLayout())
@@ -46,7 +46,8 @@ class ExplorerGui(QWidget):
         self._scroll.setWidget(self.explorer_wdg)
         self.layout().addWidget(self._scroll)
 
-    def _create_gui(self):
+    def _create_gui(self) -> QWidget:
+
         wdg = QWidget()
         wdg_layout = QVBoxLayout()
         wdg_layout.setSpacing(15)
@@ -79,7 +80,8 @@ class ExplorerGui(QWidget):
 
         return wdg
 
-    def _create_row_cols_overlap_group(self):
+    def _create_row_cols_overlap_group(self) -> QGroupBox:
+
         group = QGroupBox(title="Grid Parameters")
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group_layout = QGridLayout()
@@ -140,7 +142,7 @@ class ExplorerGui(QWidget):
         group_layout.addWidget(self.ovl_wdg, 0, 1)
         return group
 
-    def _create_channel_group(self):
+    def _create_channel_group(self) -> QGroupBox:
 
         group = QGroupBox(title="Channels")
         group.setMinimumHeight(230)
@@ -183,7 +185,8 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _create_save_group(self):
+    def _create_save_group(self) -> QGroupBox:
+
         group = QGroupBox(title="Save Scan")
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group.setCheckable(True)
@@ -231,17 +234,18 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _spacer(self):
+    def _spacer(self) -> QLabel:
         spacer = QLabel()
         spacer.setMinimumHeight(0)
         spacer.setMaximumHeight(0)
         return spacer
 
-    def _create_mda_options(self):
+    def _create_mda_options(self) -> QGroupBox:
+
         group = QGroupBox(title="MDA Options")
         group_layout = QVBoxLayout()
         group_layout.setSpacing(10)
-        group_layout.setContentsMargins(10, 15, 10, 10)
+        group_layout.setContentsMargins(10, 15, 10, 15)
         group.setLayout(group_layout)
 
         coll_sizepolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -281,7 +285,8 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _create_time_group(self):
+    def _create_time_group(self) -> QGroupBox:
+
         group = QGroupBox()
         group.setCheckable(True)
         group.setChecked(False)
@@ -334,7 +339,8 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _create_stack_groupBox(self):
+    def _create_stack_groupBox(self) -> QGroupBox:
+
         group = QGroupBox()
         group.setCheckable(True)
         group.setChecked(False)
@@ -493,7 +499,8 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _create_stage_pos_groupBox(self):
+    def _create_stage_pos_groupBox(self) -> QGroupBox:
+
         group = QGroupBox(title="(double-click to move to position)")
         group.setCheckable(True)
         group.setChecked(False)
@@ -537,7 +544,8 @@ class ExplorerGui(QWidget):
 
         return group
 
-    def _create_display_checkbox(self):
+    def _create_display_checkbox(self) -> QGroupBox:
+
         group = QGroupBox(title="Display as:")
         group.setChecked(False)
         group_layout = QHBoxLayout()
@@ -547,10 +555,10 @@ class ExplorerGui(QWidget):
 
         fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        self.display_checkbox = QCheckBox(text="layers translation  (")
+        self.display_checkbox = QCheckBox(text="layers translation")
         self.display_checkbox.setSizePolicy(fixed_policy)
         self.display_checkbox.setChecked(True)
-        self.display_checkbox_real = QCheckBox(text="using stage coordinates   )")
+        self.display_checkbox_real = QCheckBox(text="using stage coordinates")
         self.display_checkbox_real.setSizePolicy(fixed_policy)
         self.multid_stack_checkbox = QCheckBox(text="multiD stack")
         self.multid_stack_checkbox.setSizePolicy(fixed_policy)
@@ -582,7 +590,8 @@ class ExplorerGui(QWidget):
         self.display_checkbox_real.setEnabled(state)
         self.display_checkbox_real.setChecked(False)
 
-    def _create_start_stop_buttons(self):
+    def _create_start_stop_buttons(self) -> QWidget:
+
         wdg = QWidget()
         wdg.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         wdg_layout = QHBoxLayout()
@@ -608,7 +617,8 @@ class ExplorerGui(QWidget):
 
         return wdg
 
-    def _create_move_to_pos(self):
+    def _create_move_to_pos(self) -> QGroupBox:
+
         group = QGroupBox(title="Move to Position")
         group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
         group_layout = QHBoxLayout()

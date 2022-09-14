@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 import useq
+from pymmcore_plus import CMMCorePlus
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from useq import MDASequence
 
 from micromanager_gui import _mda
 
-from ..._core import get_core_singleton
-from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
+from ._sample_explorer_gui import ExplorerGui
 
 if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
@@ -20,13 +20,13 @@ if TYPE_CHECKING:
 UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 
-class MMExploreSample(ExplorerGui):
+class SampleExplorer(ExplorerGui):
     """Widget to create/run tiled acquisitions."""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtW.QWidget = None) -> None:
         super().__init__(parent)
 
-        self._mmc = get_core_singleton()
+        self._mmc = CMMCorePlus.instance()
 
         self.pixel_size = self._mmc.getPixelSizeUm()
 
@@ -65,9 +65,9 @@ class MMExploreSample(ExplorerGui):
         self.stage_tableWidget.cellDoubleClicked.connect(self._move_to_position)
 
         # connect buttons
-        self.start_scan_Button.clicked.connect(self.start_scan)
-        self.move_to_Button.clicked.connect(self.move_to)
-        self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
+        self.start_scan_Button.clicked.connect(self._start_scan)
+        self.move_to_Button.clicked.connect(self._move_to)
+        self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
 
         self.stop_scan_Button.clicked.connect(lambda e: self._mmc.mda.cancel())
 
@@ -82,22 +82,22 @@ class MMExploreSample(ExplorerGui):
 
         self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
-    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
+    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine) -> None:
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
         oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
 
         newEngine.events.sequenceStarted.connect(self._on_mda_started)
         newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
-    def _on_sys_cfg_loaded(self):
+    def _on_sys_cfg_loaded(self) -> None:
         self.pixel_size = self._mmc.getPixelSizeUm()
         self._clear_channel()
 
-    def _on_mda_started(self, sequence: useq.MDASequence):
+    def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Block gui when mda starts."""
         self._set_enabled(False)
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
+    def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         # TODO: have this widget be able to save independently of napari
         # meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
         # save_sequence(sequence, self.viewer.layers, meta)
@@ -113,7 +113,7 @@ class MMExploreSample(ExplorerGui):
             self.return_to_position_y = None
         self._set_enabled(True)
 
-    def _set_enabled(self, enabled):
+    def _set_enabled(self, enabled: bool) -> None:
         self.save_explorer_groupBox.setEnabled(enabled)
         self.scan_size_spinBox_r.setEnabled(enabled)
         self.scan_size_spinBox_c.setEnabled(enabled)
@@ -123,7 +123,7 @@ class MMExploreSample(ExplorerGui):
         self.channel_explorer_groupBox.setEnabled(enabled)
 
     # add, remove, clear channel table
-    def _add_channel(self):
+    def _add_channel(self) -> None:
         dev_loaded = list(self._mmc.getLoadedDevices())
         if len(dev_loaded) > 1:
 
@@ -153,37 +153,37 @@ class MMExploreSample(ExplorerGui):
                 idx, 1, self.channel_explorer_exp_spinBox
             )
 
-    def _remove_channel(self):
+    def _remove_channel(self) -> None:
         # remove selected position
         rows = {r.row() for r in self.channel_explorer_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.channel_explorer_tableWidget.removeRow(idx)
 
-    def _clear_channel(self):
+    def _clear_channel(self) -> None:
         # clear all positions
         self.channel_explorer_tableWidget.clearContents()
         self.channel_explorer_tableWidget.setRowCount(0)
 
-    def _set_top(self):
+    def _set_top(self) -> None:
         self.z_top_doubleSpinBox.setValue(self._mmc.getZPosition())
 
-    def _set_bottom(self):
+    def _set_bottom(self) -> None:
         self.z_bottom_doubleSpinBox.setValue(self._mmc.getZPosition())
 
-    def _update_topbottom_range(self):
+    def _update_topbottom_range(self) -> None:
         self.z_range_topbottom_doubleSpinBox.setValue(
             abs(self.z_top_doubleSpinBox.value() - self.z_bottom_doubleSpinBox.value())
         )
 
-    def _update_rangearound_label(self, value):
+    def _update_rangearound_label(self, value: int) -> None:
         self.range_around_label.setText(f"-{value/2} µm <- z -> +{value/2} µm")
 
-    def _update_abovebelow_range(self):
+    def _update_abovebelow_range(self) -> None:
         self.z_range_abovebelow_doubleSpinBox.setValue(
             self.above_doubleSpinBox.value() + self.below_doubleSpinBox.value()
         )
 
-    def _update_n_images(self):
+    def _update_n_images(self) -> None:
         step = self.step_size_doubleSpinBox.value()
         # set what is the range to consider depending on the z_stack mode
         if self.z_tabWidget.currentIndex() == 0:
@@ -196,7 +196,7 @@ class MMExploreSample(ExplorerGui):
         self.n_images_label.setText(f"Number of Images: {round((_range / step) + 1)}")
 
     # add, remove, clear, move_to positions table
-    def _add_position(self):
+    def _add_position(self) -> None:
 
         if not self._mmc.getXYStageDevice():
             return
@@ -221,22 +221,22 @@ class MMExploreSample(ExplorerGui):
                 self.stage_tableWidget.setItem(idx, c, item)
 
     def _add_position_row(self) -> int:
-        idx = self.stage_tableWidget.rowCount()
+        idx = int(self.stage_tableWidget.rowCount())
         self.stage_tableWidget.insertRow(idx)
         return idx
 
-    def _remove_position(self):
+    def _remove_position(self) -> None:
         # remove selected position
         rows = {r.row() for r in self.stage_tableWidget.selectedIndexes()}
         for idx in sorted(rows, reverse=True):
             self.stage_tableWidget.removeRow(idx)
 
-    def _clear_positions(self):
+    def _clear_positions(self) -> None:
         # clear all positions
         self.stage_tableWidget.clearContents()
         self.stage_tableWidget.setRowCount(0)
 
-    def _move_to_position(self):
+    def _move_to_position(self) -> None:
         if not self._mmc.getXYStageDevice():
             return
         curr_row = self.stage_tableWidget.currentRow()
@@ -246,7 +246,7 @@ class MMExploreSample(ExplorerGui):
         self._mmc.setXYPosition(float(x_val), float(y_val))
         self._mmc.setPosition(self._mmc.getFocusDevice(), float(z_val))
 
-    def _get_state_dict(self) -> dict:
+    def _get_state_dict(self) -> dict:  # sourcery skip: merge-dict-assign
 
         table = self.channel_explorer_tableWidget
 
@@ -297,7 +297,7 @@ class MMExploreSample(ExplorerGui):
                 "loops": self.timepoints_spinBox.value(),
             }
 
-        for g in self.set_grid():
+        for g in self._set_grid():
             pos = {"name": g[0], "x": g[1], "y": g[2]}
             if len(g) == 4:
                 pos["z"] = g[3]
@@ -305,7 +305,7 @@ class MMExploreSample(ExplorerGui):
 
         return state
 
-    def set_grid(self) -> list[tuple[str, float, float, Optional[float]]]:
+    def _set_grid(self) -> list[tuple[str, float, float, Optional[float]]]:
 
         self.scan_size_r = self.scan_size_spinBox_r.value()
         self.scan_size_c = self.scan_size_spinBox_c.value()
@@ -412,7 +412,7 @@ class MMExploreSample(ExplorerGui):
 
         return full_pos_list
 
-    def set_explorer_dir(self):
+    def _set_explorer_dir(self) -> None:
         # set the directory
         self.dir = QtW.QFileDialog(self)
         self.dir.setFileMode(QtW.QFileDialog.DirectoryOnly)
@@ -420,7 +420,7 @@ class MMExploreSample(ExplorerGui):
         self.dir_explorer_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-    def _create_translation_points(self, rows, cols) -> list:
+    def _create_translation_points(self, rows: int, cols: int) -> list:
 
         cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
@@ -460,7 +460,7 @@ class MMExploreSample(ExplorerGui):
             t_list = t_list * self.stage_tableWidget.rowCount()
         return t_list
 
-    def start_scan(self):
+    def _start_scan(self) -> None:
 
         self.pixel_size = self._mmc.getPixelSizeUm()
 
@@ -490,6 +490,7 @@ class MMExploreSample(ExplorerGui):
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text(),
             translate_explorer=self.display_checkbox.isChecked(),
+            translate_explorer_real_coords=self.display_checkbox_real.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
         )
 
@@ -499,7 +500,7 @@ class MMExploreSample(ExplorerGui):
         self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
         return
 
-    def move_to(self):
+    def _move_to(self) -> None:
 
         if self.pixel_size <= 0:
             raise ValueError("Pixel Size not set.")
