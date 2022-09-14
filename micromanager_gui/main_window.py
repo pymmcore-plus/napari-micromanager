@@ -4,23 +4,23 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 
 import napari
 import numpy as np
 import zarr
 from napari.experimental import link_layers, unlink_layers
+from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
+from pymmcore_widgets import PropertyBrowser
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
-from qtpy.QtGui import QColor, QIcon
+from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
-from . import _core, _mda
+from . import _mda
 from ._camera_roi import _CameraROI
-from ._core_widgets import PropertyBrowser
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import event_indices
@@ -34,10 +34,6 @@ if TYPE_CHECKING:
     from pymmcore_plus.core.events import QCoreSignaler
     from pymmcore_plus.mda import PMDAEngine
 
-ICONS = Path(__file__).parent / "icons"
-CAM_ICON = QIcon(str(ICONS / "vcam.svg"))
-CAM_STOP_ICON = QIcon(str(ICONS / "cam_stop.svg"))
-
 
 class MainWindow(MicroManagerWidget):
     """The main napari-micromanager widget that gets added to napari."""
@@ -46,7 +42,7 @@ class MainWindow(MicroManagerWidget):
         super().__init__()
 
         # create connection to mmcore server or process-local variant
-        self._mmc = _core.get_core_singleton(remote)
+        self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
 
@@ -212,7 +208,7 @@ class MainWindow(MicroManagerWidget):
     def _start_live(self):
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
-        self.streaming_timer.start(self._mmc.getExposure())
+        self.streaming_timer.start(int(self._mmc.getExposure()))
 
     def _stop_live(self):
         if self.streaming_timer:

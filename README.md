@@ -3,8 +3,8 @@
 [![License](https://img.shields.io/pypi/l/napari-micromanager.svg?color=green)](https://github.com/napari/napari-micromanager/raw/master/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-micromanager.svg?color=green)](https://pypi.org/project/napari-micromanager)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-micromanager.svg?color=green)](https://python.org)
-[![Tests](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml/badge.svg)](https://github.com/tlambert03/napari-micromanager/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/tlambert03/napari-micromanager/branch/main/graph/badge.svg?token=tf6lYDWV1s)](https://codecov.io/gh/tlambert03/napari-micromanager)
+[![Tests](https://github.com/pymmcore-plus/napari-micromanager/actions/workflows/test.yml/badge.svg)](https://github.com/pymmcore-plus/napari-micromanager/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/pymmcore-plus/napari-micromanager/branch/main/graph/badge.svg?token=tf6lYDWV1s)](https://codecov.io/gh/pymmcore-plus/napari-micromanager)
 
 GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.readthedocs.io/).
 
@@ -13,16 +13,6 @@ GUI interface between napari and micromanager powered by [pymmcore-plus](https:/
 ----------------------------------
 <img width="1797" alt="mm" src="https://user-images.githubusercontent.com/1609449/138457506-787b7bec-7f30-4d92-b5cf-6e218c87225a.png">
 
-
-This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [cookiecutter-napari-plugin] template.
-
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
-
-and review the napari docs for plugin developers:
-https://napari.org/docs/plugins/index.html
--->
 
 ## Installation
 
@@ -88,7 +78,7 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
-[file an issue]: https://github.com/tlambert03/napari-micromanager/issues
+[file an issue]: https://github.com/pymmcore-plus/napari-micromanager/issues
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/

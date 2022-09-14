@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Literal, Union
 
-from typing_extensions import Literal
 from useq import MDASequence
 
 __all__ = [

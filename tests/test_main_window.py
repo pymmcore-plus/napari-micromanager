@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -41,7 +43,7 @@ def test_main_window_mda(main_window: MainWindow):
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])
 def test_saving_mda(
-    qtbot: "QtBot", main_window: MainWindow, T, C, splitC, Z, tmp_path: Path
+    qtbot: QtBot, main_window: MainWindow, T, C, splitC, Z, tmp_path: Path
 ):
 
     NAME = "test_mda"
@@ -109,7 +111,7 @@ def test_saving_mda(
         assert data_shape == expected_shape
 
 
-def test_script_initiated_mda(main_window: MainWindow, qtbot: "QtBot"):
+def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     # we should show the mda even if it came from outside
     mmc = main_window._mmc
     sequence = MDASequence(
