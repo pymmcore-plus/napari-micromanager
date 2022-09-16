@@ -12,7 +12,7 @@ import zarr
 from napari.experimental import link_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
+from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
@@ -125,6 +125,9 @@ class MainWindow(MicroManagerWidget):
         action = self._menu.addAction("Device Property Browser...")
         action.triggered.connect(self._show_prop_browser)
 
+        action_1 = self._menu.addAction("Set Pixel Size...")
+        action_1.triggered.connect(self._show_pixel_size_table)
+
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
@@ -133,6 +136,11 @@ class MainWindow(MicroManagerWidget):
             self._prop_browser = PropertyBrowser(self._mmc, self)
         self._prop_browser.show()
         self._prop_browser.raise_()
+
+    def _show_pixel_size_table(self):
+        if not hasattr(self, "_px_size_wdg"):
+            self._px_size_wdg = PixelSizeWidget(self)
+        self._px_size_wdg.show()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
