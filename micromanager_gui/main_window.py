@@ -139,7 +139,7 @@ class MainWindow(MicroManagerWidget):
 
     def _show_pixel_size_table(self):
         if not hasattr(self, "_px_size_wdg"):
-            self._px_size_wdg = PixelSizeWidget(self)
+            self._px_size_wdg = PixelSizeWidget(parent=self)
         self._px_size_wdg.show()
 
     def _on_system_cfg_loaded(self):
