@@ -11,7 +11,7 @@ from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
-from ._mda_widget._mda_widget import MMMultiDWidget
+from ._mda_widget import MDAWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
@@ -32,7 +32,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
-        self.mda = MMMultiDWidget()
+        self.mda = MDAWidget()
         self.explorer = MMExploreSample()
         self.create_gui()
 

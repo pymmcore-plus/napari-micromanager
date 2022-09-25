@@ -19,9 +19,10 @@ from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
-from . import _mda
+from . import _mda_meta
 from ._camera_roi import _CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
+from ._mda_meta import SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -61,6 +62,8 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
+
+        self._mda_meta: SequenceMeta
 
         # disable gui
         self._set_enabled(False)
@@ -116,7 +119,12 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self._update_max_min)
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
+        self.mda.metadataInfo.connect(self._on_meta_info)
+
         self._add_menu()
+
+    def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
+        self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
     def _add_menu(self):
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
@@ -229,7 +237,6 @@ class MainWindow(MicroManagerWidget):
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
-        self._mda_meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
         if self._mda_meta.mode == "explorer":
             # shortcircuit - nothing to do
             return
@@ -334,11 +341,12 @@ class MainWindow(MicroManagerWidget):
             # move the viewer step to the most recently added image
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
+
         elif meta.mode == "explorer":
 
             seq = event.sequence
 
-            meta = _mda.SEQUENCE_META.get(seq) or _mda.SequenceMeta()
+            meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
             if meta.mode != "explorer":
                 return
 
@@ -375,20 +383,19 @@ class MainWindow(MicroManagerWidget):
             self.viewer.camera.zoom = 1 / zoom_out_factor
             self.viewer.reset_view()
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
+    def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         """Save layer and add increment to save name."""
-        meta = _mda.SEQUENCE_META.get(sequence) or _mda.SequenceMeta()
-        seq_uid = sequence.uid
+        meta = self._mda_meta
         if meta.mode == "explorer":
-
             layergroups = defaultdict(set)
+            seq_uid = sequence.uid
             for lay in self.viewer.layers:
                 if lay.metadata.get("uid") == seq_uid:
                     key = f"{lay.metadata['ch_name']}_idx{lay.metadata['ch_id']}"
                     layergroups[key].add(lay)
             for group in layergroups.values():
                 link_layers(group)
-        meta = _mda.SEQUENCE_META.pop(sequence, self._mda_meta)
+        meta = _mda_meta.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)

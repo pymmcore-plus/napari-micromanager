@@ -9,7 +9,7 @@ from pymmcore_plus import CMMCorePlus
 from qtpy import QtWidgets as QtW
 from useq import MDASequence
 
-from micromanager_gui import _mda
+from micromanager_gui import _mda_meta
 
 from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
@@ -73,7 +73,7 @@ class MMExploreSample(ExplorerGui):
         # TODO: have this widget be able to save independently of napari
         # meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
         # save_sequence(sequence, self.viewer.layers, meta)
-        meta = _mda.SEQUENCE_META.get(sequence, _mda.SequenceMeta())
+        meta = _mda_meta.SEQUENCE_META.get(sequence, _mda_meta.SequenceMeta())
         if meta.mode == "explorer" and (
             self.return_to_position_x is not None
             and self.return_to_position_y is not None
@@ -261,7 +261,7 @@ class MMExploreSample(ExplorerGui):
 
         explore_sample = MDASequence(**self._get_state_dict())
 
-        _mda.SEQUENCE_META[explore_sample] = _mda.SequenceMeta(
+        _mda_meta.SEQUENCE_META[explore_sample] = _mda_meta.SequenceMeta(
             mode="explorer",
             split_channels=True,
             should_save=self.save_explorer_groupBox.isChecked(),
