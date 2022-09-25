@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import tifffile
 
-from micromanager_gui import _mda
+from micromanager_gui import _mda_meta
 from micromanager_gui._saving import save_sequence
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from micromanager_gui.main_window import MainWindow
 
 
-def test_explorer(main_window: MainWindow, qtbot: QtBot):
+def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     mmc = main_window._mmc
     mmc.setXYPosition(0.0, 0.0)
@@ -43,7 +43,7 @@ def test_explorer(main_window: MainWindow, qtbot: QtBot):
     def get_seq(seq: MDASequence):
         nonlocal sequence, meta
         sequence = seq
-        meta = _mda.SEQUENCE_META[seq]
+        meta = _mda_meta.SEQUENCE_META[seq]
 
     with qtbot.waitSignals(
         [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
@@ -104,7 +104,7 @@ def test_saving_explorer(main_window: MainWindow, qtbot: QtBot):
     def get_seq(seq: MDASequence):
         nonlocal sequence, meta
         sequence = seq
-        meta = _mda.SEQUENCE_META[seq]
+        meta = _mda_meta.SEQUENCE_META[seq]
 
     with tempfile.TemporaryDirectory() as td:
         tmp_path = Path(td)

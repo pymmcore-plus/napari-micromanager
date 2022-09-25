@@ -63,7 +63,7 @@ class MainWindow(MicroManagerWidget):
 
         self.streaming_timer: QTimer | None = None
 
-        self._mda_meta: SequenceMeta
+        self._mda_meta: SequenceMeta = None  # type: ignore
 
         # disable gui
         self._set_enabled(False)
@@ -236,6 +236,12 @@ class MainWindow(MicroManagerWidget):
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
+
+        # temporary solution untill will merge new explorer widget
+        if not self._mda_meta:
+            self._mda_meta = _mda_meta.SEQUENCE_META.get(
+                sequence, _mda_meta.SequenceMeta()
+            )
 
         if self._mda_meta.mode == "explorer":
             # shortcircuit - nothing to do

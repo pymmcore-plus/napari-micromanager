@@ -8,7 +8,7 @@ import pytest
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
-from micromanager_gui import _mda
+from micromanager_gui import _mda_meta
 from micromanager_gui._util import event_indices
 from micromanager_gui.main_window import MainWindow
 
@@ -26,8 +26,10 @@ def test_main_window_mda(main_window: MainWindow):
         channels=["DAPI", "FITC"],
     )
 
+    _mda_meta.SEQUENCE_META[mda] = _mda_meta.SequenceMeta(mode="mda")
+    main_window._on_meta_info(_mda_meta.SEQUENCE_META[mda], mda)
+
     mmc = main_window._mmc
-    _mda.SEQUENCE_META[mda] = _mda.SequenceMeta(mode="mda")
 
     mmc.mda.events.sequenceStarted.emit(mda)
 
@@ -89,8 +91,10 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
-        _mda._on_run_clicked()
+    with qtbot.waitSignals(
+        [main_window.mda.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
+    ):
+        main_window.mda.run_Button.click()
 
     assert mda is not None
     data_shape = main_window.viewer.layers[-1].data.shape
