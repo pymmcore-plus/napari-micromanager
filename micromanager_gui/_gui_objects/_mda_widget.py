@@ -11,7 +11,7 @@ from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
 class MDAWidget(MultiDWidget):
-    """Main Gui."""
+    """Main napari-micromanager GUI."""
 
     metadataInfo = Signal(SequenceMeta, MDASequence)
 
