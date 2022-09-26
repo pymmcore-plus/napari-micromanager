@@ -1,45 +1,54 @@
+from typing import Optional
+
+from pymmcore_plus import CMMCorePlus, DeviceType
+from pymmcore_widgets import ShuttersWidget
 from qtpy import QtWidgets as QtW
 
 
 class MMShuttersWidget(QtW.QWidget):
-    """Just the UI elements for a widget to control shutters."""
+    """Create shutter widget."""
 
-    def __init__(self):
+    def __init__(self, mmcore: Optional[CMMCorePlus] = None):
         super().__init__()
-        self.setup_gui()
 
-    def setup_gui(self):
+        self.setLayout(QtW.QHBoxLayout())
+        self.layout().setSpacing(3)
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        sizepolicy_btn = QtW.QSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed)
+        self.setSizePolicy(sizepolicy_btn)
 
-        # main_layout
-        self.main_layout = QtW.QGridLayout()
-        self.main_layout.setHorizontalSpacing(5)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self._mmc = mmcore or CMMCorePlus.instance()
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
+        self._on_cfg_loaded()
 
-        # shutter_label
-        self.shutter_label = QtW.QLabel(text="Shutters:")
-        self.shutter_label.setMaximumWidth(80)
-        self.shutter_label.setMinimumWidth(80)
-        self.main_layout.addWidget(self.shutter_label, 0, 0)
+    def _on_cfg_loaded(self):
 
-        # shutter_comboBox
-        self.shutter_comboBox = QtW.QComboBox()
-        self.shutter_comboBox.setMinimumWidth(200)
-        self.main_layout.addWidget(self.shutter_comboBox, 0, 1)
+        self._clear()
 
-        # shutter pushbutton
-        self.shutter_btn = QtW.QPushButton(text="Open")
-        self.shutter_btn.setMinimumWidth(80)
-        self.shutter_btn.setMaximumWidth(80)
-        self.main_layout.addWidget(self.shutter_btn, 0, 2)
+        if not self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
+            empty_shutter = ShuttersWidget("")
+            self.layout().addWidget(empty_shutter)
+            return
 
-        # Set main layout
-        self.setLayout(self.main_layout)
+        shutters_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice))
+        for d in shutters_devs:
+            props = self._mmc.getDevicePropertyNames(d)
+            if bool([x for x in props if "Physical Shutter" in x]):
+                shutters_devs.remove(d)
+                shutters_devs.insert(0, d)
 
+        for idx, shutter in enumerate(shutters_devs):
 
-if __name__ == "__main__":
-    import sys
+            if idx == len(shutters_devs) - 1:
+                s = ShuttersWidget(shutter)
+            else:
+                s = ShuttersWidget(shutter, autoshutter=False)
+            s.button_text_open = shutter
+            s.button_text_closed = shutter
+            self.layout().addWidget(s)
 
-    app = QtW.QApplication(sys.argv)
-    win = MMShuttersWidget()
-    win.show()
-    sys.exit(app.exec_())
+    def _clear(self):
+        for i in reversed(range(self.layout().count())):
+            if item := self.layout().takeAt(i):
+                if wdg := item.widget():
+                    wdg.deleteLater()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pymmcore_widgets import (
+    CameraRoiWidget,
     ConfigurationWidget,
     GroupPresetTableWidget,
     ObjectivesWidget,
@@ -10,7 +11,6 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
-from ._camera_widget import MMCameraWidget
 from ._mda_widget import MDAWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
@@ -26,7 +26,7 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
-        self.cam_wdg = MMCameraWidget()
+        self.cam_wdg = CameraRoiWidget()
         self.stage_wdg = MMStagesWidget()
         self.illum_btn = QtW.QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
@@ -44,6 +44,32 @@ class MicroManagerWidget(QtW.QWidget):
         self.main_layout.setAlignment(Qt.AlignCenter)
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
+
+        # add shutters
+        s_wdg = QtW.QGroupBox()
+        s_l = QtW.QHBoxLayout()
+        s_l.setAlignment(Qt.AlignLeft)
+        s_l.setContentsMargins(5, 5, 5, 5)
+        s_wdg.setLayout(s_l)
+        s_l.addWidget(self.shutter_wdg)
+        self.main_layout.addWidget(s_wdg)
+        # self.main_layout.addWidget(self.shutter_wdg)
+
+        # add camera collapsible
+        self.cam_group = QtW.QGroupBox()
+        self.cam_group_layout = QtW.QVBoxLayout()
+        self.cam_group_layout.setSpacing(0)
+        self.cam_group_layout.setContentsMargins(1, 0, 1, 1)
+        coll_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
+        )
+        self.cam_coll = QCollapsible(title="Camera")
+        self.cam_coll.layout().setSpacing(0)
+        self.cam_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.cam_coll.setSizePolicy(coll_sizepolicy)
+        self.cam_coll.addWidget(self.cam_wdg)
+        self.main_layout.addWidget(self.cam_group)
+
         # add microscope collapsible
         self.mic_group = QtW.QGroupBox()
         self.mic_group_layout = QtW.QVBoxLayout()
@@ -59,11 +85,11 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add objective, property browser, illumination and camera widgets
         obj_prop = self.add_mm_objectives_widget()
-        ill_shutter = self.add_shutter_widgets()
-        cam = self.add_camera_widget()
+        # ill_shutter = self.add_shutter_widgets()
+        # cam = self.add_camera_widget()
         self.mic_coll.addWidget(obj_prop)
-        self.mic_coll.addWidget(ill_shutter)
-        self.mic_coll.addWidget(cam)
+        # self.mic_coll.addWidget(ill_shutter)
+        # self.mic_coll.addWidget(cam)
         self.mic_coll.expand(animate=False)
         self.mic_group_layout.addWidget(self.mic_coll)
         self.mic_group.setLayout(self.mic_group_layout)
