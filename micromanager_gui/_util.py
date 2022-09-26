@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, Optional
+from typing import TYPE_CHECKING, Iterator, Optional, Tuple
 
 from pymmcore_plus import CMMCorePlus
 
@@ -96,3 +96,11 @@ def update_pixel_size(
         mmc.definePixelSizeConfig(resolutionID, obj_dev_label, "Label", curr_obj)
         mmc.setPixelSizeUm(resolutionID, pixel_size / mag)
         mmc.setPixelSizeConfig(resolutionID)
+
+
+def iter_dev_props(mmc: Optional[CMMCorePlus] = None) -> Iterator[Tuple[str, str]]:
+    """Yield all pairs of currently loaded (device_label, property_name)."""
+    mmc = mmc or CMMCorePlus.instance()
+    for dev in mmc.getLoadedDevices():
+        for prop in mmc.getDevicePropertyNames(dev):
+            yield dev, prop

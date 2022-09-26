@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from pymmcore_widgets import (  # CameraRoiWidget,
+from pymmcore_widgets import (
+    CameraRoiWidget,
     ConfigurationWidget,
     GroupPresetTableWidget,
     ObjectivesWidget,
-    SliderDialog,
 )
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
+from ._illumination_widget import IlluminationWidget
 from ._mda_widget import MDAWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
@@ -25,10 +26,10 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
-        # self.cam_wdg = CameraRoiWidget()
+        self.cam_wdg = CameraRoiWidget()
         self.stage_wdg = MMStagesWidget()
-        self.illum_btn = QtW.QPushButton("Light Sources")
-        self.illum_btn.clicked.connect(self._show_illum_dialog)
+        # self.illum_btn = QtW.QPushButton("Light Sources")
+        # self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MDAWidget()
@@ -56,7 +57,26 @@ class MicroManagerWidget(QtW.QWidget):
         s_l.addWidget(self.shutter_wdg)
         self.main_layout.addWidget(s_wdg)
 
-        # add camera collapsible
+        # add illumination collapsible ____________
+        self.ill_group = QtW.QGroupBox()
+        self.ill_group_layout = QtW.QVBoxLayout()
+        self.ill_group_layout.setSpacing(0)
+        self.ill_group_layout.setContentsMargins(1, 0, 1, 1)
+        coll_sizepolicy = QtW.QSizePolicy(
+            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
+        )
+        self.ill_coll = QCollapsible(title="Illumination")
+        self.ill_coll.layout().setSpacing(0)
+        self.ill_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.ill_coll.setSizePolicy(coll_sizepolicy)
+        self.ill = IlluminationWidget()
+        self.ill_coll.addWidget(self.ill)
+
+        self.ill_group_layout.addWidget(self.ill_coll)
+        self.ill_group.setLayout(self.ill_group_layout)
+        self.main_layout.addWidget(self.ill_group)
+
+        # add camera collapsible ____________
         self.cam_group = QtW.QGroupBox()
         self.cam_group_layout = QtW.QVBoxLayout()
         self.cam_group_layout.setSpacing(0)
@@ -64,17 +84,17 @@ class MicroManagerWidget(QtW.QWidget):
         coll_sizepolicy = QtW.QSizePolicy(
             QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
         )
-        # self.cam_coll = QCollapsible(title="Camera")
-        # self.cam_coll.layout().setSpacing(0)
-        # self.cam_coll.layout().setContentsMargins(0, 0, 0, 0)
-        # self.cam_coll.setSizePolicy(coll_sizepolicy)
-        # self.cam_coll.addWidget(self.cam_wdg)
+        self.cam_coll = QCollapsible(title="Camera")
+        self.cam_coll.layout().setSpacing(0)
+        self.cam_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.cam_coll.setSizePolicy(coll_sizepolicy)
+        self.cam_coll.addWidget(self.cam_wdg)
 
-        # self.cam_group_layout.addWidget(self.cam_coll)
-        # self.cam_group.setLayout(self.cam_group_layout)
-        # self.main_layout.addWidget(self.cam_group)
+        self.cam_group_layout.addWidget(self.cam_coll)
+        self.cam_group.setLayout(self.cam_group_layout)
+        self.main_layout.addWidget(self.cam_group)
 
-        # # add microscope collapsible
+        # # add microscope collapsible ____________
         # self.mic_group = QtW.QGroupBox()
         # self.mic_group_layout = QtW.QVBoxLayout()
         # self.mic_group_layout.setSpacing(0)
@@ -129,14 +149,14 @@ class MicroManagerWidget(QtW.QWidget):
         # set main_layout layout
         self.setLayout(self.main_layout)
 
-    def add_camera_widget(self):
-        self.cam_group = QtW.QWidget()
-        self.cam_group_layout = QtW.QGridLayout()
-        self.cam_group_layout.setSpacing(0)
-        self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
-        self.cam_group_layout.addWidget(self.cam_wdg)
-        self.cam_group.setLayout(self.cam_group_layout)
-        return self.cam_group
+    # def add_camera_widget(self):
+    #     self.cam_group = QtW.QWidget()
+    #     self.cam_group_layout = QtW.QGridLayout()
+    #     self.cam_group_layout.setSpacing(0)
+    #     self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
+    #     self.cam_group_layout.addWidget(self.cam_wdg)
+    #     self.cam_group.setLayout(self.cam_group_layout)
+    #     return self.cam_group
 
     def add_mm_objectives_widget(self):
         obj_wdg = QtW.QGroupBox()
@@ -144,21 +164,21 @@ class MicroManagerWidget(QtW.QWidget):
         obj_wdg_layout.setContentsMargins(5, 5, 5, 5)
         obj_wdg_layout.setSpacing(7)
         obj_wdg_layout.addWidget(self.obj_wdg)
-        obj_wdg_layout.addWidget(self.illum_btn)
+        # obj_wdg_layout.addWidget(self.illum_btn)
         obj_wdg.setLayout(obj_wdg_layout)
         return obj_wdg
 
-    def add_shutter_widgets(self):
-        shutter_wdg = QtW.QWidget()
-        shutter_wdg_layout = QtW.QHBoxLayout()
-        shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
-        shutter_wdg_layout.setSpacing(7)
-        shutter_wdg_layout.addWidget(self.shutter_wdg)
-        shutter_wdg_layout.addWidget(self.illum_btn)
-        shutter_wdg.setLayout(shutter_wdg_layout)
-        return shutter_wdg
+    # def add_shutter_widgets(self):
+    #     shutter_wdg = QtW.QWidget()
+    #     shutter_wdg_layout = QtW.QHBoxLayout()
+    #     shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
+    #     shutter_wdg_layout.setSpacing(7)
+    #     shutter_wdg_layout.addWidget(self.shutter_wdg)
+    #     shutter_wdg_layout.addWidget(self.illum_btn)
+    #     shutter_wdg.setLayout(shutter_wdg_layout)
+    #     return shutter_wdg
 
-    def _show_illum_dialog(self):
-        if not hasattr(self, "_illumination"):
-            self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
-        self._illumination.show()
+    # def _show_illum_dialog(self):
+    #     if not hasattr(self, "_illumination"):
+    #         self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
+    #     self._illumination.show()
