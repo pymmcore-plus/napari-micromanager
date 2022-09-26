@@ -45,6 +45,9 @@ class MicroManagerWidget(QtW.QWidget):
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
 
+        # add objectives
+        self.main_layout.addWidget(self.add_mm_objectives_widget())
+
         # add shutters
         s_wdg = QtW.QGroupBox()
         s_l = QtW.QHBoxLayout()
@@ -53,7 +56,6 @@ class MicroManagerWidget(QtW.QWidget):
         s_wdg.setLayout(s_l)
         s_l.addWidget(self.shutter_wdg)
         self.main_layout.addWidget(s_wdg)
-        # self.main_layout.addWidget(self.shutter_wdg)
 
         # add camera collapsible
         self.cam_group = QtW.QGroupBox()
@@ -68,32 +70,33 @@ class MicroManagerWidget(QtW.QWidget):
         self.cam_coll.layout().setContentsMargins(0, 0, 0, 0)
         self.cam_coll.setSizePolicy(coll_sizepolicy)
         self.cam_coll.addWidget(self.cam_wdg)
+
+        self.cam_group_layout.addWidget(self.cam_coll)
+        self.cam_group.setLayout(self.cam_group_layout)
         self.main_layout.addWidget(self.cam_group)
 
-        # add microscope collapsible
-        self.mic_group = QtW.QGroupBox()
-        self.mic_group_layout = QtW.QVBoxLayout()
-        self.mic_group_layout.setSpacing(0)
-        self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
-        coll_sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
-        )
-        self.mic_coll = QCollapsible(title="Microscope")
-        self.mic_coll.layout().setSpacing(0)
-        self.mic_coll.layout().setContentsMargins(0, 0, 0, 0)
-        self.mic_coll.setSizePolicy(coll_sizepolicy)
+        # # add microscope collapsible
+        # self.mic_group = QtW.QGroupBox()
+        # self.mic_group_layout = QtW.QVBoxLayout()
+        # self.mic_group_layout.setSpacing(0)
+        # self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
+        # coll_sizepolicy = QtW.QSizePolicy(
+        #     QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
+        # )
+        # self.mic_coll = QCollapsible(title="Microscope")
+        # self.mic_coll.layout().setSpacing(0)
+        # self.mic_coll.layout().setContentsMargins(0, 0, 0, 0)
+        # self.mic_coll.setSizePolicy(coll_sizepolicy)
 
-        # add objective, property browser, illumination and camera widgets
-        obj_prop = self.add_mm_objectives_widget()
-        # ill_shutter = self.add_shutter_widgets()
-        # cam = self.add_camera_widget()
-        self.mic_coll.addWidget(obj_prop)
-        # self.mic_coll.addWidget(ill_shutter)
-        # self.mic_coll.addWidget(cam)
-        self.mic_coll.expand(animate=False)
-        self.mic_group_layout.addWidget(self.mic_coll)
-        self.mic_group.setLayout(self.mic_group_layout)
-        self.main_layout.addWidget(self.mic_group)
+        # # ill_shutter = self.add_shutter_widgets()
+        # # cam = self.add_camera_widget()
+        # self.mic_coll.addWidget(obj_prop)
+        # # self.mic_coll.addWidget(ill_shutter)
+        # # self.mic_coll.addWidget(cam)
+        # self.mic_coll.expand(animate=False)
+        # self.mic_group_layout.addWidget(self.mic_coll)
+        # self.mic_group.setLayout(self.mic_group_layout)
+        # self.main_layout.addWidget(self.mic_group)
 
         # add stages collapsible
         self.stages_group = QtW.QGroupBox()
@@ -106,7 +109,6 @@ class MicroManagerWidget(QtW.QWidget):
         self.stages_coll.layout().setSpacing(0)
         self.stages_coll.layout().setContentsMargins(0, 0, 0, 0)
         self.stages_coll.addWidget(self.stage_wdg)
-        self.stages_coll.expand(animate=False)
 
         self.stages_group_layout.addWidget(self.stages_coll)
         self.stages_group.setLayout(self.stages_group_layout)
@@ -138,11 +140,12 @@ class MicroManagerWidget(QtW.QWidget):
         return self.cam_group
 
     def add_mm_objectives_widget(self):
-        obj_wdg = QtW.QWidget()
+        obj_wdg = QtW.QGroupBox()
         obj_wdg_layout = QtW.QHBoxLayout()
         obj_wdg_layout.setContentsMargins(5, 5, 5, 5)
         obj_wdg_layout.setSpacing(7)
         obj_wdg_layout.addWidget(self.obj_wdg)
+        obj_wdg_layout.addWidget(self.illum_btn)
         obj_wdg.setLayout(obj_wdg_layout)
         return obj_wdg
 
