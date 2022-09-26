@@ -20,7 +20,8 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
-from ._camera_roi import _CameraROI
+
+# from ._camera_roi import _CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._mda_meta import SequenceMeta
 from ._saving import save_sequence
@@ -107,12 +108,12 @@ class MainWindow(MicroManagerWidget):
                 with contextlib.suppress(NotADirectoryError):
                     v.cleanup()
 
-        self.cam_roi = _CameraROI(
-            self.viewer,
-            self._mmc,
-            self.cam_wdg.cam_roi_combo,
-            self.cam_wdg.crop_btn,
-        )
+        # self.cam_roi = _CameraROI(
+        #     self.viewer,
+        #     self._mmc,
+        #     self.cam_wdg.cam_roi_combo,
+        #     self.cam_wdg.crop_btn,
+        # )
 
         self.viewer.layers.events.connect(self._update_max_min)
         self.viewer.layers.selection.events.active.connect(self._update_max_min)
@@ -156,11 +157,11 @@ class MainWindow(MicroManagerWidget):
 
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
-            self._camera_group_wdg(enabled)
+            # self._camera_group_wdg(enabled)
             self.tab_wdg.snap_live_tab.setEnabled(enabled)
             self.tab_wdg.snap_live_tab.setEnabled(enabled)
         else:
-            self._camera_group_wdg(False)
+            # self._camera_group_wdg(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
             self.tab_wdg.snap_live_tab.setEnabled(False)
 
@@ -172,8 +173,8 @@ class MainWindow(MicroManagerWidget):
         else:
             self.explorer._set_enabled(False)
 
-    def _camera_group_wdg(self, enabled):
-        self.cam_wdg.setEnabled(enabled)
+    # def _camera_group_wdg(self, enabled):
+    #     self.cam_wdg.setEnabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None):
