@@ -8,8 +8,8 @@ import useq
 from pymmcore_plus import CMMCorePlus
 from qtpy import QtWidgets as QtW
 from useq import MDASequence
-
-from micromanager_gui import _mda_meta
+from qtpy.QtCore import Qt, Signal
+from ..._mda_meta import SEQUENCE_META, SequenceMeta
 
 from ..._gui_objects._sample_explorer_widget._sample_explorer_gui import ExplorerGui
 
@@ -22,6 +22,8 @@ UI_FILE = str(Path(__file__).parent / "explore_sample.ui")
 
 class MMExploreSample(ExplorerGui):
     """Widget to create/run tiled acquisitions."""
+
+    metadataInfo = Signal(SequenceMeta, MDASequence)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -39,6 +41,7 @@ class MMExploreSample(ExplorerGui):
         self.clear_ch_explorer_Button.clicked.connect(self.clear_channel)
 
         self.start_scan_Button.clicked.connect(self.start_scan)
+        
         self.move_to_Button.clicked.connect(self.move_to)
         self.browse_save_explorer_Button.clicked.connect(self.set_explorer_dir)
 
@@ -73,7 +76,7 @@ class MMExploreSample(ExplorerGui):
         # TODO: have this widget be able to save independently of napari
         # meta = _mda.SEQUENCE_META.pop(sequence, _mda.SequenceMeta())
         # save_sequence(sequence, self.viewer.layers, meta)
-        meta = _mda_meta.SEQUENCE_META.get(sequence, _mda_meta.SequenceMeta())
+        meta = SEQUENCE_META.get(sequence, SequenceMeta())
         if meta.mode == "explorer" and (
             self.return_to_position_x is not None
             and self.return_to_position_y is not None
@@ -259,18 +262,25 @@ class MMExploreSample(ExplorerGui):
         ):
             raise ValueError("select a filename and a valid directory.")
 
+        self._send_meta()
+
         explore_sample = MDASequence(**self._get_state_dict())
 
-        _mda_meta.SEQUENCE_META[explore_sample] = _mda_meta.SequenceMeta(
+        self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
+        return
+
+    def _send_meta(self) -> None:
+        print('______META SENT')
+        sequence =  MDASequence(**self._get_state_dict())
+        SEQUENCE_META[sequence] = SequenceMeta(
             mode="explorer",
             split_channels=True,
             should_save=self.save_explorer_groupBox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
-            save_dir=self.dir_explorer_lineEdit.text(),
+            save_dir=self.dir_explorer_lineEdit.text()
+            or str(Path(__file__).parent.parent.parent),
         )
-
-        self._mmc.run_mda(explore_sample)  # run the MDA experiment asynchronously
-        return
+        self.metadataInfo.emit(SEQUENCE_META[sequence], sequence)
 
     def move_to(self):
 

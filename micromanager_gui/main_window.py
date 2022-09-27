@@ -121,6 +121,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
         self.mda.metadataInfo.connect(self._on_meta_info)
+        self.explorer.metadataInfo.connect(self._on_meta_info)
 
         self._add_menu()
 
@@ -247,11 +248,11 @@ class MainWindow(MicroManagerWidget):
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
-        # temporary solution untill will merge new explorer widget
-        if not self._mda_meta:
-            self._mda_meta = _mda_meta.SEQUENCE_META.get(
-                sequence, _mda_meta.SequenceMeta()
-            )
+        # # temporary solution untill will merge new explorer widget
+        # if not self._mda_meta:
+        #     self._mda_meta = _mda_meta.SEQUENCE_META.get(
+        #         sequence, _mda_meta.SequenceMeta()
+        #     )
 
         if self._mda_meta.mode == "explorer":
             # shortcircuit - nothing to do
@@ -362,7 +363,9 @@ class MainWindow(MicroManagerWidget):
 
             seq = event.sequence
 
-            meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
+            # meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
+            meta = self._mda_meta
+
             if meta.mode != "explorer":
                 return
 

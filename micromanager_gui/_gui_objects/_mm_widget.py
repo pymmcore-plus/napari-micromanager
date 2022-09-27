@@ -8,13 +8,10 @@ from pymmcore_widgets import (
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
-# from ._illumination_widget import IlluminationWidget
 from ._mda_widget import MDAWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
-
-# from ._xyz_stages import MMStagesWidget
 
 
 class MicroManagerWidget(QtW.QWidget):
@@ -37,6 +34,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.main_layout.setContentsMargins(10, 0, 10, 0)
         self.main_layout.setSpacing(3)
         self.main_layout.setAlignment(Qt.AlignCenter)
+
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
 
