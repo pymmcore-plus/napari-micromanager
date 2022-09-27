@@ -4,12 +4,12 @@ from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import StageWidget
 from qtpy.QtCore import QMimeData, Qt
 from qtpy.QtGui import QDrag
-from qtpy.QtWidgets import QGroupBox, QHBoxLayout, QWidget
+from qtpy.QtWidgets import QDialog, QGroupBox, QHBoxLayout, QWidget
 
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
 
-class MMStagesWidget(QWidget):
+class MMStagesWidget(QDialog):
     """UI elements for stage control widgets."""
 
     def __init__(self, parent: Optional[QWidget] = None):
