@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, List, Tuple
 import napari
 import numpy as np
 import zarr
-from napari.experimental import link_layers
+from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PropertyBrowser
@@ -117,7 +117,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self._update_max_min)
         self.viewer.layers.selection.events.active.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
-        self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
+        # self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
@@ -126,6 +126,7 @@ class MainWindow(MicroManagerWidget):
 
     def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
+        print("______", self._mda_meta)
 
     def _add_menu(self):
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
@@ -238,36 +239,37 @@ class MainWindow(MicroManagerWidget):
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
-        # # temporary solution untill will merge new explorer widget
-        # if not self._mda_meta:
-        #     self._mda_meta = _mda_meta.SEQUENCE_META.get(
-        #         sequence, _mda_meta.SequenceMeta()
-        #     )
-
-        if self._mda_meta.mode == "explorer":
-            # shortcircuit - nothing to do
-            return
-        elif self._mda_meta.mode == "":
+        if self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
             self._mda_meta.mode = "mda"
 
-        # work out what the shapes of the layers will be
-        # this depends on whether the user selected Split Channels or not
-        shape, channels, labels = self._interpret_split_channels(sequence)
+        if self._mda_meta.mode == "mda":
+            # work out what the shapes of the layers will be
+            # this depends on whether the user selected Split Channels or not
+            shape, channels, labels = self._interpret_split_channels(sequence)
 
-        # acutally create the viewer layers backed by zarr stores
-        self._add_mda_channel_layers(tuple(shape), channels, sequence)
+            # acutally create the viewer layers backed by zarr stores
+            self._add_mda_channel_layers(tuple(shape), channels, sequence)
+
+        elif self._mda_meta.mode == "explorer":
+
+            if self._mda_meta.translate_explorer:
+
+                shape, positions, labels = self._interpret_explorer_positions(sequence)
+
+                self._add_explorer_positions_layers(tuple(shape), positions, sequence)
+
+            else:
+
+                shape, channels, labels = self._interpret_split_channels(sequence)
+
+                self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
 
-    def _interpret_split_channels(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
-        """Determine the shape of layers and the dimension labels.
-
-        ...based on whether we are splitting on channels
-        """
+    def _get_shape_and_labels(self, sequence: MDASequence):
+        """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         # dimensions labels
         axis_order = event_indices(next(sequence.iter_events()))
@@ -279,6 +281,18 @@ class MainWindow(MicroManagerWidget):
             shape.append(dim)
         labels.extend(["y", "x"])
         shape.extend(img_shape)
+
+        return labels, shape
+
+    def _interpret_split_channels(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """
+        Determine channels based on whether we are splitting on channels.
+
+        ...based on whether we are splitting on channel
+        """
+        labels, shape = self._get_shape_and_labels(sequence)
         if self._mda_meta.split_channels:
             channels = [f"_{c.config}" for c in sequence.channels]
             with contextlib.suppress(ValueError):
@@ -325,11 +339,67 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}_idx{i}"
 
+    def _interpret_explorer_positions(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """Remove positions index and set layer names."""
+        labels, shape = self._get_shape_and_labels(sequence)
+        positions = [f"{p.name}_" for p in sequence.stage_positions]
+        with contextlib.suppress(ValueError):
+            p_idx = labels.index("p")
+            labels.pop(p_idx)
+            shape.pop(p_idx)
+
+        return shape, positions, labels
+
+    def _add_explorer_positions_layers(
+        self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
+    ):
+        dtype = f"uint{self._mmc.getImageBitDepth()}"
+
+        # create a zarr store for each channel (or all channels when not splitting)
+        # to store the images to display so we don't overflow memory.
+        for pos in positions:
+            # TODO: modify id_ to try and divede the grids when saving
+            # see also line 378 (layer.metadata["grid"])
+            id_ = pos + str(sequence.uid)
+
+            tmp = tempfile.TemporaryDirectory()
+
+            # keep track of temp files so we can clean them up when we quit
+            # we can't have them auto clean up because then the zarr wouldn't last
+            # till the end
+            # TODO: when the layer is deleted we should release the zarr store.
+            self._mda_temp_files[id_] = tmp
+            self._mda_temp_arrays[id_] = z = zarr.open(
+                str(tmp.name), shape=shape, dtype=dtype
+            )
+            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+
+            layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+
+            # add metadata to layer
+            # storing event.index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
+            layer.metadata["useq_sequence"] = sequence
+            layer.metadata["uid"] = sequence.uid
+            layer.metadata["grid"] = pos.split("_")[-3]
+            layer.metadata["grid_pos"] = pos.split("_")[-2]
+
+    def _get_defaultdict_layers(self, event):
+        layergroups = defaultdict(set)
+        for lay in self.viewer.layers:
+            if lay.metadata.get("uid") == event.sequence.uid:
+                key = lay.metadata.get("grid")[:8]
+                layergroups[key].add(lay)
+        return layergroups
+
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
         meta = self._mda_meta
+        axis_order = list(event_indices(event))
+
         if meta.mode == "mda":
-            axis_order = list(event_indices(event))
 
             # Remove 'c' from idxs if we are splitting channels
             # also prepare the channel suffix that we use for keeping track of arrays
@@ -351,81 +421,132 @@ class MainWindow(MicroManagerWidget):
 
         elif meta.mode == "explorer":
 
-            seq = event.sequence
+            if meta.translate_explorer:
 
-            meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
-            if meta.mode != "explorer":
-                return
+                with contextlib.suppress(ValueError):
+                    axis_order.remove("p")
 
-            x = event.x_pos / self.explorer.pixel_size
-            y = event.y_pos / self.explorer.pixel_size * (-1)
+                # get the actual index of this image into the array
+                # add it to the zarr store
+                im_idx = tuple(event.index[k] for k in axis_order)
+                pos_name = event.pos_name
+                layer_name = f"{pos_name}_{event.sequence.uid}"
+                self._mda_temp_arrays[layer_name][im_idx] = image
 
-            pos_idx = event.index["p"]
-            file_name = meta.file_name if meta.should_save else "Exp"
-            ch_name = event.channel.config
-            ch_id = event.index["c"]
-            layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
+                x = meta.explorer_translation_points[event.index["p"]][0]
+                y = -meta.explorer_translation_points[event.index["p"]][1]
 
-            _metadata = dict(
-                useq_sequence=seq,
-                uid=seq.uid,
-                scan_coord=(y, x),
-                scan_position=f"Pos{pos_idx:03d}",
-                ch_name=ch_name,
-                ch_id=ch_id,
-            )
-            self.viewer.add_image(
-                image,
-                name=layer_name,
-                blending="additive",
-                translate=(y, x),
-                metadata=_metadata,
-            )
+                layergroups = self._get_defaultdict_layers(event)
+                # unlink layers to translate
+                for group in layergroups.values():
+                    unlink_layers(group)
 
-            zoom_out_factor = (
-                self.explorer.scan_size_r
-                if self.explorer.scan_size_r >= self.explorer.scan_size_c
-                else self.explorer.scan_size_c
-            )
-            self.viewer.camera.zoom = 1 / zoom_out_factor
-            self.viewer.reset_view()
+                # translate only once
+                fname = (
+                    self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+                )
+                layer = self.viewer.layers[f"{fname}_{layer_name}"]
+                if (layer.translate[-2], layer.translate[-1]) != (y, x):
+                    layer.translate = (y, x)
+                layer.metadata["translate"] = True
+
+                # link layers after translation
+                for group in layergroups.values():
+                    link_layers(group)
+
+                # move the viewer step to the most recently added image
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
+
+                layer.reset_contrast_limits()
+
+                zoom_out_factor = (
+                    self.explorer.scan_size_r
+                    if self.explorer.scan_size_r >= self.explorer.scan_size_c
+                    else self.explorer.scan_size_c
+                )
+                self.viewer.camera.zoom = 1 / zoom_out_factor
+                self.viewer.reset_view()
+
+            else:
+                # get the actual index of this image into the array
+                # add it to the zarr store
+                im_idx = tuple(event.index[k] for k in axis_order)
+                # add index of this image to the zarr store
+                self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
+
+                # move the viewer step to the most recently added image
+                for a, v in enumerate(im_idx):
+                    self.viewer.dims.set_point(a, v)
+
+        # elif meta.mode == "explorer":
+
+        #     seq = event.sequence
+
+        #     meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
+        #     if meta.mode != "explorer":
+        #         return
+
+        #     x = event.x_pos / self.explorer.pixel_size
+        #     y = event.y_pos / self.explorer.pixel_size * (-1)
+
+        #     pos_idx = event.index["p"]
+        #     file_name = meta.file_name if meta.should_save else "Exp"
+        #     ch_name = event.channel.config
+        #     ch_id = event.index["c"]
+        #     layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
+
+        #     _metadata = dict(
+        #         useq_sequence=seq,
+        #         uid=seq.uid,
+        #         scan_coord=(y, x),
+        #         scan_position=f"Pos{pos_idx:03d}",
+        #         ch_name=ch_name,
+        #         ch_id=ch_id,
+        #     )
+        #     self.viewer.add_image(
+        #         image,
+        #         name=layer_name,
+        #         blending="additive",
+        #         translate=(y, x),
+        #         metadata=_metadata,
+        #     )
+
+        #     zoom_out_factor = (
+        #         self.explorer.scan_size_r
+        #         if self.explorer.scan_size_r >= self.explorer.scan_size_c
+        #         else self.explorer.scan_size_c
+        #     )
+        #     self.viewer.camera.zoom = 1 / zoom_out_factor
+        #     self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         """Save layer and add increment to save name."""
         meta = self._mda_meta
-        if meta.mode == "explorer":
-            layergroups = defaultdict(set)
-            seq_uid = sequence.uid
-            for lay in self.viewer.layers:
-                if lay.metadata.get("uid") == seq_uid:
-                    key = f"{lay.metadata['ch_name']}_idx{lay.metadata['ch_id']}"
-                    layergroups[key].add(lay)
-            for group in layergroups.values():
-                link_layers(group)
         meta = _mda_meta.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._set_enabled(True)
 
-    def _get_event_explorer(self, viewer, event):
-        if not self.explorer.isVisible():
-            return
-        if self._mmc.getPixelSizeUm() > 0:
-            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+    # def _get_event_explorer(self, viewer, event):
+    #     if not self.explorer.isVisible():
+    #         return
+    #     if self._mmc.getPixelSizeUm() > 0:
+    #         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+    #         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
-            x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-            y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+    #         x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
+    #         y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
 
-            # to match position coordinates with center of the image
-            x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
-            y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
+    #         # to match position coordinates with center of the image
+    #         x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
+    #         y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
 
-        else:
-            x, y = "None", "None"
+    #     else:
+    #         x, y = "None", "None"
 
-        self.explorer.x_lineEdit.setText(x)
-        self.explorer.y_lineEdit.setText(y)
+    #     self.explorer.x_lineEdit.setText(x)
+    #     self.explorer.y_lineEdit.setText(y)
 
     def _update_live_exp(self, camera: str, exposure: float):
         if self.streaming_timer:

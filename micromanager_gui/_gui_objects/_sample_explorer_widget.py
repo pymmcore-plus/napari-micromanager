@@ -43,6 +43,7 @@ class SampleExplorerWidget(SampleExplorer):
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
 
         self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
+        self.start_scan_Button.clicked.connect(self._send_meta)
 
     def _create_save_group(self) -> QGroupBox:
 
