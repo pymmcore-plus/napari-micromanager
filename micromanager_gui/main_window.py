@@ -480,47 +480,6 @@ class MainWindow(MicroManagerWidget):
                 for a, v in enumerate(im_idx):
                     self.viewer.dims.set_point(a, v)
 
-        # elif meta.mode == "explorer":
-
-        #     seq = event.sequence
-
-        #     meta = _mda_meta.SEQUENCE_META.get(seq) or _mda_meta.SequenceMeta()
-        #     if meta.mode != "explorer":
-        #         return
-
-        #     x = event.x_pos / self.explorer.pixel_size
-        #     y = event.y_pos / self.explorer.pixel_size * (-1)
-
-        #     pos_idx = event.index["p"]
-        #     file_name = meta.file_name if meta.should_save else "Exp"
-        #     ch_name = event.channel.config
-        #     ch_id = event.index["c"]
-        #     layer_name = f"Pos{pos_idx:03d}_{file_name}_{ch_name}_idx{ch_id}"
-
-        #     _metadata = dict(
-        #         useq_sequence=seq,
-        #         uid=seq.uid,
-        #         scan_coord=(y, x),
-        #         scan_position=f"Pos{pos_idx:03d}",
-        #         ch_name=ch_name,
-        #         ch_id=ch_id,
-        #     )
-        #     self.viewer.add_image(
-        #         image,
-        #         name=layer_name,
-        #         blending="additive",
-        #         translate=(y, x),
-        #         metadata=_metadata,
-        #     )
-
-        #     zoom_out_factor = (
-        #         self.explorer.scan_size_r
-        #         if self.explorer.scan_size_r >= self.explorer.scan_size_c
-        #         else self.explorer.scan_size_c
-        #     )
-        #     self.viewer.camera.zoom = 1 / zoom_out_factor
-        #     self.viewer.reset_view()
-
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         """Save layer and add increment to save name."""
         meta = self._mda_meta
