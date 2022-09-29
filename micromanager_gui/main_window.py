@@ -260,13 +260,8 @@ class MainWindow(MicroManagerWidget):
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
 
-    def _interpret_split_channels(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
-        """Determine the shape of layers and the dimension labels.
-
-        ...based on whether we are splitting on channels
-        """
+    def _get_shape_and_labels(self, sequence: MDASequence):
+        """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         # dimensions labels
         axis_order = event_indices(next(sequence.iter_events()))
@@ -278,6 +273,18 @@ class MainWindow(MicroManagerWidget):
             shape.append(dim)
         labels.extend(["y", "x"])
         shape.extend(img_shape)
+
+        return labels, shape
+
+    def _interpret_split_channels(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """
+        Determine channels based on whether we are splitting on channels.
+
+        ...based on whether we are splitting on channel
+        """
+        labels, shape = self._get_shape_and_labels(sequence)
         if self._mda_meta.split_channels:
             channels = [f"_{c.config}" for c in sequence.channels]
             with contextlib.suppress(ValueError):
