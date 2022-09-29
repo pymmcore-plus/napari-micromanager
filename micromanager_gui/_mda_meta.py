@@ -14,10 +14,7 @@ __all__ = [
 
 @dataclass
 class SequenceMeta:
-    """Metadata associated with an MDA sequence.
-
-    TODO: much of this may well move to useq-schema.
-    """
+    """Metadata associated with an MDA sequence."""
 
     mode: Union[Literal["mda"], Literal["explorer"], Literal[""]] = ""
     split_channels: bool = False
@@ -25,6 +22,8 @@ class SequenceMeta:
     file_name: str = ""
     save_dir: str = ""
     save_pos: bool = False
+    translate_explorer: bool = False
+    explorer_translation_points: list = []
 
 
 SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}

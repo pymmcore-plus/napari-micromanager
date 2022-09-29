@@ -12,7 +12,7 @@ from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
 from ._mda_widget._mda_widget import MMMultiDWidget
-from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
+from ._sample_explorer_widget import SampleExplorerWidget
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
@@ -33,7 +33,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MMMultiDWidget()
-        self.explorer = MMExploreSample()
+        self.explorer = SampleExplorerWidget()
         self.create_gui()
 
     def create_gui(self):
