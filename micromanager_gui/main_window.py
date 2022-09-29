@@ -120,6 +120,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
+        self.mda.metadataInfo.connect(self._on_meta_info)
 
         self._add_menu()
 
@@ -237,7 +238,12 @@ class MainWindow(MicroManagerWidget):
         """Create temp folder and block gui when mda starts."""
         self._set_enabled(False)
 
-        self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, _mda_meta.SequenceMeta())
+        # # temporary solution untill will merge new explorer widget
+        # if not self._mda_meta:
+        #     self._mda_meta = _mda_meta.SEQUENCE_META.get(
+        #         sequence, _mda_meta.SequenceMeta()
+        #     )
+
         if self._mda_meta.mode == "explorer":
             # shortcircuit - nothing to do
             return
@@ -342,6 +348,7 @@ class MainWindow(MicroManagerWidget):
             # move the viewer step to the most recently added image
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
+
         elif meta.mode == "explorer":
 
             seq = event.sequence
@@ -383,13 +390,12 @@ class MainWindow(MicroManagerWidget):
             self.viewer.camera.zoom = 1 / zoom_out_factor
             self.viewer.reset_view()
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
+    def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         """Save layer and add increment to save name."""
-        meta = _mda_meta.SEQUENCE_META.get(sequence) or _mda_meta.SequenceMeta()
-        seq_uid = sequence.uid
+        meta = self._mda_meta
         if meta.mode == "explorer":
-
             layergroups = defaultdict(set)
+            seq_uid = sequence.uid
             for lay in self.viewer.layers:
                 if lay.metadata.get("uid") == seq_uid:
                     key = f"{lay.metadata['ch_name']}_idx{lay.metadata['ch_id']}"

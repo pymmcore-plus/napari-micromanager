@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from napari.components import LayerList
     from useq import MDASequence
 
-    from micromanager_gui._mda import SequenceMeta
+    from micromanager_gui._mda_meta import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):

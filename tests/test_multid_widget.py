@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from useq import MDASequence
 
-from micromanager_gui._gui_objects._mda_widget._mda_widget import MMMultiDWidget
+from micromanager_gui._gui_objects._mda_widget import MDAWidget
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 def test_multid_load_state(qtbot: QtBot, core: CMMCorePlus):
-    wdg = MMMultiDWidget()
+    wdg = MDAWidget()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     wdg._mmc.loadSystemConfiguration(config_path)
     qtbot.addWidget(wdg)
@@ -28,7 +28,10 @@ def test_multid_load_state(qtbot: QtBot, core: CMMCorePlus):
         time_plan={"interval": 2, "loops": 5},
         z_plan={"range": 4, "step": 0.5},
         axis_order="tpcz",
-        stage_positions=[(222, 1, 1), (111, 0, 0)],
+        stage_positions=[
+            {"x": 222, "y": 1, "z": 1, "name": "Pos000"},
+            {"x": 111, "y": 0, "z": 0, "name": "Pos001"},
+        ],
     )
     wdg.set_state(sequence)
     assert wdg.stage_tableWidget.rowCount() == 2
@@ -36,4 +39,4 @@ def test_multid_load_state(qtbot: QtBot, core: CMMCorePlus):
     assert wdg.time_groupBox.isChecked()
 
     # round trip
-    assert wdg.get_state() == sequence
+    assert wdg._get_state() == sequence
