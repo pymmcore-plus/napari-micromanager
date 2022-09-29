@@ -449,6 +449,7 @@ class MainWindow(MicroManagerWidget):
                 if (layer.translate[-2], layer.translate[-1]) != (y, x):
                     layer.translate = (y, x)
                 layer.metadata["translate"] = True
+                layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
 
                 # link layers after translation
                 for group in layergroups.values():
