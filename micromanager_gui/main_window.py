@@ -160,6 +160,7 @@ class MainWindow(MicroManagerWidget):
         self.illum_btn.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
+        self.mda.save_groupBox.setEnabled(enabled)
 
         if self._mmc.getXYStageDevice():
             self.explorer._set_enabled(enabled)
