@@ -126,7 +126,6 @@ class MainWindow(MicroManagerWidget):
 
     def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
-        print("______", self._mda_meta)
 
     def _add_menu(self):
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
@@ -161,10 +160,13 @@ class MainWindow(MicroManagerWidget):
         self.illum_btn.setEnabled(enabled)
 
         self.mda._set_enabled(enabled)
+
         if self._mmc.getXYStageDevice():
             self.explorer._set_enabled(enabled)
         else:
             self.explorer._set_enabled(False)
+
+        self.explorer.save_explorer_groupBox.setEnabled(enabled)
 
     def _camera_group_wdg(self, enabled):
         self.cam_wdg.setEnabled(enabled)
@@ -226,7 +228,7 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer = None
 
     def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
-        oldEngine.events.frameReady.connect(self._on_mda_frame)
+        oldEngine.events.frameReady.disconnect(self._on_mda_frame)
         oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
         oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
 
