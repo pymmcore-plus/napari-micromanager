@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pymmcore_widgets import (
+    CameraRoiWidget,
     ConfigurationWidget,
     GroupPresetTableWidget,
     ObjectivesWidget,
@@ -10,7 +11,6 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
-from ._camera_widget import MMCameraWidget
 from ._mda_widget._mda_widget import MMMultiDWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
@@ -26,7 +26,7 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
-        self.cam_wdg = MMCameraWidget()
+        self.cam_wdg = CameraRoiWidget()
         self.stage_wdg = MMStagesWidget()
         self.illum_btn = QtW.QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
