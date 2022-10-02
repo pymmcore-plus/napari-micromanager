@@ -8,7 +8,7 @@ def test_crop_camera(main_window: MainWindow):
     cbox = main_window.cam_wdg.cam_roi_combo
     cam_roi_btn = main_window.cam_wdg.crop_btn
 
-    cbox.setCurrentText("1/4")
+    cbox.setCurrentText("256 x 256")
     cam_roi_btn.click()
 
     assert len(main_window.viewer.layers) == 1
