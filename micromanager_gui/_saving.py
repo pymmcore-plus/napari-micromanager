@@ -97,6 +97,7 @@ def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
             _imsave(folder_path / f"{fname}.tif", np.take(i.data, p, axis=ax))
 
 
+# TODO: to be fixed
 def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
 
     path = Path(meta.save_dir)
