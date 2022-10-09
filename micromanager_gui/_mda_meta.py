@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, Union
 
 from useq import MDASequence
 
@@ -16,7 +15,7 @@ __all__ = [
 class SequenceMeta:
     """Metadata associated with an MDA sequence."""
 
-    mode: Union[Literal["mda"], Literal["explorer"], Literal[""]] = ""
+    mode: str = ""
     split_channels: bool = False
     should_save: bool = False
     file_name: str = ""

@@ -11,6 +11,7 @@ from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
 from ._camera_widget import MMCameraWidget
+from ._hcs_widget import HCSWidgetMain
 from ._mda_widget import MDAWidget
 from ._sample_explorer_widget import SampleExplorerWidget
 from ._shutters_widget import MMShuttersWidget
@@ -34,6 +35,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.shutter_wdg = MMShuttersWidget()
         self.explorer = SampleExplorerWidget()
         self.mda = MDAWidget()
+        self.hcs = HCSWidgetMain()
         self.create_gui()
 
     def create_gui(self):
@@ -90,9 +92,10 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
-        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
+        self.tab_wdg.tabWidget.addTab(self.hcs, "HCS")
 
         # set main_layout layout
         self.setLayout(self.main_layout)
