@@ -9,8 +9,9 @@ from pymmcore_widgets import (
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
+from ._hcs_widget import HCSWidgetMain
 from ._mda_widget import MDAWidget
-from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
+from ._sample_explorer_widget import SampleExplorerWidget
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 
@@ -26,8 +27,9 @@ class MicroManagerWidget(QtW.QWidget):
         self.cam_wdg = CameraRoiWidget()
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
+        self.explorer = SampleExplorerWidget()
         self.mda = MDAWidget()
-        self.explorer = MMExploreSample()
+        self.hcs = HCSWidgetMain()
         self.create_gui()
 
     def create_gui(self):
@@ -58,9 +60,10 @@ class MicroManagerWidget(QtW.QWidget):
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
-        self.tab_wdg.tabWidget.addTab(gp_wdg, "Groups and Presets")
+        self.tab_wdg.tabWidget.addTab(self.hcs, "HCS")
 
         # set main_layout layout
         self.setLayout(self.main_layout)

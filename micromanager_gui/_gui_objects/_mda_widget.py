@@ -41,9 +41,6 @@ class MDAWidget(MultiDWidget):
         self.remove_pos_Button.clicked.connect(self._toggle_checkbox_save_pos)
         self.clear_pos_Button.clicked.connect(self._toggle_checkbox_save_pos)
 
-        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
-        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-
     def _create_save_group(self) -> QtW.QGroupBox:
         group = QtW.QGroupBox(title="Save MultiD Acquisition")
         group.setSizePolicy(
@@ -98,12 +95,6 @@ class MDAWidget(MultiDWidget):
         group_layout.addWidget(self.checkBox_save_pos)
 
         return group
-
-    def _on_mda_started(self) -> None:
-        self.save_groupBox.setEnabled(False)
-
-    def _on_mda_finished(self) -> None:
-        self.save_groupBox.setEnabled(True)
 
     def _set_multi_d_acq_dir(self) -> None:
         # set the directory
