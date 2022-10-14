@@ -130,7 +130,7 @@ class MMTabWidget(QtW.QWidget):
         cam_group.setTitle("Camera ROI")
         cam_group_layout = QtW.QVBoxLayout()
         cam_group_layout.setSpacing(0)
-        cam_group_layout.setContentsMargins(3, 5, 3, 3)
+        cam_group_layout.setContentsMargins(3, 8, 3, 3)
         cam_group.setLayout(cam_group_layout)
         self.cam_wdg = CameraRoiWidget()
         cam_group_layout.addWidget(self.cam_wdg)
