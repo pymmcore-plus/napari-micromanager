@@ -117,8 +117,8 @@ class MainWindow(MicroManagerWidget):
         self.mda.metadataInfo.connect(self._on_meta_info)
         self.hcs.metadataInfo.connect(self._on_meta_info)
         self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
-        self.cam_wdg.roiInfo.connect(self._on_roi_info)
-        self.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
+        self.tab_wdg.cam_wdg.roiInfo.connect(self._on_roi_info)
+        self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
         self._add_menu()
 

@@ -23,8 +23,6 @@ class MicroManagerWidget(QtW.QWidget):
         super().__init__()
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
-        self.obj_wdg = ObjectivesWidget()
-        self.cam_wdg = CameraRoiWidget()
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.explorer = SampleExplorerWdg()
