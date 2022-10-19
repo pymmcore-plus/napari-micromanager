@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets import SampleExplorer
+from pymmcore_widgets import SampleExplorerWidget
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QCheckBox,
@@ -22,7 +22,7 @@ from useq import MDASequence
 from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
-class SampleExplorerWidget(SampleExplorer):
+class SampleExplorerWdg(SampleExplorerWidget):
     """napari-micromanager Explorer Widget GUI."""
 
     metadataInfo = Signal(SequenceMeta, MDASequence)

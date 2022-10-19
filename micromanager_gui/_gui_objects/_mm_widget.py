@@ -11,7 +11,7 @@ from qtpy.QtCore import Qt
 
 from ._hcs_widget import HCSWidgetMain
 from ._mda_widget import MDAWidget
-from ._sample_explorer_widget import SampleExplorerWidget
+from ._sample_explorer_widget import SampleExplorerWdg
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 
@@ -27,7 +27,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.cam_wdg = CameraRoiWidget()
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
-        self.explorer = SampleExplorerWidget()
+        self.explorer = SampleExplorerWdg()
         self.mda = MDAWidget()
         self.hcs = HCSWidgetMain()
         self.create_gui()
