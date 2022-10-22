@@ -3,18 +3,19 @@ from typing import Optional, Tuple, Union
 
 from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets import (  # SnapButton,
+from pymmcore_widgets import (
     CameraRoiWidget,
     ChannelWidget,
     DefaultCameraExposureWidget,
     LiveButton,
     ObjectivesWidget,
+    SnapButton,
 )
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QCheckBox, QPushButton, QSizePolicy, QWidget
+from qtpy.QtWidgets import QCheckBox, QWidget
 from superqt.fonticon import icon
 from superqt.utils import create_worker
 
@@ -106,7 +107,7 @@ class MMTabWidget(QtW.QWidget):
         self.btn_wdg.setMaximumHeight(65)
 
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = SnapButton(checkbox=self._talley_cbox)
+        self.snap_Button = _SnapButton(checkbox=self._talley_cbox)
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
@@ -205,43 +206,20 @@ if __name__ == "__main__":
     sys.exit(app.exec_())
 
 
-class SnapButton(QPushButton):
-    """Create a snap QPushButton linked to the pymmcore-plus 'snap()' method.
-
-    Once the button is clicked, an image is acquired and the pymmcore-plus
-    'imageSnapped(image: nparray)' signal is emitted.
-    """
-
+class _SnapButton(SnapButton):
     def __init__(
         self,
-        *,
         parent: Optional[QWidget] = None,
+        *,
         mmcore: Optional[CMMCorePlus] = None,
         checkbox: QCheckBox
     ) -> None:
 
-        super().__init__(parent)
-
-        self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
-
-        self.checkbox = checkbox
+        super().__init__(parent=parent, mmcore=mmcore)
 
         self._mmc = mmcore or CMMCorePlus.instance()
+        self.checkbox = checkbox
 
-        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        self._on_system_cfg_loaded()
-        self.destroyed.connect(self._disconnect)
-
-        self._create_button()
-
-        self.setEnabled(False)
-        if len(self._mmc.getLoadedDevices()) > 1:
-            self.setEnabled(True)
-
-    def _create_button(self) -> None:
-        self.setText("Snap")
-        self.setIcon(icon(MDI6.camera_outline, color=(0, 255, 0)))
-        self.setIconSize(QSize(30, 30))
         self.clicked.connect(self._snap)
 
     def _snap(self) -> None:
@@ -258,11 +236,3 @@ class SnapButton(QPushButton):
             self._mmc.events.imageSnapped.emit(io.imread(img))
         else:
             create_worker(self._mmc.snap, _start_thread=True)
-
-    def _on_system_cfg_loaded(self) -> None:
-        self.setEnabled(bool(self._mmc.getCameraDevice()))
-
-    def _disconnect(self) -> None:
-        self._mmc.events.systemConfigurationLoaded.disconnect(
-            self._on_system_cfg_loaded
-        )
