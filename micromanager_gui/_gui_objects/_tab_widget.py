@@ -1,23 +1,34 @@
 from pathlib import Path
+from typing import Optional, Tuple, Union
 
 from fonticon_mdi6 import MDI6
-from pymmcore_widgets import (
+from pymmcore_plus import CMMCorePlus
+from pymmcore_widgets import (  # SnapButton,
     CameraRoiWidget,
     ChannelWidget,
     DefaultCameraExposureWidget,
     LiveButton,
     ObjectivesWidget,
-    SnapButton,
 )
 from qtpy import QtCore
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QSize
+from qtpy.QtCore import QSize, Qt
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import QCheckBox, QPushButton, QSizePolicy, QWidget
 from superqt.fonticon import icon
+from superqt.utils import create_worker
 
 from ._illumination_widget import IlluminationWidget
 from ._xyz_stages import MMStagesWidget
 
-ICONS = Path(__file__).parent.parent / "icons"
+COLOR_TYPES = Union[
+    QColor,
+    int,
+    str,
+    Qt.GlobalColor,
+    Tuple[int, int, int, int],
+    Tuple[int, int, int],
+]
 
 
 class MMTabWidget(QtW.QWidget):
@@ -84,10 +95,18 @@ class MMTabWidget(QtW.QWidget):
         wdg.setLayout(wdg_layout)
 
         # snap/live in snap_live_tab
+
+        self._talley_cbox = QCheckBox()
+        self._talley_cbox.setFixedWidth(20)
+        self._talley_cbox.setStyleSheet(
+            "QCheckBox::indicator" "{" "background-color : rgb(38, 41, 48);" "}"
+        )
+
         self.btn_wdg = QtW.QWidget()
         self.btn_wdg.setMaximumHeight(65)
+
         self.btn_wdg_layout = QtW.QHBoxLayout()
-        self.snap_Button = SnapButton()
+        self.snap_Button = SnapButton(checkbox=self._talley_cbox)
         self.snap_Button.setMinimumSize(QtCore.QSize(200, 50))
         self.snap_Button.setMaximumSize(QtCore.QSize(200, 50))
         self.btn_wdg_layout.addWidget(self.snap_Button)
@@ -105,8 +124,10 @@ class MMTabWidget(QtW.QWidget):
         self.max_min_val_label_name.setText("(min, max)")
         self.max_min_val_label_name.setMaximumWidth(70)
         self.max_min_val_label = QtW.QLabel()
+        self.max_min_wdg_layout.addWidget(self._talley_cbox)
         self.max_min_wdg_layout.addWidget(self.max_min_val_label_name)
         self.max_min_wdg_layout.addWidget(self.max_min_val_label)
+
         self.max_min_wdg.setLayout(self.max_min_wdg_layout)
         wdg_layout.addWidget(self.max_min_wdg)
         self.snap_live_tab_layout.addWidget(wdg, 2, 0, 1, 2)
@@ -182,3 +203,66 @@ if __name__ == "__main__":
     win = MMTabWidget()
     win.show()
     sys.exit(app.exec_())
+
+
+class SnapButton(QPushButton):
+    """Create a snap QPushButton linked to the pymmcore-plus 'snap()' method.
+
+    Once the button is clicked, an image is acquired and the pymmcore-plus
+    'imageSnapped(image: nparray)' signal is emitted.
+    """
+
+    def __init__(
+        self,
+        *,
+        parent: Optional[QWidget] = None,
+        mmcore: Optional[CMMCorePlus] = None,
+        checkbox: QCheckBox
+    ) -> None:
+
+        super().__init__(parent)
+
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
+
+        self.checkbox = checkbox
+
+        self._mmc = mmcore or CMMCorePlus.instance()
+
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
+        self._on_system_cfg_loaded()
+        self.destroyed.connect(self._disconnect)
+
+        self._create_button()
+
+        self.setEnabled(False)
+        if len(self._mmc.getLoadedDevices()) > 1:
+            self.setEnabled(True)
+
+    def _create_button(self) -> None:
+        self.setText("Snap")
+        self.setIcon(icon(MDI6.camera_outline, color=(0, 255, 0)))
+        self.setIconSize(QSize(30, 30))
+        self.clicked.connect(self._snap)
+
+    def _snap(self) -> None:
+        if self._mmc.isSequenceRunning():
+            self._mmc.stopSequenceAcquisition()
+        if self._mmc.getAutoShutter():
+            self._mmc.events.propertyChanged.emit(
+                self._mmc.getShutterDevice(), "State", True
+            )
+        if self.checkbox.isChecked():
+            import imageio as io
+
+            img = Path(__file__).parent.parent.parent / "talley.png"
+            self._mmc.events.imageSnapped.emit(io.imread(img))
+        else:
+            create_worker(self._mmc.snap, _start_thread=True)
+
+    def _on_system_cfg_loaded(self) -> None:
+        self.setEnabled(bool(self._mmc.getCameraDevice()))
+
+    def _disconnect(self) -> None:
+        self._mmc.events.systemConfigurationLoaded.disconnect(
+            self._on_system_cfg_loaded
+        )
