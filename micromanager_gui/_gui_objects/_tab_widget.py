@@ -66,7 +66,7 @@ class MMTabWidget(QtW.QWidget):
 
         # add objectives
         obj = self.add_mm_objectives_widget()
-        self.snap_live_tab_layout.addWidget(obj, 0, 0, 1, 2)
+        self.snap_live_tab_layout.addWidget(obj, 0, 0, 1, 3)
 
         # channel in snap_live_tab
         self.snap_channel_groupBox = QtW.QGroupBox()
@@ -87,6 +87,23 @@ class MMTabWidget(QtW.QWidget):
         self.exp_groupBox_layout.addWidget(self.exposure_widget)
         self.exp_groupBox.setLayout(self.exp_groupBox_layout)
         self.snap_live_tab_layout.addWidget(self.exp_groupBox, 1, 1)
+
+        # stage
+        self.stage_groupBox = QtW.QGroupBox()
+        self.stage_groupBox.setMinimumWidth(100)
+        self.stage_groupBox.setSizePolicy(
+            QtW.QSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Minimum)
+        )
+        self.stage_groupBox.setTitle("Stages")
+        self.stage_groupBox_layout = QtW.QHBoxLayout()
+        self.stage_groupBox.setLayout(self.stage_groupBox_layout)
+        self.stage_btn = QtW.QPushButton()
+        self.stage_btn.setIcon(icon(MDI6.cursor_move, color=(0, 255, 0)))
+        self.stage_btn.setIconSize(QSize(25, 25))
+        self.stage_btn.setSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed)
+        self.stage_btn.clicked.connect(self._show_stage_wdg)
+        self.stage_groupBox_layout.addWidget(self.stage_btn)
+        self.snap_live_tab_layout.addWidget(self.stage_groupBox, 1, 2)
 
         # snap/live
         wdg = QtW.QGroupBox()
@@ -131,7 +148,7 @@ class MMTabWidget(QtW.QWidget):
 
         self.max_min_wdg.setLayout(self.max_min_wdg_layout)
         wdg_layout.addWidget(self.max_min_wdg)
-        self.snap_live_tab_layout.addWidget(wdg, 2, 0, 1, 2)
+        self.snap_live_tab_layout.addWidget(wdg, 2, 0, 1, 3)
 
         # set snap_live_tab layout
         self.snap_live_tab.setLayout(self.snap_live_tab_layout)
@@ -145,7 +162,7 @@ class MMTabWidget(QtW.QWidget):
         ill_group.setLayout(ill_group_layout)
         self.ill = IlluminationWidget()
         ill_group_layout.addWidget(self.ill)
-        self.snap_live_tab_layout.addWidget(ill_group, 3, 0, 1, 2)
+        self.snap_live_tab_layout.addWidget(ill_group, 3, 0, 1, 3)
 
         # add camera
         cam_group = QtW.QGroupBox()
@@ -156,7 +173,7 @@ class MMTabWidget(QtW.QWidget):
         cam_group.setLayout(cam_group_layout)
         self.cam_wdg = CameraRoiWidget()
         cam_group_layout.addWidget(self.cam_wdg)
-        self.snap_live_tab_layout.addWidget(cam_group, 4, 0, 1, 2)
+        self.snap_live_tab_layout.addWidget(cam_group, 4, 0, 1, 3)
 
         # spacer
         spacer = QtW.QSpacerItem(
@@ -180,13 +197,6 @@ class MMTabWidget(QtW.QWidget):
         obj_wdg_layout.setSpacing(7)
         obj_wdg.setLayout(obj_wdg_layout)
         obj_wdg_layout.addWidget(self.obj_wdg)
-
-        self.stage_btn = QtW.QPushButton()
-        self.stage_btn.setIcon(icon(MDI6.cursor_move, color=(0, 255, 0)))
-        self.stage_btn.setIconSize(QSize(25, 25))
-        self.stage_btn.setSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed)
-        self.stage_btn.clicked.connect(self._show_stage_wdg)
-        obj_wdg_layout.addWidget(self.stage_btn)
 
         return obj_wdg
 
