@@ -687,8 +687,8 @@ class MainWindow(MicroManagerWidget):
                 return
             data = active_layer.data[-1]
 
-            x_max = self.cam_wdg.chip_size_x
-            y_max = self.cam_wdg.chip_size_y
+            x_max = self.tab_wdg.cam_wdg.chip_size_x
+            y_max = self.tab_wdg.cam_wdg.chip_size_y
 
             x = round(data[0][1])
             y = round(data[0][0])
