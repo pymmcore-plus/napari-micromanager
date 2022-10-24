@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from pymmcore_widgets import (
-    CameraRoiWidget,
-    ConfigurationWidget,
-    GroupPresetTableWidget,
-    ObjectivesWidget,
-)
+from pymmcore_widgets import ConfigurationWidget, GroupPresetTableWidget
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
@@ -55,10 +50,14 @@ class MicroManagerWidget(QtW.QWidget):
         gp_wdg.setLayout(gp_l)
         self.group_preset_table_wdg = GroupPresetTableWidget()
         gp_l.addWidget(self.group_preset_table_wdg)
+        spacer = QtW.QSpacerItem(
+            10, 10, QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        )
+        gp_l.addItem(spacer)
 
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
-        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
+        self.tab_wdg.tabWidget.addTab(gp_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
         self.tab_wdg.tabWidget.addTab(self.hcs, "HCS")
