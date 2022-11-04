@@ -36,7 +36,8 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
     if meta.mode == "mda":
         return _save_mda_sequence(sequence, layers, meta)
     if meta.mode == "explorer":
-        return _save_explorer_scan(sequence, layers, meta)
+        # return _save_explorer_scan(sequence, layers, meta)
+        return
     raise NotImplementedError(f"cannot save experiment with mode: {meta.mode}")
 
 
@@ -98,25 +99,24 @@ def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
 
 
 # TODO: to be fixed
-def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+# def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+# path = Path(meta.save_dir)
+# file_name = f"scan_{meta.file_name}"
 
-    path = Path(meta.save_dir)
-    file_name = f"scan_{meta.file_name}"
+# folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
+# folder_name.mkdir(parents=True, exist_ok=True)
 
-    folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
-    folder_name.mkdir(parents=True, exist_ok=True)
+# for layer in sorted(
+#     (i for i in layers if i.metadata.get("uid") == sequence.uid),
+#     key=lambda x: x.metadata.get("ch_id"),
+# ):
+#     data = layer.data[np.newaxis, ...]
 
-    for layer in sorted(
-        (i for i in layers if i.metadata.get("uid") == sequence.uid),
-        key=lambda x: x.metadata.get("ch_id"),
-    ):
-        data = layer.data[np.newaxis, ...]
+#     if layer.metadata.get("scan_position") == "Pos000":
+#         scan_stack = data
+#     else:
+#         scan_stack = np.concatenate((scan_stack, data))
 
-        if layer.metadata.get("scan_position") == "Pos000":
-            scan_stack = data
-        else:
-            scan_stack = np.concatenate((scan_stack, data))
-
-        if scan_stack.shape[0] > 1:
-            ch_name = layer.metadata.get("ch_name")
-            _imsave(folder_name / f"{ch_name}.tif", scan_stack)
+#     if scan_stack.shape[0] > 1:
+#         ch_name = layer.metadata.get("ch_name")
+#         _imsave(folder_name / f"{ch_name}.tif", scan_stack)

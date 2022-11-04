@@ -116,7 +116,7 @@ class MDAWidget(MultiDWidget):
             self.checkBox_save_pos.setEnabled(False)
 
     def _send_meta(self) -> None:
-        sequence = self._get_state()
+        sequence = self.get_state()
         SEQUENCE_META[sequence] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),

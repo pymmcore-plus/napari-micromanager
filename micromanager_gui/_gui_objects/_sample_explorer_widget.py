@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets import SampleExplorer
+from pymmcore_widgets import SampleExplorerWidget
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QCheckBox,
@@ -22,7 +22,7 @@ from useq import MDASequence
 from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
-class SampleExplorerWidget(SampleExplorer):
+class SampleExplorer(SampleExplorerWidget):
     """napari-micromanager Explorer Widget GUI."""
 
     metadataInfo = Signal(SequenceMeta, MDASequence)
@@ -30,7 +30,7 @@ class SampleExplorerWidget(SampleExplorer):
     def __init__(
         self, parent: Optional[QWidget] = None, *, mmcore: Optional[CMMCorePlus] = None
     ) -> None:
-        super().__init__(parent, mmcore=mmcore)
+        super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
         self.save_explorer_groupBox = self._create_save_group()
         v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
@@ -175,7 +175,7 @@ class SampleExplorerWidget(SampleExplorer):
         return t_list
 
     def _send_meta(self) -> None:
-        sequence = self._get_state()
+        sequence = self.get_state()
         SEQUENCE_META[sequence] = SequenceMeta(
             mode="explorer",
             should_save=self.save_explorer_groupBox.isChecked(),
