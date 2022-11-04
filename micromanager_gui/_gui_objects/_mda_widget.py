@@ -21,7 +21,7 @@ class MDAWidget(MultiDWidget):
         *,
         mmcore: Optional[CMMCorePlus] = None
     ) -> None:
-        super().__init__(parent, mmcore=mmcore)
+        super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
         self.save_groupBox = self._create_save_group()
         v_layout = cast(QtW.QVBoxLayout, self._wdg.layout())
