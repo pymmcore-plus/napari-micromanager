@@ -186,4 +186,4 @@ class SampleExplorer(SampleExplorerWidget):
             explorer_translation_points=self._set_translate_point_list(),
         )
 
-        self.metadataInfo.emit(SEQUENCE_META[sequence], self._get_state())
+        self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())

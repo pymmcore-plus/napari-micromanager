@@ -126,7 +126,7 @@ class MDAWidget(MultiDWidget):
             or str(Path(__file__).parent.parent.parent),
             save_pos=self.checkBox_save_pos.isChecked(),
         )
-        self.metadataInfo.emit(SEQUENCE_META[sequence], self._get_state())
+        self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())
 
 
 if __name__ == "__main__":
