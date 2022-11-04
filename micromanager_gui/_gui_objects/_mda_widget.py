@@ -116,7 +116,7 @@ class MDAWidget(MultiDWidget):
             self.checkBox_save_pos.setEnabled(False)
 
     def _send_meta(self) -> None:
-        sequence = self._get_state()
+        sequence = self.get_state()
         SEQUENCE_META[sequence] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),
@@ -126,7 +126,7 @@ class MDAWidget(MultiDWidget):
             or str(Path(__file__).parent.parent.parent),
             save_pos=self.checkBox_save_pos.isChecked(),
         )
-        self.metadataInfo.emit(SEQUENCE_META[sequence], self._get_state())
+        self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())
 
 
 if __name__ == "__main__":
