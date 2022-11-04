@@ -5,13 +5,13 @@ from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import SampleExplorerWidget
 from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
-    QCheckBox,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
+    QRadioButton,
     QSizePolicy,
     QSpacerItem,
     QVBoxLayout,
@@ -36,7 +36,7 @@ class SampleExplorer(SampleExplorerWidget):
         v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
         v_layout.insertWidget(0, self.save_explorer_groupBox)
 
-        self.checkbox = self._create_grid_checkbox()
+        self.checkbox = self._create_radiobtn()
         v_layout.insertWidget(4, self.checkbox)
 
         self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
@@ -91,7 +91,7 @@ class SampleExplorer(SampleExplorerWidget):
 
         return group
 
-    def _create_grid_checkbox(self) -> QGroupBox:
+    def _create_radiobtn(self) -> QGroupBox:
 
         group = QGroupBox(title="Display as:")
         group.setChecked(False)
@@ -102,16 +102,13 @@ class SampleExplorer(SampleExplorerWidget):
 
         fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        self.grid_checkbox = QCheckBox(text="grid (layers translation)")
-        self.grid_checkbox.setSizePolicy(fixed_policy)
-        self.grid_checkbox.setChecked(True)
-        self.multid_stack_checkbox = QCheckBox(text="multi-dimensional stack")
+        self.radiobtn = QRadioButton(text=" grid (layers translation)")
+        self.radiobtn.setSizePolicy(fixed_policy)
+        self.radiobtn.setChecked(True)
+        self.multid_stack_checkbox = QRadioButton(text=" multi-dimensional stack")
         self.multid_stack_checkbox.setSizePolicy(fixed_policy)
 
-        self.grid_checkbox.toggled.connect(self._toggle_checkboxes)
-        self.multid_stack_checkbox.toggled.connect(self._toggle_checkboxes)
-
-        group_layout.addWidget(self.grid_checkbox)
+        group_layout.addWidget(self.radiobtn)
 
         spacer = QSpacerItem(30, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
         group_layout.addItem(spacer)
@@ -121,13 +118,6 @@ class SampleExplorer(SampleExplorerWidget):
         group_layout.addItem(spacer)
 
         return group
-
-    def _toggle_checkboxes(self, state: bool) -> None:
-        if self.sender() == self.multid_stack_checkbox:
-            self.grid_checkbox.setChecked(not state)
-
-        elif self.sender() == self.grid_checkbox:
-            self.multid_stack_checkbox.setChecked(not state)
 
     def _set_explorer_dir(self) -> None:
         # set the directory
@@ -182,7 +172,7 @@ class SampleExplorer(SampleExplorerWidget):
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text()
             or str(Path(__file__).parent.parent.parent),
-            translate_explorer=self.grid_checkbox.isChecked(),
+            translate_explorer=self.radiobtn.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
         )
 
