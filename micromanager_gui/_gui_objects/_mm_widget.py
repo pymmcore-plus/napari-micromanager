@@ -27,10 +27,17 @@ class MicroManagerWidget(QtW.QWidget):
 
     def create_gui(self):
         # main widget
+
+        self._scroll = QtW.QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.main_wdg = QtW.QWidget()
         self.main_layout = QtW.QVBoxLayout()
         self.main_layout.setContentsMargins(10, 0, 10, 0)
         self.main_layout.setSpacing(3)
         self.main_layout.setAlignment(Qt.AlignCenter)
+        self.main_wdg.setLayout(self.main_layout)
 
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
@@ -63,4 +70,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg.tabWidget.addTab(self.hcs, "HCS")
 
         # set main_layout layout
-        self.setLayout(self.main_layout)
+        self._scroll.setWidget(self.main_wdg)
+        self.setLayout(QtW.QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(self._scroll)
