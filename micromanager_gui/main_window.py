@@ -470,136 +470,150 @@ class MainWindow(MicroManagerWidget):
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
         meta = self._mda_meta
+        if meta.mode == "mda":
+            self._mda_acquisition(image, event, meta)
+        elif meta.mode == "explorer":
+            if meta.translate_explorer:
+                self._explorer_acquisition_translate(image, event, meta)
+            else:
+                self._explorer_acquisition_stack(image, event)
+        elif meta.mode == "hcs":
+            self._hcs_acquisition(image, event)
+
+    def _mda_acquisition(
+        self, image: np.ndarray, event: useq.MDAEvent, meta: SequenceMeta
+    ) -> None:
+        axis_order = list(event_indices(event))
+        # Remove 'c' from idxs if we are splitting channels
+        # also prepare the channel suffix that we use for keeping track of arrays
+        channel = ""
+        if meta.split_channels:
+            channel = f"_{event.channel.config}"
+            # split channels checked but no channels added
+            with contextlib.suppress(ValueError):
+                axis_order.remove("c")
+
+        # get the actual index of this image into the array and
+        # add it to the zarr store
+        im_idx = tuple(event.index[k] for k in axis_order)
+        self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
+
+        # move the viewer step to the most recently added image
+        for a, v in enumerate(im_idx):
+            self.viewer.dims.set_point(a, v)
+
+        # display
+        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        layer_name = f"{fname}_{event.sequence.uid}{channel}"
+        layer = self.viewer.layers[layer_name]
+        layer.visible = False
+        layer.visible = True
+        layer.reset_contrast_limits()
+
+    def _explorer_acquisition_stack(
+        self, image: np.ndarray, event: useq.MDAEvent
+    ) -> None:
+        axis_order = list(event_indices(event))
+        # get the actual index of this image into the array
+        # add it to the zarr store
+        im_idx = tuple(event.index[k] for k in axis_order)
+        # add index of this image to the zarr store
+        self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
+
+        # move the viewer step to the most recently added image
+        for a, v in enumerate(im_idx):
+            self.viewer.dims.set_point(a, v)
+
+        # display
+        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
+        layer.visible = False
+        layer.visible = True
+        layer.reset_contrast_limits()
+
+    def _explorer_acquisition_translate(
+        self, image: np.ndarray, event: useq.MDAEvent, meta: SequenceMeta
+    ) -> None:
         axis_order = list(event_indices(event))
 
-        if meta.mode == "mda":
+        with contextlib.suppress(ValueError):
+            axis_order.remove("p")
 
-            # Remove 'c' from idxs if we are splitting channels
-            # also prepare the channel suffix that we use for keeping track of arrays
-            channel = ""
-            if meta.split_channels:
-                channel = f"_{event.channel.config}"
-                # split channels checked but no channels added
-                with contextlib.suppress(ValueError):
-                    axis_order.remove("c")
+        # get the actual index of this image into the array
+        # add it to the zarr store
+        im_idx = tuple(event.index[k] for k in axis_order)
+        pos_name = event.pos_name
+        layer_name = f"{pos_name}_{event.sequence.uid}"
+        self._mda_temp_arrays[layer_name][im_idx] = image
 
-            # get the actual index of this image into the array and
-            # add it to the zarr store
-            im_idx = tuple(event.index[k] for k in axis_order)
-            self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
+        x = meta.explorer_translation_points[event.index["p"]][0]
+        y = -meta.explorer_translation_points[event.index["p"]][1]
 
-            # move the viewer step to the most recently added image
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
+        layergroups = self._get_defaultdict_layers(event)
+        # unlink layers to translate
+        for group in layergroups.values():
+            unlink_layers(group)
 
-            # display
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-            layer_name = f"{fname}_{event.sequence.uid}{channel}"
-            layer = self.viewer.layers[layer_name]
-            layer.visible = False
-            layer.visible = True
-            layer.reset_contrast_limits()
+        # translate only once
+        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        layer = self.viewer.layers[f"{fname}_{layer_name}"]
+        if (layer.translate[-2], layer.translate[-1]) != (y, x):
+            layer.translate = (y, x)
+        layer.metadata["translate"] = True
+        layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
 
-        elif meta.mode == "explorer":
+        # link layers after translation
+        for group in layergroups.values():
+            link_layers(group)
 
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        # move the viewer step to the most recently added image
+        for a, v in enumerate(im_idx):
+            self.viewer.dims.set_point(a, v)
 
-            if meta.translate_explorer:
+        # display
+        layer.visible = False
+        layer.visible = True
+        layer.reset_contrast_limits()
 
-                with contextlib.suppress(ValueError):
-                    axis_order.remove("p")
+        zoom_out_factor = (
+            self.explorer.scan_size_r
+            if self.explorer.scan_size_r >= self.explorer.scan_size_c
+            else self.explorer.scan_size_c
+        )
+        self.viewer.camera.zoom = 1 / zoom_out_factor
+        self.viewer.reset_view()
 
-                # get the actual index of this image into the array
-                # add it to the zarr store
-                im_idx = tuple(event.index[k] for k in axis_order)
-                pos_name = event.pos_name
-                layer_name = f"{pos_name}_{event.sequence.uid}"
-                self._mda_temp_arrays[layer_name][im_idx] = image
+    def _hcs_acquisition(self, image: np.ndarray, event: useq.MDAEvent) -> None:
+        axis_order = list(event_indices(event))
+        if self.multi_pos == 0:
+            axis_order.remove("p")
 
-                x = meta.explorer_translation_points[event.index["p"]][0]
-                y = -meta.explorer_translation_points[event.index["p"]][1]
-
-                layergroups = self._get_defaultdict_layers(event)
-                # unlink layers to translate
-                for group in layergroups.values():
-                    unlink_layers(group)
-
-                # translate only once
-                layer = self.viewer.layers[f"{fname}_{layer_name}"]
-                if (layer.translate[-2], layer.translate[-1]) != (y, x):
-                    layer.translate = (y, x)
-                layer.metadata["translate"] = True
-                layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
-
-                # link layers after translation
-                for group in layergroups.values():
-                    link_layers(group)
-
-                # move the viewer step to the most recently added image
-                for a, v in enumerate(im_idx):
-                    self.viewer.dims.set_point(a, v)
-
-                # display
-                layer.visible = False
-                layer.visible = True
-                layer.reset_contrast_limits()
-
-                zoom_out_factor = (
-                    self.explorer.scan_size_r
-                    if self.explorer.scan_size_r >= self.explorer.scan_size_c
-                    else self.explorer.scan_size_c
-                )
-                self.viewer.camera.zoom = 1 / zoom_out_factor
-                self.viewer.reset_view()
-
+        # get the actual index of this image into the array
+        # add it to the zarr store
+        im_idx: Tuple[int, ...] = ()
+        for k in axis_order:
+            if k == "p" and self.multi_pos > 0:
+                im_idx = im_idx + (int(event.pos_name[-3:]),)
             else:
-                # get the actual index of this image into the array
-                # add it to the zarr store
-                im_idx = tuple(event.index[k] for k in axis_order)
-                # add index of this image to the zarr store
-                self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
+                im_idx = im_idx + (event.index[k],)
 
-                # move the viewer step to the most recently added image
-                for a, v in enumerate(im_idx):
-                    self.viewer.dims.set_point(a, v)
+        pos_name = event.pos_name.split("_")[0]
+        layer_name = f"{pos_name}_{event.sequence.uid}"
+        self._mda_temp_arrays[layer_name][im_idx] = image
 
-                # display
-                layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
-                layer.visible = False
-                layer.visible = True
-                layer.reset_contrast_limits()
+        # translate only once
+        fname = self._mda_meta.file_name if self._mda_meta.should_save else "HCS"
+        layer = self.viewer.layers[f"{fname}_{layer_name}"]
 
-        elif meta.mode == "hcs":
+        # move the viewer step to the most recently added image
+        for a, v in enumerate(im_idx):
+            self.viewer.dims.set_point(a, v)
 
-            if self.multi_pos == 0:
-                axis_order.remove("p")
+        layer.visible = False
+        layer.visible = True
+        layer.reset_contrast_limits()
 
-            # get the actual index of this image into the array
-            # add it to the zarr store
-            im_idx = ()
-            for k in axis_order:
-                if k == "p" and self.multi_pos > 0:
-                    im_idx = im_idx + (int(event.pos_name[-3:]),)
-                else:
-                    im_idx = im_idx + (event.index[k],)
-
-            pos_name = event.pos_name.split("_")[0]
-            layer_name = f"{pos_name}_{event.sequence.uid}"
-            self._mda_temp_arrays[layer_name][im_idx] = image
-
-            # translate only once
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "HCS"
-            layer = self.viewer.layers[f"{fname}_{layer_name}"]
-
-            # move the viewer step to the most recently added image
-            for a, v in enumerate(im_idx):
-                self.viewer.dims.set_point(a, v)
-
-            layer.visible = False
-            layer.visible = True
-            layer.reset_contrast_limits()
-
-            self.viewer.reset_view()
+        self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         """Save layer and add increment to save name."""
