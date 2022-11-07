@@ -502,6 +502,8 @@ class MainWindow(MicroManagerWidget):
 
         elif meta.mode == "explorer":
 
+            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+
             if meta.translate_explorer:
 
                 with contextlib.suppress(ValueError):
@@ -523,9 +525,6 @@ class MainWindow(MicroManagerWidget):
                     unlink_layers(group)
 
                 # translate only once
-                fname = (
-                    self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-                )
                 layer = self.viewer.layers[f"{fname}_{layer_name}"]
                 if (layer.translate[-2], layer.translate[-1]) != (y, x):
                     layer.translate = (y, x)
@@ -540,6 +539,7 @@ class MainWindow(MicroManagerWidget):
                 for a, v in enumerate(im_idx):
                     self.viewer.dims.set_point(a, v)
 
+                # display
                 layer.visible = False
                 layer.visible = True
                 layer.reset_contrast_limits()
@@ -562,6 +562,12 @@ class MainWindow(MicroManagerWidget):
                 # move the viewer step to the most recently added image
                 for a, v in enumerate(im_idx):
                     self.viewer.dims.set_point(a, v)
+
+                # display
+                layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
+                layer.visible = False
+                layer.visible = True
+                layer.reset_contrast_limits()
 
         elif meta.mode == "hcs":
 
