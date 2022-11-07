@@ -492,10 +492,13 @@ class MainWindow(MicroManagerWidget):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
-            for layer in self.viewer.layers:
-                layer.visible = False
-                layer.visible = True
-                layer.reset_contrast_limits()
+            # display
+            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            layer_name = f"{fname}_{event.sequence.uid}{channel}"
+            layer = self.viewer.layers[layer_name]
+            layer.visible = False
+            layer.visible = True
+            layer.reset_contrast_limits()
 
         elif meta.mode == "explorer":
 
