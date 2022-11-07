@@ -492,6 +492,11 @@ class MainWindow(MicroManagerWidget):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
+            for layer in self.viewer.layers:
+                layer.visible = False
+                layer.visible = True
+                layer.reset_contrast_limits()
+
         elif meta.mode == "explorer":
 
             if meta.translate_explorer:
