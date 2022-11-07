@@ -540,6 +540,8 @@ class MainWindow(MicroManagerWidget):
                 for a, v in enumerate(im_idx):
                     self.viewer.dims.set_point(a, v)
 
+                layer.visible = False
+                layer.visible = True
                 layer.reset_contrast_limits()
 
                 zoom_out_factor = (
@@ -587,6 +589,8 @@ class MainWindow(MicroManagerWidget):
             for a, v in enumerate(im_idx):
                 self.viewer.dims.set_point(a, v)
 
+            layer.visible = False
+            layer.visible = True
             layer.reset_contrast_limits()
 
             self.viewer.reset_view()
