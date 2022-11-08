@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets import MultiDWidget
+from pymmcore_widgets import MDAWidget
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt, Signal
 from useq import MDASequence
@@ -10,7 +10,7 @@ from useq import MDASequence
 from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
-class MDAWidget(MultiDWidget):
+class MultiDWidget(MDAWidget):
     """Main napari-micromanager GUI."""
 
     metadataInfo = Signal(SequenceMeta, MDASequence)

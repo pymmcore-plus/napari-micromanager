@@ -5,7 +5,7 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
 from ._hcs_widget import HCSWidgetMain
-from ._mda_widget import MDAWidget
+from ._mda_widget import MultiDWidget
 from ._sample_explorer_widget import SampleExplorer
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
@@ -21,7 +21,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.explorer = SampleExplorer()
-        self.mda = MDAWidget()
+        self.mda = MultiDWidget()
         self.hcs = HCSWidgetMain()
         self.create_gui()
 
