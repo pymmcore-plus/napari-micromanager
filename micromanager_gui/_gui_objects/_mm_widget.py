@@ -17,6 +17,11 @@ from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
 
+TOOLBAR_STYLE = """
+    QToolButton { font-size: 13px; }
+    QToolButton::menu-button { border: 0px; width: 20px; height: 20px; }
+    """
+
 
 class MicroManagerWidget(QtW.QWidget):
     """GUI elements for the Main Window."""
@@ -25,6 +30,7 @@ class MicroManagerWidget(QtW.QWidget):
         super().__init__()
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
+        self.cfg_wdg.setTitle("")
         self.obj_wdg = ObjectivesWidget()
         self.cam_wdg = MMCameraWidget()
         self.stage_wdg = MMStagesWidget()
@@ -34,14 +40,39 @@ class MicroManagerWidget(QtW.QWidget):
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MMMultiDWidget()
         self.explorer = MMExploreSample()
+
+        self.setLayout(QtW.QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self.create_gui()
+        self._add_menu()
+
+    def _add_menu(self) -> None:
+        self.toolbar = QtW.QToolBar()
+        self.toolbar.setMinimumHeight(40)
+        self.layout().setMenuBar(self.toolbar)
+
+        self.mm_menu = QtW.QToolButton(parent=self)
+        self.mm_menu.setText("Menu")
+        self.mm_menu.setMinimumWidth(75)
+        self.mm_menu.setPopupMode(QtW.QToolButton.MenuButtonPopup)
+        self.submenu = QtW.QMenu(parent=self)
+        self.mm_menu.setMenu(self.submenu)
+        self.mm_menu.setStyleSheet(TOOLBAR_STYLE)
+        self.toolbar.addWidget(self.mm_menu)
 
     def create_gui(self):
         # main widget
+        self._scroll = QtW.QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout().addWidget(self._scroll)
+
+        self.main_wdg = QtW.QWidget()
         self.main_layout = QtW.QVBoxLayout()
         self.main_layout.setContentsMargins(10, 0, 10, 0)
         self.main_layout.setSpacing(3)
         self.main_layout.setAlignment(Qt.AlignCenter)
+        self.main_wdg.setLayout(self.main_layout)
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
         # add microscope collapsible
@@ -94,8 +125,8 @@ class MicroManagerWidget(QtW.QWidget):
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
         self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
 
-        # set main_layout layout
-        self.setLayout(self.main_layout)
+        # add to scroll
+        self._scroll.setWidget(self.main_wdg)
 
     def add_camera_widget(self):
         self.cam_group = QtW.QWidget()

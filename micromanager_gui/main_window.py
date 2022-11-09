@@ -12,7 +12,7 @@ import zarr
 from napari.experimental import link_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
+from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
@@ -116,23 +116,25 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self._update_max_min)
         self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
 
-        self._add_menu()
+        self._connect_menu()
 
-    def _add_menu(self):
-        w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
-        self._menu = QtW.QMenu("&Micro-Manager", w._qt_window)
+    def _connect_menu(self):
+        pb_action = self.submenu.addAction("Device Property Browser...")
+        pb_action.triggered.connect(self._show_prop_browser)
 
-        action = self._menu.addAction("Device Property Browser...")
-        action.triggered.connect(self._show_prop_browser)
-
-        bar = w._qt_window.menuBar()
-        bar.insertMenu(list(bar.actions())[-1], self._menu)
+        px_action = self.submenu.addAction("Set Pixel Size...")
+        px_action.triggered.connect(self._show_pixel_size_table)
 
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
             self._prop_browser = PropertyBrowser(self._mmc, self)
         self._prop_browser.show()
         self._prop_browser.raise_()
+
+    def _show_pixel_size_table(self):
+        if not hasattr(self, "_px_size_wdg"):
+            self._px_size_wdg = PixelSizeWidget(parent=self)
+        self._px_size_wdg.show()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
