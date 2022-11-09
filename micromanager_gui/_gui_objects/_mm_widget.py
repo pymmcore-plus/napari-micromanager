@@ -10,22 +10,51 @@ from ._sample_explorer_widget import SampleExplorer
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 
+TOOLBAR_STYLE = """
+    QToolButton { font-size: 12px; }
+    QToolButton::menu-button { border: 0px; width: 20px; }
+    """
+
 
 class MicroManagerWidget(QtW.QWidget):
     """GUI elements for the Main Window."""
 
     def __init__(self):
         super().__init__()
+
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
+        self.cfg_wdg.setTitle("")
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.explorer = SampleExplorer()
         self.mda = MultiDWidget()
         self.hcs = HCSWidgetMain()
-        self.create_gui()
 
-    def create_gui(self):
+        self.setLayout(QtW.QVBoxLayout())
+        self._add_menu()
+        self._create_gui()
+
+    def _add_menu(self) -> None:
+        self.toolbar = QtW.QToolBar()
+        self.toolbar.setMinimumHeight(30)
+        self.layout().setMenuBar(self.toolbar)
+
+        self.mm_menu = QtW.QToolButton(parent=self)
+
+        self.mm_menu.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+        self.mm_menu.setText("MicroManager")
+
+        self.mm_menu.setMinimumWidth(135)
+        self.mm_menu.setPopupMode(QtW.QToolButton.MenuButtonPopup)
+        self.mm_menu.setEnabled(True)
+        self.submenu = QtW.QMenu(parent=self)
+        self.mm_menu.setMenu(self.submenu)
+        self.mm_menu.setStyleSheet(TOOLBAR_STYLE)
+        self.toolbar.addWidget(self.mm_menu)
+
+    def _create_gui(self):
         # main widget
 
         self._scroll = QtW.QScrollArea()
@@ -71,6 +100,12 @@ class MicroManagerWidget(QtW.QWidget):
 
         # set main_layout layout
         self._scroll.setWidget(self.main_wdg)
-        self.setLayout(QtW.QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._scroll)
+
+
+if __name__ == "__main__":
+    app = QtW.QApplication([])
+    frame = MicroManagerWidget()
+    frame.show()
+    app.exec_()

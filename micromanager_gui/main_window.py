@@ -120,26 +120,20 @@ class MainWindow(MicroManagerWidget):
         self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
         self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
-        self._add_menu()
+        self._connect_menu()
 
     def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
-    def _add_menu(self):
-        w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
-        self._menu = QtW.QMenu("&Micro-Manager", w._qt_window)
+    def _connect_menu(self):
+        pb_action = self.submenu.addAction("Device Property Browser...")
+        pb_action.triggered.connect(self._show_prop_browser)
 
-        action = self._menu.addAction("Device Property Browser...")
-        action.triggered.connect(self._show_prop_browser)
+        px_action = self.submenu.addAction("Set Pixel Size...")
+        px_action.triggered.connect(self._show_pixel_size_table)
 
-        action_1 = self._menu.addAction("Set Pixel Size...")
-        action_1.triggered.connect(self._show_pixel_size_table)
-
-        logger_control = self._menu.addAction("Logger...")
+        logger_control = self.submenu.addAction("Logger...")
         logger_control.triggered.connect(self._show_logger_options)
-
-        bar = w._qt_window.menuBar()
-        bar.insertMenu(list(bar.actions())[-1], self._menu)
 
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
@@ -153,7 +147,7 @@ class MainWindow(MicroManagerWidget):
         self._px_size_wdg.show()
 
     def _create_debug_logger_widget(self) -> QtW.QDialog:
-        debug_logger_wdg = QtW.QDialog()
+        debug_logger_wdg = QtW.QDialog(parent=self)
         layout = QtW.QVBoxLayout()
         layout.setContentsMargins(10, 10, 10, 10)
         debug_logger_wdg.setLayout(layout)
