@@ -135,6 +135,9 @@ class MainWindow(MicroManagerWidget):
         action_1 = self._menu.addAction("Set Pixel Size...")
         action_1.triggered.connect(self._show_pixel_size_table)
 
+        logger_control = self._menu.addAction("Logger...")
+        logger_control.triggered.connect(self._show_logger_options)
+
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
@@ -148,6 +151,30 @@ class MainWindow(MicroManagerWidget):
         if not hasattr(self, "_px_size_wdg"):
             self._px_size_wdg = PixelSizeWidget(parent=self)
         self._px_size_wdg.show()
+
+    def _create_debug_logger_widget(self) -> QtW.QDialog:
+        debug_logger_wdg = QtW.QDialog()
+        layout = QtW.QVBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        debug_logger_wdg.setLayout(layout)
+        _checkbox = QtW.QCheckBox(text="Debug logger")
+        _checkbox.setChecked(False)
+        _checkbox.toggled.connect(self._enable_debug_logger)
+        layout.addWidget(_checkbox)
+        return debug_logger_wdg
+
+    def _enable_debug_logger(self, state: bool) -> None:
+        from pymmcore_plus import _logger
+
+        if state:
+            _logger.set_log_level("DEBUG")
+        else:
+            _logger.set_log_level()
+
+    def _show_logger_options(self):
+        if not hasattr(self, "_debug_logger_wdg"):
+            self._debug_logger_wdg = self._create_debug_logger_widget()
+        self._debug_logger_wdg.show()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
