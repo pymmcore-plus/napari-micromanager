@@ -58,13 +58,30 @@ class MicroManagerWidget(QtW.QWidget):
         self.mm_menu.setStyleSheet(TOOLBAR_STYLE)
         self.toolbar.addWidget(self.mm_menu)
 
+        # add spacer
+        wdg = QtW.QWidget()
+        layout = QtW.QHBoxLayout()
+        wdg.setLayout(layout)
+        spacer = QtW.QSpacerItem(
+            10, 1, QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Fixed
+        )
+        layout.addItem(spacer)
+        self.toolbar.addWidget(wdg)
+
         # add snap and live btns to toolbar
         snap_tool = SnapButton()
         snap_tool.setText("")
         self.toolbar.addWidget(snap_tool)
         live_tool = LiveButton()
         live_tool.setText("")
+        live_tool._button_text_on = ""
+        live_tool._button_text_off = ""
         self.toolbar.addWidget(live_tool)
+
+        # add spacer
+        lbl = QtW.QLabel()
+        lbl.setMaximumSize(20, 1)
+        self.toolbar.addWidget(lbl)
 
     def _create_gui(self):
 
