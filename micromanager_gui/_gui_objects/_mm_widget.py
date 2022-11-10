@@ -8,11 +8,13 @@ from pymmcore_widgets import (
 )
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
+from superqt import QCollapsible
 
 from ._hcs_widget import HCSWidgetMain
 from ._mda_widget import MultiDWidget
 from ._sample_explorer_widget import SampleExplorer
 from ._shutters_widget import MMShuttersWidget
+from ._stages_widget import MMStagesWidget
 from ._tab_widget import MMTabWidget
 
 TOOLBAR_STYLE = """
@@ -91,6 +93,10 @@ class MicroManagerWidget(QtW.QWidget):
         s_l.addWidget(self.shutter_wdg)
         self.main_layout.addWidget(s_wdg)
 
+        # add stage collapsible
+        stages_group = self._add_stage_collapsible()
+        self.main_layout.addWidget(stages_group)
+
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
         gp_wdg = self._add_group_preset_wdg()
@@ -103,6 +109,24 @@ class MicroManagerWidget(QtW.QWidget):
         self._scroll.setWidget(self.main_wdg)
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._scroll)
+
+    def _add_stage_collapsible(self):
+        self.stage_wdg = MMStagesWidget()
+        stages_group = QtW.QGroupBox()
+        stages_group_layout = QtW.QVBoxLayout()
+        stages_group_layout.setSpacing(0)
+        stages_group_layout.setContentsMargins(1, 0, 1, 1)
+        stages_group.setLayout(stages_group_layout)
+
+        self.stages_coll = QCollapsible(title="Stages")
+        self.stages_coll.setSizePolicy(
+            QtW.QSizePolicy(QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed)
+        )
+        self.stages_coll.layout().setSpacing(0)
+        self.stages_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.stages_coll.addWidget(self.stage_wdg)
+        stages_group_layout.addWidget(self.stages_coll)
+        return stages_group
 
     def _add_group_preset_wdg(self):
         gp_wdg = QtW.QWidget()

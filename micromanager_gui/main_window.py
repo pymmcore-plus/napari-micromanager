@@ -132,7 +132,7 @@ class MainWindow(MicroManagerWidget):
         px_action = self.submenu.addAction("Set Pixel Size...")
         px_action.triggered.connect(self._show_pixel_size_table)
 
-        logger_control = self.submenu.addAction("Logger...")
+        logger_control = self.submenu.addAction("Enable Logger...")
         logger_control.triggered.connect(self._show_logger_options)
 
     def _show_prop_browser(self):
@@ -177,12 +177,12 @@ class MainWindow(MicroManagerWidget):
     def _set_enabled(self, enabled):
         if self._mmc.getCameraDevice():
             # self._camera_group_wdg(enabled)
-            self.tab_wdg.snap_live_tab.setEnabled(enabled)
-            self.tab_wdg.snap_live_tab.setEnabled(enabled)
+            self.tab_wdg.main_tab.setEnabled(enabled)
+            self.tab_wdg.main_tab.setEnabled(enabled)
         else:
             # self._camera_group_wdg(False)
-            self.tab_wdg.snap_live_tab.setEnabled(False)
-            self.tab_wdg.snap_live_tab.setEnabled(False)
+            self.tab_wdg.main_tab.setEnabled(False)
+            self.tab_wdg.main_tab.setEnabled(False)
 
         # self.illum_btn.setEnabled(enabled)
         # self.ill.setEnabled(enabled)
