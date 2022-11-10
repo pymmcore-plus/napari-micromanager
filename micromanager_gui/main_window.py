@@ -20,7 +20,6 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda
-from ._camera_roi import _CameraROI
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import event_indices
@@ -62,15 +61,11 @@ class MainWindow(MicroManagerWidget):
 
         self.streaming_timer: QTimer | None = None
 
-        # disable gui
-        self._set_enabled(False)
-
         # connect mmcore signals
         sig: QCoreSignaler = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._update_live_exp)
 
         sig.imageSnapped.connect(self.update_viewer)
@@ -104,13 +99,6 @@ class MainWindow(MicroManagerWidget):
                 with contextlib.suppress(NotADirectoryError):
                     v.cleanup()
 
-        self.cam_roi = _CameraROI(
-            self.viewer,
-            self._mmc,
-            self.cam_wdg.cam_roi_combo,
-            self.cam_wdg.crop_btn,
-        )
-
         self.viewer.layers.events.connect(self._update_max_min)
         self.viewer.layers.selection.events.active.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
@@ -136,30 +124,11 @@ class MainWindow(MicroManagerWidget):
             self._px_size_wdg = PixelSizeWidget(parent=self)
         self._px_size_wdg.show()
 
-    def _on_system_cfg_loaded(self):
-        if len(self._mmc.getLoadedDevices()) > 1:
-            self._set_enabled(True)
-
     def _set_enabled(self, enabled):
-        if self._mmc.getCameraDevice():
-            self._camera_group_wdg(enabled)
-            self.tab_wdg.snap_live_tab.setEnabled(enabled)
-            self.tab_wdg.snap_live_tab.setEnabled(enabled)
-        else:
-            self._camera_group_wdg(False)
-            self.tab_wdg.snap_live_tab.setEnabled(False)
-            self.tab_wdg.snap_live_tab.setEnabled(False)
-
-        self.illum_btn.setEnabled(enabled)
-
+        self.tab_wdg.main_tab.setEnabled(enabled)
+        self.group_preset_table_wdg.setEnabled(enabled)
         self.mda._set_enabled(enabled)
-        if self._mmc.getXYStageDevice():
-            self.explorer._set_enabled(enabled)
-        else:
-            self.explorer._set_enabled(False)
-
-    def _camera_group_wdg(self, enabled):
-        self.cam_wdg.setEnabled(enabled)
+        self.explorer._set_enabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None):

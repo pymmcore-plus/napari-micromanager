@@ -1,16 +1,10 @@
 from __future__ import annotations
 
-from pymmcore_widgets import (
-    ConfigurationWidget,
-    GroupPresetTableWidget,
-    ObjectivesWidget,
-    SliderDialog,
-)
+from pymmcore_widgets import ConfigurationWidget, GroupPresetTableWidget
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
-from ._camera_widget import MMCameraWidget
 from ._mda_widget._mda_widget import MMMultiDWidget
 from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
 from ._shutters_widget import MMShuttersWidget
@@ -31,15 +25,12 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.cfg_wdg.setTitle("")
-        self.obj_wdg = ObjectivesWidget()
-        self.cam_wdg = MMCameraWidget()
         self.stage_wdg = MMStagesWidget()
-        self.illum_btn = QtW.QPushButton("Light Sources")
-        self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MMMultiDWidget()
         self.explorer = MMExploreSample()
+        self.group_preset_table_wdg = GroupPresetTableWidget()
 
         self.setLayout(QtW.QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
@@ -61,12 +52,12 @@ class MicroManagerWidget(QtW.QWidget):
         self.toolbar.addWidget(self.mm_menu)
 
     def create_gui(self):
-        # main widget
+        # main scroll area
         self._scroll = QtW.QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.layout().addWidget(self._scroll)
-
+        # main widget
         self.main_wdg = QtW.QWidget()
         self.main_layout = QtW.QVBoxLayout()
         self.main_layout.setContentsMargins(10, 0, 10, 0)
@@ -75,88 +66,52 @@ class MicroManagerWidget(QtW.QWidget):
         self.main_wdg.setLayout(self.main_layout)
         # add cfg_wdg
         self.main_layout.addWidget(self.cfg_wdg)
-        # add microscope collapsible
-        self.mic_group = QtW.QGroupBox()
-        self.mic_group_layout = QtW.QVBoxLayout()
-        self.mic_group_layout.setSpacing(0)
-        self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
-        coll_sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
-        )
-        self.mic_coll = QCollapsible(title="Microscope")
-        self.mic_coll.layout().setSpacing(0)
-        self.mic_coll.layout().setContentsMargins(0, 0, 0, 0)
-        self.mic_coll.setSizePolicy(coll_sizepolicy)
-
-        # add objective, property browser, illumination and camera widgets
-        obj_prop = self.add_mm_objectives_widget()
-        ill_shutter = self.add_shutter_widgets()
-        cam = self.add_camera_widget()
-        self.mic_coll.addWidget(obj_prop)
-        self.mic_coll.addWidget(ill_shutter)
-        self.mic_coll.addWidget(cam)
-        self.mic_coll.expand(animate=False)
-        self.mic_group_layout.addWidget(self.mic_coll)
-        self.mic_group.setLayout(self.mic_group_layout)
-        self.main_layout.addWidget(self.mic_group)
-
+        # add shutters
+        sh = self.add_shutter_widgets()
+        self.main_layout.addWidget(sh)
         # add stages collapsible
-        self.stages_group = QtW.QGroupBox()
-        self.stages_group_layout = QtW.QVBoxLayout()
-        self.stages_group_layout.setSpacing(0)
-        self.stages_group_layout.setContentsMargins(1, 0, 1, 1)
-
-        self.stages_coll = QCollapsible(title="Stages")
-        self.stages_coll.setSizePolicy(coll_sizepolicy)
-        self.stages_coll.layout().setSpacing(0)
-        self.stages_coll.layout().setContentsMargins(0, 0, 0, 0)
-        self.stages_coll.addWidget(self.stage_wdg)
-        self.stages_coll.expand(animate=False)
-
-        self.stages_group_layout.addWidget(self.stages_coll)
-        self.stages_group.setLayout(self.stages_group_layout)
-        self.main_layout.addWidget(self.stages_group)
-
-        self.group_preset_table_wdg = GroupPresetTableWidget()
-
+        stages_group = self._add_stage_collapsible()
+        self.main_layout.addWidget(stages_group)
         # add tab widget
+        gp = self._add_group_preset_wdg()
         self.main_layout.addWidget(self.tab_wdg)
+        self.tab_wdg.tabWidget.addTab(gp, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
-        self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
-
         # add to scroll
         self._scroll.setWidget(self.main_wdg)
 
-    def add_camera_widget(self):
-        self.cam_group = QtW.QWidget()
-        self.cam_group_layout = QtW.QGridLayout()
-        self.cam_group_layout.setSpacing(0)
-        self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
-        self.cam_group_layout.addWidget(self.cam_wdg)
-        self.cam_group.setLayout(self.cam_group_layout)
-        return self.cam_group
-
-    def add_mm_objectives_widget(self):
-        obj_wdg = QtW.QWidget()
-        obj_wdg_layout = QtW.QHBoxLayout()
-        obj_wdg_layout.setContentsMargins(5, 5, 5, 5)
-        obj_wdg_layout.setSpacing(7)
-        obj_wdg_layout.addWidget(self.obj_wdg)
-        obj_wdg.setLayout(obj_wdg_layout)
-        return obj_wdg
+    def _add_group_preset_wdg(self):
+        wdg = QtW.QWidget()
+        layout = QtW.QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        wdg.setLayout(layout)
+        layout.addWidget(self.group_preset_table_wdg)
+        return wdg
 
     def add_shutter_widgets(self):
-        shutter_wdg = QtW.QWidget()
+        shutter_wdg = QtW.QGroupBox()
         shutter_wdg_layout = QtW.QHBoxLayout()
+        shutter_wdg_layout.setAlignment(Qt.AlignLeft)
         shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
         shutter_wdg_layout.setSpacing(7)
         shutter_wdg_layout.addWidget(self.shutter_wdg)
-        shutter_wdg_layout.addWidget(self.illum_btn)
         shutter_wdg.setLayout(shutter_wdg_layout)
         return shutter_wdg
 
-    def _show_illum_dialog(self):
-        if not hasattr(self, "_illumination"):
-            self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
-        self._illumination.show()
+    def _add_stage_collapsible(self):
+        stages_group = QtW.QGroupBox()
+        stages_group_layout = QtW.QVBoxLayout()
+        stages_group_layout.setSpacing(0)
+        stages_group_layout.setContentsMargins(1, 0, 1, 1)
+        stages_group.setLayout(stages_group_layout)
+
+        self.stages_coll = QCollapsible(title="Stages")
+        self.stages_coll.setSizePolicy(
+            QtW.QSizePolicy(QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed)
+        )
+        self.stages_coll.layout().setSpacing(0)
+        self.stages_coll.layout().setContentsMargins(0, 0, 0, 0)
+        self.stages_coll.addWidget(self.stage_wdg)
+        stages_group_layout.addWidget(self.stages_coll)
+        return stages_group
