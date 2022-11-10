@@ -39,14 +39,10 @@ class MicroManagerWidget(QtW.QWidget):
         self.toolbar = QtW.QToolBar()
         self.toolbar.setMinimumHeight(30)
         self.layout().setMenuBar(self.toolbar)
-
         self.mm_menu = QtW.QToolButton(parent=self)
-
         self.mm_menu.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-
-        self.mm_menu.setText("MicroManager")
-
-        self.mm_menu.setMinimumWidth(135)
+        self.mm_menu.setText("Menu")
+        self.mm_menu.setMinimumWidth(75)
         self.mm_menu.setPopupMode(QtW.QToolButton.MenuButtonPopup)
         self.mm_menu.setEnabled(True)
         self.submenu = QtW.QMenu(parent=self)
