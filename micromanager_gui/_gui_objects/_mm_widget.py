@@ -39,10 +39,10 @@ class MicroManagerWidget(QtW.QWidget):
         self.hcs = HCSWidgetMain()
 
         self.setLayout(QtW.QVBoxLayout())
-        self._add_menu()
+        self._add_toolbar()
         self._create_gui()
 
-    def _add_menu(self) -> None:
+    def _add_toolbar(self) -> None:
         self.toolbar = QtW.QToolBar()
         self.toolbar.setMinimumHeight(30)
         self.layout().setMenuBar(self.toolbar)
@@ -52,7 +52,6 @@ class MicroManagerWidget(QtW.QWidget):
         self.mm_menu.setText("Menu")
         self.mm_menu.setMinimumWidth(75)
         self.mm_menu.setPopupMode(QtW.QToolButton.MenuButtonPopup)
-        self.mm_menu.setEnabled(True)
         self.submenu = QtW.QMenu(parent=self)
         self.mm_menu.setMenu(self.submenu)
         self.mm_menu.setStyleSheet(TOOLBAR_STYLE)
