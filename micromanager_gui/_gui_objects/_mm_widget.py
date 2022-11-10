@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from pymmcore_widgets import ConfigurationWidget, GroupPresetTableWidget
+from pymmcore_widgets import (
+    ConfigurationWidget,
+    GroupPresetTableWidget,
+    LiveButton,
+    SnapButton,
+)
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 
@@ -39,6 +44,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.toolbar = QtW.QToolBar()
         self.toolbar.setMinimumHeight(30)
         self.layout().setMenuBar(self.toolbar)
+
         self.mm_menu = QtW.QToolButton(parent=self)
         self.mm_menu.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         self.mm_menu.setText("Menu")
@@ -49,6 +55,14 @@ class MicroManagerWidget(QtW.QWidget):
         self.mm_menu.setMenu(self.submenu)
         self.mm_menu.setStyleSheet(TOOLBAR_STYLE)
         self.toolbar.addWidget(self.mm_menu)
+
+        # add snap and live btns to toolbar
+        snap_tool = SnapButton()
+        snap_tool.setText("")
+        self.toolbar.addWidget(snap_tool)
+        live_tool = LiveButton()
+        live_tool.setText("")
+        self.toolbar.addWidget(live_tool)
 
     def _create_gui(self):
 
