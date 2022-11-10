@@ -51,12 +51,13 @@ class MicroManagerWidget(QtW.QWidget):
         self.toolbar.addWidget(self.mm_menu)
 
     def _create_gui(self):
-        # main widget
 
+        # main scroll area
         self._scroll = QtW.QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # main widget
         self.main_wdg = QtW.QWidget()
         self.main_layout = QtW.QVBoxLayout()
         self.main_layout.setContentsMargins(10, 0, 10, 0)
@@ -76,19 +77,9 @@ class MicroManagerWidget(QtW.QWidget):
         s_l.addWidget(self.shutter_wdg)
         self.main_layout.addWidget(s_wdg)
 
-        gp_wdg = QtW.QWidget()
-        gp_l = QtW.QVBoxLayout()
-        gp_l.setContentsMargins(20, 20, 20, 20)
-        gp_wdg.setLayout(gp_l)
-        self.group_preset_table_wdg = GroupPresetTableWidget()
-        gp_l.addWidget(self.group_preset_table_wdg)
-        spacer = QtW.QSpacerItem(
-            10, 10, QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
-        )
-        gp_l.addItem(spacer)
-
         # add tab widget
         self.main_layout.addWidget(self.tab_wdg)
+        gp_wdg = self._add_group_preset_wdg()
         self.tab_wdg.tabWidget.addTab(gp_wdg, "Groups and Presets")
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
@@ -99,9 +90,16 @@ class MicroManagerWidget(QtW.QWidget):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self._scroll)
 
-
-if __name__ == "__main__":
-    app = QtW.QApplication([])
-    frame = MicroManagerWidget()
-    frame.show()
-    app.exec_()
+    def _add_group_preset_wdg(self):
+        gp_wdg = QtW.QWidget()
+        gp_l = QtW.QVBoxLayout()
+        gp_l.setContentsMargins(20, 20, 20, 20)
+        gp_wdg.setLayout(gp_l)
+        self.group_preset_table_wdg = GroupPresetTableWidget()
+        self.group_preset_table_wdg.setMinimumHeight(400)
+        gp_l.addWidget(self.group_preset_table_wdg)
+        spacer = QtW.QSpacerItem(
+            10, 10, QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        )
+        gp_l.addItem(spacer)
+        return gp_wdg
