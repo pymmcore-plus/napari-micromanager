@@ -66,15 +66,11 @@ class MainWindow(MicroManagerWidget):
 
         self._mda_meta: SequenceMeta = None  # type: ignore
 
-        # disable gui
-        self._set_enabled(False)
-
         # connect mmcore signals
         sig: QCoreSignaler = self._mmc.events
 
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         sig.exposureChanged.connect(self._update_live_exp)
 
         sig.imageSnapped.connect(self.update_viewer)
@@ -170,35 +166,11 @@ class MainWindow(MicroManagerWidget):
             self._debug_logger_wdg = self._create_debug_logger_widget()
         self._debug_logger_wdg.show()
 
-    def _on_system_cfg_loaded(self):
-        if len(self._mmc.getLoadedDevices()) > 1:
-            self._set_enabled(True)
-
     def _set_enabled(self, enabled):
-        if self._mmc.getCameraDevice():
-            # self._camera_group_wdg(enabled)
-            self.tab_wdg.main_tab.setEnabled(enabled)
-            self.tab_wdg.main_tab.setEnabled(enabled)
-        else:
-            # self._camera_group_wdg(False)
-            self.tab_wdg.main_tab.setEnabled(False)
-            self.tab_wdg.main_tab.setEnabled(False)
-
-        # self.illum_btn.setEnabled(enabled)
-        # self.ill.setEnabled(enabled)
-
+        self.tab_wdg.main_tab.setEnabled(enabled)
+        self.group_preset_table_wdg.setEnabled(enabled)
         self.mda._set_enabled(enabled)
-        self.mda.save_groupBox.setEnabled(enabled)
-
-        if self._mmc.getXYStageDevice():
-            self.explorer._set_enabled(enabled)
-        else:
-            self.explorer._set_enabled(False)
-
-        self.explorer.save_explorer_groupBox.setEnabled(enabled)
-
-    # def _camera_group_wdg(self, enabled):
-    #     self.cam_wdg.setEnabled(enabled)
+        self.explorer._set_enabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None):
