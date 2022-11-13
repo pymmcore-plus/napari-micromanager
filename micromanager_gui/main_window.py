@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import napari
 import numpy as np
@@ -12,7 +12,7 @@ import zarr
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
+from pymmcore_widgets import CameraRoiWidget, PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
@@ -21,8 +21,14 @@ from useq import MDASequence
 
 from . import _mda_meta
 
-# from ._camera_roi import _CameraROI
+# from ._gui_objects._main_dock_widget import MainDockWidget
+from ._gui_objects._group_preset_wdg import GroupPreset
+from ._gui_objects._hcs_widget import HCSWidgetMain
+from ._gui_objects._illumination_widget import IlluminationWidget
+from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
+from ._gui_objects._sample_explorer_widget import SampleExplorer
+from ._gui_objects._stages_widget import MMStagesWidget
 from ._mda_meta import SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
@@ -37,10 +43,29 @@ if TYPE_CHECKING:
     from pymmcore_plus.mda import PMDAEngine
 
 
+TOOLBAR_SIZE = 45
+TOOL_SIZE = 35
+
+
+class _MinMax(QtW.QWidget):
+    def __init__(self, parent: Optional[QtW.QWidget] = None) -> None:
+        super().__init__(parent)
+        max_min_wdg_layout = QtW.QHBoxLayout()
+        max_min_wdg_layout.setContentsMargins(0, 0, 0, 0)
+        self.max_min_val_label_name = QtW.QLabel()
+        self.max_min_val_label_name.setText("(min, max)")
+        self.max_min_val_label_name.setMaximumWidth(70)
+        self.max_min_val_label = QtW.QLabel()
+        self.max_min_val_label.setWordWrap(True)
+        max_min_wdg_layout.addWidget(self.max_min_val_label_name)
+        max_min_wdg_layout.addWidget(self.max_min_val_label)
+        self.setLayout(max_min_wdg_layout)
+
+
 class MainWindow(MicroManagerWidget):
     """The main napari-micromanager widget that gets added to napari."""
 
-    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
+    def __init__(self, viewer: napari.viewer.Viewer) -> None:
         super().__init__()
 
         # create connection to mmcore server or process-local variant
@@ -56,11 +81,10 @@ class MainWindow(MicroManagerWidget):
                 "MICROMANAGER_PATH."
             )
 
-        # add mda and explorer tabs to mm_tab widget
-        sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
-        )
-        self.tab_wdg.setSizePolicy(sizepolicy)
+        self._minmax = _MinMax()
+        self.mda = MultiDWidget()
+        self.explorer = SampleExplorer()
+        self.hcs = HCSWidgetMain()
 
         self.streaming_timer: QTimer | None = None
 
@@ -84,6 +108,7 @@ class MainWindow(MicroManagerWidget):
 
         self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
         self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
+        self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
@@ -112,34 +137,150 @@ class MainWindow(MicroManagerWidget):
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
         self.hcs.metadataInfo.connect(self._on_meta_info)
-        self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
-        self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
-        self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
-        self._connect_menu()
+        # self._connect_menu()
+
+        self._add_dock_wdgs()
+
+        plugins = self._add_plugins_toolbar()
+        self.insertToolBar(self.shutters_toolbar, plugins)
+
+        self.gp_button.clicked.connect(self._show_group_preset)
+        self.ill_btn.clicked.connect(self._show_illumination)
+        self.stage_btn.clicked.connect(self._show_stages)
+        self.prop_browser_btn.clicked.connect(self._show_prop_browser)
+        self.px_btn.clicked.connect(self._show_pixel_size_table)
+        self.log_btn.clicked.connect(self._show_logger_options)
+        self.cam_btn.clicked.connect(self._show_cam_roi)
+        # self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
+        # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
+        # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
+
+    def _add_dock_wdgs(self):
+        self.mda_dock = self.viewer.window.add_dock_widget(
+            self.mda, name="MDA", area="right", allowed_areas=["left", "right"]
+        )
+        self.explorer_dock = self.viewer.window.add_dock_widget(
+            self.explorer,
+            name="Sample Explorer",
+            area="right",
+            allowed_areas=["left", "right"],
+        )
+        self.hcs_dock = self.viewer.window.add_dock_widget(
+            self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
+        )
+        self.viewer.window.add_dock_widget(
+            self._minmax, name="MinMax", area="left", allowed_areas=["left"]
+        )
+
+        # self.mda_dock.hide()
+        # self.explorer_dock.hide()
+        # self.hcs_dock.hide()
+
+        self.viewer.window._qt_window.tabifyDockWidget(
+            self.mda_dock, self.explorer_dock
+        )
+        self.viewer.window._qt_window.tabifyDockWidget(self.mda_dock, self.hcs_dock)
+
+    def _add_plugins_toolbar(self) -> QtW.QToolBar:
+        plgs_toolbar = QtW.QToolBar("Plugins")
+        plgs_toolbar.setMinimumHeight(TOOLBAR_SIZE)
+
+        wdg = QtW.QGroupBox()
+        wdg.setLayout(QtW.QHBoxLayout())
+        wdg.layout().setContentsMargins(5, 0, 5, 0)
+        wdg.layout().setSpacing(3)
+        wdg.setStyleSheet("border: 0px;")
+
+        mda_button = QtW.QPushButton(text="MDA")
+        mda_button.setMinimumHeight(TOOL_SIZE)
+        mda_button.clicked.connect(self._show_mda)
+        wdg.layout().addWidget(mda_button)
+
+        explorer_button = QtW.QPushButton(text="Explorer")
+        explorer_button.setMinimumHeight(TOOL_SIZE)
+        explorer_button.clicked.connect(self._show_explorer)
+        wdg.layout().addWidget(explorer_button)
+
+        hcs_button = QtW.QPushButton(text="HCS")
+        hcs_button.setMinimumHeight(TOOL_SIZE)
+        hcs_button.clicked.connect(self._show_hcs)
+        wdg.layout().addWidget(hcs_button)
+
+        plgs_toolbar.addWidget(wdg)
+
+        return plgs_toolbar
+
+    def _show_group_preset(self) -> None:
+        if not hasattr(self, "_group_preset_table_wdg"):
+            self._group_preset_table_wdg = GroupPreset(parent=self)
+            self._group_preset_table_wdg.setWindowTitle("Groups & Presets")
+        self._group_preset_table_wdg.show()
+        self._group_preset_table_wdg.raise_()
+
+    def _show_illumination(self):
+        if not hasattr(self, "_illumination"):
+            self._illumination = IlluminationWidget(parent=self)
+            self._illumination.setWindowTitle("Illumination")
+        self._illumination.show()
+        self._illumination.raise_()
+
+    def _show_stages(self):
+        if not hasattr(self, "_stages"):
+            self._stages = MMStagesWidget(parent=self)
+            self._illumination.setWindowTitle("Stages Control")
+        self._stages.show()
+        self._stages.raise_()
+
+    def _show_cam_roi(self):
+        if not hasattr(self, "_cam_roi"):
+            self._cam_roi = CameraRoiWidget(parent=self)
+            self._cam_roi.setWindowTitle("Camera ROI")
+        self._cam_roi.show()
+        self._cam_roi.raise_()
+
+    def _show_mda(self) -> None:
+        if self.mda_dock.isHidden():
+            self.mda_dock.show()
+        self.mda_dock.raise_()
+
+    def _show_explorer(self) -> None:
+        if self.explorer_dock.isHidden():
+            self.explorer_dock.show()
+        self.explorer_dock.raise_()
+
+    def _show_hcs(self) -> None:
+        if self.hcs_dock.isHidden():
+            self.hcs_dock.show()
+        self.hcs_dock.raise_()
+
+    def _on_sys_cfg_loaded(self) -> None:
+        self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)
 
     def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
     def _connect_menu(self):
-        pb_action = self.submenu.addAction("Device Property Browser...")
+        pb_action = self.menu.addAction("Device Property Browser...")
         pb_action.triggered.connect(self._show_prop_browser)
 
-        px_action = self.submenu.addAction("Set Pixel Size...")
+        px_action = self.menu.addAction("Set Pixel Size...")
         px_action.triggered.connect(self._show_pixel_size_table)
 
-        logger_control = self.submenu.addAction("Enable Logger...")
+        logger_control = self.menu.addAction("Enable Logger...")
         logger_control.triggered.connect(self._show_logger_options)
 
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
             self._prop_browser = PropertyBrowser(self._mmc, self)
+            self._prop_browser.setWindowTitle("Property Browser")
         self._prop_browser.show()
         self._prop_browser.raise_()
 
     def _show_pixel_size_table(self):
         if not hasattr(self, "_px_size_wdg"):
             self._px_size_wdg = PixelSizeWidget(parent=self)
+            self._px_size_wdg.setWindowTitle("Pixel Size")
         self._px_size_wdg.show()
 
     def _create_debug_logger_widget(self) -> QtW.QDialog:
@@ -166,11 +307,14 @@ class MainWindow(MicroManagerWidget):
             self._debug_logger_wdg = self._create_debug_logger_widget()
         self._debug_logger_wdg.show()
 
-    def _set_enabled(self, enabled):
-        self.tab_wdg.main_tab.setEnabled(enabled)
-        self.group_preset_table_wdg.setEnabled(enabled)
-        self.mda._set_enabled(enabled)
-        self.explorer._set_enabled(enabled)
+    def _enable_tools_buttons(self, enabled: bool) -> None:
+        self.cam_btn.setEnabled(enabled)
+        self.stage_btn.setEnabled(enabled)
+        self.ill_btn.setEnabled(enabled)
+        self.gp_button.setEnabled(enabled)
+        self.prop_browser_btn.setEnabled(enabled)
+        self.px_btn.setEnabled(enabled)
+        self.log_btn.setEnabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None):
@@ -194,9 +338,6 @@ class MainWindow(MicroManagerWidget):
 
     def _update_max_min(self, event=None):
 
-        if self.tab_wdg.tabWidget.currentIndex() != 0:
-            return
-
         min_max_txt = ""
 
         for layer in self.viewer.layers.selection:
@@ -212,7 +353,8 @@ class MainWindow(MicroManagerWidget):
                 min_max_show = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-        self.tab_wdg.max_min_val_label.setText(min_max_txt)
+        if self._minmax:
+            self._minmax.max_min_val_label.setText(min_max_txt)
 
     def _snap(self):
         # update in a thread so we don't freeze UI
@@ -240,7 +382,7 @@ class MainWindow(MicroManagerWidget):
     @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Create temp folder and block gui when mda starts."""
-        self._set_enabled(False)
+        self._enable_tools_buttons(False)
 
         if self._mda_meta.mode == "":
             # originated from user script - assume it's an mda
@@ -303,6 +445,9 @@ class MainWindow(MicroManagerWidget):
         """
         labels, shape = self._get_shape_and_labels(sequence)
         if self._mda_meta.split_channels:
+
+            # TODO: store index in addition to channel.config because it's
+            # possible to have two of the same channel in one sequence.
             channels = [f"_{c.config}" for c in sequence.channels]
             with contextlib.suppress(ValueError):
                 c_idx = labels.index("c")
@@ -614,7 +759,7 @@ class MainWindow(MicroManagerWidget):
         meta = _mda_meta.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
-        self._set_enabled(True)
+        self._enable_tools_buttons(True)
 
     # def _get_event_explorer(self, viewer, event):
     #     if not self.explorer.isVisible():
@@ -642,89 +787,89 @@ class MainWindow(MicroManagerWidget):
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
-    def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
-        for layer in self.viewer.layers:
-            if layer.metadata.get("layer_id"):
-                return layer
+    # def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
+    #     for layer in self.viewer.layers:
+    #         if layer.metadata.get("layer_id"):
+    #             return layer
 
-    def _on_roi_info(
-        self, start_x: int, start_y: int, width: int, height: int, mode: str = ""
-    ) -> None:
+    # def _on_roi_info(
+    #     self, start_x: int, start_y: int, width: int, height: int, mode: str = ""
+    # ) -> None:
 
-        layers = {layer.name for layer in self.viewer.layers}
-        if "preview" not in layers:
-            self._mmc.snap()
+    #     layers = {layer.name for layer in self.viewer.layers}
+    #     if "preview" not in layers:
+    #         self._mmc.snap()
 
-        if mode == "Full":
-            self._on_crop_btn()
-            return
+    #     if mode == "Full":
+    #         self._on_crop_btn()
+    #         return
 
-        try:
-            cam_roi_layer = self._get_roi_layer()
-            cam_roi_layer.data = self._set_cam_roi_shape(
-                start_x, start_y, width, height
-            )
-        except AttributeError:
-            cam_roi_layer = self.viewer.add_shapes(name="set_cam_ROI")
-            cam_roi_layer.metadata["layer_id"] = "set_cam_ROI"
-            cam_roi_layer.data = self._set_cam_roi_shape(
-                start_x, start_y, width, height
-            )
+    #     try:
+    #         cam_roi_layer = self._get_roi_layer()
+    #         cam_roi_layer.data = self._set_cam_roi_shape(
+    #             start_x, start_y, width, height
+    #         )
+    #     except AttributeError:
+    #         cam_roi_layer = self.viewer.add_shapes(name="set_cam_ROI")
+    #         cam_roi_layer.metadata["layer_id"] = "set_cam_ROI"
+    #         cam_roi_layer.data = self._set_cam_roi_shape(
+    #             start_x, start_y, width, height
+    #         )
 
-        cam_roi_layer.mode = "select"
-        self.viewer.reset_view()
+    #     cam_roi_layer.mode = "select"
+    #     self.viewer.reset_view()
 
-    def _set_cam_roi_shape(
-        self, start_x: int, start_y: int, width: int, height: int
-    ) -> List[list]:
-        return [
-            [start_y, start_x],
-            [start_y, width + start_x],
-            [height + start_y, width + start_x],
-            [height + start_y, start_x],
-        ]
+    # def _set_cam_roi_shape(
+    #     self, start_x: int, start_y: int, width: int, height: int
+    # ) -> List[list]:
+    #     return [
+    #         [start_y, start_x],
+    #         [start_y, width + start_x],
+    #         [height + start_y, width + start_x],
+    #         [height + start_y, start_x],
+    #     ]
 
-    def _on_crop_btn(self):
-        with contextlib.suppress(Exception):
-            cam_roi_layer = self._get_roi_layer()
-            self.viewer.layers.remove(cam_roi_layer)
-        self.viewer.reset_view()
+    # def _on_crop_btn(self):
+    #     with contextlib.suppress(Exception):
+    #         cam_roi_layer = self._get_roi_layer()
+    #         self.viewer.layers.remove(cam_roi_layer)
+    #     self.viewer.reset_view()
 
-    def _update_cam_roi_layer(self, layer, event) -> None:  # type: ignore
+    # def _update_cam_roi_layer(self, layer, event) -> None:  # type: ignore
 
-        active_layer = self.viewer.layers.selection.active
-        if not isinstance(active_layer, napari.layers.shapes.shapes.Shapes):
-            return
+    #     active_layer = self.viewer.layers.selection.active
+    #     if not isinstance(active_layer, napari.layers.shapes.shapes.Shapes):
+    #         return
 
-        if active_layer.metadata.get("layer_id") != "set_cam_ROI":
-            return
+    #     if active_layer.metadata.get("layer_id") != "set_cam_ROI":
+    #         return
 
-        # on mouse pressed
-        dragged = False
-        yield
-        # on mouse move
-        while event.type == "mouse_move":
-            dragged = True
-            yield
-        # on mouse release
-        if dragged:
-            if not active_layer.data:
-                return
-            data = active_layer.data[-1]
+    #     # on mouse pressed
+    #     dragged = False
+    #     yield
+    #     # on mouse move
+    #     while event.type == "mouse_move":
+    #         dragged = True
+    #         yield
+    #     # on mouse release
+    #     if dragged:
+    #         if not active_layer.data:
+    #             return
+    #         data = active_layer.data[-1]
 
-            x_max = self.tab_wdg.cam_wdg.chip_size_x
-            y_max = self.tab_wdg.cam_wdg.chip_size_y
+    #         x_max = self.tab_wdg.cam_wdg.chip_size_x
+    #         y_max = self.tab_wdg.cam_wdg.chip_size_y
 
-            x = round(data[0][1])
-            y = round(data[0][0])
-            width = round(data[1][1] - x)
-            height = round(data[2][0] - y)
+    #         x = round(data[0][1])
+    #         y = round(data[0][0])
+    #         width = round(data[1][1] - x)
+    #         height = round(data[2][0] - y)
 
-            # change shape if out of cam area
-            if x + width >= x_max:
-                x = x - ((x + width) - x_max)
-            if y + height >= y_max:
-                y = y - ((y + height) - y_max)
+    #         # change shape if out of cam area
+    #         if x + width >= x_max:
+    #             x = x - ((x + width) - x_max)
+    #         if y + height >= y_max:
+    #             y = y - ((y + height) - y_max)
 
-            cam = self._mmc.getCameraDevice()
-            self._mmc.events.roiSet.emit(cam, x, y, width, height)
+    #         cam = self._mmc.getCameraDevice()
+    #         self._mmc.events.roiSet.emit(cam, x, y, width, height)

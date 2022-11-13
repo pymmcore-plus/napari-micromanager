@@ -3,12 +3,12 @@ from typing import Optional
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from pymmcore_widgets import PropertyWidget
-from qtpy.QtWidgets import QApplication, QGridLayout, QLabel, QWidget
+from qtpy.QtWidgets import QDialog, QGridLayout, QLabel, QSizePolicy, QWidget
 
 from .._util import iter_dev_props
 
 
-class IlluminationWidget(QWidget):
+class IlluminationWidget(QDialog):
     """Sliders widget to control illumination."""
 
     def __init__(
@@ -29,6 +29,8 @@ class IlluminationWidget(QWidget):
         self.destroyed.connect(self._disconnect)
 
         self._on_cfg_loaded()
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
     def _create_wdg(self):
 
@@ -56,12 +58,3 @@ class IlluminationWidget(QWidget):
 
     def _disconnect(self):
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_cfg_loaded)
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QApplication(sys.argv)
-    win = IlluminationWidget()
-    win.show()
-    sys.exit(app.exec_())
