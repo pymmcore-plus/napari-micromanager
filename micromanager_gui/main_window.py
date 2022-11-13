@@ -139,6 +139,9 @@ class MainWindow(MicroManagerWidget):
         self.hcs.metadataInfo.connect(self._on_meta_info)
 
         # self._connect_menu()
+        self.viewer.window.add_dock_widget(
+            self._minmax, name="MinMax", area="left", allowed_areas=["left"]
+        )
 
         self._add_dock_wdgs()
 
@@ -169,18 +172,19 @@ class MainWindow(MicroManagerWidget):
         self.hcs_dock = self.viewer.window.add_dock_widget(
             self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
         )
-        self.viewer.window.add_dock_widget(
-            self._minmax, name="MinMax", area="left", allowed_areas=["left"]
-        )
-
-        # self.mda_dock.hide()
-        # self.explorer_dock.hide()
-        # self.hcs_dock.hide()
-
         self.viewer.window._qt_window.tabifyDockWidget(
             self.mda_dock, self.explorer_dock
         )
         self.viewer.window._qt_window.tabifyDockWidget(self.mda_dock, self.hcs_dock)
+
+    def _refresh_dock_wdgs(self) -> None:
+        with contextlib.suppress(RuntimeError):
+            self.viewer.window.remove_dock_widget(self.mda_dock)
+        with contextlib.suppress(RuntimeError):
+            self.viewer.window.remove_dock_widget(self.explorer_dock)
+        with contextlib.suppress(RuntimeError):
+            self.viewer.window.remove_dock_widget(self.hcs_dock)
+        self._add_dock_wdgs()
 
     def _add_plugins_toolbar(self) -> QtW.QToolBar:
         plgs_toolbar = QtW.QToolBar("Plugins")
@@ -193,16 +197,19 @@ class MainWindow(MicroManagerWidget):
         wdg.setStyleSheet("border: 0px;")
 
         mda_button = QtW.QPushButton(text="MDA")
+        mda_button.setToolTip("MultiDimensional Acquisition")
         mda_button.setMinimumHeight(TOOL_SIZE)
         mda_button.clicked.connect(self._show_mda)
         wdg.layout().addWidget(mda_button)
 
         explorer_button = QtW.QPushButton(text="Explorer")
+        explorer_button.setToolTip("MultiDimensional Grid Acqiosition")
         explorer_button.setMinimumHeight(TOOL_SIZE)
         explorer_button.clicked.connect(self._show_explorer)
         wdg.layout().addWidget(explorer_button)
 
         hcs_button = QtW.QPushButton(text="HCS")
+        hcs_button.setToolTip("MultiDimensional Multi-Well Acquisition")
         hcs_button.setMinimumHeight(TOOL_SIZE)
         hcs_button.clicked.connect(self._show_hcs)
         wdg.layout().addWidget(hcs_button)
@@ -240,19 +247,28 @@ class MainWindow(MicroManagerWidget):
         self._cam_roi.raise_()
 
     def _show_mda(self) -> None:
-        if self.mda_dock.isHidden():
-            self.mda_dock.show()
-        self.mda_dock.raise_()
+        try:
+            if self.mda_dock.isHidden():
+                self.mda_dock.show()
+            self.mda_dock.raise_()
+        except RuntimeError:
+            self._refresh_dock_wdgs()
 
     def _show_explorer(self) -> None:
-        if self.explorer_dock.isHidden():
-            self.explorer_dock.show()
-        self.explorer_dock.raise_()
+        try:
+            if self.explorer_dock.isHidden():
+                self.explorer_dock.show()
+            self.explorer_dock.raise_()
+        except RuntimeError:
+            self._refresh_dock_wdgs()
 
     def _show_hcs(self) -> None:
-        if self.hcs_dock.isHidden():
-            self.hcs_dock.show()
-        self.hcs_dock.raise_()
+        try:
+            if self.hcs_dock.isHidden():
+                self.hcs_dock.show()
+            self.hcs_dock.raise_()
+        except RuntimeError:
+            self._refresh_dock_wdgs()
 
     def _on_sys_cfg_loaded(self) -> None:
         self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fonticon_mdi6 import MDI6
 from pymmcore_widgets import (
     ChannelWidget,
@@ -11,10 +13,12 @@ from pymmcore_widgets import (
 )
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QSize, Qt
+from qtpy.QtGui import QIcon
 from superqt.fonticon import icon
 
 from ._shutters_widget import MMShuttersWidget
 
+PX_ICON = str(Path(__file__).parent / "icons/px_icon.png")
 TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
 GROUPBOX_STYLE = "QGroupBox { border-radius: 3px; }"
@@ -56,12 +60,6 @@ class MicroManagerWidget(QtW.QMainWindow):
         self.setCentralWidget(base_wdg)
 
     def _createToolBars(self):
-        # self.menu_toolbar = QtW.QToolBar("Menu", self)
-        # self.menu_toolbar.setMaximumHeight(TOOLBAR_SIZE)
-        # self.addToolBar(Qt.TopToolBarArea, self.menu_toolbar)
-
-        # toolbar_btn = self._add_menu_button()
-        # self.menu_toolbar.addWidget(toolbar_btn)
 
         cfg = self._add_cfg()
         self.addToolBar(Qt.TopToolBarArea, cfg)
@@ -98,27 +96,6 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.setLayout(QtW.QHBoxLayout())
         wdg.layout().setContentsMargins(5, 0, 5, 0)
         wdg.layout().setSpacing(0)
-        return wdg
-
-    def _add_menu_button(self) -> QtW.QGroupBox:
-
-        wdg = self._create_groupbox()
-        wdg.setStyleSheet("border: 0px;")
-
-        toolbar_menu_btn = QtW.QToolButton(parent=self)
-        toolbar_menu_btn.setPopupMode(QtW.QToolButton.InstantPopup)
-        toolbar_menu_btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        toolbar_menu_btn.setLayoutDirection(Qt.RightToLeft)
-        toolbar_menu_btn.setIcon(icon(MDI6.chevron_down, color=(0, 255, 0)))
-        toolbar_menu_btn.setIconSize(QSize(30, 30))
-        toolbar_menu_btn.setStyleSheet(TOOLBAR_STYLE)
-
-        wdg.layout().addWidget(toolbar_menu_btn)
-
-        self.menu = QtW.QMenu(parent=self)
-        self.menu.setStyleSheet(MENU_STYLE)
-        toolbar_menu_btn.setMenu(self.menu)
-
         return wdg
 
     def _add_cfg(self) -> QtW.QToolBar:
@@ -163,10 +140,12 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.setStyleSheet("border: 0px;")
 
         self.snap_button.setText("")
+        self.snap_button.setToolTip("Snap")
         self.snap_button.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         wdg.layout().addWidget(self.snap_button)
 
         self.live_button.setText("")
+        self.live_button.setToolTip("Live Mode")
         self.live_button.button_text_off = ""
         self.live_button.button_text_on = ""
         self.live_button.setFixedSize(TOOL_SIZE, TOOL_SIZE)
@@ -233,6 +212,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.setStyleSheet("border: 0px;")
 
         self.prop_browser_btn = QtW.QPushButton(parent=self)
+        self.prop_browser_btn.setToolTip("Property Browser")
         self.prop_browser_btn.setEnabled(False)
         self.prop_browser_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.prop_browser_btn.setIcon(icon(MDI6.table_large, color=(0, 255, 0)))
@@ -240,6 +220,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.layout().addWidget(self.prop_browser_btn)
 
         self.gp_button = QtW.QPushButton()
+        self.gp_button.setToolTip("Group & Preset Table")
         self.gp_button.setEnabled(False)
         self.gp_button.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.gp_button.setIcon(icon(MDI6.table_large_plus, color=(0, 255, 0)))
@@ -247,6 +228,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.layout().addWidget(self.gp_button)
 
         self.stage_btn = QtW.QPushButton(parent=self)
+        self.stage_btn.setToolTip("Stages Control")
         self.stage_btn.setEnabled(False)
         self.stage_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.stage_btn.setIcon(icon(MDI6.arrow_all, color=(0, 255, 0)))
@@ -254,19 +236,23 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.layout().addWidget(self.stage_btn)
 
         self.ill_btn = QtW.QPushButton(parent=self)
+        self.ill_btn.setToolTip("Illumination Control")
         self.ill_btn.setEnabled(False)
         self.ill_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.ill_btn.setIcon(icon(MDI6.lightbulb_on, color=(0, 255, 0)))
         self.ill_btn.setIconSize(QSize(30, 30))
         wdg.layout().addWidget(self.ill_btn)
 
-        self.px_btn = QtW.QPushButton(text="PX", parent=self)
-        self.px_btn.setStyleSheet(PUSHBUTTON_STYLE)
+        self.px_btn = QtW.QPushButton(parent=self)
+        self.px_btn.setToolTip("Set Pixel Size")
         self.px_btn.setEnabled(False)
         self.px_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
+        self.px_btn.setIcon(QIcon(PX_ICON))
+        self.px_btn.setIconSize(QSize(30, 30))
         wdg.layout().addWidget(self.px_btn)
 
         self.cam_btn = QtW.QPushButton(parent=self)
+        self.cam_btn.setToolTip("Camera ROI")
         self.cam_btn.setEnabled(False)
         self.cam_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.cam_btn.setIcon(icon(MDI6.crop, color=(0, 255, 0)))
@@ -274,6 +260,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         wdg.layout().addWidget(self.cam_btn)
 
         self.log_btn = QtW.QPushButton(parent=self)
+        self.log_btn.setToolTip("Debug Logger")
         self.log_btn.setEnabled(False)
         self.log_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.log_btn.setIcon(icon(MDI6.math_log, color=(0, 255, 0)))
