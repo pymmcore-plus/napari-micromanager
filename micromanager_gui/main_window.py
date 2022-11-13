@@ -14,7 +14,7 @@ from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import CameraRoiWidget, PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import QTimer
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
@@ -176,6 +176,9 @@ class MainWindow(MicroManagerWidget):
             self.mda_dock, self.explorer_dock
         )
         self.viewer.window._qt_window.tabifyDockWidget(self.mda_dock, self.hcs_dock)
+        self.viewer.window._qt_window.setTabPosition(
+            Qt.RightDockWidgetArea, QtW.QTabWidget.North
+        )
 
     def _refresh_dock_wdgs(self) -> None:
         with contextlib.suppress(RuntimeError):
