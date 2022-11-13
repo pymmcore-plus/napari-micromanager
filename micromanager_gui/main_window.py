@@ -160,34 +160,47 @@ class MainWindow(MicroManagerWidget):
         # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
     def _add_dock_wdgs(self):
-        self.mda_dock = self.viewer.window.add_dock_widget(
-            self.mda, name="MDA", area="right", allowed_areas=["left", "right"]
-        )
-        self.explorer_dock = self.viewer.window.add_dock_widget(
-            self.explorer,
-            name="Sample Explorer",
-            area="right",
-            allowed_areas=["left", "right"],
-        )
-        self.hcs_dock = self.viewer.window.add_dock_widget(
-            self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
-        )
-        self.viewer.window._qt_window.tabifyDockWidget(
-            self.mda_dock, self.explorer_dock
-        )
-        self.viewer.window._qt_window.tabifyDockWidget(self.mda_dock, self.hcs_dock)
+
         self.viewer.window._qt_window.setTabPosition(
             Qt.RightDockWidgetArea, QtW.QTabWidget.North
         )
 
-    def _refresh_dock_wdgs(self) -> None:
-        with contextlib.suppress(RuntimeError):
-            self.viewer.window.remove_dock_widget(self.mda_dock)
-        with contextlib.suppress(RuntimeError):
-            self.viewer.window.remove_dock_widget(self.explorer_dock)
-        with contextlib.suppress(RuntimeError):
-            self.viewer.window.remove_dock_widget(self.hcs_dock)
-        self._add_dock_wdgs()
+        self.mda_dock = self._add_mda_dock_wdg()
+        self._add_tabbed_dock(self.mda_dock)
+
+        self.explorer_dock = self._add_explorer_dock_wdg()
+        self._add_tabbed_dock(self.explorer_dock)
+
+        self.hcs_dock = self._add_hcs_dock_wdg()
+        self._add_tabbed_dock(self.hcs_dock)
+
+    def _add_mda_dock_wdg(self):
+        return self.viewer.window.add_dock_widget(
+            self.mda, name="MDA Widget", area="right", allowed_areas=["left", "right"]
+        )
+
+    def _add_explorer_dock_wdg(self):
+        return self.viewer.window.add_dock_widget(
+            self.explorer,
+            name="Explorer Widget",
+            area="right",
+            allowed_areas=["left", "right"],
+        )
+
+    def _add_hcs_dock_wdg(self):
+        return self.viewer.window.add_dock_widget(
+            self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
+        )
+
+    def _add_tabbed_dock(self, dockwidget: QtW.QDockWidget):
+        """Add dockwidgets in a tab."""
+        widgets = [
+            d
+            for d in self.viewer.window._qt_window.findChildren(QtW.QDockWidget)
+            if d.objectName() in {"MDA Widget", "Explorer Widget", "HCS Widget"}
+        ]
+        if len(widgets) > 1:
+            self.viewer.window._qt_window.tabifyDockWidget(widgets[0], dockwidget)
 
     def _add_plugins_toolbar(self) -> QtW.QToolBar:
         plgs_toolbar = QtW.QToolBar("Plugins")
@@ -253,25 +266,31 @@ class MainWindow(MicroManagerWidget):
         try:
             if self.mda_dock.isHidden():
                 self.mda_dock.show()
-            self.mda_dock.raise_()
         except RuntimeError:
-            self._refresh_dock_wdgs()
+            self.mda_dock = self._add_mda_dock_wdg()
+            self._add_tabbed_dock(self.mda_dock)
+            self.mda_dock.show()
+        self.mda_dock.raise_()
 
     def _show_explorer(self) -> None:
         try:
             if self.explorer_dock.isHidden():
                 self.explorer_dock.show()
-            self.explorer_dock.raise_()
         except RuntimeError:
-            self._refresh_dock_wdgs()
+            self.explorer_dock = self._add_explorer_dock_wdg()
+            self._add_tabbed_dock(self.explorer_dock)
+            self.explorer_dock.show()
+        self.explorer_dock.raise_()
 
     def _show_hcs(self) -> None:
         try:
             if self.hcs_dock.isHidden():
                 self.hcs_dock.show()
-            self.hcs_dock.raise_()
         except RuntimeError:
-            self._refresh_dock_wdgs()
+            self.hcs_dock = self._add_hcs_dock_wdg()
+            self._add_tabbed_dock(self.hcs_dock)
+            self.hcs_dock.show()
+        self.hcs_dock.raise_()
 
     def _on_sys_cfg_loaded(self) -> None:
         self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)
