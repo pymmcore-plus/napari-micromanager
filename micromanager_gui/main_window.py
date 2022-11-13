@@ -228,7 +228,7 @@ class MainWindow(MicroManagerWidget):
     def _show_stages(self):
         if not hasattr(self, "_stages"):
             self._stages = MMStagesWidget(parent=self)
-            self._illumination.setWindowTitle("Stages Control")
+            self._stages.setWindowTitle("Stages Control")
         self._stages.show()
         self._stages.raise_()
 
