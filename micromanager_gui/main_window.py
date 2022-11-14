@@ -20,8 +20,6 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
-
-# from ._gui_objects._main_dock_widget import MainDockWidget
 from ._gui_objects._group_preset_wdg import GroupPreset
 from ._gui_objects._hcs_widget import HCSWidgetMain
 from ._gui_objects._illumination_widget import IlluminationWidget
@@ -154,6 +152,7 @@ class MainWindow(MicroManagerWidget):
         self.prop_browser_btn.clicked.connect(self._show_prop_browser)
         self.px_btn.clicked.connect(self._show_pixel_size_table)
         self.log_btn.clicked.connect(self._show_logger_options)
+
         self.cam_btn.clicked.connect(self._show_cam_roi)
         # self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
         # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
@@ -473,6 +472,18 @@ class MainWindow(MicroManagerWidget):
 
         return labels, shape
 
+    def _get_channel_name_with_index(self, sequence: MDASequence) -> List[str]:
+        """Store index in addition to channel.config.
+
+        It is possible to have two or more of the same channel in one sequence.
+        """
+        channels = []
+        for i in sequence.iter_events():
+            ch = f"_{i.channel.config}_{i.index['c']:03d}"
+            if ch not in channels:
+                channels.append(ch)
+        return channels
+
     def _interpret_split_channels(
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
@@ -483,10 +494,7 @@ class MainWindow(MicroManagerWidget):
         """
         labels, shape = self._get_shape_and_labels(sequence)
         if self._mda_meta.split_channels:
-
-            # TODO: store index in addition to channel.config because it's
-            # possible to have two of the same channel in one sequence.
-            channels = [f"_{c.config}" for c in sequence.channels]
+            channels = self._get_channel_name_with_index(sequence)
             with contextlib.suppress(ValueError):
                 c_idx = labels.index("c")
                 labels.pop(c_idx)
@@ -509,7 +517,7 @@ class MainWindow(MicroManagerWidget):
 
         # create a zarr store for each channel (or all channels when not splitting)
         # to store the images to display so we don't overflow memory.
-        for i, channel in enumerate(channels):
+        for channel in channels:
             id_ = str(sequence.uid) + channel
             tmp = tempfile.TemporaryDirectory()
 
@@ -525,11 +533,9 @@ class MainWindow(MicroManagerWidget):
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
             # add metadata to layer
-            # storing event.index in addition to channel.config because it's
-            # possible to have two of the same channel in one sequence.
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
-            layer.metadata["ch_id"] = f"{channel}_idx{i}"
+            layer.metadata["ch_id"] = f"{channel}"
 
     def _interpret_explorer_positions(
         self, sequence: MDASequence
@@ -664,7 +670,8 @@ class MainWindow(MicroManagerWidget):
         # also prepare the channel suffix that we use for keeping track of arrays
         channel = ""
         if meta.split_channels:
-            channel = f"_{event.channel.config}"
+            channel = f"_{event.channel.config}_{event.index['c']:03d}"
+
             # split channels checked but no channels added
             with contextlib.suppress(ValueError):
                 axis_order.remove("c")
