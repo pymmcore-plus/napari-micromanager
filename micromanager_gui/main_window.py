@@ -54,7 +54,7 @@ class _MinMax(QtW.QWidget):
         self.max_min_val_label_name.setText("(min, max)")
         self.max_min_val_label_name.setMaximumWidth(70)
         self.max_min_val_label = QtW.QLabel()
-        self.max_min_val_label.setWordWrap(True)
+        self.max_min_val_label.setMaximumWidth(200)
         max_min_wdg_layout.addWidget(self.max_min_val_label_name)
         max_min_wdg_layout.addWidget(self.max_min_val_label)
         self.setLayout(max_min_wdg_layout)
@@ -377,21 +377,26 @@ class MainWindow(MicroManagerWidget):
 
         min_max_txt = ""
 
-        for layer in self.viewer.layers.selection:
+        layers = list(self.viewer.layers.selection)
 
-            if isinstance(layer, napari.layers.Image) and layer.visible:
-
-                col = layer.colormap.name
-
-                if col not in QColor.colorNames():
-                    col = "gray"
-
-                # min and max of current slice
-                min_max_show = tuple(layer._calc_data_range(mode="slice"))
-                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
-
-        if self._minmax:
+        if not layers or len(layers) > 1:
             self._minmax.max_min_val_label.setText(min_max_txt)
+            return
+
+        layer = layers[0]
+
+        if isinstance(layer, napari.layers.Image) and layer.visible:
+
+            col = layer.colormap.name
+
+            if col not in QColor.colorNames():
+                col = "gray"
+
+            # min and max of current slice
+            min_max_show = tuple(layer._calc_data_range(mode="slice"))
+            min_max_txt += f'<font color="{col}">{min_max_show}</font>'
+
+        self._minmax.max_min_val_label.setText(min_max_txt)
 
     def _snap(self):
         # update in a thread so we don't freeze UI
