@@ -24,10 +24,10 @@ jobs:
         backend: [pyside2, pyqt5]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -43,28 +43,22 @@ jobs:
           python -m pip install -e .[testing,${{ matrix.backend }}]
 
       - name: Install Micro-Manager
-        if: runner.os == 'Windows'
         run: python -m pymmcore_plus.install
-
-      - name: Install Micro-Manager
-        if: runner.os == 'macOS'
-        # need to figure out what happened on mac with the utilities
-        run: python -m pymmcore_plus.install -r 20220420
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
 
       - name: Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
 
   test_linux:
     name: py3.9 pyqt5 ubuntu
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
@@ -78,7 +72,7 @@ jobs:
 
       - name: Cache micro-manager
         id: cache-micro-manager
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: micro-manager
           key: ${{ runner.os }}-micro-manager-cache-key
@@ -117,10 +111,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
