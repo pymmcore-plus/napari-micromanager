@@ -72,7 +72,7 @@ jobs:
 
       - name: Cache micro-manager
         id: cache-micro-manager
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: micro-manager
           key: ${{ runner.os }}-micro-manager-cache-key
