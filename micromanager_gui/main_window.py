@@ -12,7 +12,7 @@ import zarr
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import CameraRoiWidget, PixelSizeWidget, PropertyBrowser
+from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QPoint, Qt, QTimer
 from qtpy.QtGui import QColor
@@ -20,7 +20,8 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
-from ._gui_objects._group_preset_wdg import GroupPreset
+from ._gui_objects._cam_roi_widget import CamROI
+from ._gui_objects._group_preset_widget import GroupPreset
 from ._gui_objects._hcs_widget import HCSWidgetMain
 from ._gui_objects._illumination_widget import IlluminationWidget
 from ._gui_objects._mda_widget import MultiDWidget
@@ -421,7 +422,7 @@ class MainWindow(MicroManagerWidget):
 
     def _show_cam_roi(self):
         if not hasattr(self, "_cam_roi"):
-            self._cam_roi = CameraRoiWidget(parent=self)
+            self._cam_roi = CamROI(parent=self)
             self._cam_roi.setWindowTitle("Camera ROI")
         self._cam_roi.show()
         self._cam_roi.raise_()
