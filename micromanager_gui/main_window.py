@@ -14,7 +14,7 @@ from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import CameraRoiWidget, PixelSizeWidget, PropertyBrowser
 from qtpy import QtWidgets as QtW
-from qtpy.QtCore import Qt, QTimer
+from qtpy.QtCore import QPoint, Qt, QTimer
 from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
@@ -43,6 +43,13 @@ if TYPE_CHECKING:
 
 TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
+MENU_STYLE = """
+    QMenu {
+        font-size: 15px;
+        border: 1px solid grey;
+        border-radius: 3px;
+    }
+"""
 
 
 class _MinMax(QtW.QWidget):
@@ -131,6 +138,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.active.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
         # self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
+        # self.viewer.mouse_drag_callbacks.append(self._drag_callback)
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
@@ -157,6 +165,124 @@ class MainWindow(MicroManagerWidget):
         # self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
         # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
         # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
+
+        @self.viewer.mouse_drag_callbacks.append
+        def _mouse_right_click(viewer, event):
+
+            if self._mmc.getPixelSizeUm() == 0:
+                return
+
+            layers = list(viewer.layers.selection)
+
+            # select all related explorer layers if the selected layer
+            # is from an explorer experiment
+            if len(layers) == 1 and layers[0].metadata["mode"] == "explorer":
+                selection = []
+                _id = layers[0].metadata["uid"]
+                for ly in viewer.layers:
+                    if ly.metadata["uid"] == _id:
+                        selection.append(ly)
+                layers = selection
+
+            for idx, lay in enumerate(layers):
+                if lay.metadata["mode"] != "explorer":
+                    layers.pop(idx)
+
+            if lay.metadata["mode"] != "explorer":
+                layers = [list(viewer.layers.selection)[0]]
+
+            dragged = False
+            yield
+            # on move
+            while event.type == "mouse_move":
+                dragged = True
+                yield
+            if dragged:
+                return
+
+            # only right click
+            if event.button != 2:
+                return
+
+            vals = []
+            layer: napari.layers.Image | None = None
+            for lyr in layers:
+                data_coordinates = lyr.world_to_data(event.position)
+                val = lyr.get_value(data_coordinates)
+                vals.append(val)
+                if val is not None:
+                    layer = lyr
+
+            if vals.count(None) == len(layers) or not layer:
+                return
+
+            info = layer.metadata.get("positions")
+            current_dispalyed_dim = list(self.viewer.dims.current_step[:-2])
+            pos = ()
+            for i in info:
+                indexes, x, y, z = i
+                if indexes == current_dispalyed_dim or not indexes:
+                    pos = (x, y, z)
+                    break
+
+            if not pos:
+                return
+
+            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+            # get clicked px stage coords
+            central_px = (width // 2, height // 2)
+
+            x, y, _ = pos
+            # top left corner of image (0, 0)
+            x0 = x - (central_px[0] * self._mmc.getPixelSizeUm())
+            y0 = (y - (central_px[0] * self._mmc.getPixelSizeUm())) * (-1)
+
+            stage_x = x0 + (
+                round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm()
+            )
+            stage_y = y0 - (
+                round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm()
+            )
+
+            pos = (stage_x, stage_y, z)
+
+            r_menu = self._create_rightclick_menu(pos)
+            r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
+                QPoint(event.pos[0], event.pos[1])
+            )
+            r_menu.move(r_menuPosition)
+            r_menu.show()
+
+    def _create_rightclick_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
+        dlg_menu = QtW.QMenu(parent=self)
+        dlg_menu.setStyleSheet(MENU_STYLE)
+        xy = dlg_menu.addAction("Move to XY Stage Coords")
+        xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
+        z = dlg_menu.addAction("Move to Z Stage Coords")
+        z.triggered.connect(lambda: self._move_to_z(xyz_positions))
+        xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
+        xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
+
+        # TODO: create actions
+        # to_mda = dlg_menu.addAction("Add to MDA position table.")
+        # to_explorer = dlg_menu.addAction("Add to Explorer position table.")
+
+        return dlg_menu
+
+    def _move_to_xy(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setXYPosition(x, y)
+
+    def _move_to_z(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setPosition(z)
+
+    def _move_to_xyz(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setXYPosition(x, y)
+        self._mmc.setPosition(z)
 
     def _add_dock_wdgs(self):
 
@@ -297,16 +423,6 @@ class MainWindow(MicroManagerWidget):
     def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
-    def _connect_menu(self):
-        pb_action = self.menu.addAction("Device Property Browser...")
-        pb_action.triggered.connect(self._show_prop_browser)
-
-        px_action = self.menu.addAction("Set Pixel Size...")
-        px_action.triggered.connect(self._show_pixel_size_table)
-
-        logger_control = self.menu.addAction("Enable Logger...")
-        logger_control.triggered.connect(self._show_logger_options)
-
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
             self._prop_browser = PropertyBrowser(self._mmc, self)
@@ -367,6 +483,17 @@ class MainWindow(MicroManagerWidget):
             preview_layer.data = data
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
+
+        if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
+            preview_layer.metadata["positions"] = [
+                (
+                    [],
+                    self._mmc.getXPosition(),
+                    self._mmc.getYPosition(),
+                    self._mmc.getPosition(),
+                )
+            ]
+        preview_layer.metadata["mode"] = "preview"
 
         self._update_max_min()
 
@@ -538,6 +665,7 @@ class MainWindow(MicroManagerWidget):
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
             # add metadata to layer
+            layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}"
@@ -584,6 +712,7 @@ class MainWindow(MicroManagerWidget):
             # add metadata to layer
             # storing event.index in addition to channel.config because it's
             # possible to have two of the same channel in one sequence.
+            layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["grid"] = pos.split("_")[-3]
@@ -650,6 +779,7 @@ class MainWindow(MicroManagerWidget):
             # add metadata to layer
             # storing event.index in addition to channel.config because it's
             # possible to have two of the same channel in one sequence.
+            layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["well"] = pos
@@ -666,6 +796,28 @@ class MainWindow(MicroManagerWidget):
                 self._explorer_acquisition_stack(image, event)
         elif meta.mode == "hcs":
             self._hcs_acquisition(image, event)
+
+    def _add_stage_pos_metadata(
+        self, layer: napari.layers.Image, event: useq.MDAEvent
+    ) -> None:
+
+        indexes = []
+        for idx in event.index.items():
+            if self._mda_meta.split_channels and idx[0] == "c":
+                continue
+            if self._mda_meta.translate_explorer and idx[0] == "p":
+                continue
+            indexes.append(idx[-1])
+
+        # indexes = [idx[-1] for idx in event.index.items()]
+        try:
+            layer.metadata["positions"].append(
+                (indexes, event.x_pos, event.y_pos, event.z_pos)
+            )
+        except KeyError:
+            layer.metadata["positions"] = [
+                (indexes, event.x_pos, event.y_pos, event.z_pos)
+            ]
 
     def _mda_acquisition(
         self, image: np.ndarray, event: useq.MDAEvent, meta: SequenceMeta
@@ -698,6 +850,9 @@ class MainWindow(MicroManagerWidget):
         layer.visible = True
         layer.reset_contrast_limits()
 
+        # add stage position in metadata
+        self._add_stage_pos_metadata(layer, event)
+
     def _explorer_acquisition_stack(
         self, image: np.ndarray, event: useq.MDAEvent
     ) -> None:
@@ -718,6 +873,9 @@ class MainWindow(MicroManagerWidget):
         layer.visible = False
         layer.visible = True
         layer.reset_contrast_limits()
+
+        # add stage position in metadata
+        self._add_stage_pos_metadata(layer, event)
 
     def _explorer_acquisition_translate(
         self, image: np.ndarray, event: useq.MDAEvent, meta: SequenceMeta
@@ -748,7 +906,10 @@ class MainWindow(MicroManagerWidget):
         if (layer.translate[-2], layer.translate[-1]) != (y, x):
             layer.translate = (y, x)
         layer.metadata["translate"] = True
-        layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
+        # layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
+
+        # add stage position in metadata
+        self._add_stage_pos_metadata(layer, event)
 
         # link layers after translation
         for group in layergroups.values():
@@ -801,6 +962,9 @@ class MainWindow(MicroManagerWidget):
         layer.visible = True
         layer.reset_contrast_limits()
 
+        # add stage position in metadata
+        self._add_stage_pos_metadata(layer, event)
+
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
@@ -810,6 +974,12 @@ class MainWindow(MicroManagerWidget):
         save_sequence(sequence, self.viewer.layers, meta)
         # reactivate gui when mda finishes.
         self._enable_tools_buttons(True)
+
+    def _update_live_exp(self, camera: str, exposure: float):
+        if self.streaming_timer:
+            self.streaming_timer.setInterval(int(exposure))
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition(exposure)
 
     # def _get_event_explorer(self, viewer, event):
     #     if not self.explorer.isVisible():
@@ -830,12 +1000,6 @@ class MainWindow(MicroManagerWidget):
 
     #     self.explorer.x_lineEdit.setText(x)
     #     self.explorer.y_lineEdit.setText(y)
-
-    def _update_live_exp(self, camera: str, exposure: float):
-        if self.streaming_timer:
-            self.streaming_timer.setInterval(int(exposure))
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition(exposure)
 
     # def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
     #     for layer in self.viewer.layers:

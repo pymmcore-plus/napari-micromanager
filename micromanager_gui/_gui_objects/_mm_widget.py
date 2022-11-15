@@ -23,13 +23,6 @@ TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
 GROUPBOX_STYLE = "QGroupBox { border-radius: 3px; }"
 TOOLBAR_STYLE = "QToolButton::menu-indicator{ image: none; }"
-MENU_STYLE = """
-    QMenu {
-        font-size: 15px;
-        border: 1px solid grey;
-        border-radius: 3px;
-    }
-"""
 PUSHBUTTON_STYLE = """
         color: rgb(0, 255, 0);
         font-weight: bold;
