@@ -22,6 +22,19 @@ jobs:
         platform: [windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10"]
         backend: [pyside2, pyqt5]
+        include:
+          - platform: windows-latest
+            python-version: "3.10"
+            backend: pyside6
+          - platform: windows-latest
+            python-version: "3.10"
+            backend: pyqt6
+          - platform: windows-latest
+            python-version: "3.9"
+            backend: pyside2
+          - platform: windows-latest
+            python-version: "3.9"
+            backend: pyqt5
 
     steps:
       - uses: actions/checkout@v2
@@ -43,13 +56,7 @@ jobs:
           python -m pip install -e .[testing,${{ matrix.backend }}]
 
       - name: Install Micro-Manager
-        if: runner.os == 'Windows'
         run: python -m pymmcore_plus.install
-
-      - name: Install Micro-Manager
-        if: runner.os == 'macOS'
-        # need to figure out what happened on mac with the utilities
-        run: python -m pymmcore_plus.install -r 20220420
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
