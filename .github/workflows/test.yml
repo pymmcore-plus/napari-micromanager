@@ -49,7 +49,7 @@ jobs:
         run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
 
       - name: Coverage
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
 
   test_linux:
     name: py3.9 pyqt5 ubuntu
