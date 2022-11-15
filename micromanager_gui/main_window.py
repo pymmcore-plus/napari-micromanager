@@ -145,10 +145,7 @@ class MainWindow(MicroManagerWidget):
         self.mda.metadataInfo.connect(self._on_meta_info)
         self.hcs.metadataInfo.connect(self._on_meta_info)
 
-        # self._connect_menu()
-        self.viewer.window.add_dock_widget(
-            self._minmax, name="MinMax", area="left", allowed_areas=["left"]
-        )
+        self.viewer.window.add_dock_widget(self._minmax, name="MinMax", area="left")
 
         self._add_dock_wdgs()
 
@@ -167,162 +164,8 @@ class MainWindow(MicroManagerWidget):
         # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
         # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
-        @self.viewer.mouse_drag_callbacks.append
-        def _mouse_right_click(viewer, event):
-
-            if not self._mmc.getXYStageDevice() and not self._mmc.getFocusDevice():
-                return
-
-            if self._mmc.getPixelSizeUm() == 0:
-                return
-
-            layers = list(viewer.layers.selection)
-
-            # select all related explorer layers if the selected layer
-            # is from an explorer experiment
-            if len(layers) == 1 and layers[0].metadata["mode"] == "explorer":
-                selection = []
-                _id = layers[0].metadata["uid"]
-                for ly in viewer.layers:
-                    if ly.metadata["uid"] == _id:
-                        selection.append(ly)
-                layers = selection
-
-            for idx, lay in enumerate(layers):
-                if lay.metadata["mode"] != "explorer":
-                    layers.pop(idx)
-
-            if lay.metadata["mode"] != "explorer":
-                layers = [list(viewer.layers.selection)[0]]
-
-            dragged = False
-            yield
-            # on move
-            while event.type == "mouse_move":
-                dragged = True
-                yield
-            if dragged:
-                return
-
-            # only right click
-            if event.button != 2:
-                return
-
-            vals = []
-            layer: napari.layers.Image | None = None
-            for lyr in layers:
-                data_coordinates = lyr.world_to_data(event.position)
-                val = lyr.get_value(data_coordinates)
-                vals.append(val)
-                if val is not None:
-                    layer = lyr
-
-            if vals.count(None) == len(layers) or not layer:
-                return
-
-            info = layer.metadata.get("positions")
-            current_dispalyed_dim = list(self.viewer.dims.current_step[:-2])
-            pos = ()
-            for i in info:
-                indexes, x, y, z = i
-                if indexes == current_dispalyed_dim or not indexes:
-                    pos = (x, y, z)
-                    break
-
-            if not pos:
-                return
-
-            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-
-            # get clicked px stage coords
-            central_px = (width // 2, height // 2)
-
-            print(" ")
-            print("central_px:", central_px)
-            print("pos:", pos)
-
-            x, y, _ = pos
-
-            # top left corner of image (0, 0)
-            x0 = x - (central_px[0] * self._mmc.getPixelSizeUm())
-            y0 = (y - (central_px[0] * self._mmc.getPixelSizeUm())) * (-1)
-
-            print("x0, y0:", x0, y0)
-
-            stage_x = x0 + (
-                round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm()
-            )
-            stage_y = y0 - (
-                round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm()
-            )
-
-            print("stage_x, stage_y:", stage_x, stage_y)
-
-            pos = (stage_x, stage_y, z)
-
-            r_menu = self._create_right_click_menu(pos)
-            r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
-                QPoint(event.pos[0], event.pos[1])
-            )
-            r_menu.move(r_menuPosition)
-            r_menu.show()
-
-    def _create_right_click_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
-        dlg_menu = QtW.QMenu(parent=self)
-        dlg_menu.setStyleSheet(MENU_STYLE)
-
-        if self._mmc.getXYStageDevice():
-            xy = dlg_menu.addAction("Move to XY Stage Coords")
-            xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
-
-        if self._mmc.getFocusDevice():
-            z = dlg_menu.addAction("Move to Z Stage Coords")
-            z.triggered.connect(lambda: self._move_to_z(xyz_positions))
-
-        if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
-            xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
-            xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
-
-        # TODO: create actions
-        # to_mda = dlg_menu.addAction("Add to MDA position table.")
-        # to_explorer = dlg_menu.addAction("Add to Explorer position table.")
-
-        return dlg_menu
-
-    def _move_to_xy(self, xyz_positions):
-        x, y, z = xyz_positions
-        self._mmc.setXYPosition(x, y)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
-
-    def _move_to_z(self, xyz_positions):
-        x, y, z = xyz_positions
-        self._mmc.setPosition(z)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
-
-    def _move_to_xyz(self, xyz_positions):
-        x, y, z = xyz_positions
-        self._mmc.setXYPosition(x, y)
-        self._mmc.setPosition(z)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
+        # connect mouse click event
+        self.viewer.mouse_drag_callbacks.append(self._mouse_right_click)
 
     def _add_dock_wdgs(self):
 
@@ -1020,6 +863,158 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
+
+    def _mouse_right_click(self, viewer, event):
+
+        if not self._mmc.getXYStageDevice() and not self._mmc.getFocusDevice():
+            return
+
+        if self._mmc.getPixelSizeUm() == 0:
+            return
+
+        layers = list(viewer.layers.selection)
+
+        # select all related explorer layers if the selected layer
+        # is from an explorer experiment
+        if len(layers) == 1 and layers[0].metadata["mode"] == "explorer":
+            selection = []
+            _id = layers[0].metadata["uid"]
+            for ly in viewer.layers:
+                if ly.metadata["uid"] == _id:
+                    selection.append(ly)
+            layers = selection
+
+        for idx, lay in enumerate(layers):
+            if lay.metadata["mode"] != "explorer":
+                layers.pop(idx)
+
+        if lay.metadata["mode"] != "explorer":
+            layers = [list(viewer.layers.selection)[0]]
+
+        dragged = False
+        yield
+        # on move
+        while event.type == "mouse_move":
+            dragged = True
+            yield
+        if dragged:
+            return
+
+        # only right click
+        if event.button != 2:
+            return
+
+        vals = []
+        layer: napari.layers.Image | None = None
+        for lyr in layers:
+            data_coordinates = lyr.world_to_data(event.position)
+            val = lyr.get_value(data_coordinates)
+            vals.append(val)
+            if val is not None:
+                layer = lyr
+
+        if vals.count(None) == len(layers) or not layer:
+            return
+
+        info = layer.metadata.get("positions")
+        current_dispalyed_dim = list(self.viewer.dims.current_step[:-2])
+        pos = ()
+        for i in info:
+            indexes, x, y, z = i
+            if indexes == current_dispalyed_dim or not indexes:
+                pos = (x, y, z)
+                break
+
+        if not pos:
+            return
+
+        width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+        height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+
+        # get clicked px stage coords
+        central_px = (width // 2, height // 2)
+
+        print(" ")
+        print("central_px:", central_px)
+        print("pos:", pos)
+
+        x, y, _ = pos
+
+        # top left corner of image (0, 0)
+        x0 = x - (central_px[0] * self._mmc.getPixelSizeUm())
+        y0 = (y - (central_px[0] * self._mmc.getPixelSizeUm())) * (-1)
+
+        print("x0, y0:", x0, y0)
+
+        stage_x = x0 + (round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm())
+        stage_y = y0 - (round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm())
+
+        print("stage_x, stage_y:", stage_x, stage_y)
+
+        pos = (stage_x, stage_y, z)
+
+        r_menu = self._create_right_click_menu(pos)
+        r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
+            QPoint(event.pos[0], event.pos[1])
+        )
+        r_menu.move(r_menuPosition)
+        r_menu.show()
+
+    def _create_right_click_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
+        dlg_menu = QtW.QMenu(parent=self)
+        dlg_menu.setStyleSheet(MENU_STYLE)
+
+        if self._mmc.getXYStageDevice():
+            xy = dlg_menu.addAction("Move to XY Stage Coords")
+            xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
+
+        if self._mmc.getFocusDevice():
+            z = dlg_menu.addAction("Move to Z Stage Coords")
+            z.triggered.connect(lambda: self._move_to_z(xyz_positions))
+
+        if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
+            xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
+            xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
+
+        # TODO: create actions
+        # to_mda = dlg_menu.addAction("Add to MDA position table.")
+        # to_explorer = dlg_menu.addAction("Add to Explorer position table.")
+
+        return dlg_menu
+
+    def _move_to_xy(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setXYPosition(x, y)
+        print(
+            "current stage pos:",
+            self._mmc.getXPosition(),
+            self._mmc.getYPosition(),
+            self._mmc.getPosition(),
+        )
+        print(" ")
+
+    def _move_to_z(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setPosition(z)
+        print(
+            "current stage pos:",
+            self._mmc.getXPosition(),
+            self._mmc.getYPosition(),
+            self._mmc.getPosition(),
+        )
+        print(" ")
+
+    def _move_to_xyz(self, xyz_positions):
+        x, y, z = xyz_positions
+        self._mmc.setXYPosition(x, y)
+        self._mmc.setPosition(z)
+        print(
+            "current stage pos:",
+            self._mmc.getXPosition(),
+            self._mmc.getYPosition(),
+            self._mmc.getPosition(),
+        )
+        print(" ")
 
     # def _get_event_explorer(self, viewer, event):
     #     if not self.explorer.isVisible():

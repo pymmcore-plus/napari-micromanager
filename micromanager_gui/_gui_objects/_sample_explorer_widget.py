@@ -102,17 +102,18 @@ class SampleExplorer(SampleExplorerWidget):
 
         fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
-        self.radiobtn = QRadioButton(text=" grid (layers translation)")
-        self.radiobtn.setSizePolicy(fixed_policy)
-        self.radiobtn.setChecked(True)
-        self.multid_stack_checkbox = QRadioButton(text=" multi-dimensional stack")
-        self.multid_stack_checkbox.setSizePolicy(fixed_policy)
+        self.radiobtn_grid = QRadioButton(text=" grid (layers translation)")
+        self.radiobtn_grid.setSizePolicy(fixed_policy)
+        self.radiobtn_grid.setChecked(True)
+        radiobtn_multid_stack = QRadioButton(text=" multi-dimensional stack")
+        radiobtn_multid_stack.setSizePolicy(fixed_policy)
 
-        group_layout.addWidget(self.radiobtn)
+        group_layout.addWidget(self.radiobtn_grid)
 
         spacer = QSpacerItem(30, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
         group_layout.addItem(spacer)
-        group_layout.addWidget(self.multid_stack_checkbox)
+
+        group_layout.addWidget(radiobtn_multid_stack)
 
         spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Expanding)
         group_layout.addItem(spacer)
@@ -172,7 +173,7 @@ class SampleExplorer(SampleExplorerWidget):
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text()
             or str(Path(__file__).parent.parent.parent),
-            translate_explorer=self.radiobtn.isChecked(),
+            translate_explorer=self.radiobtn_grid.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
         )
 
