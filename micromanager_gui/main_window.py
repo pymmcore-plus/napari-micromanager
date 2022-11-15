@@ -260,22 +260,28 @@ class MainWindow(MicroManagerWidget):
 
             pos = (stage_x, stage_y, z)
 
-            r_menu = self._create_rightclick_menu(pos)
+            r_menu = self._create_right_click_menu(pos)
             r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
                 QPoint(event.pos[0], event.pos[1])
             )
             r_menu.move(r_menuPosition)
             r_menu.show()
 
-    def _create_rightclick_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
+    def _create_right_click_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
         dlg_menu = QtW.QMenu(parent=self)
         dlg_menu.setStyleSheet(MENU_STYLE)
-        xy = dlg_menu.addAction("Move to XY Stage Coords")
-        xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
-        z = dlg_menu.addAction("Move to Z Stage Coords")
-        z.triggered.connect(lambda: self._move_to_z(xyz_positions))
-        xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
-        xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
+
+        if self._mmc.getXYStageDevice():
+            xy = dlg_menu.addAction("Move to XY Stage Coords")
+            xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
+
+        if self._mmc.getFocusDevice():
+            z = dlg_menu.addAction("Move to Z Stage Coords")
+            z.triggered.connect(lambda: self._move_to_z(xyz_positions))
+
+        if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
+            xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
+            xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
 
         # TODO: create actions
         # to_mda = dlg_menu.addAction("Add to MDA position table.")
