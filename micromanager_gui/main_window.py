@@ -611,9 +611,6 @@ class MainWindow(MicroManagerWidget):
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
 
-        print("ON MDA FRAME!!!")
-        print(image)
-
         meta = self._mda_meta
         if meta.mode == "mda":
             self._mda_acquisition(image, event, meta)
@@ -870,22 +867,14 @@ class MainWindow(MicroManagerWidget):
         # get clicked px stage coords
         central_px = (width // 2, height // 2)
 
-        print(" ")
-        print("central_px:", central_px)
-        print("pos:", pos)
-
         x, y, _ = pos
 
         # top left corner of image (0, 0)
         x0 = x - (central_px[0] * self._mmc.getPixelSizeUm())
-        y0 = (y - (central_px[0] * self._mmc.getPixelSizeUm())) * (-1)
-
-        print("x0, y0:", x0, y0)
+        y0 = y + (central_px[1] * self._mmc.getPixelSizeUm())
 
         stage_x = x0 + (round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm())
         stage_y = y0 - (round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm())
-
-        print("stage_x, stage_y:", stage_x, stage_y)
 
         pos = (stage_x, stage_y, z)
 
@@ -923,38 +912,17 @@ class MainWindow(MicroManagerWidget):
         return dlg_menu
 
     def _move_to_xy(self, xyz_positions):
-        x, y, z = xyz_positions
+        x, y, _ = xyz_positions
         self._mmc.setXYPosition(x, y)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
 
     def _move_to_z(self, xyz_positions):
-        x, y, z = xyz_positions
+        _, _, z = xyz_positions
         self._mmc.setPosition(z)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
 
     def _move_to_xyz(self, xyz_positions):
         x, y, z = xyz_positions
         self._mmc.setXYPosition(x, y)
         self._mmc.setPosition(z)
-        print(
-            "current stage pos:",
-            self._mmc.getXPosition(),
-            self._mmc.getYPosition(),
-            self._mmc.getPosition(),
-        )
-        print(" ")
 
     def _add_to_mda_position_table(self, xyz_positions) -> None:
         x, y, z = xyz_positions
