@@ -38,8 +38,8 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
     from pymmcore_plus.core.events import QCoreSignaler
-    from pymmcore_plus.mda import PMDAEngine
 
 
 TOOLBAR_SIZE = 45
@@ -110,7 +110,7 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-        self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
+        # self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
         self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
@@ -129,7 +129,7 @@ class MainWindow(MicroManagerWidget):
         # and more importantly because I couldn't get it working with pytest
         # because tempfile seems to register an atexit before we do.
         @atexit.register
-        def cleanup():
+        def cleanup() -> None:
             """Clean up temporary files we opened."""
             for v in self._mda_temp_files.values():
                 with contextlib.suppress(NotADirectoryError):
@@ -138,8 +138,6 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.events.connect(self._update_max_min)
         self.viewer.layers.selection.events.active.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
-        # self.viewer.mouse_drag_callbacks.append(self._get_event_explorer)
-        # self.viewer.mouse_drag_callbacks.append(self._drag_callback)
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
@@ -149,8 +147,8 @@ class MainWindow(MicroManagerWidget):
 
         self._add_dock_wdgs()
 
-        plugins = self._add_plugins_toolbar()
-        self.insertToolBar(self.shutters_toolbar, plugins)
+        # plugins = self._add_plugins_toolbar()
+        # self.insertToolBar(self.shutters_toolbar, plugins)
 
         self.gp_button.clicked.connect(self._show_group_preset)
         self.ill_btn.clicked.connect(self._show_illumination)
@@ -164,10 +162,14 @@ class MainWindow(MicroManagerWidget):
         # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
         # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
 
+        self.mda_button.clicked.connect(self._show_mda)
+        self.explorer_button.clicked.connect(self._show_explorer)
+        self.hcs_button.clicked.connect(self._show_hcs)
+
         # connect mouse click event
         self.viewer.mouse_drag_callbacks.append(self._mouse_right_click)
 
-    def _add_dock_wdgs(self):
+    def _add_dock_wdgs(self) -> None:
 
         self.viewer.window._qt_window.setTabPosition(
             Qt.RightDockWidgetArea, QtW.QTabWidget.North
@@ -182,12 +184,12 @@ class MainWindow(MicroManagerWidget):
         self.hcs_dock = self._add_hcs_dock_wdg()
         self._add_tabbed_dock(self.hcs_dock)
 
-    def _add_mda_dock_wdg(self):
+    def _add_mda_dock_wdg(self) -> QtViewerDockWidget:
         return self.viewer.window.add_dock_widget(
             self.mda, name="MDA Widget", area="right", allowed_areas=["left", "right"]
         )
 
-    def _add_explorer_dock_wdg(self):
+    def _add_explorer_dock_wdg(self) -> QtViewerDockWidget:
         return self.viewer.window.add_dock_widget(
             self.explorer,
             name="Explorer Widget",
@@ -195,12 +197,12 @@ class MainWindow(MicroManagerWidget):
             allowed_areas=["left", "right"],
         )
 
-    def _add_hcs_dock_wdg(self):
+    def _add_hcs_dock_wdg(self) -> QtViewerDockWidget:
         return self.viewer.window.add_dock_widget(
             self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
         )
 
-    def _add_tabbed_dock(self, dockwidget: QtW.QDockWidget):
+    def _add_tabbed_dock(self, dockwidget: QtW.QDockWidget) -> None:
         """Add dockwidgets in a tab."""
         widgets = [
             d
@@ -209,38 +211,6 @@ class MainWindow(MicroManagerWidget):
         ]
         if len(widgets) > 1:
             self.viewer.window._qt_window.tabifyDockWidget(widgets[0], dockwidget)
-
-    def _add_plugins_toolbar(self) -> QtW.QToolBar:
-        plgs_toolbar = QtW.QToolBar("Plugins")
-        plgs_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = QtW.QGroupBox()
-        wdg.setLayout(QtW.QHBoxLayout())
-        wdg.layout().setContentsMargins(5, 0, 5, 0)
-        wdg.layout().setSpacing(3)
-        wdg.setStyleSheet("border: 0px;")
-
-        mda_button = QtW.QPushButton(text="MDA")
-        mda_button.setToolTip("MultiDimensional Acquisition")
-        mda_button.setMinimumHeight(TOOL_SIZE)
-        mda_button.clicked.connect(self._show_mda)
-        wdg.layout().addWidget(mda_button)
-
-        explorer_button = QtW.QPushButton(text="Explorer")
-        explorer_button.setToolTip("MultiDimensional Grid Acqiosition")
-        explorer_button.setMinimumHeight(TOOL_SIZE)
-        explorer_button.clicked.connect(self._show_explorer)
-        wdg.layout().addWidget(explorer_button)
-
-        hcs_button = QtW.QPushButton(text="HCS")
-        hcs_button.setToolTip("MultiDimensional Multi-Well Acquisition")
-        hcs_button.setMinimumHeight(TOOL_SIZE)
-        hcs_button.clicked.connect(self._show_hcs)
-        wdg.layout().addWidget(hcs_button)
-
-        plgs_toolbar.addWidget(wdg)
-
-        return plgs_toolbar
 
     def _show_group_preset(self) -> None:
         if not hasattr(self, "_group_preset_table_wdg"):
@@ -269,42 +239,6 @@ class MainWindow(MicroManagerWidget):
             self._cam_roi.setWindowTitle("Camera ROI")
         self._cam_roi.show()
         self._cam_roi.raise_()
-
-    def _show_mda(self) -> None:
-        try:
-            if self.mda_dock.isHidden():
-                self.mda_dock.show()
-        except RuntimeError:
-            self.mda_dock = self._add_mda_dock_wdg()
-            self._add_tabbed_dock(self.mda_dock)
-            self.mda_dock.show()
-        self.mda_dock.raise_()
-
-    def _show_explorer(self) -> None:
-        try:
-            if self.explorer_dock.isHidden():
-                self.explorer_dock.show()
-        except RuntimeError:
-            self.explorer_dock = self._add_explorer_dock_wdg()
-            self._add_tabbed_dock(self.explorer_dock)
-            self.explorer_dock.show()
-        self.explorer_dock.raise_()
-
-    def _show_hcs(self) -> None:
-        try:
-            if self.hcs_dock.isHidden():
-                self.hcs_dock.show()
-        except RuntimeError:
-            self.hcs_dock = self._add_hcs_dock_wdg()
-            self._add_tabbed_dock(self.hcs_dock)
-            self.hcs_dock.show()
-        self.hcs_dock.raise_()
-
-    def _on_sys_cfg_loaded(self) -> None:
-        self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)
-
-    def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
-        self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
@@ -342,6 +276,42 @@ class MainWindow(MicroManagerWidget):
         if not hasattr(self, "_debug_logger_wdg"):
             self._debug_logger_wdg = self._create_debug_logger_widget()
         self._debug_logger_wdg.show()
+
+    def _show_mda(self) -> None:
+        try:
+            if self.mda_dock.isHidden():
+                self.mda_dock.show()
+        except RuntimeError:
+            self.mda_dock = self._add_mda_dock_wdg()
+            self._add_tabbed_dock(self.mda_dock)
+            self.mda_dock.show()
+        self.mda_dock.raise_()
+
+    def _show_explorer(self) -> None:
+        try:
+            if self.explorer_dock.isHidden():
+                self.explorer_dock.show()
+        except RuntimeError:
+            self.explorer_dock = self._add_explorer_dock_wdg()
+            self._add_tabbed_dock(self.explorer_dock)
+            self.explorer_dock.show()
+        self.explorer_dock.raise_()
+
+    def _show_hcs(self) -> None:
+        try:
+            if self.hcs_dock.isHidden():
+                self.hcs_dock.show()
+        except RuntimeError:
+            self.hcs_dock = self._add_hcs_dock_wdg()
+            self._add_tabbed_dock(self.hcs_dock)
+            self.hcs_dock.show()
+        self.hcs_dock.raise_()
+
+    def _on_sys_cfg_loaded(self) -> None:
+        self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)
+
+    def _on_meta_info(self, meta: SequenceMeta, sequence: MDASequence) -> None:
+        self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
     def _enable_tools_buttons(self, enabled: bool) -> None:
         self.cam_btn.setEnabled(enabled)
@@ -421,50 +391,39 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer.stop()
             self.streaming_timer = None
 
-    def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
-        oldEngine.events.frameReady.disconnect(self._on_mda_frame)
-        oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
-        oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+    # def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
 
-        newEngine.events.frameReady.connect(self._on_mda_frame)
-        newEngine.events.sequenceStarted.connect(self._on_mda_started)
-        newEngine.events.sequenceFinished.connect(self._on_mda_finished)
+    # oldEngine.events.frameReady.disconnect(self._on_mda_frame)
+    # oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
+    # oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
+
+    # newEngine.events.frameReady.connect(self._on_mda_frame)
+    # newEngine.events.sequenceStarted.connect(self._on_mda_started)
+    # newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
     @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence):
         """Create temp folder and block gui when mda starts."""
         self._enable_tools_buttons(False)
 
-        if self._mda_meta.mode == "":
-            # originated from user script - assume it's an mda
-            self._mda_meta.mode = "mda"
-
-        if self._mda_meta.mode == "mda":
-            # work out what the shapes of the layers will be
-            # this depends on whether the user selected Split Channels or not
+        if self._mda_meta.mode in ["mda", ""]:
+            # work out what the shapes of the mda layers will be
+            # depends on whether the user selected Split Channels or not
             shape, channels, labels = self._interpret_split_channels(sequence)
-
-            # acutally create the viewer layers backed by zarr stores
+            # create the viewer layers backed by zarr stores
             self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
         elif self._mda_meta.mode == "explorer":
 
             if self._mda_meta.translate_explorer:
-
                 shape, positions, labels = self._interpret_explorer_positions(sequence)
-
                 self._add_explorer_positions_layers(tuple(shape), positions, sequence)
-
             else:
-
                 shape, channels, labels = self._interpret_split_channels(sequence)
-
                 self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
         elif self._mda_meta.mode == "hcs":
-
             shape, positions, labels = self._interpret_hcs_positions(sequence)
-
             self._add_hcs_positions_layers(tuple(shape), positions, sequence)
 
         # set axis_labels after adding the images to ensure that the dims exist
@@ -518,12 +477,50 @@ class MainWindow(MicroManagerWidget):
 
         return shape, channels, labels
 
+    def _interpret_explorer_positions(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """Remove positions index and set layer names."""
+        labels, shape = self._get_shape_and_labels(sequence)
+        positions = [f"{p.name}_" for p in sequence.stage_positions]
+        with contextlib.suppress(ValueError):
+            p_idx = labels.index("p")
+            labels.pop(p_idx)
+            shape.pop(p_idx)
+
+        return shape, positions, labels
+
+    def _interpret_hcs_positions(
+        self, sequence: MDASequence
+    ) -> Tuple[List[int], List[str], List[str]]:
+        """Get positions, labels and shape for the zarr array."""
+        labels, shape = self._get_shape_and_labels(sequence)
+
+        positions = []
+        first_pos_name = sequence.stage_positions[0].name.split("_")[0]
+        self.multi_pos = 0
+        for p in sequence.stage_positions:
+            p_name = p.name.split("_")[0]
+            if f"{p_name}_" not in positions:
+                positions.append(f"{p_name}_")
+            elif p.name.split("_")[0] == first_pos_name:
+                self.multi_pos += 1
+
+        p_idx = labels.index("p")
+        if self.multi_pos == 0:
+            shape.pop(p_idx)
+            labels.pop(p_idx)
+        else:
+            shape[p_idx] = self.multi_pos + 1
+
+        return shape, positions, labels
+
     def _add_mda_channel_layers(
         self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
     ):
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
-        If splitting on Channels then channels will look like ["BF", "GFP",...]
+        If splitting on Channels then channels will look like ["BF_000", "GFP_000",...]
         and if we do not split on channels it will look like [""] and only one
         layer/zarr store will be created.
         """
@@ -552,26 +549,11 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}"
 
-    def _interpret_explorer_positions(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
-        """Remove positions index and set layer names."""
-        labels, shape = self._get_shape_and_labels(sequence)
-        positions = [f"{p.name}_" for p in sequence.stage_positions]
-        with contextlib.suppress(ValueError):
-            p_idx = labels.index("p")
-            labels.pop(p_idx)
-            shape.pop(p_idx)
-
-        return shape, positions, labels
-
     def _add_explorer_positions_layers(
         self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
     ):
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
-        # create a zarr store for each channel (or all channels when not splitting)
-        # to store the images to display so we don't overflow memory.
         for pos in positions:
             # TODO: modify id_ to try and divede the grids when saving
             # see also line 378 (layer.metadata["grid"])
@@ -579,10 +561,6 @@ class MainWindow(MicroManagerWidget):
 
             tmp = tempfile.TemporaryDirectory()
 
-            # keep track of temp files so we can clean them up when we quit
-            # we can't have them auto clean up because then the zarr wouldn't last
-            # till the end
-            # TODO: when the layer is deleted we should release the zarr store.
             self._mda_temp_files[id_] = tmp
             self._mda_temp_arrays[id_] = z = zarr.open(
                 str(tmp.name), shape=shape, dtype=dtype
@@ -608,48 +586,15 @@ class MainWindow(MicroManagerWidget):
                 layergroups[key].add(lay)
         return layergroups
 
-    def _interpret_hcs_positions(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
-        """Get positions, labels and shape for the zarr array."""
-        labels, shape = self._get_shape_and_labels(sequence)
-
-        positions = []
-        first_pos_name = sequence.stage_positions[0].name.split("_")[0]
-        self.multi_pos = 0
-        for p in sequence.stage_positions:
-            p_name = p.name.split("_")[0]
-            if f"{p_name}_" not in positions:
-                positions.append(f"{p_name}_")
-            elif p.name.split("_")[0] == first_pos_name:
-                self.multi_pos += 1
-
-        p_idx = labels.index("p")
-        if self.multi_pos == 0:
-            shape.pop(p_idx)
-            labels.pop(p_idx)
-        else:
-            shape[p_idx] = self.multi_pos + 1
-
-        return shape, positions, labels
-
     def _add_hcs_positions_layers(
         self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
     ):
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
-        # create a zarr store for each channel (or all channels when not splitting)
-        # to store the images to display so we don't overflow memory.
         for pos in positions:
-
             id_ = pos + str(sequence.uid)
-
             tmp = tempfile.TemporaryDirectory()
 
-            # keep track of temp files so we can clean them up when we quit
-            # we can't have them auto clean up because then the zarr wouldn't last
-            # till the end
-            # TODO: when the layer is deleted we should release the zarr store.
             self._mda_temp_files[id_] = tmp
             self._mda_temp_arrays[id_] = z = zarr.open(
                 str(tmp.name), shape=shape, dtype=dtype
@@ -658,9 +603,6 @@ class MainWindow(MicroManagerWidget):
 
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}")
 
-            # add metadata to layer
-            # storing event.index in addition to channel.config because it's
-            # possible to have two of the same channel in one sequence.
             layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
@@ -668,6 +610,10 @@ class MainWindow(MicroManagerWidget):
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
+
+        print("ON MDA FRAME!!!")
+        print(image)
+
         meta = self._mda_meta
         if meta.mode == "mda":
             self._mda_acquisition(image, event, meta)
@@ -682,7 +628,10 @@ class MainWindow(MicroManagerWidget):
     def _add_stage_pos_metadata(
         self, layer: napari.layers.Image, event: useq.MDAEvent
     ) -> None:
+        """Add positions info to layer metadata.
 
+        This info is used in the `_mouse_right_click` method.
+        """
         indexes = []
         for idx in event.index.items():
             if self._mda_meta.split_channels and idx[0] == "c":
@@ -691,7 +640,6 @@ class MainWindow(MicroManagerWidget):
                 continue
             indexes.append(idx[-1])
 
-        # indexes = [idx[-1] for idx in event.index.items()]
         try:
             layer.metadata["positions"].append(
                 (indexes, event.x_pos, event.y_pos, event.z_pos)
@@ -739,24 +687,18 @@ class MainWindow(MicroManagerWidget):
         self, image: np.ndarray, event: useq.MDAEvent
     ) -> None:
         axis_order = list(event_indices(event))
-        # get the actual index of this image into the array
-        # add it to the zarr store
         im_idx = tuple(event.index[k] for k in axis_order)
-        # add index of this image to the zarr store
         self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
 
-        # move the viewer step to the most recently added image
         for a, v in enumerate(im_idx):
             self.viewer.dims.set_point(a, v)
 
-        # display
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
         layer.visible = False
         layer.visible = True
         layer.reset_contrast_limits()
 
-        # add stage position in metadata
         self._add_stage_pos_metadata(layer, event)
 
     def _explorer_acquisition_translate(
@@ -767,8 +709,6 @@ class MainWindow(MicroManagerWidget):
         with contextlib.suppress(ValueError):
             axis_order.remove("p")
 
-        # get the actual index of this image into the array
-        # add it to the zarr store
         im_idx = tuple(event.index[k] for k in axis_order)
         pos_name = event.pos_name
         layer_name = f"{pos_name}_{event.sequence.uid}"
@@ -788,20 +728,16 @@ class MainWindow(MicroManagerWidget):
         if (layer.translate[-2], layer.translate[-1]) != (y, x):
             layer.translate = (y, x)
         layer.metadata["translate"] = True
-        # layer.metadata["pos"] = (event.x_pos, event.y_pos, event.z_pos)
 
-        # add stage position in metadata
         self._add_stage_pos_metadata(layer, event)
 
         # link layers after translation
         for group in layergroups.values():
             link_layers(group)
 
-        # move the viewer step to the most recently added image
         for a, v in enumerate(im_idx):
             self.viewer.dims.set_point(a, v)
 
-        # display
         layer.visible = False
         layer.visible = True
         layer.reset_contrast_limits()
@@ -904,7 +840,7 @@ class MainWindow(MicroManagerWidget):
             return
 
         vals = []
-        layer: napari.layers.Image | None = None
+        layer = None
         for lyr in layers:
             data_coordinates = lyr.world_to_data(event.position)
             val = lyr.get_value(data_coordinates)

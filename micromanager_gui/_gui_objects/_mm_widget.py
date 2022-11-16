@@ -80,6 +80,10 @@ class MicroManagerWidget(QtW.QMainWindow):
         tools = self._add_tools_buttons()
         self.addToolBar(Qt.TopToolBarArea, tools)
 
+        # plugins (mda, explorer, hcs,...)
+        plugins = self._add_plugins_toolbar()
+        self.addToolBar(Qt.TopToolBarArea, plugins)
+
         # shutter
         self.shutters_toolbar = self._add_shutter_toolbar()
         self.addToolBar(Qt.TopToolBarArea, self.shutters_toolbar)
@@ -263,3 +267,32 @@ class MicroManagerWidget(QtW.QMainWindow):
         tools_toolbar.addWidget(wdg)
 
         return tools_toolbar
+
+    def _add_plugins_toolbar(self) -> QtW.QToolBar:
+        plgs_toolbar = QtW.QToolBar("Plugins")
+        plgs_toolbar.setMinimumHeight(TOOLBAR_SIZE)
+
+        wdg = QtW.QGroupBox()
+        wdg.setLayout(QtW.QHBoxLayout())
+        wdg.layout().setContentsMargins(5, 0, 5, 0)
+        wdg.layout().setSpacing(3)
+        wdg.setStyleSheet("border: 0px;")
+
+        self.mda_button = QtW.QPushButton(text="MDA")
+        self.mda_button.setToolTip("MultiDimensional Acquisition")
+        self.mda_button.setMinimumHeight(TOOL_SIZE)
+        wdg.layout().addWidget(self.mda_button)
+
+        self.explorer_button = QtW.QPushButton(text="Explorer")
+        self.explorer_button.setToolTip("MultiDimensional Grid Acqiosition")
+        self.explorer_button.setMinimumHeight(TOOL_SIZE)
+        wdg.layout().addWidget(self.explorer_button)
+
+        self.hcs_button = QtW.QPushButton(text="HCS")
+        self.hcs_button.setToolTip("MultiDimensional Multi-Well Acquisition")
+        self.hcs_button.setMinimumHeight(TOOL_SIZE)
+        wdg.layout().addWidget(self.hcs_button)
+
+        plgs_toolbar.addWidget(wdg)
+
+        return plgs_toolbar
