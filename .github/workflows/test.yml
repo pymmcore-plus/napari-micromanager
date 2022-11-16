@@ -70,15 +70,15 @@ jobs:
 
       - uses: tlambert03/setup-qt-libs@v1
 
-      - name: Cache micro-manager
-        id: cache-micro-manager
-        uses: actions/cache@v3
-        with:
-          path: micro-manager
-          key: ${{ runner.os }}-micro-manager-cache-key
+      # - name: Cache micro-manager
+      #   id: cache-micro-manager
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: micro-manager
+      #     key: ${{ runner.os }}-micro-manager-cache-key
 
       - name: Build micro-manager
-        if: steps.cache-micro-manager.outputs.cache-hit != 'true'
+        # if: steps.cache-micro-manager.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/micro-manager/micro-manager.git
           cd micro-manager
