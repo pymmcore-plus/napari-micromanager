@@ -367,16 +367,15 @@ class MainWindow(MicroManagerWidget):
         except KeyError:
             preview_layer = self.viewer.add_image(data, name="preview")
 
-        if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
-            preview_layer.metadata["positions"] = [
-                (
-                    [],
-                    self._mmc.getXPosition(),
-                    self._mmc.getYPosition(),
-                    self._mmc.getPosition(),
-                )
-            ]
         preview_layer.metadata["mode"] = "preview"
+        preview_layer.metadata["positions"] = [
+            (
+                [],
+                self._mmc.getXPosition() if self._mmc.getXYStageDevice() else None,
+                self._mmc.getYPosition() if self._mmc.getXYStageDevice() else None,
+                self._mmc.getPosition() if self._mmc.getFocusDevice() else None,
+            )
+        ]
 
         self._update_max_min()
 
@@ -913,6 +912,7 @@ class MainWindow(MicroManagerWidget):
             if val is not None:
                 layer = lyr
 
+        # don't open the menu if the click is not on the layer
         if vals.count(None) == len(layers) or not layer:
             return
 
@@ -964,11 +964,11 @@ class MainWindow(MicroManagerWidget):
         dlg_menu = QtW.QMenu(parent=self)
         dlg_menu.setStyleSheet(MENU_STYLE)
 
-        if self._mmc.getXYStageDevice():
+        if self._mmc.getXYStageDevice() and xyz_positions[0] is not None:
             xy = dlg_menu.addAction("Move to XY Stage Coords")
             xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
 
-        if self._mmc.getFocusDevice():
+        if self._mmc.getFocusDevice() and xyz_positions[-1] is not None:
             z = dlg_menu.addAction("Move to Z Stage Coords")
             z.triggered.connect(lambda: self._move_to_z(xyz_positions))
 
@@ -976,9 +976,13 @@ class MainWindow(MicroManagerWidget):
             xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
             xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
 
-        # TODO: create actions
-        # to_mda = dlg_menu.addAction("Add to MDA position table.")
-        # to_explorer = dlg_menu.addAction("Add to Explorer position table.")
+        to_mda = dlg_menu.addAction("Add to MDA position table.")
+        to_mda.triggered.connect(lambda: self._add_to_mda_position_table(xyz_positions))
+
+        to_explorer = dlg_menu.addAction("Add to Explorer position table.")
+        to_explorer.triggered.connect(
+            lambda: self._add_to_explorer_position_table(xyz_positions)
+        )
 
         return dlg_menu
 
@@ -1016,25 +1020,52 @@ class MainWindow(MicroManagerWidget):
         )
         print(" ")
 
-    # def _get_event_explorer(self, viewer, event):
-    #     if not self.explorer.isVisible():
-    #         return
-    #     if self._mmc.getPixelSizeUm() > 0:
-    #         width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-    #         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+    def _add_to_mda_position_table(self, xyz_positions) -> None:
+        x, y, z = xyz_positions
 
-    #         x = viewer.cursor.position[-1] * self._mmc.getPixelSizeUm()
-    #         y = viewer.cursor.position[-2] * self._mmc.getPixelSizeUm() * (-1)
+        idx = self.mda._add_position_row()
 
-    #         # to match position coordinates with center of the image
-    #         x = f"{x - ((width / 2) * self._mmc.getPixelSizeUm()):.1f}"
-    #         y = f"{y - ((height / 2) * self._mmc.getPixelSizeUm() * (-1)):.1f}"
+        name = QtW.QTableWidgetItem("Pos000")
+        name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.mda.stage_tableWidget.setItem(idx, 0, name)
 
-    #     else:
-    #         x, y = "None", "None"
+        xpos = QtW.QTableWidgetItem(str(x))
+        xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.mda.stage_tableWidget.setItem(idx, 1, xpos)
 
-    #     self.explorer.x_lineEdit.setText(x)
-    #     self.explorer.y_lineEdit.setText(y)
+        ypos = QtW.QTableWidgetItem(str(y))
+        ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.mda.stage_tableWidget.setItem(idx, 2, ypos)
+
+        zpos = QtW.QTableWidgetItem(str(z) if z is not None else "")
+        zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.mda.stage_tableWidget.setItem(idx, 3, zpos)
+
+        self.mda._rename_positions(["Pos"])
+
+    def _add_to_explorer_position_table(self, xyz_positions) -> None:
+        x, y, z = xyz_positions
+
+        idx = self.explorer._add_position_row()
+
+        name = QtW.QTableWidgetItem("Grid_000")
+        name.setWhatsThis("Grid_000")
+        name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.explorer.stage_tableWidget.setItem(idx, 0, name)
+
+        xpos = QtW.QTableWidgetItem(str(x))
+        xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.explorer.stage_tableWidget.setItem(idx, 1, xpos)
+
+        ypos = QtW.QTableWidgetItem(str(y))
+        ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.explorer.stage_tableWidget.setItem(idx, 2, ypos)
+
+        zpos = QtW.QTableWidgetItem(str(z) if z is not None else "")
+        zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        self.explorer.stage_tableWidget.setItem(idx, 3, zpos)
+
+        self.explorer._rename_positions()
 
     # def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
     #     for layer in self.viewer.layers:

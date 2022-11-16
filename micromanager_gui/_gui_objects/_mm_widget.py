@@ -61,8 +61,8 @@ class MicroManagerWidget(QtW.QMainWindow):
         obj = self._add_objective()
         self.addToolBar(Qt.TopToolBarArea, obj)
 
-        # break
-        self.addToolBarBreak(Qt.TopToolBarArea)
+        # # break
+        # self.addToolBarBreak(Qt.TopToolBarArea)
 
         # channel exposure
         ch = self._add_channels()
