@@ -22,6 +22,7 @@ from qtpy.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QScrollArea,
     QTableWidgetItem,
     QTabWidget,
     QVBoxLayout,
@@ -52,7 +53,6 @@ if TYPE_CHECKING:
     from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
     from pymmcore_plus.core.events import QCoreSignaler
 
-
 TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
 MENU_STYLE = """
@@ -67,16 +67,29 @@ MENU_STYLE = """
 class _MinMax(QWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+
+        self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        max_min_wdg = QWidget()
         max_min_wdg_layout = QHBoxLayout()
         max_min_wdg_layout.setContentsMargins(0, 0, 0, 0)
+        max_min_wdg.setLayout(max_min_wdg_layout)
+
         self.max_min_val_label_name = QLabel()
         self.max_min_val_label_name.setText("(min, max)")
         self.max_min_val_label_name.setMaximumWidth(70)
-        self.max_min_val_label = QLabel()
-        self.max_min_val_label.setMaximumWidth(200)
         max_min_wdg_layout.addWidget(self.max_min_val_label_name)
+
+        self.max_min_val_label = QLabel()
         max_min_wdg_layout.addWidget(self.max_min_val_label)
-        self.setLayout(max_min_wdg_layout)
+
+        scroll.setWidget(max_min_wdg)
+        self.layout().addWidget(scroll)
 
 
 class MainWindow(MicroManagerWidget):
@@ -147,7 +160,7 @@ class MainWindow(MicroManagerWidget):
                     v.cleanup()
 
         self.viewer.layers.events.connect(self._update_max_min)
-        self.viewer.layers.selection.events.active.connect(self._update_max_min)
+        self.viewer.layers.selection.events.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
@@ -363,25 +376,23 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def _update_max_min(self, event=None) -> None:
+    def _update_max_min(self, event: Any = None) -> None:
 
         min_max_txt = ""
+        layers: List[napari.layers.Image] = [
+            lr
+            for lr in self.viewer.layers.selection
+            if isinstance(lr, napari.layers.Image) and lr.visible
+        ]
 
-        layers = list(self.viewer.layers.selection)
-
-        if not layers or len(layers) > 1:
+        if not layers:
             self._minmax.max_min_val_label.setText(min_max_txt)
             return
 
-        layer = layers[0]
-
-        if isinstance(layer, napari.layers.Image) and layer.visible:
-
+        for layer in layers:
             col = layer.colormap.name
-
             if col not in QColor.colorNames():
                 col = "gray"
-
             # min and max of current slice
             min_max_show = tuple(layer._calc_data_range(mode="slice"))
             min_max_txt += f'<font color="{col}">{min_max_show}</font>'
