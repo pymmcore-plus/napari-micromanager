@@ -809,11 +809,8 @@ class MainWindow(MicroManagerWidget):
         # select all related explorer layers if the selected layer
         # is from an explorer experiment
         if len(layers) == 1 and layers[0].metadata["mode"] == "explorer":
-            selection = []
             _id = layers[0].metadata["uid"]
-            for ly in viewer.layers:
-                if ly.metadata["uid"] == _id:
-                    selection.append(ly)
+            selection = [ly for ly in viewer.layers if ly.metadata["uid"] == _id]
             layers = selection
 
         for idx, lay in enumerate(layers):
@@ -836,11 +833,15 @@ class MainWindow(MicroManagerWidget):
         if event.button != 2:
             return
 
+        viewer_coords = (viewer.cursor.position[-2], viewer.cursor.position[-1])
+
         vals = []
         layer = None
         for lyr in layers:
-            data_coordinates = lyr.world_to_data(event.position)
+            # data_coordinates = lyr.world_to_data(event.position)
+            data_coordinates = lyr.world_to_data(viewer_coords)
             val = lyr.get_value(data_coordinates)
+            print(data_coordinates, val)
             vals.append(val)
             if val is not None:
                 layer = lyr
@@ -865,13 +866,14 @@ class MainWindow(MicroManagerWidget):
         height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
         # get clicked px stage coords
-        central_px = (width // 2, height // 2)
+        top_left = layer.data_to_world((0, 0))[-2:]
+        central_px = (top_left[0] + (height // 2), top_left[1] + (width // 2))
 
         x, y, _ = pos
 
         # top left corner of image (0, 0)
-        x0 = x - (central_px[0] * self._mmc.getPixelSizeUm())
-        y0 = y + (central_px[1] * self._mmc.getPixelSizeUm())
+        x0 = x - (central_px[1] * self._mmc.getPixelSizeUm())
+        y0 = y + (central_px[0] * self._mmc.getPixelSizeUm())
 
         stage_x = x0 + (round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm())
         stage_y = y0 - (round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm())
