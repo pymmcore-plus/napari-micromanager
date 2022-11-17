@@ -32,7 +32,7 @@ PUSHBUTTON_STYLE = """
 class MicroManagerWidget(QtW.QMainWindow):
     """GUI elements for the Main Window."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # widgets
@@ -52,7 +52,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         self.layout().addWidget(base_wdg)
         self.setCentralWidget(base_wdg)
 
-    def _createToolBars(self):
+    def _createToolBars(self) -> None:
 
         cfg = self._add_cfg()
         self.addToolBar(Qt.TopToolBarArea, cfg)
@@ -123,7 +123,7 @@ class MicroManagerWidget(QtW.QMainWindow):
         return obj_toolbar
 
     # TODO: add this directrly to ObjectivesWidget
-    def _resize_obj(self):
+    def _resize_obj(self) -> None:
         self.obj_wdg._combo.setSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed)
         self.obj_wdg.setMinimumWidth(0)
         self.obj_wdg._combo.adjustSize()

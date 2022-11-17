@@ -127,14 +127,3 @@ class MultiDWidget(MDAWidget):
             save_pos=self.checkBox_save_pos.isChecked(),
         )
         self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())
-
-
-if __name__ == "__main__":
-    import sys
-
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication(sys.argv)
-    win = MDAWidget()
-    win.show()
-    sys.exit(app.exec_())

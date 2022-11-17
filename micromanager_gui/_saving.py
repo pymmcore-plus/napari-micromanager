@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import tifffile
@@ -19,7 +19,7 @@ def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
     tifffile.imwrite(str(file), data.astype(dtype), imagej=data.ndim <= 5)
 
 
-def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta) -> Any:
     """Save `layers` associated with an MDA `sequence` to disk.
 
     Parameters
@@ -42,7 +42,9 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
     raise NotImplementedError(f"cannot save experiment with mode: {meta.mode}")
 
 
-def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def _save_mda_sequence(
+    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
+) -> None:
     path = Path(meta.save_dir)
     file_name = meta.file_name
     folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
@@ -85,7 +87,7 @@ def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceM
         _imsave(save_path, np.squeeze(active_layer.data))
 
 
-def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
+def _save_pos_separately(sequence, folder_name, fname, layers: LayerList) -> None:
     for p in range(len(sequence.stage_positions)):
 
         folder_path = Path(folder_name) / f"{fname}_Pos{p:03d}"
@@ -100,7 +102,9 @@ def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
 
 
 # TODO: to be fixed
-def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def _save_explorer_scan(
+    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
+) -> None:
     if not meta.translate_explorer:
         _save_mda_sequence(sequence, layers, meta)
     else:
@@ -128,5 +132,7 @@ def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: Sequence
 
 
 # TODO: to be fixed
-def _save_hcs_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def _save_hcs_scan(
+    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
+) -> None:
     pass

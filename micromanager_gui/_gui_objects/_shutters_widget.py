@@ -8,7 +8,7 @@ from qtpy import QtWidgets as QtW
 class MMShuttersWidget(QtW.QWidget):
     """Create shutter widget."""
 
-    def __init__(self, mmcore: Optional[CMMCorePlus] = None):
+    def __init__(self, mmcore: Optional[CMMCorePlus] = None) -> None:
         super().__init__()
 
         self.setLayout(QtW.QHBoxLayout())
@@ -21,7 +21,7 @@ class MMShuttersWidget(QtW.QWidget):
         self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
         self._on_cfg_loaded()
 
-    def _on_cfg_loaded(self):
+    def _on_cfg_loaded(self) -> None:
 
         self._clear()
 
@@ -47,7 +47,7 @@ class MMShuttersWidget(QtW.QWidget):
             s.button_text_closed = shutter
             self.layout().addWidget(s)
 
-    def _clear(self):
+    def _clear(self) -> None:
         for i in reversed(range(self.layout().count())):
             if item := self.layout().takeAt(i):
                 if wdg := item.widget():

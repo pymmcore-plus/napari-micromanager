@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Generator, List, Optional, Tuple
 
 import napari
 import numpy as np
@@ -13,9 +13,20 @@ from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
-from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QPoint, Qt, QTimer
 from qtpy.QtGui import QColor
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDockWidget,
+    QHBoxLayout,
+    QLabel,
+    QMenu,
+    QTableWidgetItem,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
@@ -53,15 +64,15 @@ MENU_STYLE = """
 """
 
 
-class _MinMax(QtW.QWidget):
-    def __init__(self, parent: Optional[QtW.QWidget] = None) -> None:
+class _MinMax(QWidget):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        max_min_wdg_layout = QtW.QHBoxLayout()
+        max_min_wdg_layout = QHBoxLayout()
         max_min_wdg_layout.setContentsMargins(0, 0, 0, 0)
-        self.max_min_val_label_name = QtW.QLabel()
+        self.max_min_val_label_name = QLabel()
         self.max_min_val_label_name.setText("(min, max)")
         self.max_min_val_label_name.setMaximumWidth(70)
-        self.max_min_val_label = QtW.QLabel()
+        self.max_min_val_label = QLabel()
         self.max_min_val_label.setMaximumWidth(200)
         max_min_wdg_layout.addWidget(self.max_min_val_label_name)
         max_min_wdg_layout.addWidget(self.max_min_val_label)
@@ -172,7 +183,7 @@ class MainWindow(MicroManagerWidget):
     def _add_dock_wdgs(self) -> None:
 
         self.viewer.window._qt_window.setTabPosition(
-            Qt.RightDockWidgetArea, QtW.QTabWidget.North
+            Qt.RightDockWidgetArea, QTabWidget.North
         )
 
         self.mda_dock = self._add_mda_dock_wdg()
@@ -202,11 +213,11 @@ class MainWindow(MicroManagerWidget):
             self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
         )
 
-    def _add_tabbed_dock(self, dockwidget: QtW.QDockWidget) -> None:
+    def _add_tabbed_dock(self, dockwidget: QDockWidget) -> None:
         """Add dockwidgets in a tab."""
         widgets = [
             d
-            for d in self.viewer.window._qt_window.findChildren(QtW.QDockWidget)
+            for d in self.viewer.window._qt_window.findChildren(QDockWidget)
             if d.objectName() in {"MDA Widget", "Explorer Widget", "HCS Widget"}
         ]
         if len(widgets) > 1:
@@ -219,46 +230,46 @@ class MainWindow(MicroManagerWidget):
         self._group_preset_table_wdg.show()
         self._group_preset_table_wdg.raise_()
 
-    def _show_illumination(self):
+    def _show_illumination(self) -> None:
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationWidget(parent=self)
             self._illumination.setWindowTitle("Illumination")
         self._illumination.show()
         self._illumination.raise_()
 
-    def _show_stages(self):
+    def _show_stages(self) -> None:
         if not hasattr(self, "_stages"):
             self._stages = MMStagesWidget(parent=self)
             self._stages.setWindowTitle("Stages Control")
         self._stages.show()
         self._stages.raise_()
 
-    def _show_cam_roi(self):
+    def _show_cam_roi(self) -> None:
         if not hasattr(self, "_cam_roi"):
             self._cam_roi = CamROI(parent=self)
             self._cam_roi.setWindowTitle("Camera ROI")
         self._cam_roi.show()
         self._cam_roi.raise_()
 
-    def _show_prop_browser(self):
+    def _show_prop_browser(self) -> None:
         if not hasattr(self, "_prop_browser"):
             self._prop_browser = PropertyBrowser(self._mmc, self)
             self._prop_browser.setWindowTitle("Property Browser")
         self._prop_browser.show()
         self._prop_browser.raise_()
 
-    def _show_pixel_size_table(self):
+    def _show_pixel_size_table(self) -> None:
         if not hasattr(self, "_px_size_wdg"):
             self._px_size_wdg = PixelSizeWidget(parent=self)
             self._px_size_wdg.setWindowTitle("Pixel Size")
         self._px_size_wdg.show()
 
-    def _create_debug_logger_widget(self) -> QtW.QDialog:
-        debug_logger_wdg = QtW.QDialog(parent=self)
-        layout = QtW.QVBoxLayout()
+    def _create_debug_logger_widget(self) -> QDialog:
+        debug_logger_wdg = QDialog(parent=self)
+        layout = QVBoxLayout()
         layout.setContentsMargins(10, 10, 10, 10)
         debug_logger_wdg.setLayout(layout)
-        _checkbox = QtW.QCheckBox(text="Debug logger")
+        _checkbox = QCheckBox(text="Debug logger")
         _checkbox.setChecked(False)
         _checkbox.toggled.connect(self._enable_debug_logger)
         layout.addWidget(_checkbox)
@@ -272,7 +283,7 @@ class MainWindow(MicroManagerWidget):
         else:
             _logger.set_log_level()
 
-    def _show_logger_options(self):
+    def _show_logger_options(self) -> None:
         if not hasattr(self, "_debug_logger_wdg"):
             self._debug_logger_wdg = self._create_debug_logger_widget()
         self._debug_logger_wdg.show()
@@ -323,7 +334,7 @@ class MainWindow(MicroManagerWidget):
         self.log_btn.setEnabled(enabled)
 
     @ensure_main_thread
-    def update_viewer(self, data=None):
+    def update_viewer(self, data=None) -> None:
         """Update viewer with the latest image from the camera."""
         if data is None:
             try:
@@ -352,7 +363,7 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def _update_max_min(self, event=None):
+    def _update_max_min(self, event=None) -> None:
 
         min_max_txt = ""
 
@@ -377,16 +388,16 @@ class MainWindow(MicroManagerWidget):
 
         self._minmax.max_min_val_label.setText(min_max_txt)
 
-    def _snap(self):
+    def _snap(self) -> None:
         # update in a thread so we don't freeze UI
         create_worker(self._mmc.snap, _start_thread=True)
 
-    def _start_live(self):
+    def _start_live(self) -> None:
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self._mmc.getExposure()))
 
-    def _stop_live(self):
+    def _stop_live(self) -> None:
         if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
@@ -402,7 +413,7 @@ class MainWindow(MicroManagerWidget):
     # newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
     @ensure_main_thread
-    def _on_mda_started(self, sequence: useq.MDASequence):
+    def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
         self._enable_tools_buttons(False)
 
@@ -429,10 +440,11 @@ class MainWindow(MicroManagerWidget):
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
 
-    def _get_shape_and_labels(self, sequence: MDASequence):
+    def _get_shape_and_labels(
+        self, sequence: MDASequence
+    ) -> Tuple[List[str], List[int]]:
         """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
-        # dimensions labels
         axis_order = event_indices(next(sequence.iter_events()))
         labels = []
         shape = []
@@ -461,9 +473,9 @@ class MainWindow(MicroManagerWidget):
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
         """
-        Determine channels based on whether we are splitting on channels.
+        Determine shape, channels and labels.
 
-        ...based on whether we are splitting on channel
+        ...based on whether we are splitting on channels
         """
         labels, shape = self._get_shape_and_labels(sequence)
         if self._mda_meta.split_channels:
@@ -480,7 +492,10 @@ class MainWindow(MicroManagerWidget):
     def _interpret_explorer_positions(
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
-        """Remove positions index and set layer names."""
+        """Determine shape, positions and labels.
+
+        ...by removing positions index.
+        """
         labels, shape = self._get_shape_and_labels(sequence)
         positions = [f"{p.name}_" for p in sequence.stage_positions]
         with contextlib.suppress(ValueError):
@@ -493,7 +508,10 @@ class MainWindow(MicroManagerWidget):
     def _interpret_hcs_positions(
         self, sequence: MDASequence
     ) -> Tuple[List[int], List[str], List[str]]:
-        """Get positions, labels and shape for the zarr array."""
+        """Determine shape, positions and labels.
+
+        ...by removing positions index if not a multi-positions.
+        """
         labels, shape = self._get_shape_and_labels(sequence)
 
         positions = []
@@ -517,7 +535,7 @@ class MainWindow(MicroManagerWidget):
 
     def _add_mda_channel_layers(
         self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
-    ):
+    ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
         If splitting on Channels then channels will look like ["BF_000", "GFP_000",...]
@@ -551,7 +569,8 @@ class MainWindow(MicroManagerWidget):
 
     def _add_explorer_positions_layers(
         self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
-    ):
+    ) -> None:
+        """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
         for pos in positions:
@@ -578,7 +597,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["grid"] = pos.split("_")[-3]
             layer.metadata["grid_pos"] = pos.split("_")[-2]
 
-    def _get_defaultdict_layers(self, event):
+    def _get_defaultdict_layers(self, event) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
         for lay in self.viewer.layers:
             if lay.metadata.get("uid") == event.sequence.uid:
@@ -588,7 +607,8 @@ class MainWindow(MicroManagerWidget):
 
     def _add_hcs_positions_layers(
         self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
-    ):
+    ) -> None:
+        """Create Zarr stores to back HCS and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
         for pos in positions:
@@ -609,8 +629,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["well"] = pos
 
     @ensure_main_thread
-    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
+    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent) -> None:
         meta = self._mda_meta
         if meta.mode == "mda":
             self._mda_acquisition(image, event, meta)
@@ -629,7 +648,7 @@ class MainWindow(MicroManagerWidget):
 
         This info is used in the `_mouse_right_click` method.
         """
-        indexes = []
+        indexes: List[int] = []
         for idx in event.index.items():
             if self._mda_meta.split_channels and idx[0] == "c":
                 continue
@@ -790,35 +809,21 @@ class MainWindow(MicroManagerWidget):
         # reactivate gui when mda finishes.
         self._enable_tools_buttons(True)
 
-    def _update_live_exp(self, camera: str, exposure: float):
+    def _update_live_exp(self, camera: str, exposure: float) -> None:
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition(exposure)
 
-    def _mouse_right_click(self, viewer, event):
+    def _mouse_right_click(
+        self, viewer: napari.viewer.Viewer, event: Any
+    ) -> Generator[None, None, None]:
 
         if not self._mmc.getXYStageDevice() and not self._mmc.getFocusDevice():
             return
 
         if self._mmc.getPixelSizeUm() == 0:
             return
-
-        layers = list(viewer.layers.selection)
-
-        # select all related explorer layers if the selected layer
-        # is from an explorer experiment
-        if len(layers) == 1 and layers[0].metadata["mode"] == "explorer":
-            _id = layers[0].metadata["uid"]
-            selection = [ly for ly in viewer.layers if ly.metadata["uid"] == _id]
-            layers = selection
-
-        for idx, lay in enumerate(layers):
-            if lay.metadata["mode"] != "explorer":
-                layers.pop(idx)
-
-        if lay.metadata["mode"] != "explorer":
-            layers = [list(viewer.layers.selection)[0]]
 
         dragged = False
         yield
@@ -833,15 +838,48 @@ class MainWindow(MicroManagerWidget):
         if event.button != 2:
             return
 
-        viewer_coords = (viewer.cursor.position[-2], viewer.cursor.position[-1])
+        # only Image layers
+        layers: List[napari.layers.Image] = [
+            lr
+            for lr in viewer.layers.selection
+            if isinstance(lr, napari.layers.Image) and lr.visible
+        ]
 
+        print("______1______")
+        for la in layers:
+            print(la.name)
+
+        if not layers:
+            return
+
+        # if not explorer, select only top later
+        if layers[-1].metadata["mode"] != "explorer":
+            layers = [layers[-1]]
+        # if top selected layer is from an explorer experiment
+        # make sure all and only linked layers are selected
+        # note: the napari 'layer_is_linked' method is not yet public
+        # so here we used the 'uid'
+        else:
+            _id = layers[-1].metadata["uid"]
+            layers.clear()
+            layers = [ly for ly in viewer.layers if ly.metadata.get("uid") == _id]
+
+        print("______2______")
+        for la in layers:
+            print(la.name)
+
+        viewer_coords = (
+            round(viewer.cursor.position[-2]),
+            round(viewer.cursor.position[-1]),
+        )
+
+        # get which layer has been clicked depending on the px value.
+        # only the clicked layer has a val=value, in the other val=None
         vals = []
-        layer = None
+        layer: napari.layers.Image | None = None
         for lyr in layers:
-            # data_coordinates = lyr.world_to_data(event.position)
             data_coordinates = lyr.world_to_data(viewer_coords)
             val = lyr.get_value(data_coordinates)
-            print(data_coordinates, val)
             vals.append(val)
             if val is not None:
                 layer = lyr
@@ -850,52 +888,93 @@ class MainWindow(MicroManagerWidget):
         if vals.count(None) == len(layers) or not layer:
             return
 
-        info = layer.metadata.get("positions")
+        print("layer.name:", layer.name)
+
+        info: List[
+            Tuple[List[int], float | None, float | None, float | None]
+        ] = layer.metadata.get("positions")
+
         current_dispalyed_dim = list(self.viewer.dims.current_step[:-2])
-        pos = ()
+
+        print("info:", info, "current_dispalyed_dim:", current_dispalyed_dim)
+
+        pos: Tuple[float | None, float | None, float | None] = (None, None, None)
         for i in info:
             indexes, x, y, z = i
+            # if a MDA layer is in the viewer, by default len(indexes) is minimum 2
+            # if there are single channel explorer layers, len(indexes) is 1 and
+            # 'pos' variable will be (None, None, None). To avoid that, we set the
+            # indexes as an empty list (as for 'preview')
+            if layer.metadata.get("mode") == "explorer" and len(indexes) == 1:
+                indexes = []
             if indexes == current_dispalyed_dim or not indexes:
                 pos = (x, y, z)
                 break
 
-        if not pos:
+        print("pos:", pos)
+
+        x, y, z = pos
+
+        if x is None and y is None and z is None:
+            print("pos = (None, None, None)")
             return
 
-        width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-        height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+        if x is None or y is None:
+            new_pos = (x, y, z)
+        else:
+            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
-        # get clicked px stage coords
-        top_left = layer.data_to_world((0, 0))[-2:]
-        central_px = (top_left[0] + (height // 2), top_left[1] + (width // 2))
+            # get clicked px stage coords
+            top_left = layer.data_to_world((0, 0))[-2:]
+            central_px = (top_left[0] + (height // 2), top_left[1] + (width // 2))
 
-        x, y, _ = pos
+            print("central_px:", central_px)
 
-        # top left corner of image (0, 0) in um
-        x0 = x - (central_px[1] * self._mmc.getPixelSizeUm())
-        y0 = y + (central_px[0] * self._mmc.getPixelSizeUm())
+            # top left corner of image in um
+            x0 = float(x - (central_px[1] * self._mmc.getPixelSizeUm()))
+            y0 = float(y + (central_px[0] * self._mmc.getPixelSizeUm()))
 
-        stage_x = x0 + (round(viewer.cursor.position[-1]) * self._mmc.getPixelSizeUm())
-        stage_y = y0 - (round(viewer.cursor.position[-2]) * self._mmc.getPixelSizeUm())
+            print("x0, y0:", x0, y0)
 
-        pos = (stage_x, stage_y, z)
+            print("viewer_coords:", viewer_coords, "px", self._mmc.getPixelSizeUm())
+            print(
+                "viewer_coords_x * px:", viewer_coords[1] * self._mmc.getPixelSizeUm()
+            )
+            print(
+                "viewer_coords_y * px:", viewer_coords[0] * self._mmc.getPixelSizeUm()
+            )
 
-        r_menu = self._create_right_click_menu(pos)
+            stage_x = x0 + (viewer_coords[1] * self._mmc.getPixelSizeUm())
+            stage_y = y0 - (viewer_coords[0] * self._mmc.getPixelSizeUm())
+
+            new_pos = (stage_x, stage_y, z)
+
+        print("new_pos:", new_pos)
+
+        r_menu = self._create_right_click_menu(new_pos)
         r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
             QPoint(event.pos[0], event.pos[1])
         )
         r_menu.move(r_menuPosition)
         r_menu.show()
 
-    def _create_right_click_menu(self, xyz_positions: Tuple[float]) -> QtW.QMenu:
-        dlg_menu = QtW.QMenu(parent=self)
+        print(" ")
+
+    def _create_right_click_menu(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> QMenu:
+
+        coord_x, coord_y, coord_z = xyz_positions
+
+        dlg_menu = QMenu(parent=self)
         dlg_menu.setStyleSheet(MENU_STYLE)
 
-        if self._mmc.getXYStageDevice() and xyz_positions[0] is not None:
+        if self._mmc.getXYStageDevice() and coord_x is not None and coord_y is not None:
             xy = dlg_menu.addAction("Move to XY Stage Coords")
             xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
 
-        if self._mmc.getFocusDevice() and xyz_positions[-1] is not None:
+        if self._mmc.getFocusDevice() and coord_z is not None:
             z = dlg_menu.addAction("Move to Z Stage Coords")
             z.triggered.connect(lambda: self._move_to_z(xyz_positions))
 
@@ -913,61 +992,77 @@ class MainWindow(MicroManagerWidget):
 
         return dlg_menu
 
-    def _move_to_xy(self, xyz_positions):
+    def _move_to_xy(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> None:
         x, y, _ = xyz_positions
+        if x is None or y is None:
+            return
         self._mmc.setXYPosition(x, y)
 
-    def _move_to_z(self, xyz_positions):
+    def _move_to_z(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> None:
         _, _, z = xyz_positions
+        if z is None:
+            return
         self._mmc.setPosition(z)
 
-    def _move_to_xyz(self, xyz_positions):
+    def _move_to_xyz(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> None:
         x, y, z = xyz_positions
+        if x is None or y is None or z is None:
+            return
         self._mmc.setXYPosition(x, y)
         self._mmc.setPosition(z)
 
-    def _add_to_mda_position_table(self, xyz_positions) -> None:
+    def _add_to_mda_position_table(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> None:
         x, y, z = xyz_positions
 
         idx = self.mda._add_position_row()
 
-        name = QtW.QTableWidgetItem("Pos000")
+        name = QTableWidgetItem("Pos000")
         name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.mda.stage_tableWidget.setItem(idx, 0, name)
 
-        xpos = QtW.QTableWidgetItem(str(x))
+        xpos = QTableWidgetItem(str(x))
         xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.mda.stage_tableWidget.setItem(idx, 1, xpos)
 
-        ypos = QtW.QTableWidgetItem(str(y))
+        ypos = QTableWidgetItem(str(y))
         ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.mda.stage_tableWidget.setItem(idx, 2, ypos)
 
-        zpos = QtW.QTableWidgetItem(str(z) if z is not None else "")
+        zpos = QTableWidgetItem(str(z) if z is not None else "")
         zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.mda.stage_tableWidget.setItem(idx, 3, zpos)
 
         self.mda._rename_positions(["Pos"])
 
-    def _add_to_explorer_position_table(self, xyz_positions) -> None:
+    def _add_to_explorer_position_table(
+        self, xyz_positions: Tuple[float | None, float | None, float | None]
+    ) -> None:
         x, y, z = xyz_positions
 
         idx = self.explorer._add_position_row()
 
-        name = QtW.QTableWidgetItem("Grid_000")
+        name = QTableWidgetItem("Grid_000")
         name.setWhatsThis("Grid_000")
         name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.explorer.stage_tableWidget.setItem(idx, 0, name)
 
-        xpos = QtW.QTableWidgetItem(str(x))
+        xpos = QTableWidgetItem(str(x))
         xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.explorer.stage_tableWidget.setItem(idx, 1, xpos)
 
-        ypos = QtW.QTableWidgetItem(str(y))
+        ypos = QTableWidgetItem(str(y))
         ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.explorer.stage_tableWidget.setItem(idx, 2, ypos)
 
-        zpos = QtW.QTableWidgetItem(str(z) if z is not None else "")
+        zpos = QTableWidgetItem(str(z) if z is not None else "")
         zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
         self.explorer.stage_tableWidget.setItem(idx, 3, zpos)
 

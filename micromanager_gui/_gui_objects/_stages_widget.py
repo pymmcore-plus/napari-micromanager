@@ -12,8 +12,9 @@ STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 class MMStagesWidget(QDialog):
     """UI elements for stage control widgets."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+
         self.setAcceptDrops(True)
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(5, 5, 5, 5)
@@ -24,7 +25,7 @@ class MMStagesWidget(QDialog):
         self._on_cfg_loaded()
         self._mmc.events.systemConfigurationLoaded.connect(self._on_cfg_loaded)
 
-    def _on_cfg_loaded(self):
+    def _on_cfg_loaded(self) -> None:
         self._clear()
         stage_dev_list = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStage))
         stage_dev_list.extend(iter(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)))
@@ -41,17 +42,17 @@ class MMStagesWidget(QDialog):
                 self.layout().addWidget(bx)
         self.resize(self.sizeHint())
 
-    def _clear(self):
+    def _clear(self) -> None:
         for i in reversed(range(self.layout().count())):
             if item := self.layout().takeAt(i):
                 if wdg := item.widget():
                     wdg.setParent(None)
                     wdg.deleteLater()
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event) -> None:
         event.accept()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         pos = event.pos()
 
         wdgs = [
@@ -98,8 +99,7 @@ class _DragGroupBox(QGroupBox):
         self._name = name
         self.start_pos = start_pos
 
-    def mouseMoveEvent(self, event):
-        # if event.buttons() == Qt.LeftButton:
+    def mouseMoveEvent(self, event) -> None:
         drag = QDrag(self)
         mime = QMimeData()
         drag.setMimeData(mime)

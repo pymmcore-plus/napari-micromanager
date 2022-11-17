@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, cast
+from typing import List, Optional, Tuple, cast
 
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import SampleExplorerWidget
@@ -128,7 +128,9 @@ class SampleExplorer(SampleExplorerWidget):
         self.dir_explorer_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)
 
-    def _create_translation_points(self, rows: int, cols: int) -> list:
+    def _create_translation_points(
+        self, rows: int, cols: int
+    ) -> List[Tuple[float, float, int, int]]:
 
         cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
@@ -158,7 +160,7 @@ class SampleExplorer(SampleExplorerWidget):
                         x += move_x
         return points
 
-    def _set_translate_point_list(self) -> list:
+    def _set_translate_point_list(self) -> List[Tuple[float, float, int, int]]:
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
         if self.stage_tableWidget.rowCount() > 0:

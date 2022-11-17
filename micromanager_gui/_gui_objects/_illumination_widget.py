@@ -32,7 +32,7 @@ class IlluminationWidget(QDialog):
 
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
-    def _create_wdg(self):
+    def _create_wdg(self) -> None:
 
         lights = [
             dp
@@ -46,15 +46,15 @@ class IlluminationWidget(QDialog):
             self.layout().addWidget(QLabel(f"{dev}::{prop}"), i, 0)
             self.layout().addWidget(PropertyWidget(dev, prop, core=self._mmc), i, 1)
 
-    def _on_cfg_loaded(self):
+    def _on_cfg_loaded(self) -> None:
         self._clear()
         self._create_wdg()
 
-    def _clear(self):
+    def _clear(self) -> None:
         for i in reversed(range(self.layout().count())):
             if item := self.layout().takeAt(i):
                 if wdg := item.widget():
                     wdg.deleteLater()
 
-    def _disconnect(self):
+    def _disconnect(self) -> None:
         self._mmc.events.systemConfigurationLoaded.disconnect(self._on_cfg_loaded)
