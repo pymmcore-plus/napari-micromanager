@@ -871,7 +871,7 @@ class MainWindow(MicroManagerWidget):
 
         x, y, _ = pos
 
-        # top left corner of image (0, 0)
+        # top left corner of image (0, 0) in um
         x0 = x - (central_px[1] * self._mmc.getPixelSizeUm())
         y0 = y + (central_px[0] * self._mmc.getPixelSizeUm())
 
