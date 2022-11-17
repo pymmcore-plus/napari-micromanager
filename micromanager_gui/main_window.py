@@ -201,12 +201,15 @@ class MainWindow(MicroManagerWidget):
 
         self.mda_dock = self._add_mda_dock_wdg()
         self._add_tabbed_dock(self.mda_dock)
+        self.mda_dock.hide()
 
         self.explorer_dock = self._add_explorer_dock_wdg()
         self._add_tabbed_dock(self.explorer_dock)
+        self.explorer_dock.hide()
 
         self.hcs_dock = self._add_hcs_dock_wdg()
         self._add_tabbed_dock(self.hcs_dock)
+        self.hcs_dock.hide()
 
     def _add_mda_dock_wdg(self) -> QtViewerDockWidget:
         return self.viewer.window.add_dock_widget(
