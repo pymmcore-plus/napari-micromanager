@@ -979,15 +979,17 @@ class MainWindow(MicroManagerWidget):
         dlg_menu.setStyleSheet(MENU_STYLE)
 
         if self._mmc.getXYStageDevice() and coord_x is not None and coord_y is not None:
-            xy = dlg_menu.addAction("Move to XY Stage Coords")
+            xy = dlg_menu.addAction(f"Move to [x:{coord_x},  y:{coord_y}].")
             xy.triggered.connect(lambda: self._move_to_xy(xyz_positions))
 
         if self._mmc.getFocusDevice() and coord_z is not None:
-            z = dlg_menu.addAction("Move to Z Stage Coords")
+            z = dlg_menu.addAction(f"Move to [z:{coord_z}].")
             z.triggered.connect(lambda: self._move_to_z(xyz_positions))
 
         if self._mmc.getXYStageDevice() and self._mmc.getFocusDevice():
-            xyz = dlg_menu.addAction("Move to XYZ Stage Coords")
+            xyz = dlg_menu.addAction(
+                f"Move to [x:{coord_x},  y:{coord_y},  z:{coord_z}]."
+            )
             xyz.triggered.connect(lambda: self._move_to_xyz(xyz_positions))
 
         to_mda = dlg_menu.addAction("Add to MDA position table.")
