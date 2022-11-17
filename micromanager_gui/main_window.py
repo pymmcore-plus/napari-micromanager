@@ -833,10 +833,38 @@ class MainWindow(MicroManagerWidget):
             yield
         if dragged:
             return
-
         # only right click
         if event.button != 2:
             return
+
+        layer, viewer_coords = self._get_active_layer_and_click_coords(viewer)
+
+        # don't open the menu if the click is not on the layer
+        if layer is None or viewer_coords is None:
+            return
+
+        x, y, z = self._get_xyz_positions(layer)
+
+        if x is None and y is None and z is None:
+            return
+
+        if x is None or y is None:
+            new_pos = (x, y, z)
+        else:
+            new_pos = self._calculate_clicked_stage_coordinates(
+                layer, viewer_coords, x, y, z
+            )
+
+        r_menu = self._create_right_click_menu(new_pos)
+        r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
+            QPoint(event.pos[0], event.pos[1])
+        )
+        r_menu.move(r_menuPosition)
+        r_menu.show()
+
+    def _get_active_layer_and_click_coords(
+        self, viewer: napari.viewer.Viewer
+    ) -> Tuple[napari.layers.Image | None, Tuple[int, int]] | Tuple[None, None]:
 
         # only Image layers
         layers: List[napari.layers.Image] = [
@@ -845,12 +873,8 @@ class MainWindow(MicroManagerWidget):
             if isinstance(lr, napari.layers.Image) and lr.visible
         ]
 
-        print("______1______")
-        for la in layers:
-            print(la.name)
-
         if not layers:
-            return
+            return None, None
 
         # if not explorer, select only top later
         if layers[-1].metadata["mode"] != "explorer":
@@ -863,10 +887,6 @@ class MainWindow(MicroManagerWidget):
             _id = layers[-1].metadata["uid"]
             layers.clear()
             layers = [ly for ly in viewer.layers if ly.metadata.get("uid") == _id]
-
-        print("______2______")
-        for la in layers:
-            print(la.name)
 
         viewer_coords = (
             round(viewer.cursor.position[-2]),
@@ -884,19 +904,20 @@ class MainWindow(MicroManagerWidget):
             if val is not None:
                 layer = lyr
 
-        # don't open the menu if the click is not on the layer
-        if vals.count(None) == len(layers) or not layer:
-            return
+        if vals.count(None) == len(layers):
+            layer = None
 
-        print("layer.name:", layer.name)
+        return layer, viewer_coords
+
+    def _get_xyz_positions(
+        self, layer: napari.layers.Image
+    ) -> Tuple[float | None, float | None, float | None]:
 
         info: List[
             Tuple[List[int], float | None, float | None, float | None]
         ] = layer.metadata.get("positions")
 
         current_dispalyed_dim = list(self.viewer.dims.current_step[:-2])
-
-        print("info:", info, "current_dispalyed_dim:", current_dispalyed_dim)
 
         pos: Tuple[float | None, float | None, float | None] = (None, None, None)
         for i in info:
@@ -910,56 +931,32 @@ class MainWindow(MicroManagerWidget):
             if indexes == current_dispalyed_dim or not indexes:
                 pos = (x, y, z)
                 break
+        return pos
 
-        print("pos:", pos)
+    def _calculate_clicked_stage_coordinates(
+        self,
+        layer: napari.layers.Image,
+        viewer_coords: Tuple[int, int],
+        x: float | None,
+        y: float | None,
+        z: float | None,
+    ) -> Tuple[float, float, float | None]:
 
-        x, y, z = pos
+        width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
+        height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
 
-        if x is None and y is None and z is None:
-            print("pos = (None, None, None)")
-            return
+        # get clicked px stage coords
+        top_left = layer.data_to_world((0, 0))[-2:]
+        central_px = (top_left[0] + (height // 2), top_left[1] + (width // 2))
 
-        if x is None or y is None:
-            new_pos = (x, y, z)
-        else:
-            width = self._mmc.getROI(self._mmc.getCameraDevice())[2]
-            height = self._mmc.getROI(self._mmc.getCameraDevice())[3]
+        # top left corner of image in um
+        x0 = float(x - (central_px[1] * self._mmc.getPixelSizeUm()))
+        y0 = float(y + (central_px[0] * self._mmc.getPixelSizeUm()))
 
-            # get clicked px stage coords
-            top_left = layer.data_to_world((0, 0))[-2:]
-            central_px = (top_left[0] + (height // 2), top_left[1] + (width // 2))
+        stage_x = x0 + (viewer_coords[1] * self._mmc.getPixelSizeUm())
+        stage_y = y0 - (viewer_coords[0] * self._mmc.getPixelSizeUm())
 
-            print("central_px:", central_px)
-
-            # top left corner of image in um
-            x0 = float(x - (central_px[1] * self._mmc.getPixelSizeUm()))
-            y0 = float(y + (central_px[0] * self._mmc.getPixelSizeUm()))
-
-            print("x0, y0:", x0, y0)
-
-            print("viewer_coords:", viewer_coords, "px", self._mmc.getPixelSizeUm())
-            print(
-                "viewer_coords_x * px:", viewer_coords[1] * self._mmc.getPixelSizeUm()
-            )
-            print(
-                "viewer_coords_y * px:", viewer_coords[0] * self._mmc.getPixelSizeUm()
-            )
-
-            stage_x = x0 + (viewer_coords[1] * self._mmc.getPixelSizeUm())
-            stage_y = y0 - (viewer_coords[0] * self._mmc.getPixelSizeUm())
-
-            new_pos = (stage_x, stage_y, z)
-
-        print("new_pos:", new_pos)
-
-        r_menu = self._create_right_click_menu(new_pos)
-        r_menuPosition = self.viewer.window._qt_viewer.mapToGlobal(
-            QPoint(event.pos[0], event.pos[1])
-        )
-        r_menu.move(r_menuPosition)
-        r_menu.show()
-
-        print(" ")
+        return stage_x, stage_y, z
 
     def _create_right_click_menu(
         self, xyz_positions: Tuple[float | None, float | None, float | None]
