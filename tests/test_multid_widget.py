@@ -64,11 +64,11 @@ def test_saving_mda(
     _mda.step_size_doubleSpinBox.setValue(1)
 
     # 2 Channels
-    _mda.add_ch_Button.click()
+    _mda.add_ch_button.click()
     _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
     _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
     if C:
-        _mda.add_ch_Button.click()
+        _mda.add_ch_button.click()
         _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
     if splitC:
         _mda.checkBox_split_channels.setChecked(True)

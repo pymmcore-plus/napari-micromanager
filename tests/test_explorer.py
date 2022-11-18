@@ -24,9 +24,16 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     explorer.scan_size_spinBox_c.setValue(2)
     explorer.ovelap_spinBox.setValue(0)
     explorer.add_ch_explorer_Button.click()
-    explorer.grid_checkbox.setChecked(True)
+    explorer.radiobtn_grid.setChecked(True)
 
     assert not main_window.viewer.layers
+
+    assert main_window.explorer._set_grid() == [
+        ("Grid_001_Pos000", -256.0, 256.0, 0.0),
+        ("Grid_001_Pos001", 256.0, 256.0, 0.0),
+        ("Grid_001_Pos002", 256.0, -256.0, 0.0),
+        ("Grid_001_Pos003", -256.0, -256.0, 0.0),
+    ]
 
     sequence = None
 
@@ -44,12 +51,6 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     # wait to finish returning to start pos
     mmc.waitForSystem()
-    assert main_window.explorer._set_grid() == [
-        ("Grid_001_Pos000", -512.005, 512.005, 0.0),
-        ("Grid_001_Pos001", -0.0049999999999954525, 512.005, 0.0),
-        ("Grid_001_Pos002", -0.0049999999999954525, 0.0049999999999954525, 0.0),
-        ("Grid_001_Pos003", -512.005, 0.0049999999999954525, 0.0),
-    ]
 
     assert mmc.getPixelSizeUm() == 1
     assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
@@ -73,7 +74,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert _layer.metadata["grid"] == "001"
     assert _layer.metadata["grid_pos"] == "Pos003"
     assert _layer.metadata["translate"]
-    assert _layer.metadata["pos"] == (-256.0, -256.0, 0.0)
+    assert _layer.metadata["positions"] == [([0], -256.0, -256.0, 0.0)]
 
     # checking the linking  of the layers
     assert len(main_window.viewer.layers) == 4
