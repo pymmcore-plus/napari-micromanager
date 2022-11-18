@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Generator, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Generator, List, Tuple
 
 import napari
 import numpy as np
@@ -19,14 +19,10 @@ from qtpy.QtWidgets import (
     QCheckBox,
     QDialog,
     QDockWidget,
-    QHBoxLayout,
-    QLabel,
     QMenu,
-    QScrollArea,
     QTableWidgetItem,
     QTabWidget,
     QVBoxLayout,
-    QWidget,
 )
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
@@ -37,6 +33,7 @@ from ._gui_objects._group_preset_widget import GroupPreset
 from ._gui_objects._hcs_widget import HCSWidgetMain
 from ._gui_objects._illumination_widget import IlluminationWidget
 from ._gui_objects._mda_widget import MultiDWidget
+from ._gui_objects._min_max_widget import MinMax
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._gui_objects._sample_explorer_widget import SampleExplorer
 from ._gui_objects._stages_widget import MMStagesWidget
@@ -64,34 +61,6 @@ MENU_STYLE = """
 """
 
 
-class _MinMax(QWidget):
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-
-        self.setLayout(QHBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        max_min_wdg = QWidget()
-        max_min_wdg_layout = QHBoxLayout()
-        max_min_wdg_layout.setContentsMargins(0, 0, 0, 0)
-        max_min_wdg.setLayout(max_min_wdg_layout)
-
-        self.max_min_val_label_name = QLabel()
-        self.max_min_val_label_name.setText("(min, max)")
-        self.max_min_val_label_name.setMaximumWidth(70)
-        max_min_wdg_layout.addWidget(self.max_min_val_label_name)
-
-        self.max_min_val_label = QLabel()
-        max_min_wdg_layout.addWidget(self.max_min_val_label)
-
-        scroll.setWidget(max_min_wdg)
-        self.layout().addWidget(scroll)
-
-
 class MainWindow(MicroManagerWidget):
     """The main napari-micromanager widget that gets added to napari."""
 
@@ -111,7 +80,7 @@ class MainWindow(MicroManagerWidget):
                 "MICROMANAGER_PATH."
             )
 
-        self._minmax = _MinMax()
+        self.minmax = MinMax()
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
         self.hcs = HCSWidgetMain()
@@ -167,7 +136,7 @@ class MainWindow(MicroManagerWidget):
         self.mda.metadataInfo.connect(self._on_meta_info)
         self.hcs.metadataInfo.connect(self._on_meta_info)
 
-        self.viewer.window.add_dock_widget(self._minmax, name="MinMax", area="left")
+        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
         self._add_dock_wdgs()
 
@@ -389,7 +358,7 @@ class MainWindow(MicroManagerWidget):
         ]
 
         if not layers:
-            self._minmax.max_min_val_label.setText(min_max_txt)
+            self.minmax.max_min_val_label.setText(min_max_txt)
             return
 
         for layer in layers:
@@ -400,7 +369,7 @@ class MainWindow(MicroManagerWidget):
             min_max_show = tuple(layer._calc_data_range(mode="slice"))
             min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-        self._minmax.max_min_val_label.setText(min_max_txt)
+        self.minmax.max_min_val_label.setText(min_max_txt)
 
     def _snap(self) -> None:
         # update in a thread so we don't freeze UI
