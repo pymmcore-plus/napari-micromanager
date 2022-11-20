@@ -134,6 +134,8 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
+        self.viewer.layers.selection.events.connect(self._set_layer_scale)
+
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
         self.hcs.metadataInfo.connect(self._on_meta_info)
@@ -330,6 +332,8 @@ class MainWindow(MicroManagerWidget):
             preview_layer = self.viewer.add_image(data, name="preview")
 
         preview_layer.metadata["mode"] = "preview"
+        preview_layer.scale = (self._mmc.getPixelSizeUm(), self._mmc.getPixelSizeUm())
+        preview_layer.metadata["scale"] = preview_layer.scale
         preview_layer.metadata["positions"] = [
             (
                 [],
@@ -540,7 +544,17 @@ class MainWindow(MicroManagerWidget):
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
+            # set layer scale
+            scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
+            if len(sequence.z_plan) > 1:
+                if sequence.axis_order.index("z") == 3:
+                    scale[-3] = sequence.z_plan.step
+                elif sequence.axis_order.index("z") == 2:
+                    scale[-4] = sequence.z_plan.step
+            layer.scale = tuple(scale)
+
             # add metadata to layer
+            layer.metadata["scale"] = tuple(scale)
             layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
@@ -567,9 +581,17 @@ class MainWindow(MicroManagerWidget):
 
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
 
+            # set layer scale
+            scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
+            if len(sequence.z_plan) > 1:
+                if sequence.axis_order.index("z") == 3:
+                    scale[-3] = sequence.z_plan.step
+                elif sequence.axis_order.index("z") == 2:
+                    scale[-4] = sequence.z_plan.step
+            layer.scale = tuple(scale)
+
             # add metadata to layer
-            # storing event.index in addition to channel.config because it's
-            # possible to have two of the same channel in one sequence.
+            layer.metadata["scale"] = tuple(scale)
             layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
@@ -602,10 +624,35 @@ class MainWindow(MicroManagerWidget):
 
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}")
 
+            # set layer scale
+            scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
+            if len(sequence.z_plan) > 1:
+                if sequence.axis_order.index("z") == 3:
+                    scale[-3] = sequence.z_plan.step
+                elif sequence.axis_order.index("z") == 2:
+                    scale[-4] = sequence.z_plan.step
+            layer.scale = tuple(scale)
+
+            # add metadata to layer
+            layer.metadata["scale"] = tuple(scale)
             layer.metadata["mode"] = self._mda_meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["well"] = pos
+
+    def _set_layer_scale(self, event: Any) -> None:
+
+        layers: List[napari.layers.Image] = [
+            layer
+            for layer in self.viewer.layers.selection
+            if isinstance(layer, napari.layers.Image) and layer.visible
+        ]
+
+        if not layers or len(layers) > 1:
+            return
+
+        if layers[0].metadata.get("Scale"):
+            layers[0].scale = layers[0].metadata.get("Scale")
 
     @ensure_main_thread
     def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent) -> None:
