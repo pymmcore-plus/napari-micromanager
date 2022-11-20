@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import napari
 import numpy as np
 import tifffile
 
@@ -37,8 +38,6 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta) 
         return _save_mda_sequence(sequence, layers, meta)
     elif meta.mode == "explorer":
         return _save_explorer_scan(sequence, layers, meta)
-    elif meta.mode == "hcs":
-        return _save_hcs_scan(sequence, layers, meta)
     raise NotImplementedError(f"cannot save experiment with mode: {meta.mode}")
 
 
@@ -117,11 +116,10 @@ def _save_explorer_scan(
     if not meta.translate_explorer:
         _save_mda_sequence(sequence, layers, meta)
     else:
+        path = Path(meta.save_dir)
+        folder = ensure_unique(path / "explorer_scan", extension="", ndigits=3)
+        folder.mkdir(parents=True, exist_ok=True)
+
+        mda_layers = [i for i in layers if i.metadata.get("uid") == sequence.uid]
+        napari.save_layers(folder, mda_layers)
         return
-
-
-# TODO: to be fixed
-def _save_hcs_scan(
-    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
-) -> None:
-    pass
