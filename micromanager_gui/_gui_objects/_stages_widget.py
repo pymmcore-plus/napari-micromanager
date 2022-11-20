@@ -4,7 +4,7 @@ from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import StageWidget
 from qtpy.QtCore import QMimeData, Qt
 from qtpy.QtGui import QDrag
-from qtpy.QtWidgets import QDialog, QGroupBox, QHBoxLayout, QWidget
+from qtpy.QtWidgets import QDialog, QGroupBox, QHBoxLayout, QSizePolicy, QWidget
 
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
@@ -15,13 +15,13 @@ class MMStagesWidget(QDialog):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        self.setWindowTitle("Stages Control")
-
         self.setAcceptDrops(True)
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(5, 5, 5, 5)
         self.main_layout.setSpacing(5)
         self.setLayout(self.main_layout)
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         self._mmc = CMMCorePlus.instance()
         self._on_cfg_loaded()
@@ -35,11 +35,13 @@ class MMStagesWidget(QDialog):
             if self._mmc.getDeviceType(stage_dev) is DeviceType.XYStage:
                 bx = _DragGroupBox("XY Control")
                 bx.setLayout(QHBoxLayout())
+                bx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
             if self._mmc.getDeviceType(stage_dev) is DeviceType.Stage:
                 bx = _DragGroupBox("Z Control")
                 bx.setLayout(QHBoxLayout())
+                bx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
         self.resize(self.sizeHint())

@@ -256,14 +256,6 @@ class MicroManagerWidget(QtW.QMainWindow):
         self.cam_btn.setIconSize(QSize(30, 30))
         wdg.layout().addWidget(self.cam_btn)
 
-        self.log_btn = QtW.QPushButton(parent=self)
-        self.log_btn.setToolTip("Debug Logger")
-        self.log_btn.setEnabled(False)
-        self.log_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
-        self.log_btn.setIcon(icon(MDI6.math_log, color=(0, 255, 0)))
-        self.log_btn.setIconSize(QSize(30, 30))
-        wdg.layout().addWidget(self.log_btn)
-
         tools_toolbar.addWidget(wdg)
 
         return tools_toolbar

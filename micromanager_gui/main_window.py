@@ -15,15 +15,7 @@ from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy.QtCore import QPoint, Qt, QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import (
-    QCheckBox,
-    QDialog,
-    QDockWidget,
-    QMenu,
-    QTableWidgetItem,
-    QTabWidget,
-    QVBoxLayout,
-)
+from qtpy.QtWidgets import QDockWidget, QMenu, QSizePolicy, QTableWidgetItem, QTabWidget
 from superqt.utils import create_worker, ensure_main_thread, signals_blocked
 from useq import MDASequence
 
@@ -83,7 +75,13 @@ class MainWindow(MicroManagerWidget):
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
 
+        self._group_preset_table_wdg = GroupPreset(parent=self)
+        self._illumination = IlluminationWidget(parent=self)
+        self._stages = MMStagesWidget(parent=self)
         self._cam_roi = CamROI(parent=self)
+        self._prop_browser = PropertyBrowser(self._mmc, self)
+        self._prop_browser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._px_size_table = PixelSizeWidget(parent=self)
 
         self.streaming_timer: QTimer | None = None
 
@@ -146,7 +144,6 @@ class MainWindow(MicroManagerWidget):
         self.stage_btn.clicked.connect(self._show_stages)
         self.prop_browser_btn.clicked.connect(self._show_prop_browser)
         self.px_btn.clicked.connect(self._show_pixel_size_table)
-        self.log_btn.clicked.connect(self._show_logger_options)
 
         self.cam_btn.clicked.connect(self._show_cam_roi)
         self._cam_roi._cam.roiChanged.connect(self._on_roi_info)
@@ -200,63 +197,82 @@ class MainWindow(MicroManagerWidget):
             self.viewer.window._qt_window.tabifyDockWidget(widgets[0], dockwidget)
 
     def _show_group_preset(self) -> None:
-        if not hasattr(self, "_group_preset_table_wdg"):
-            self._group_preset_table_wdg = GroupPreset(parent=self)
-        self._group_preset_table_wdg.show()
-        self._group_preset_table_wdg.raise_()
+        if not hasattr(self, "_group_preset_wdg"):
+            self._group_preset_wdg = self.viewer.window.add_dock_widget(
+                self._group_preset_table_wdg,
+                name="Groups&Presets",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._group_preset_wdg.setFloating(True)
+        else:
+            self._group_preset_wdg.show()
+            self._group_preset_wdg.raise_()
 
     def _show_illumination(self) -> None:
-        if not hasattr(self, "_illumination"):
-            self._illumination = IlluminationWidget(parent=self)
-        self._illumination.show()
-        self._illumination.raise_()
+        if not hasattr(self, "_illumination_wdg"):
+            self._illumination_wdg = self.viewer.window.add_dock_widget(
+                self._illumination,
+                name="Illumination Control",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._illumination_wdg.setFloating(True)
+        else:
+            self._illumination_wdg.show()
+            self._illumination_wdg.raise_()
 
     def _show_stages(self) -> None:
-        if not hasattr(self, "_stages"):
-            self._stages = MMStagesWidget(parent=self)
-        self._stages.show()
-        self._stages.raise_()
+        if not hasattr(self, "_stages_wdg"):
+            self._stages_wdg = self.viewer.window.add_dock_widget(
+                self._stages,
+                name="Stages Control",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._stages_wdg.setFloating(True)
+        else:
+            self._stages_wdg.show()
+            self._stages_wdg.raise_()
 
     def _show_cam_roi(self) -> None:
-        self._cam_roi.show()
-        self._cam_roi.raise_()
+        if not hasattr(self, "_camera_roi"):
+            self._camera_roi = self.viewer.window.add_dock_widget(
+                self._cam_roi,
+                name="Camera ROI",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._camera_roi.setFloating(True)
+        else:
+            self._camera_roi.show()
+            self._camera_roi.raise_()
 
     def _show_prop_browser(self) -> None:
-        if not hasattr(self, "_prop_browser"):
-            self._prop_browser = PropertyBrowser(self._mmc, self)
-            self._prop_browser.setWindowTitle("Property Browser")
-        self._prop_browser.show()
-        self._prop_browser.raise_()
+        if not hasattr(self, "_prop_browser_wdg"):
+            self._prop_browser_wdg = self.viewer.window.add_dock_widget(
+                self._prop_browser,
+                name="Property Browser",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._prop_browser_wdg.setFloating(True)
+        else:
+            self._prop_browser_wdg.show()
+            self._prop_browser_wdg.raise_()
 
     def _show_pixel_size_table(self) -> None:
         if not hasattr(self, "_px_size_wdg"):
-            self._px_size_wdg = PixelSizeWidget(parent=self)
-            self._px_size_wdg.setWindowTitle("Pixel Size")
-        self._px_size_wdg.show()
-
-    def _create_debug_logger_widget(self) -> QDialog:
-        debug_logger_wdg = QDialog(parent=self)
-        layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        debug_logger_wdg.setLayout(layout)
-        _checkbox = QCheckBox(text="Debug logger")
-        _checkbox.setChecked(False)
-        _checkbox.toggled.connect(self._enable_debug_logger)
-        layout.addWidget(_checkbox)
-        return debug_logger_wdg
-
-    def _enable_debug_logger(self, state: bool) -> None:
-        from pymmcore_plus import _logger
-
-        if state:
-            _logger.set_log_level("DEBUG")
+            self._px_size_wdg = self.viewer.window.add_dock_widget(
+                self._px_size_table,
+                name="Pixel Size",
+                area="right",
+                allowed_areas=["bottom", "left", "right"],
+            )
+            self._px_size_wdg.setFloating(True)
         else:
-            _logger.set_log_level()
-
-    def _show_logger_options(self) -> None:
-        if not hasattr(self, "_debug_logger_wdg"):
-            self._debug_logger_wdg = self._create_debug_logger_widget()
-        self._debug_logger_wdg.show()
+            self._px_size_wdg.show()
+            self._px_size_wdg.raise_()
 
     def _show_mda(self) -> None:
         try:
@@ -291,7 +307,6 @@ class MainWindow(MicroManagerWidget):
         self.gp_button.setEnabled(enabled)
         self.prop_browser_btn.setEnabled(enabled)
         self.px_btn.setEnabled(enabled)
-        self.log_btn.setEnabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None) -> None:

@@ -20,8 +20,6 @@ class IlluminationWidget(QDialog):
     ):
         super().__init__(parent)
 
-        self.setWindowTitle("Illumination")
-
         self.setLayout(QGridLayout())
 
         self.ptrn = re.compile(property_regex, re.IGNORECASE)
