@@ -15,7 +15,7 @@ from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy.QtCore import QPoint, Qt, QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QDockWidget, QMenu, QSizePolicy, QTableWidgetItem, QTabWidget
+from qtpy.QtWidgets import QMenu, QSizePolicy, QTableWidgetItem, QTabWidget, QWidget
 from superqt.utils import create_worker, ensure_main_thread, signals_blocked
 from useq import MDASequence
 
@@ -137,7 +137,7 @@ class MainWindow(MicroManagerWidget):
 
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
-        self._add_dock_wdgs()
+        self._add_dock_widgets()
 
         self.gp_button.clicked.connect(self._show_group_preset)
         self.ill_btn.clicked.connect(self._show_illumination)
@@ -159,139 +159,104 @@ class MainWindow(MicroManagerWidget):
         self.viewer.mouse_drag_callbacks.append(self._mouse_right_click)
         self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
 
-    def _add_dock_wdgs(self) -> None:
+    def _add_dock_widget(self, widget: QWidget, name: str) -> QtViewerDockWidget:
+        return self.viewer.window.add_dock_widget(
+            widget, name=name, area="right", allowed_areas=["left", "right"]
+        )
+
+    def _add_dock_widgets(self) -> None:
 
         self.viewer.window._qt_window.setTabPosition(
             Qt.RightDockWidgetArea, QTabWidget.North
         )
 
-        self.mda_dock = self._add_mda_dock_wdg()
-        self._add_tabbed_dock(self.mda_dock)
+        # MDA
+        self.mda_dock = self._add_dock_widget(self.mda, "MDA Widget")
+        self.mda_dock._close_btn = False
         self.mda_dock.hide()
 
-        self.explorer_dock = self._add_explorer_dock_wdg()
-        self._add_tabbed_dock(self.explorer_dock)
+        # Explorer
+        self.explorer_dock = self._add_dock_widget(self.explorer, "Explorer Widget")
+        self.explorer_dock._close_btn = False
         self.explorer_dock.hide()
 
-    def _add_mda_dock_wdg(self) -> QtViewerDockWidget:
-        return self.viewer.window.add_dock_widget(
-            self.mda, name="MDA Widget", area="right", allowed_areas=["left", "right"]
+        # mda and explore tabbed
+        self.viewer.window._qt_window.tabifyDockWidget(
+            self.mda_dock, self.explorer_dock
         )
 
-    def _add_explorer_dock_wdg(self) -> QtViewerDockWidget:
-        return self.viewer.window.add_dock_widget(
-            self.explorer,
-            name="Explorer Widget",
-            area="right",
-            allowed_areas=["left", "right"],
+        # groups & presets
+        self._group_preset_wdg = self._add_dock_widget(
+            self._group_preset_table_wdg, "Groups&Presets"
         )
+        self._group_preset_wdg.setFloating(True)
+        self._group_preset_wdg._close_btn = False
+        self._group_preset_wdg.hide()
 
-    def _add_tabbed_dock(self, dockwidget: QDockWidget) -> None:
-        """Add dockwidgets in a tab."""
-        widgets = [
-            d
-            for d in self.viewer.window._qt_window.findChildren(QDockWidget)
-            if d.objectName() in {"MDA Widget", "Explorer Widget"}
-        ]
-        if len(widgets) > 1:
-            self.viewer.window._qt_window.tabifyDockWidget(widgets[0], dockwidget)
+        # illumination
+        self._illumination_wdg = self._add_dock_widget(
+            self._illumination, "Illumination Control"
+        )
+        self._illumination_wdg.setFloating(True)
+        self._illumination_wdg._close_btn = False
+        self._illumination_wdg.hide()
+
+        # stages
+        self._stages_wdg = self._add_dock_widget(self._stages, "Stages Control")
+        self._stages_wdg.setFloating(True)
+        self._stages_wdg._close_btn = False
+        self._stages_wdg.hide()
+
+        # camera roi
+        self._camera_roi = self._add_dock_widget(self._cam_roi, "Camera ROI")
+        self._camera_roi.setFloating(True)
+        self._camera_roi._close_btn = False
+        self._camera_roi.hide()
+
+        # property browser
+        self._prop_browser_wdg = self._add_dock_widget(
+            self._prop_browser, "Property Browser"
+        )
+        self._prop_browser_wdg.setFloating(True)
+        self._prop_browser_wdg._close_btn = False
+        self._prop_browser_wdg.hide()
+
+        # pixel size
+        self._px_size_wdg = self._add_dock_widget(self._px_size_table, "Pixel Size")
+        self._px_size_wdg.setFloating(True)
+        self._px_size_wdg._close_btn = False
+        self._px_size_wdg.hide()
 
     def _show_group_preset(self) -> None:
-        if not hasattr(self, "_group_preset_wdg"):
-            self._group_preset_wdg = self.viewer.window.add_dock_widget(
-                self._group_preset_table_wdg,
-                name="Groups&Presets",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._group_preset_wdg.setFloating(True)
-        else:
-            self._group_preset_wdg.show()
-            self._group_preset_wdg.raise_()
+        self._group_preset_wdg.show()
+        self._group_preset_wdg.raise_()
 
     def _show_illumination(self) -> None:
-        if not hasattr(self, "_illumination_wdg"):
-            self._illumination_wdg = self.viewer.window.add_dock_widget(
-                self._illumination,
-                name="Illumination Control",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._illumination_wdg.setFloating(True)
-        else:
-            self._illumination_wdg.show()
-            self._illumination_wdg.raise_()
+        self._illumination_wdg.show()
+        self._illumination_wdg.raise_()
 
     def _show_stages(self) -> None:
-        if not hasattr(self, "_stages_wdg"):
-            self._stages_wdg = self.viewer.window.add_dock_widget(
-                self._stages,
-                name="Stages Control",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._stages_wdg.setFloating(True)
-        else:
-            self._stages_wdg.show()
-            self._stages_wdg.raise_()
+        self._stages_wdg.show()
+        self._stages_wdg.raise_()
 
     def _show_cam_roi(self) -> None:
-        if not hasattr(self, "_camera_roi"):
-            self._camera_roi = self.viewer.window.add_dock_widget(
-                self._cam_roi,
-                name="Camera ROI",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._camera_roi.setFloating(True)
-        else:
-            self._camera_roi.show()
-            self._camera_roi.raise_()
+        self._camera_roi.show()
+        self._camera_roi.raise_()
 
     def _show_prop_browser(self) -> None:
-        if not hasattr(self, "_prop_browser_wdg"):
-            self._prop_browser_wdg = self.viewer.window.add_dock_widget(
-                self._prop_browser,
-                name="Property Browser",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._prop_browser_wdg.setFloating(True)
-        else:
-            self._prop_browser_wdg.show()
-            self._prop_browser_wdg.raise_()
+        self._prop_browser_wdg.show()
+        self._prop_browser_wdg.raise_()
 
     def _show_pixel_size_table(self) -> None:
-        if not hasattr(self, "_px_size_wdg"):
-            self._px_size_wdg = self.viewer.window.add_dock_widget(
-                self._px_size_table,
-                name="Pixel Size",
-                area="right",
-                allowed_areas=["bottom", "left", "right"],
-            )
-            self._px_size_wdg.setFloating(True)
-        else:
-            self._px_size_wdg.show()
-            self._px_size_wdg.raise_()
+        self._px_size_wdg.show()
+        self._px_size_wdg.raise_()
 
     def _show_mda(self) -> None:
-        try:
-            if self.mda_dock.isHidden():
-                self.mda_dock.show()
-        except RuntimeError:
-            self.mda_dock = self._add_mda_dock_wdg()
-            self._add_tabbed_dock(self.mda_dock)
-            self.mda_dock.show()
+        self.mda_dock.show()
         self.mda_dock.raise_()
 
     def _show_explorer(self) -> None:
-        try:
-            if self.explorer_dock.isHidden():
-                self.explorer_dock.show()
-        except RuntimeError:
-            self.explorer_dock = self._add_explorer_dock_wdg()
-            self._add_tabbed_dock(self.explorer_dock)
-            self.explorer_dock.show()
+        self.explorer_dock.show()
         self.explorer_dock.raise_()
 
     def _on_sys_cfg_loaded(self) -> None:
