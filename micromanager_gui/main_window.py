@@ -1021,7 +1021,9 @@ class MainWindow(MicroManagerWidget):
             [height + start_y, start_x],
         ]
 
-    def _update_cam_roi_layer(self, layer: napari.layers, event: Any) -> Generator:
+    def _update_cam_roi_layer(
+        self, viewer: napari.viewer.Viewer, event: Any
+    ) -> Generator:
 
         active_layer = self.viewer.layers.selection.active
         if not isinstance(active_layer, napari.layers.Shapes):
