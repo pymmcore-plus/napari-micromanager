@@ -15,6 +15,8 @@ class MMStagesWidget(QDialog):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
+        self.setWindowTitle("Stages Control")
+
         self.setAcceptDrops(True)
         self.main_layout = QHBoxLayout()
         self.main_layout.setContentsMargins(5, 5, 5, 5)

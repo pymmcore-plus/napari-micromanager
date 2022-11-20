@@ -24,7 +24,7 @@ from qtpy.QtWidgets import (
     QTabWidget,
     QVBoxLayout,
 )
-from superqt.utils import create_worker, ensure_main_thread
+from superqt.utils import create_worker, ensure_main_thread, signals_blocked
 from useq import MDASequence
 
 from . import _mda_meta
@@ -85,6 +85,8 @@ class MainWindow(MicroManagerWidget):
         self.explorer = SampleExplorer()
         self.hcs = HCSWidgetMain()
 
+        self._cam_roi = CamROI(parent=self)
+
         self.streaming_timer: QTimer | None = None
 
         self._mda_meta: SequenceMeta = None  # type: ignore
@@ -140,9 +142,6 @@ class MainWindow(MicroManagerWidget):
 
         self._add_dock_wdgs()
 
-        # plugins = self._add_plugins_toolbar()
-        # self.insertToolBar(self.shutters_toolbar, plugins)
-
         self.gp_button.clicked.connect(self._show_group_preset)
         self.ill_btn.clicked.connect(self._show_illumination)
         self.stage_btn.clicked.connect(self._show_stages)
@@ -151,9 +150,11 @@ class MainWindow(MicroManagerWidget):
         self.log_btn.clicked.connect(self._show_logger_options)
 
         self.cam_btn.clicked.connect(self._show_cam_roi)
-        # self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
-        # self.tab_wdg.cam_wdg.roiChanged.connect(self._on_roi_info)
-        # self.tab_wdg.cam_wdg.crop_btn.clicked.connect(self._on_crop_btn)
+        self._cam_roi._cam.roiChanged.connect(self._on_roi_info)
+        self._cam_roi._cam.crop_btn.clicked.connect(self._on_crop_btn)
+        self._cam_roi._cam.cam_roi_combo.currentTextChanged.connect(
+            self._on_cam_combo_changed
+        )
 
         self.mda_button.clicked.connect(self._show_mda)
         self.explorer_button.clicked.connect(self._show_explorer)
@@ -161,6 +162,7 @@ class MainWindow(MicroManagerWidget):
 
         # connect mouse click event
         self.viewer.mouse_drag_callbacks.append(self._mouse_right_click)
+        self.viewer.mouse_drag_callbacks.append(self._update_cam_roi_layer)
 
     def _add_dock_wdgs(self) -> None:
 
@@ -211,28 +213,22 @@ class MainWindow(MicroManagerWidget):
     def _show_group_preset(self) -> None:
         if not hasattr(self, "_group_preset_table_wdg"):
             self._group_preset_table_wdg = GroupPreset(parent=self)
-            self._group_preset_table_wdg.setWindowTitle("Groups & Presets")
         self._group_preset_table_wdg.show()
         self._group_preset_table_wdg.raise_()
 
     def _show_illumination(self) -> None:
         if not hasattr(self, "_illumination"):
             self._illumination = IlluminationWidget(parent=self)
-            self._illumination.setWindowTitle("Illumination")
         self._illumination.show()
         self._illumination.raise_()
 
     def _show_stages(self) -> None:
         if not hasattr(self, "_stages"):
             self._stages = MMStagesWidget(parent=self)
-            self._stages.setWindowTitle("Stages Control")
         self._stages.show()
         self._stages.raise_()
 
     def _show_cam_roi(self) -> None:
-        if not hasattr(self, "_cam_roi"):
-            self._cam_roi = CamROI(parent=self)
-            self._cam_roi.setWindowTitle("Camera ROI")
         self._cam_roi.show()
         self._cam_roi.raise_()
 
@@ -1050,89 +1046,142 @@ class MainWindow(MicroManagerWidget):
 
         self.explorer._rename_positions()
 
-    # def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
-    #     for layer in self.viewer.layers:
-    #         if layer.metadata.get("layer_id"):
-    #             return layer
+    def _on_cam_combo_changed(self, text: str) -> None:
+        if text not in {"Full Chip", "Custom ROI"}:
+            self._on_crop_btn()
 
-    # def _on_roi_info(
-    #     self, start_x: int, start_y: int, width: int, height: int, mode: str = ""
-    # ) -> None:
+    def _on_crop_btn(self):
+        with contextlib.suppress(Exception):
+            cam_roi_layer = self._get_roi_layer()
+            self.viewer.layers.remove(cam_roi_layer)
+        self.viewer.reset_view()
 
-    #     layers = {layer.name for layer in self.viewer.layers}
-    #     if "preview" not in layers:
-    #         self._mmc.snap()
+    def _on_roi_info(
+        self, start_x: int, start_y: int, width: int, height: int, mode: str = ""
+    ) -> None:
 
-    #     if mode == "Full":
-    #         self._on_crop_btn()
-    #         return
+        if mode != "Custom ROI":
+            self._on_crop_btn()
+            return
 
-    #     try:
-    #         cam_roi_layer = self._get_roi_layer()
-    #         cam_roi_layer.data = self._set_cam_roi_shape(
-    #             start_x, start_y, width, height
-    #         )
-    #     except AttributeError:
-    #         cam_roi_layer = self.viewer.add_shapes(name="set_cam_ROI")
-    #         cam_roi_layer.metadata["layer_id"] = "set_cam_ROI"
-    #         cam_roi_layer.data = self._set_cam_roi_shape(
-    #             start_x, start_y, width, height
-    #         )
+        self._cam_roi._cam.snap_checkbox.setChecked(True)
 
-    #     cam_roi_layer.mode = "select"
-    #     self.viewer.reset_view()
+        layers = {layer.name for layer in self.viewer.layers}
+        if "preview" not in layers:
+            self._mmc.snap()
 
-    # def _set_cam_roi_shape(
-    #     self, start_x: int, start_y: int, width: int, height: int
-    # ) -> List[list]:
-    #     return [
-    #         [start_y, start_x],
-    #         [start_y, width + start_x],
-    #         [height + start_y, width + start_x],
-    #         [height + start_y, start_x],
-    #     ]
+        try:
+            cam_roi_layer = self._get_roi_layer()
+            cam_roi_layer.data = self._set_cam_roi_shape(
+                start_x, start_y, width, height
+            )
+        except AttributeError:
+            cam_roi_layer = self.viewer.add_shapes(name="set_cam_ROI")
+            cam_roi_layer.metadata["layer_id"] = "set_cam_ROI"
+            cam_roi_layer.data = self._set_cam_roi_shape(
+                start_x, start_y, width, height
+            )
 
-    # def _on_crop_btn(self):
-    #     with contextlib.suppress(Exception):
-    #         cam_roi_layer = self._get_roi_layer()
-    #         self.viewer.layers.remove(cam_roi_layer)
-    #     self.viewer.reset_view()
+        cam_roi_layer.mode = "select"
+        self.viewer.reset_view()
 
-    # def _update_cam_roi_layer(self, layer, event) -> None:  # type: ignore
+    def _get_roi_layer(self) -> napari.layers.shapes.shapes.Shapes:
+        for layer in self.viewer.layers:
+            if layer.metadata.get("layer_id"):
+                return layer
 
-    #     active_layer = self.viewer.layers.selection.active
-    #     if not isinstance(active_layer, napari.layers.shapes.shapes.Shapes):
-    #         return
+    def _set_cam_roi_shape(
+        self, start_x: int, start_y: int, width: int, height: int
+    ) -> List[list]:
+        return [
+            [start_y, start_x],
+            [start_y, width + start_x],
+            [height + start_y, width + start_x],
+            [height + start_y, start_x],
+        ]
 
-    #     if active_layer.metadata.get("layer_id") != "set_cam_ROI":
-    #         return
+    def _update_cam_roi_layer(self, layer: napari.layers, event: Any) -> Generator:
 
-    #     # on mouse pressed
-    #     dragged = False
-    #     yield
-    #     # on mouse move
-    #     while event.type == "mouse_move":
-    #         dragged = True
-    #         yield
-    #     # on mouse release
-    #     if dragged:
-    #         if not active_layer.data:
-    #             return
-    #         data = active_layer.data[-1]
+        active_layer = self.viewer.layers.selection.active
+        if not isinstance(active_layer, napari.layers.Shapes):
+            return
 
-    #         x_max = self.tab_wdg.cam_wdg.chip_size_x
-    #         y_max = self.tab_wdg.cam_wdg.chip_size_y
+        if active_layer.metadata.get("layer_id") != "set_cam_ROI":
+            return
 
-    #         x = round(data[0][1])
-    #         y = round(data[0][0])
-    #         width = round(data[1][1] - x)
-    #         height = round(data[2][0] - y)
+        # on mouse pressed
+        dragged = False
+        yield
+        # on mouse move
+        while event.type == "mouse_move":
+            dragged = True
 
-    #         # change shape if out of cam area
-    #         if x + width >= x_max:
-    #             x = x - ((x + width) - x_max)
-    #         if y + height >= y_max:
-    #             y = y - ((y + height) - y_max)
+            if not active_layer.data:
+                return
 
-    #         cam = self._mmc.getCameraDevice()
-    #         self._mmc.events.roiSet.emit(cam, x, y, width, height)
+            data = active_layer.data[-1]
+
+            width_max = self._cam_roi._cam.chip_size_x
+            height_max = self._cam_roi._cam.chip_size_y
+
+            x = round(data[0][1])
+            y = round(data[0][0])
+            width = round(data[1][1] - x)
+            height = round(data[2][0] - y)
+
+            self._update_cam_roi_wdg(x, y, width, height)
+
+            x_new = x
+            y_new = y
+            new_width = width
+            new_height = height
+
+            x_new, y_new, new_width, new_height = self._check_roi_position(
+                width_max, height_max, x, y, width, height
+            )
+
+            if x_new != x or y_new != y or new_width != width or new_height != height:
+                new_data = [
+                    [y_new, x_new],
+                    [y_new, x_new + new_width],
+                    [y_new + new_height, x_new + new_width],
+                    [y_new + new_height, x_new],
+                ]
+                active_layer.data = new_data
+
+            yield
+        # on mouse release
+        if dragged:
+            return
+
+    def _update_cam_roi_wdg(self, x: int, y: int, width: int, height: int) -> None:
+        with signals_blocked(self._cam_roi._cam.start_x):
+            self._cam_roi._cam.start_x.setValue(x)
+        with signals_blocked(self._cam_roi._cam.start_y):
+            self._cam_roi._cam.start_y.setValue(y)
+        with signals_blocked(self._cam_roi._cam.roi_width):
+            self._cam_roi._cam.roi_width.setValue(width)
+        with signals_blocked(self._cam_roi._cam.roi_height):
+            self._cam_roi._cam.roi_height.setValue(height)
+        self._cam_roi._cam._update_lbl_info()
+
+    def _check_roi_position(
+        self, width_max: int, height_max: int, x: int, y: int, width: int, height: int
+    ) -> Tuple[int, int, int, int]:
+        if x < self._cam_roi._cam.start_x.value():
+            x = 0
+        if y < self._cam_roi._cam.start_y.value():
+            x = 0
+
+        if x > self._cam_roi._cam.start_x.value():
+            x -= (x + width) - width_max
+
+        if y > self._cam_roi._cam.start_y.value():
+            y -= (y + height) - height_max
+
+        if x + width >= width_max:
+            width = width_max - x
+        if y + height >= height_max:
+            height = height_max - y
+
+        return x, y, width, height
