@@ -30,7 +30,6 @@ from useq import MDASequence
 from . import _mda_meta
 from ._gui_objects._cam_roi_widget import CamROI
 from ._gui_objects._group_preset_widget import GroupPreset
-from ._gui_objects._hcs_widget import HCSWidgetMain
 from ._gui_objects._illumination_widget import IlluminationWidget
 from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._min_max_widget import MinMax
@@ -83,7 +82,6 @@ class MainWindow(MicroManagerWidget):
         self.minmax = MinMax()
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
-        self.hcs = HCSWidgetMain()
 
         self._cam_roi = CamROI(parent=self)
 
@@ -138,7 +136,6 @@ class MainWindow(MicroManagerWidget):
 
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
-        self.hcs.metadataInfo.connect(self._on_meta_info)
 
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
@@ -160,7 +157,6 @@ class MainWindow(MicroManagerWidget):
 
         self.mda_button.clicked.connect(self._show_mda)
         self.explorer_button.clicked.connect(self._show_explorer)
-        self.hcs_button.clicked.connect(self._show_hcs)
 
         # connect mouse click event
         self.viewer.mouse_drag_callbacks.append(self._mouse_right_click)
@@ -180,10 +176,6 @@ class MainWindow(MicroManagerWidget):
         self._add_tabbed_dock(self.explorer_dock)
         self.explorer_dock.hide()
 
-        self.hcs_dock = self._add_hcs_dock_wdg()
-        self._add_tabbed_dock(self.hcs_dock)
-        self.hcs_dock.hide()
-
     def _add_mda_dock_wdg(self) -> QtViewerDockWidget:
         return self.viewer.window.add_dock_widget(
             self.mda, name="MDA Widget", area="right", allowed_areas=["left", "right"]
@@ -197,17 +189,12 @@ class MainWindow(MicroManagerWidget):
             allowed_areas=["left", "right"],
         )
 
-    def _add_hcs_dock_wdg(self) -> QtViewerDockWidget:
-        return self.viewer.window.add_dock_widget(
-            self.hcs, name="HCS Widget", area="right", allowed_areas=["left", "right"]
-        )
-
     def _add_tabbed_dock(self, dockwidget: QDockWidget) -> None:
         """Add dockwidgets in a tab."""
         widgets = [
             d
             for d in self.viewer.window._qt_window.findChildren(QDockWidget)
-            if d.objectName() in {"MDA Widget", "Explorer Widget", "HCS Widget"}
+            if d.objectName() in {"MDA Widget", "Explorer Widget"}
         ]
         if len(widgets) > 1:
             self.viewer.window._qt_window.tabifyDockWidget(widgets[0], dockwidget)
@@ -290,16 +277,6 @@ class MainWindow(MicroManagerWidget):
             self._add_tabbed_dock(self.explorer_dock)
             self.explorer_dock.show()
         self.explorer_dock.raise_()
-
-    def _show_hcs(self) -> None:
-        try:
-            if self.hcs_dock.isHidden():
-                self.hcs_dock.show()
-        except RuntimeError:
-            self.hcs_dock = self._add_hcs_dock_wdg()
-            self._add_tabbed_dock(self.hcs_dock)
-            self.hcs_dock.show()
-        self.hcs_dock.raise_()
 
     def _on_sys_cfg_loaded(self) -> None:
         self._enable_tools_buttons(len(self._mmc.getLoadedDevices()) > 1)
@@ -416,10 +393,6 @@ class MainWindow(MicroManagerWidget):
                 shape, channels, labels = self._interpret_split_channels(sequence)
                 self._add_mda_channel_layers(tuple(shape), channels, sequence)
 
-        elif self._mda_meta.mode == "hcs":
-            shape, positions, labels = self._interpret_hcs_positions(sequence)
-            self._add_hcs_positions_layers(tuple(shape), positions, sequence)
-
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
 
@@ -485,34 +458,6 @@ class MainWindow(MicroManagerWidget):
             p_idx = labels.index("p")
             labels.pop(p_idx)
             shape.pop(p_idx)
-
-        return shape, positions, labels
-
-    def _interpret_hcs_positions(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
-        """Determine shape, positions and labels.
-
-        ...by removing positions index if not a multi-positions.
-        """
-        labels, shape = self._get_shape_and_labels(sequence)
-
-        positions = []
-        first_pos_name = sequence.stage_positions[0].name.split("_")[0]
-        self.multi_pos = 0
-        for p in sequence.stage_positions:
-            p_name = p.name.split("_")[0]
-            if f"{p_name}_" not in positions:
-                positions.append(f"{p_name}_")
-            elif p.name.split("_")[0] == first_pos_name:
-                self.multi_pos += 1
-
-        p_idx = labels.index("p")
-        if self.multi_pos == 0:
-            shape.pop(p_idx)
-            labels.pop(p_idx)
-        else:
-            shape[p_idx] = self.multi_pos + 1
 
         return shape, positions, labels
 
@@ -606,40 +551,6 @@ class MainWindow(MicroManagerWidget):
                 layergroups[key].add(lay)
         return layergroups
 
-    def _add_hcs_positions_layers(
-        self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
-    ) -> None:
-        """Create Zarr stores to back HCS and display as new viewer layer(s)."""
-        dtype = f"uint{self._mmc.getImageBitDepth()}"
-
-        for pos in positions:
-            id_ = pos + str(sequence.uid)
-            tmp = tempfile.TemporaryDirectory()
-
-            self._mda_temp_files[id_] = tmp
-            self._mda_temp_arrays[id_] = z = zarr.open(
-                str(tmp.name), shape=shape, dtype=dtype
-            )
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "HCS"
-
-            layer = self.viewer.add_image(z, name=f"{fname}_{id_}")
-
-            # set layer scale
-            scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
-            if len(sequence.z_plan) > 1:
-                if sequence.axis_order.index("z") == 3:
-                    scale[-3] = sequence.z_plan.step
-                elif sequence.axis_order.index("z") == 2:
-                    scale[-4] = sequence.z_plan.step
-            layer.scale = tuple(scale)
-
-            # add metadata to layer
-            layer.metadata["scale"] = tuple(scale)
-            layer.metadata["mode"] = self._mda_meta.mode
-            layer.metadata["useq_sequence"] = sequence
-            layer.metadata["uid"] = sequence.uid
-            layer.metadata["well"] = pos
-
     def _set_layer_scale(self, event: Any) -> None:
 
         layers: List[napari.layers.Image] = [
@@ -664,8 +575,6 @@ class MainWindow(MicroManagerWidget):
                 self._explorer_acquisition_translate(image, event, meta)
             else:
                 self._explorer_acquisition_stack(image, event)
-        elif meta.mode == "hcs":
-            self._hcs_acquisition(image, event)
 
     def _add_stage_pos_metadata(
         self, layer: napari.layers.Image, event: useq.MDAEvent
@@ -790,41 +699,6 @@ class MainWindow(MicroManagerWidget):
             else self.explorer.scan_size_c
         )
         self.viewer.camera.zoom = 1 / zoom_out_factor
-        self.viewer.reset_view()
-
-    def _hcs_acquisition(self, image: np.ndarray, event: useq.MDAEvent) -> None:
-        axis_order = list(event_indices(event))
-        if self.multi_pos == 0:
-            axis_order.remove("p")
-
-        # get the actual index of this image into the array
-        # add it to the zarr store
-        im_idx: Tuple[int, ...] = ()
-        for k in axis_order:
-            if k == "p" and self.multi_pos > 0:
-                im_idx = im_idx + (int(event.pos_name[-3:]),)
-            else:
-                im_idx = im_idx + (event.index[k],)
-
-        pos_name = event.pos_name.split("_")[0]
-        layer_name = f"{pos_name}_{event.sequence.uid}"
-        self._mda_temp_arrays[layer_name][im_idx] = image
-
-        # translate only once
-        fname = self._mda_meta.file_name if self._mda_meta.should_save else "HCS"
-        layer = self.viewer.layers[f"{fname}_{layer_name}"]
-
-        # move the viewer step to the most recently added image
-        for a, v in enumerate(im_idx):
-            self.viewer.dims.set_point(a, v)
-
-        layer.visible = False
-        layer.visible = True
-        layer.reset_contrast_limits()
-
-        # add stage position in metadata
-        self._add_stage_pos_metadata(layer, event)
-
         self.viewer.reset_view()
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
