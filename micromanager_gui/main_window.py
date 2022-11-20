@@ -1042,33 +1042,12 @@ class MainWindow(MicroManagerWidget):
 
             data = active_layer.data[-1]
 
-            width_max = self._cam_roi._cam.chip_size_x
-            height_max = self._cam_roi._cam.chip_size_y
-
             x = round(data[0][1])
             y = round(data[0][0])
             width = round(data[1][1] - x)
             height = round(data[2][0] - y)
 
             self._update_cam_roi_wdg(x, y, width, height)
-
-            x_new = x
-            y_new = y
-            new_width = width
-            new_height = height
-
-            x_new, y_new, new_width, new_height = self._check_roi_position(
-                width_max, height_max, x, y, width, height
-            )
-
-            if x_new != x or y_new != y or new_width != width or new_height != height:
-                new_data = [
-                    [y_new, x_new],
-                    [y_new, x_new + new_width],
-                    [y_new + new_height, x_new + new_width],
-                    [y_new + new_height, x_new],
-                ]
-                active_layer.data = new_data
 
             yield
         # on mouse release
@@ -1085,24 +1064,3 @@ class MainWindow(MicroManagerWidget):
         with signals_blocked(self._cam_roi._cam.roi_height):
             self._cam_roi._cam.roi_height.setValue(height)
         self._cam_roi._cam._update_lbl_info()
-
-    def _check_roi_position(
-        self, width_max: int, height_max: int, x: int, y: int, width: int, height: int
-    ) -> Tuple[int, int, int, int]:
-        if x < self._cam_roi._cam.start_x.value():
-            x = 0
-        if y < self._cam_roi._cam.start_y.value():
-            x = 0
-
-        if x > self._cam_roi._cam.start_x.value():
-            x -= (x + width) - width_max
-
-        if y > self._cam_roi._cam.start_y.value():
-            y -= (y + height) - height_max
-
-        if x + width >= width_max:
-            width = width_max - x
-        if y + height >= height_max:
-            height = height_max - y
-
-        return x, y, width, height
