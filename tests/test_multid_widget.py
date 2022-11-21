@@ -125,6 +125,10 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],
     )
+
+    _mda_meta.SEQUENCE_META[sequence] = _mda_meta.SequenceMeta(mode="mda")
+    main_window._on_meta_info(_mda_meta.SEQUENCE_META[sequence], sequence)
+
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
         mmc.run_mda(sequence)
 
