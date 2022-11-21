@@ -135,8 +135,6 @@ class MainWindow(MicroManagerWidget):
         self.explorer.metadataInfo.connect(self._on_meta_info)
         self.mda.metadataInfo.connect(self._on_meta_info)
 
-        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
-
         self._add_dock_widgets()
 
         self.gp_button.clicked.connect(self._show_group_preset)
@@ -169,6 +167,9 @@ class MainWindow(MicroManagerWidget):
         self.viewer.window._qt_window.setTabPosition(
             Qt.RightDockWidgetArea, QTabWidget.North
         )
+
+        # MinMAx
+        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
         # MDA
         self.mda_dock = self._add_dock_widget(self.mda, "MDA Widget")
@@ -602,6 +603,12 @@ class MainWindow(MicroManagerWidget):
         # move the viewer step to the most recently added image
         for a, v in enumerate(im_idx):
             self.viewer.dims.set_point(a, v)
+        # NOTE: this self.viewer.dims.set_point(a, v) seems to not work
+        # this can be an alternative way
+        # cs = list(self.viewer.dims.current_step)
+        # for a, v in enumerate(im_idx):
+        #     cs[a] = v
+        # self.viewer.dims.current_step = tuple(cs)
 
         # display
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
@@ -623,6 +630,10 @@ class MainWindow(MicroManagerWidget):
 
         for a, v in enumerate(im_idx):
             self.viewer.dims.set_point(a, v)
+        # cs = list(self.viewer.dims.current_step)
+        # for a, v in enumerate(im_idx):
+        #     cs[a] = v
+        # self.viewer.dims.current_step = tuple(cs)
 
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
@@ -668,6 +679,10 @@ class MainWindow(MicroManagerWidget):
 
         for a, v in enumerate(im_idx):
             self.viewer.dims.set_point(a, v)
+        # cs = list(self.viewer.dims.current_step)
+        # for a, v in enumerate(im_idx):
+        #     cs[a] = v
+        # self.viewer.dims.current_step = tuple(cs)
 
         layer.visible = False
         layer.visible = True
