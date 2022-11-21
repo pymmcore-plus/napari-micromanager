@@ -45,13 +45,6 @@ class MicroManagerWidget(QtW.QMainWindow):
 
         self._createToolBars()
 
-        base_wdg = QtW.QWidget()
-        base_wdg.setLayout(QtW.QVBoxLayout())
-        base_wdg.setSizePolicy(QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding)
-        self.layout().setContentsMargins(0, 0, 0, 0)
-        self.layout().addWidget(base_wdg)
-        self.setCentralWidget(base_wdg)
-
     def _createToolBars(self) -> None:
 
         cfg = self._add_cfg()
