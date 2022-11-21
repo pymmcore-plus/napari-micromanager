@@ -358,6 +358,9 @@ class MainWindow(MicroManagerWidget):
         """Create temp folder and block gui when mda starts."""
         self._enable_tools_buttons(False)
 
+        # pause acquisition until zarr layer(s) is(are) added
+        self._mmc.mda.toggle_pause()
+
         if self._mda_meta.mode in ["mda", ""]:
             # work out what the shapes of the mda layers will be
             # depends on whether the user selected Split Channels or not
@@ -376,6 +379,10 @@ class MainWindow(MicroManagerWidget):
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
+
+        # resume acquisition after zarr layer(s) is(are) added
+        if [i for i in self.viewer.layers if i.metadata.get("uid") == sequence.uid]:
+            self._mmc.mda.toggle_pause()
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
@@ -601,14 +608,14 @@ class MainWindow(MicroManagerWidget):
         self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
 
         # move the viewer step to the most recently added image
-        for a, v in enumerate(im_idx):
-            self.viewer.dims.set_point(a, v)
+        # for a, v in enumerate(im_idx):
+        #     self.viewer.dims.set_point(a, v)
         # NOTE: this self.viewer.dims.set_point(a, v) seems to not work
         # this can be an alternative way
-        # cs = list(self.viewer.dims.current_step)
-        # for a, v in enumerate(im_idx):
-        #     cs[a] = v
-        # self.viewer.dims.current_step = tuple(cs)
+        cs = list(self.viewer.dims.current_step)
+        for a, v in enumerate(im_idx):
+            cs[a] = v
+        self.viewer.dims.current_step = tuple(cs)
 
         # display
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
@@ -628,12 +635,12 @@ class MainWindow(MicroManagerWidget):
         im_idx = tuple(event.index[k] for k in axis_order)
         self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
 
-        for a, v in enumerate(im_idx):
-            self.viewer.dims.set_point(a, v)
-        # cs = list(self.viewer.dims.current_step)
         # for a, v in enumerate(im_idx):
-        #     cs[a] = v
-        # self.viewer.dims.current_step = tuple(cs)
+        #     self.viewer.dims.set_point(a, v)
+        cs = list(self.viewer.dims.current_step)
+        for a, v in enumerate(im_idx):
+            cs[a] = v
+        self.viewer.dims.current_step = tuple(cs)
 
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
