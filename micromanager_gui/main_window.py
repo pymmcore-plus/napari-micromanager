@@ -684,12 +684,12 @@ class MainWindow(MicroManagerWidget):
         for group in layergroups.values():
             link_layers(group)
 
-        for a, v in enumerate(im_idx):
-            self.viewer.dims.set_point(a, v)
-        # cs = list(self.viewer.dims.current_step)
         # for a, v in enumerate(im_idx):
-        #     cs[a] = v
-        # self.viewer.dims.current_step = tuple(cs)
+        #     self.viewer.dims.set_point(a, v)
+        cs = list(self.viewer.dims.current_step)
+        for a, v in enumerate(im_idx):
+            cs[a] = v
+        self.viewer.dims.current_step = tuple(cs)
 
         layer.visible = False
         layer.visible = True
