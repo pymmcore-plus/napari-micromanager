@@ -21,7 +21,7 @@ class MMStagesWidget(QDialog):
         self.main_layout.setSpacing(5)
         self.setLayout(self.main_layout)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self._mmc = CMMCorePlus.instance()
         self._on_cfg_loaded()
@@ -29,19 +29,22 @@ class MMStagesWidget(QDialog):
 
     def _on_cfg_loaded(self) -> None:
         self._clear()
+        sizepolicy = QSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         stage_dev_list = list(self._mmc.getLoadedDevicesOfType(DeviceType.XYStage))
         stage_dev_list.extend(iter(self._mmc.getLoadedDevicesOfType(DeviceType.Stage)))
         for stage_dev in stage_dev_list:
             if self._mmc.getDeviceType(stage_dev) is DeviceType.XYStage:
                 bx = _DragGroupBox("XY Control")
                 bx.setLayout(QHBoxLayout())
-                bx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                bx.setSizePolicy(sizepolicy)
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
             if self._mmc.getDeviceType(stage_dev) is DeviceType.Stage:
                 bx = _DragGroupBox("Z Control")
                 bx.setLayout(QHBoxLayout())
-                bx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                bx.setSizePolicy(sizepolicy)
                 bx.layout().addWidget(StageWidget(device=stage_dev))
                 self.layout().addWidget(bx)
         self.resize(self.sizeHint())
@@ -108,4 +111,4 @@ class _DragGroupBox(QGroupBox):
         mime = QMimeData()
         drag.setMimeData(mime)
         self.start_pos = event.pos().x()
-        drag.exec_(Qt.MoveAction)
+        drag.exec_(Qt.DropAction.MoveAction)

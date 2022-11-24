@@ -7,19 +7,21 @@ from qtpy.QtWidgets import QDialog, QSizePolicy, QVBoxLayout, QWidget
 class GroupPreset(QDialog):
     """Group and Preset Widget."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
+    def __init__(self, *, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent=parent)
 
         self.setLayout(QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
 
         self._gp = GroupPresetTableWidget()
-        self._gp.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._gp.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self._gp._mmc.mda.events.sequenceStarted.connect(self._on_started)
         self._gp._mmc.mda.events.sequenceFinished.connect(self._on_finished)
         self.layout().addWidget(self._gp)
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
     def _on_started(self) -> None:
         self.setEnabled(False)

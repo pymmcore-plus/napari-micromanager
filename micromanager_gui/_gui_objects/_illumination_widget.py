@@ -14,11 +14,11 @@ class IlluminationWidget(QDialog):
     def __init__(
         self,
         property_regex: str = "(Intensity|Power|test)s?",
-        parent: Optional[QWidget] = None,
         *,
+        parent: Optional[QWidget] = None,
         mmcore: Optional[CMMCorePlus] = None,
     ):
-        super().__init__(parent)
+        super().__init__(parent=parent)
 
         self.setLayout(QGridLayout())
 
@@ -30,7 +30,7 @@ class IlluminationWidget(QDialog):
 
         self._on_cfg_loaded()
 
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def _create_wdg(self) -> None:
 
@@ -44,7 +44,7 @@ class IlluminationWidget(QDialog):
         ]
         for i, (dev, prop) in enumerate(lights):
             self.layout().addWidget(QLabel(f"{dev}::{prop}"), i, 0)
-            self.layout().addWidget(PropertyWidget(dev, prop, core=self._mmc), i, 1)
+            self.layout().addWidget(PropertyWidget(dev, prop, mmcore=self._mmc), i, 1)
 
     def _on_cfg_loaded(self) -> None:
         self._clear()

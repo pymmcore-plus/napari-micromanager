@@ -7,8 +7,8 @@ from qtpy.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QWidget
 class MinMax(QWidget):
     """A Widget to display min and max layer grey values."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
+    def __init__(self, *, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent=parent)
 
         self.setLayout(QHBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)

@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     import napari.viewer
     import useq
     from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-    from pymmcore_plus.core.events import QCoreSignaler
 
 TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
@@ -79,8 +78,10 @@ class MainWindow(MicroManagerWidget):
         self._illumination = IlluminationWidget(parent=self)
         self._stages = MMStagesWidget(parent=self)
         self._cam_roi = CamROI(parent=self)
-        self._prop_browser = PropertyBrowser(self._mmc, self)
-        self._prop_browser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._prop_browser = PropertyBrowser(mmcore=self._mmc, parent=self)
+        self._prop_browser.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self._px_size_table = PixelSizeWidget(parent=self)
 
         self.streaming_timer: QTimer | None = None
@@ -88,14 +89,11 @@ class MainWindow(MicroManagerWidget):
         self._mda_meta: SequenceMeta = None  # type: ignore
 
         # connect mmcore signals
-        sig: QCoreSignaler = self._mmc.events
-
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        sig.exposureChanged.connect(self._update_live_exp)
-
-        sig.imageSnapped.connect(self.update_viewer)
-        sig.imageSnapped.connect(self._stop_live)
+        self._mmc.events.exposureChanged.connect(self._update_live_exp)
+        self._mmc.events.imageSnapped.connect(self.update_viewer)
+        self._mmc.events.imageSnapped.connect(self._stop_live)
 
         # mda events
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
@@ -103,8 +101,8 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
         # self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
-        self._mmc.events.startContinuousSequenceAcquisition.connect(self._start_live)
-        self._mmc.events.stopSequenceAcquisition.connect(self._stop_live)
+        self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
+        self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
         self._mmc.events.systemConfigurationLoaded.connect(self._on_sys_cfg_loaded)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
@@ -165,7 +163,7 @@ class MainWindow(MicroManagerWidget):
     def _add_dock_widgets(self) -> None:
 
         self.viewer.window._qt_window.setTabPosition(
-            Qt.RightDockWidgetArea, QTabWidget.North
+            Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
         )
 
         # MinMAx
@@ -926,19 +924,27 @@ class MainWindow(MicroManagerWidget):
         idx = self.mda._add_position_row()
 
         name = QTableWidgetItem("Pos000")
-        name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        name.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.mda.stage_tableWidget.setItem(idx, 0, name)
 
         xpos = QTableWidgetItem(str(x))
-        xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        xpos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.mda.stage_tableWidget.setItem(idx, 1, xpos)
 
         ypos = QTableWidgetItem(str(y))
-        ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        ypos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.mda.stage_tableWidget.setItem(idx, 2, ypos)
 
         zpos = QTableWidgetItem(str(z) if z is not None else "")
-        zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        zpos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.mda.stage_tableWidget.setItem(idx, 3, zpos)
 
         self.mda._rename_positions(["Pos"])
@@ -952,19 +958,24 @@ class MainWindow(MicroManagerWidget):
 
         name = QTableWidgetItem("Grid_000")
         name.setWhatsThis("Grid_000")
-        name.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        name.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.explorer.stage_tableWidget.setItem(idx, 0, name)
-
         xpos = QTableWidgetItem(str(x))
-        xpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        xpos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.explorer.stage_tableWidget.setItem(idx, 1, xpos)
-
         ypos = QTableWidgetItem(str(y))
-        ypos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        ypos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.explorer.stage_tableWidget.setItem(idx, 2, ypos)
-
         zpos = QTableWidgetItem(str(z) if z is not None else "")
-        zpos.setTextAlignment(int(Qt.AlignHCenter | Qt.AlignVCenter))
+        zpos.setTextAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.explorer.stage_tableWidget.setItem(idx, 3, zpos)
 
         self.explorer._rename_positions()

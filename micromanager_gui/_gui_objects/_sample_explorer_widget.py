@@ -28,7 +28,7 @@ class SampleExplorer(SampleExplorerWidget):
     metadataInfo = Signal(SequenceMeta, MDASequence)
 
     def __init__(
-        self, parent: Optional[QWidget] = None, *, mmcore: Optional[CMMCorePlus] = None
+        self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
@@ -45,7 +45,7 @@ class SampleExplorer(SampleExplorerWidget):
     def _create_save_group(self) -> QGroupBox:
 
         group = QGroupBox(title="Save Scan")
-        group.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed))
+        group.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         group.setCheckable(True)
         group.setChecked(False)
         group_layout = QVBoxLayout()
@@ -59,9 +59,9 @@ class SampleExplorer(SampleExplorerWidget):
         dir_group_layout.setSpacing(5)
         dir_group_layout.setContentsMargins(0, 10, 0, 5)
         dir_group.setLayout(dir_group_layout)
-        lbl_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        lbl_sizepolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         min_lbl_size = 80
-        btn_sizepolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        btn_sizepolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         dir_lbl = QLabel(text="Directory:")
         dir_lbl.setMinimumWidth(min_lbl_size)
         dir_lbl.setSizePolicy(lbl_sizepolicy)
@@ -100,7 +100,7 @@ class SampleExplorer(SampleExplorerWidget):
         group_layout.setContentsMargins(10, 15, 10, 15)
         group.setLayout(group_layout)
 
-        fixed_policy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        fixed_policy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         self.radiobtn_grid = QRadioButton(text=" grid (layers translation)")
         self.radiobtn_grid.setSizePolicy(fixed_policy)
@@ -110,12 +110,14 @@ class SampleExplorer(SampleExplorerWidget):
 
         group_layout.addWidget(self.radiobtn_grid)
 
-        spacer = QSpacerItem(30, 10, QSizePolicy.Fixed, QSizePolicy.Fixed)
+        spacer = QSpacerItem(30, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         group_layout.addItem(spacer)
 
         group_layout.addWidget(radiobtn_multid_stack)
 
-        spacer = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Expanding)
+        spacer = QSpacerItem(
+            10, 10, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         group_layout.addItem(spacer)
 
         return group
@@ -123,7 +125,7 @@ class SampleExplorer(SampleExplorerWidget):
     def _set_explorer_dir(self) -> None:
         # set the directory
         self.dir = QFileDialog(self)
-        self.dir.setFileMode(QFileDialog.DirectoryOnly)
+        self.dir.setFileMode(QFileDialog.FileMode.DirectoryOnly)
         self.save_dir = QFileDialog.getExistingDirectory(self.dir)
         self.dir_explorer_lineEdit.setText(self.save_dir)
         self.parent_path = Path(self.save_dir)

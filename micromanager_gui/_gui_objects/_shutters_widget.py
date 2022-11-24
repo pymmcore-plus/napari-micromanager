@@ -2,19 +2,19 @@ from typing import Optional
 
 from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import ShuttersWidget
-from qtpy import QtWidgets as QtW
+from qtpy.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 
 
-class MMShuttersWidget(QtW.QWidget):
+class MMShuttersWidget(QWidget):
     """Create shutter widget."""
 
     def __init__(self, mmcore: Optional[CMMCorePlus] = None) -> None:
         super().__init__()
 
-        self.setLayout(QtW.QHBoxLayout())
+        self.setLayout(QHBoxLayout())
         self.layout().setSpacing(3)
         self.layout().setContentsMargins(0, 0, 0, 0)
-        sizepolicy_btn = QtW.QSizePolicy(QtW.QSizePolicy.Fixed, QtW.QSizePolicy.Fixed)
+        sizepolicy_btn = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.setSizePolicy(sizepolicy_btn)
 
         self._mmc = mmcore or CMMCorePlus.instance()
