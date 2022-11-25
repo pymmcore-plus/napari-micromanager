@@ -36,19 +36,26 @@ class MultiDWidget(MDAWidget):
         v_layout = cast(QVBoxLayout, self._wdg.layout())
         v_layout.insertWidget(0, self.save_groupBox)
 
+        self.channel_groupbox.setMinimumHeight(230)
         self.checkBox_split_channels = QCheckBox(text="Split Channels")
-        g_layout = cast(QGridLayout, self.channel_groupBox.layout())
-        g_layout.addWidget(self.checkBox_split_channels, 3, 0, 1, 1)
+        g_layout = cast(QGridLayout, self.channel_groupbox.layout())
+        g_layout.addWidget(self.checkBox_split_channels, 1, 0)
 
-        self.run_Button.clicked.connect(self._send_meta)
+        self.buttons_wdg.run_button.clicked.connect(self._send_meta)
 
-        self.browse_save_Button.clicked.connect(self._set_multi_d_acq_dir)
+        self.browse_save_button.clicked.connect(self._set_multi_d_acq_dir)
         self.save_groupBox.toggled.connect(self._toggle_checkbox_save_pos)
         self.stage_pos_groupBox.toggled.connect(self._toggle_checkbox_save_pos)
 
-        self.add_pos_Button.clicked.connect(self._toggle_checkbox_save_pos)
-        self.remove_pos_Button.clicked.connect(self._toggle_checkbox_save_pos)
-        self.clear_pos_Button.clicked.connect(self._toggle_checkbox_save_pos)
+        self.stage_pos_groupBox.add_pos_button.clicked.connect(
+            self._toggle_checkbox_save_pos
+        )
+        self.stage_pos_groupBox.remove_pos_button.clicked.connect(
+            self._toggle_checkbox_save_pos
+        )
+        self.stage_pos_groupBox.clear_pos_button.clicked.connect(
+            self._toggle_checkbox_save_pos
+        )
 
     def _create_save_group(self) -> QGroupBox:
         group = QGroupBox(title="Save MultiD Acquisition")
@@ -72,11 +79,11 @@ class MultiDWidget(MDAWidget):
         dir_lbl.setMinimumWidth(min_lbl_size)
         dir_lbl.setSizePolicy(sizepolicy)
         self.dir_lineEdit = QLineEdit()
-        self.browse_save_Button = QPushButton(text="...")
-        self.browse_save_Button.setSizePolicy(sizepolicy)
+        self.browse_save_button = QPushButton(text="...")
+        self.browse_save_button.setSizePolicy(sizepolicy)
         dir_group_layout.addWidget(dir_lbl)
         dir_group_layout.addWidget(self.dir_lineEdit)
-        dir_group_layout.addWidget(self.browse_save_Button)
+        dir_group_layout.addWidget(self.browse_save_button)
 
         # filename
         fname_group = QWidget()
@@ -114,7 +121,7 @@ class MultiDWidget(MDAWidget):
     def _toggle_checkbox_save_pos(self) -> None:
         if (
             self.stage_pos_groupBox.isChecked()
-            and self.stage_tableWidget.rowCount() > 0
+            and self.stage_pos_groupBox.stage_tableWidget.rowCount() > 0
         ):
             self.checkBox_save_pos.setEnabled(True)
 

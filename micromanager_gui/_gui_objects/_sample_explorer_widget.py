@@ -32,15 +32,17 @@ class SampleExplorer(SampleExplorerWidget):
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
-        self.save_explorer_groupBox = self._create_save_group()
+        self.channel_groupbox.setMinimumHeight(175)
+
+        self.save_explorer_groupbox = self._create_save_group()
         v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
-        v_layout.insertWidget(0, self.save_explorer_groupBox)
+        v_layout.insertWidget(0, self.save_explorer_groupbox)
 
         self.checkbox = self._create_radiobtn()
         v_layout.insertWidget(4, self.checkbox)
 
         self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
-        self.start_scan_Button.clicked.connect(self._send_meta)
+        self.buttons_wdg.run_button.clicked.connect(self._send_meta)
 
     def _create_save_group(self) -> QGroupBox:
 
@@ -165,15 +167,15 @@ class SampleExplorer(SampleExplorerWidget):
     def _set_translate_point_list(self) -> List[Tuple[float, float, int, int]]:
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
-        if self.stage_tableWidget.rowCount() > 0:
-            t_list = t_list * self.stage_tableWidget.rowCount()
+        if self.stage_pos_groupBox.stage_tableWidget.rowCount() > 0:
+            t_list = t_list * self.stage_pos_groupBox.stage_tableWidget.rowCount()
         return t_list
 
     def _send_meta(self) -> None:
         sequence = self.get_state()
         SEQUENCE_META[sequence] = SequenceMeta(
             mode="explorer",
-            should_save=self.save_explorer_groupBox.isChecked(),
+            should_save=self.save_explorer_groupbox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
             save_dir=self.dir_explorer_lineEdit.text()
             or str(Path(__file__).parent.parent.parent),
