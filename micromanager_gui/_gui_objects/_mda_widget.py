@@ -32,9 +32,9 @@ class MultiDWidget(MDAWidget):
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
-        self.save_groupBox = self._create_save_group()
+        self.save_groupbox = self._create_save_group()
         v_layout = cast(QVBoxLayout, self._wdg.layout())
-        v_layout.insertWidget(0, self.save_groupBox)
+        v_layout.insertWidget(0, self.save_groupbox)
 
         self.channel_groupbox.setMinimumHeight(230)
         self.checkBox_split_channels = QCheckBox(text="Split Channels")
@@ -44,16 +44,16 @@ class MultiDWidget(MDAWidget):
         self.buttons_wdg.run_button.clicked.connect(self._send_meta)
 
         self.browse_save_button.clicked.connect(self._set_multi_d_acq_dir)
-        self.save_groupBox.toggled.connect(self._toggle_checkbox_save_pos)
-        self.stage_pos_groupBox.toggled.connect(self._toggle_checkbox_save_pos)
+        self.save_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
+        self.stage_pos_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
 
-        self.stage_pos_groupBox.add_pos_button.clicked.connect(
+        self.stage_pos_groupbox.add_pos_button.clicked.connect(
             self._toggle_checkbox_save_pos
         )
-        self.stage_pos_groupBox.remove_pos_button.clicked.connect(
+        self.stage_pos_groupbox.remove_pos_button.clicked.connect(
             self._toggle_checkbox_save_pos
         )
-        self.stage_pos_groupBox.clear_pos_button.clicked.connect(
+        self.stage_pos_groupbox.clear_pos_button.clicked.connect(
             self._toggle_checkbox_save_pos
         )
 
@@ -120,8 +120,8 @@ class MultiDWidget(MDAWidget):
 
     def _toggle_checkbox_save_pos(self) -> None:
         if (
-            self.stage_pos_groupBox.isChecked()
-            and self.stage_pos_groupBox.stage_tableWidget.rowCount() > 0
+            self.stage_pos_groupbox.isChecked()
+            and self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0
         ):
             self.checkBox_save_pos.setEnabled(True)
 
@@ -134,7 +134,7 @@ class MultiDWidget(MDAWidget):
         SEQUENCE_META[sequence] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),
-            should_save=self.save_groupBox.isChecked(),
+            should_save=self.save_groupbox.isChecked(),
             file_name=self.fname_lineEdit.text(),
             save_dir=self.dir_lineEdit.text()
             or str(Path(__file__).parent.parent.parent),

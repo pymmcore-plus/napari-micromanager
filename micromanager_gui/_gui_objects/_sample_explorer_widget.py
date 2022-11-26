@@ -167,8 +167,8 @@ class SampleExplorer(SampleExplorerWidget):
     def _set_translate_point_list(self) -> List[Tuple[float, float, int, int]]:
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
-        if self.stage_pos_groupBox.stage_tableWidget.rowCount() > 0:
-            t_list = t_list * self.stage_pos_groupBox.stage_tableWidget.rowCount()
+        if self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0:
+            t_list = t_list * self.stage_pos_groupbox.stage_tableWidget.rowCount()
         return t_list
 
     def _send_meta(self) -> None:

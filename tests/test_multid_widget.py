@@ -50,16 +50,16 @@ def test_saving_mda(
 
     NAME = "test_mda"
     _mda = main_window.mda
-    _mda.save_groupBox.setChecked(True)
+    _mda.save_groupbox.setChecked(True)
     _mda.dir_lineEdit.setText(str(tmp_path))
     _mda.fname_lineEdit.setText(NAME)
 
-    _mda.time_groupBox.setChecked(bool(T))
+    _mda.time_groupbox.setChecked(bool(T))
     _mda.time_comboBox.setCurrentText("ms")
     _mda.timepoints_spinBox.setValue(3)
     _mda.interval_spinBox.setValue(250)
 
-    _mda.stack_groupBox.setChecked(bool(Z))
+    _mda.stack_groupbox.setChecked(bool(Z))
     _mda.zrange_spinBox.setValue(3)
     _mda.step_size_doubleSpinBox.setValue(1)
 

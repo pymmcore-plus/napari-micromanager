@@ -99,7 +99,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 #     explorer.add_ch_explorer_Button.click()
 #     explorer.channel_explorer_comboBox.setCurrentText("FITC")
 
-#     explorer.save_explorer_groupBox.setChecked(False)
+#     explorer.save_explorer_groupbox.setChecked(False)
 
 #     sequence = None
 
