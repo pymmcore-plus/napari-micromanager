@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pymmcore_widgets import (
+    CameraRoiWidget,
     ConfigurationWidget,
     GroupPresetTableWidget,
     ObjectivesWidget,
@@ -10,9 +11,8 @@ from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
 from superqt import QCollapsible
 
-from ._camera_widget import MMCameraWidget
-from ._mda_widget._mda_widget import MMMultiDWidget
-from ._sample_explorer_widget._sample_explorer_widget import MMExploreSample
+from ._mda_widget import MultiDWidget
+from ._sample_explorer_widget import SampleExplorer
 from ._shutters_widget import MMShuttersWidget
 from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
@@ -26,14 +26,14 @@ class MicroManagerWidget(QtW.QWidget):
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
-        self.cam_wdg = MMCameraWidget()
+        self.cam_wdg = CameraRoiWidget()
         self.stage_wdg = MMStagesWidget()
         self.illum_btn = QtW.QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
-        self.mda = MMMultiDWidget()
-        self.explorer = MMExploreSample()
+        self.mda = MultiDWidget()
+        self.explorer = SampleExplorer()
         self.create_gui()
 
     def create_gui(self):
@@ -127,5 +127,5 @@ class MicroManagerWidget(QtW.QWidget):
 
     def _show_illum_dialog(self):
         if not hasattr(self, "_illumination"):
-            self._illumination = SliderDialog("(Intensity|Power|test)s?", self)
+            self._illumination = SliderDialog("(Intensity|Power|test)s?", parent=self)
         self._illumination.show()

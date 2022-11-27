@@ -1,8 +1,7 @@
 """Metadata class for managing MDAs."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Literal, Union
+from dataclasses import dataclass, field
 
 from useq import MDASequence
 
@@ -14,17 +13,16 @@ __all__ = [
 
 @dataclass
 class SequenceMeta:
-    """Metadata associated with an MDA sequence.
+    """Metadata associated with an MDA sequence."""
 
-    TODO: much of this may well move to useq-schema.
-    """
-
-    mode: Union[Literal["mda"], Literal["explorer"], Literal[""]] = ""
+    mode: str = ""
     split_channels: bool = False
     should_save: bool = False
     file_name: str = ""
     save_dir: str = ""
     save_pos: bool = False
+    translate_explorer: bool = False
+    explorer_translation_points: list = field(default_factory=list)
 
 
 SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
