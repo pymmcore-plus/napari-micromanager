@@ -7,8 +7,17 @@ from pymmcore_widgets import (
     ObjectivesWidget,
     SliderDialog,
 )
-from qtpy import QtWidgets as QtW
 from qtpy.QtCore import Qt
+from qtpy.QtWidgets import (
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from superqt import QCollapsible
 
 from ._mda_widget import MultiDWidget
@@ -18,53 +27,53 @@ from ._tab_widget import MMTabWidget
 from ._xyz_stages import MMStagesWidget
 
 
-class MicroManagerWidget(QtW.QWidget):
+class MicroManagerWidget(QWidget):
     """GUI elements for the Main Window."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # sub_widgets
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
         self.cam_wdg = CameraRoiWidget()
         self.stage_wdg = MMStagesWidget()
-        self.illum_btn = QtW.QPushButton("Light Sources")
+        self.illum_btn = QPushButton("Light Sources")
         self.illum_btn.clicked.connect(self._show_illum_dialog)
         self.tab_wdg = MMTabWidget()
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
 
-        self.setLayout(QtW.QVBoxLayout())
+        self.setLayout(QVBoxLayout())
         self.layout().setSpacing(10)
         self.layout().setContentsMargins(10, 10, 10, 10)
 
         # general scroll area
-        scroll = QtW.QScrollArea()
+        scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._wdg = self._create_gui()
         scroll.setWidget(self._wdg)
         self.layout().addWidget(scroll)
 
-    def _create_gui(self) -> QtW.QWidget:
+    def _create_gui(self) -> QWidget:
 
         # main widget
-        wdg = QtW.QWidget()
-        main_layout = QtW.QVBoxLayout()
+        wdg = QWidget()
+        main_layout = QVBoxLayout()
         main_layout.setContentsMargins(10, 0, 10, 0)
         main_layout.setSpacing(3)
-        main_layout.setAlignment(Qt.AlignCenter)
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         wdg.setLayout(main_layout)
         # add cfg_wdg
         main_layout.addWidget(self.cfg_wdg)
         # add microscope collapsible
-        self.mic_group = QtW.QGroupBox()
-        self.mic_group_layout = QtW.QVBoxLayout()
+        self.mic_group = QGroupBox()
+        self.mic_group_layout = QVBoxLayout()
         self.mic_group_layout.setSpacing(0)
         self.mic_group_layout.setContentsMargins(1, 0, 1, 1)
-        coll_sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Minimum, QtW.QSizePolicy.Fixed
+        coll_sizepolicy = QSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
         self.mic_coll = QCollapsible(title="Microscope")
         self.mic_coll.layout().setSpacing(0)
@@ -84,8 +93,8 @@ class MicroManagerWidget(QtW.QWidget):
         main_layout.addWidget(self.mic_group)
 
         # add stages collapsible
-        self.stages_group = QtW.QGroupBox()
-        self.stages_group_layout = QtW.QVBoxLayout()
+        self.stages_group = QGroupBox()
+        self.stages_group_layout = QVBoxLayout()
         self.stages_group_layout.setSpacing(0)
         self.stages_group_layout.setContentsMargins(1, 0, 1, 1)
 
@@ -111,8 +120,8 @@ class MicroManagerWidget(QtW.QWidget):
         return wdg
 
     def add_camera_widget(self):
-        self.cam_group = QtW.QWidget()
-        self.cam_group_layout = QtW.QGridLayout()
+        self.cam_group = QWidget()
+        self.cam_group_layout = QGridLayout()
         self.cam_group_layout.setSpacing(0)
         self.cam_group_layout.setContentsMargins(5, 5, 5, 5)
         self.cam_group_layout.addWidget(self.cam_wdg)
@@ -120,8 +129,8 @@ class MicroManagerWidget(QtW.QWidget):
         return self.cam_group
 
     def add_mm_objectives_widget(self):
-        obj_wdg = QtW.QWidget()
-        obj_wdg_layout = QtW.QHBoxLayout()
+        obj_wdg = QWidget()
+        obj_wdg_layout = QHBoxLayout()
         obj_wdg_layout.setContentsMargins(5, 5, 5, 5)
         obj_wdg_layout.setSpacing(7)
         obj_wdg_layout.addWidget(self.obj_wdg)
@@ -129,8 +138,8 @@ class MicroManagerWidget(QtW.QWidget):
         return obj_wdg
 
     def add_shutter_widgets(self):
-        shutter_wdg = QtW.QWidget()
-        shutter_wdg_layout = QtW.QHBoxLayout()
+        shutter_wdg = QWidget()
+        shutter_wdg_layout = QHBoxLayout()
         shutter_wdg_layout.setContentsMargins(5, 5, 5, 5)
         shutter_wdg_layout.setSpacing(7)
         shutter_wdg_layout.addWidget(self.shutter_wdg)

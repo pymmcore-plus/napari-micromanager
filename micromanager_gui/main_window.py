@@ -13,9 +13,9 @@ from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PropertyBrowser
-from qtpy import QtWidgets as QtW
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
+from qtpy.QtWidgets import QMenu, QSizePolicy
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
@@ -52,8 +52,8 @@ class MainWindow(MicroManagerWidget):
             )
 
         # add mda and explorer tabs to mm_tab widget
-        sizepolicy = QtW.QSizePolicy(
-            QtW.QSizePolicy.Expanding, QtW.QSizePolicy.Expanding
+        sizepolicy = QSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.tab_wdg.setSizePolicy(sizepolicy)
 
@@ -112,7 +112,7 @@ class MainWindow(MicroManagerWidget):
 
     def _add_menu(self):
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
-        self._menu = QtW.QMenu("&Micro-Manager", w._qt_window)
+        self._menu = QMenu("&Micro-Manager", w._qt_window)
 
         action = self._menu.addAction("Device Property Browser...")
         action.triggered.connect(self._show_prop_browser)
