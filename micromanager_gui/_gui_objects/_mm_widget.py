@@ -34,16 +34,30 @@ class MicroManagerWidget(QtW.QWidget):
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
-        self.create_gui()
 
-    def create_gui(self):
+        self.setLayout(QtW.QVBoxLayout())
+        self.layout().setSpacing(10)
+        self.layout().setContentsMargins(10, 10, 10, 10)
+
+        # general scroll area
+        scroll = QtW.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._wdg = self._create_gui()
+        scroll.setWidget(self._wdg)
+        self.layout().addWidget(scroll)
+
+    def _create_gui(self) -> QtW.QWidget:
+
         # main widget
-        self.main_layout = QtW.QVBoxLayout()
-        self.main_layout.setContentsMargins(10, 0, 10, 0)
-        self.main_layout.setSpacing(3)
-        self.main_layout.setAlignment(Qt.AlignCenter)
+        wdg = QtW.QWidget()
+        main_layout = QtW.QVBoxLayout()
+        main_layout.setContentsMargins(10, 0, 10, 0)
+        main_layout.setSpacing(3)
+        main_layout.setAlignment(Qt.AlignCenter)
+        wdg.setLayout(main_layout)
         # add cfg_wdg
-        self.main_layout.addWidget(self.cfg_wdg)
+        main_layout.addWidget(self.cfg_wdg)
         # add microscope collapsible
         self.mic_group = QtW.QGroupBox()
         self.mic_group_layout = QtW.QVBoxLayout()
@@ -67,7 +81,7 @@ class MicroManagerWidget(QtW.QWidget):
         self.mic_coll.expand(animate=False)
         self.mic_group_layout.addWidget(self.mic_coll)
         self.mic_group.setLayout(self.mic_group_layout)
-        self.main_layout.addWidget(self.mic_group)
+        main_layout.addWidget(self.mic_group)
 
         # add stages collapsible
         self.stages_group = QtW.QGroupBox()
@@ -84,18 +98,17 @@ class MicroManagerWidget(QtW.QWidget):
 
         self.stages_group_layout.addWidget(self.stages_coll)
         self.stages_group.setLayout(self.stages_group_layout)
-        self.main_layout.addWidget(self.stages_group)
+        main_layout.addWidget(self.stages_group)
 
         self.group_preset_table_wdg = GroupPresetTableWidget()
 
         # add tab widget
-        self.main_layout.addWidget(self.tab_wdg)
+        main_layout.addWidget(self.tab_wdg)
         self.tab_wdg.tabWidget.addTab(self.mda, "Multi-D Acquisition")
         self.tab_wdg.tabWidget.addTab(self.explorer, "Sample Explorer")
         self.tab_wdg.tabWidget.addTab(self.group_preset_table_wdg, "Groups and Presets")
 
-        # set main_layout layout
-        self.setLayout(self.main_layout)
+        return wdg
 
     def add_camera_widget(self):
         self.cam_group = QtW.QWidget()
