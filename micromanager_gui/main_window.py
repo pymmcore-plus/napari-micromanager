@@ -465,6 +465,7 @@ class MainWindow(MicroManagerWidget):
             )
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+            layer.visible = False
 
             # set layer scale
             scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
@@ -502,6 +503,7 @@ class MainWindow(MicroManagerWidget):
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
 
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+            layer.visible = False
 
             # set layer scale
             scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
@@ -610,12 +612,14 @@ class MainWindow(MicroManagerWidget):
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer_name = f"{fname}_{event.sequence.uid}{channel}"
         layer = self.viewer.layers[layer_name]
-        layer.visible = False
-        layer.visible = True
+        if not layer.visible:
+            layer.visible = True
+        # layer.visible = False
+        # layer.visible = True
         layer.reset_contrast_limits()
 
         # add stage position in metadata
-        self._add_stage_pos_metadata(layer, event)
+        # self._add_stage_pos_metadata(layer, event)
 
     def _explorer_acquisition_stack(
         self, image: np.ndarray, event: useq.MDAEvent
@@ -633,8 +637,10 @@ class MainWindow(MicroManagerWidget):
 
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
-        layer.visible = False
-        layer.visible = True
+        if not layer.visible:
+            layer.visible = True
+        # layer.visible = False
+        # layer.visible = True
         layer.reset_contrast_limits()
 
         self._add_stage_pos_metadata(layer, event)

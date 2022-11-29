@@ -38,6 +38,10 @@ class MultiDWidget(MDAWidget):
 
         self.channel_groupbox.setMinimumHeight(230)
         self.checkBox_split_channels = QCheckBox(text="Split Channels")
+        self.checkBox_split_channels.toggled.connect(self._on_split_channel_toggled)
+        self.channel_groupbox.channel_tableWidget.model().rowsRemoved.connect(
+            self._on_split_channel_toggled
+        )
         g_layout = cast(QGridLayout, self.channel_groupbox.layout())
         g_layout.addWidget(self.checkBox_split_channels, 1, 0)
 
@@ -109,6 +113,10 @@ class MultiDWidget(MDAWidget):
         group_layout.addWidget(self.checkBox_save_pos)
 
         return group
+
+    def _on_split_channel_toggled(self) -> None:
+        if self.channel_groupbox.channel_tableWidget.rowCount() <= 1:
+            self.checkBox_split_channels.setChecked(False)
 
     def _set_multi_d_acq_dir(self) -> None:
         # set the directory
