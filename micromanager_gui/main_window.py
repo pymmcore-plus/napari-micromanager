@@ -684,7 +684,7 @@ class MainWindow(MicroManagerWidget):
 
         if not layer.visible:
             layer.visible = True
-        # layer.reset_contrast_limits()
+        layer.reset_contrast_limits()
 
         zoom_out_factor = (
             self.explorer.scan_size_r
