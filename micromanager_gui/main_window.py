@@ -334,6 +334,7 @@ class MainWindow(MicroManagerWidget):
             )
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+            layer.visible = False
 
             # add metadata to layer
             layer.metadata["mode"] = self._mda_meta.mode
@@ -362,8 +363,8 @@ class MainWindow(MicroManagerWidget):
                 str(tmp.name), shape=shape, dtype=dtype
             )
             fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
-
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
+            layer.visible = False
 
             # add metadata to layer
             layer.metadata["mode"] = self._mda_meta.mode
@@ -428,9 +429,9 @@ class MainWindow(MicroManagerWidget):
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer_name = f"{fname}_{event.sequence.uid}{channel}"
         layer = self.viewer.layers[layer_name]
-        layer.visible = False
-        layer.visible = True
-        layer.reset_contrast_limits()
+        if not layer.visible:
+            layer.visible = True
+        # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
         self, image: np.ndarray, event: useq.MDAEvent
@@ -450,8 +451,8 @@ class MainWindow(MicroManagerWidget):
 
         fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
-        layer.visible = False
-        layer.visible = True
+        if not layer.visible:
+            layer.visible = True
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
@@ -497,9 +498,9 @@ class MainWindow(MicroManagerWidget):
             cs[a] = v
         self.viewer.dims.current_step = tuple(cs)
 
+        # to fix a bug in display (e.g. 3x3 grid)
         layer.visible = False
         layer.visible = True
-        layer.reset_contrast_limits()
 
         zoom_out_factor = (
             self.explorer.scan_size_r
