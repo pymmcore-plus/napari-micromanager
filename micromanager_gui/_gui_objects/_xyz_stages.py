@@ -99,9 +99,8 @@ class _DragGroupBox(QGroupBox):
         self.start_pos = start_pos
 
     def mouseMoveEvent(self, event):
-        # if event.buttons() == Qt.LeftButton:
         drag = QDrag(self)
         mime = QMimeData()
         drag.setMimeData(mime)
         self.start_pos = event.pos().x()
-        drag.exec_(Qt.MoveAction)
+        drag.exec_(Qt.DropAction.MoveAction)
