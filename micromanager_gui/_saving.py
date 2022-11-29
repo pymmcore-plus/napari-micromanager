@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import napari
 import numpy as np
 import tifffile
 
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from napari.components import LayerList
     from useq import MDASequence
 
-    from micromanager_gui._mda import SequenceMeta
+    from micromanager_gui._mda_meta import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
@@ -31,6 +32,8 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
     meta : SequenceMeta
         Internal metadata associated with the sequence.
     """
+    if not meta:
+        return
     if not meta.should_save:
         return
     if meta.mode == "mda":
@@ -45,19 +48,19 @@ def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceM
     file_name = meta.file_name
     folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
 
+    mda_layers = [i for i in layers if i.metadata.get("uid") == sequence.uid]
+
     # if split_channels, then create a new layer for each channel
     if meta.split_channels:
         folder_name.mkdir(parents=True, exist_ok=True)
 
         if meta.save_pos:
             # save each position/channels in a separate file.
-            _save_pos_separately(sequence, folder_name, folder_name.stem, layers)
+            _save_pos_separately(sequence, folder_name, folder_name.stem, mda_layers)
         else:
             # save each channel layer.
-            for lay in layers:
-                if lay.metadata.get("uid") != sequence.uid:
-                    continue
-                fname = f'{folder_name.stem}_{lay.metadata.get("ch_id")}.tif'
+            for lay in mda_layers:
+                fname = f'{folder_name.stem}{lay.metadata.get("ch_id")}.tif'
                 # TODO: smarter behavior w.r.t type of lay.data
                 # currently this will force the data into memory which may cause a crash
                 # long term solution is to remove this code and rely on an
@@ -66,15 +69,21 @@ def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceM
         return
 
     # not splitting channels
-    active_layer = next(x for x in layers if x.metadata.get("uid") == sequence.uid)
+    active_layer = mda_layers[0]
 
     if meta.save_pos:
-        folder_name.mkdir(parents=True, exist_ok=True)
         # save each position in a separate file
-        pos_axis = sequence.axis_order.index("p")
-        for p, data in enumerate(np.rollaxis(active_layer.data, pos_axis)):
-            dest = folder_name / f"{folder_name.stem}_[p{p:03d}].tif"
-            _imsave(dest, data)
+        folder_name.mkdir(parents=True, exist_ok=True)
+        # pos_axis = sequence.axis_order.index("p")
+        # for p, data in enumerate(np.rollaxis(active_layer.data, pos_axis)):
+        for p in range(len(sequence.stage_positions)):
+            dest = folder_name / f"{folder_name.stem}_p{p:03d}.tif"
+            pos_data = (
+                active_layer.data[0, :]
+                if len(sequence.time_plan) == 0
+                else active_layer.data[:, 0, :]
+            )
+            _imsave(dest, np.squeeze(pos_data))
 
     else:
         # not saving each position in a separate file
@@ -83,39 +92,34 @@ def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceM
         _imsave(save_path, np.squeeze(active_layer.data))
 
 
-def _save_pos_separately(sequence, folder_name, fname, layers: LayerList):
+def _save_pos_separately(
+    sequence: MDASequence, folder_name: Path, fname: str, layers: LayerList
+) -> None:
+
     for p in range(len(sequence.stage_positions)):
 
-        folder_path = Path(folder_name) / f"{fname}_Pos{p:03d}"
+        folder_path = folder_name / f"{fname}_Pos{p:03d}"
         folder_path.mkdir(parents=True, exist_ok=True)
 
         for i in layers:
             if "ch_id" not in i.metadata or i.metadata.get("uid") != sequence.uid:
                 continue
-            fname = f"{fname}_{i.metadata['ch_id']}_[p{p:03}]"
+            filename = f"{fname}{i.metadata['ch_id']}_p{p:03}"
             ax = sequence.axis_order.index("p") if len(sequence.time_plan) > 0 else 0
-            _imsave(folder_path / f"{fname}.tif", np.take(i.data, p, axis=ax))
+            _imsave(folder_path / f"{filename}.tif", np.take(i.data, p, axis=ax))
 
 
-def _save_explorer_scan(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+# TODO: to be fixed
+def _save_explorer_scan(
+    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
+) -> None:
+    if not meta.translate_explorer:
+        _save_mda_sequence(sequence, layers, meta)
+    else:
+        path = Path(meta.save_dir)
+        folder = ensure_unique(path / "explorer_scan", extension="", ndigits=3)
+        folder.mkdir(parents=True, exist_ok=True)
 
-    path = Path(meta.save_dir)
-    file_name = f"scan_{meta.file_name}"
-
-    folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
-    folder_name.mkdir(parents=True, exist_ok=True)
-
-    for layer in sorted(
-        (i for i in layers if i.metadata.get("uid") == sequence.uid),
-        key=lambda x: x.metadata.get("ch_id"),
-    ):
-        data = layer.data[np.newaxis, ...]
-
-        if layer.metadata.get("scan_position") == "Pos000":
-            scan_stack = data
-        else:
-            scan_stack = np.concatenate((scan_stack, data))
-
-        if scan_stack.shape[0] > 1:
-            ch_name = layer.metadata.get("ch_name")
-            _imsave(folder_name / f"{ch_name}.tif", scan_stack)
+        mda_layers = [i for i in layers if i.metadata.get("uid") == sequence.uid]
+        napari.save_layers(folder, mda_layers)
+        return
