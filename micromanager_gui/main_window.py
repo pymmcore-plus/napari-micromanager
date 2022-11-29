@@ -682,8 +682,10 @@ class MainWindow(MicroManagerWidget):
             cs[a] = v
         self.viewer.dims.current_step = tuple(cs)
 
-        if not layer.visible:
-            layer.visible = True
+        # to fix a bug in display (e.g. 3x3 grid)
+        layer.visible = False
+        layer.visible = True
+
         layer.reset_contrast_limits()
 
         zoom_out_factor = (
