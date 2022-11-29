@@ -614,9 +614,7 @@ class MainWindow(MicroManagerWidget):
         layer = self.viewer.layers[layer_name]
         if not layer.visible:
             layer.visible = True
-        # layer.visible = False
-        # layer.visible = True
-        layer.reset_contrast_limits()
+        # layer.reset_contrast_limits()
 
         # add stage position in metadata
         # self._add_stage_pos_metadata(layer, event)
@@ -639,9 +637,7 @@ class MainWindow(MicroManagerWidget):
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
         if not layer.visible:
             layer.visible = True
-        # layer.visible = False
-        # layer.visible = True
-        layer.reset_contrast_limits()
+        # layer.reset_contrast_limits()
 
         self._add_stage_pos_metadata(layer, event)
 
@@ -686,9 +682,9 @@ class MainWindow(MicroManagerWidget):
             cs[a] = v
         self.viewer.dims.current_step = tuple(cs)
 
-        layer.visible = False
-        layer.visible = True
-        layer.reset_contrast_limits()
+        if not layer.visible:
+            layer.visible = True
+        # layer.reset_contrast_limits()
 
         zoom_out_factor = (
             self.explorer.scan_size_r
