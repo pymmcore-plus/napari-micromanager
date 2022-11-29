@@ -99,7 +99,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
         self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
         self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-        # self._mmc.events.mdaEngineRegistered.connect(self._update_mda_engine)
 
         self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
         self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
@@ -271,6 +270,8 @@ class MainWindow(MicroManagerWidget):
         self.gp_button.setEnabled(enabled)
         self.prop_browser_btn.setEnabled(enabled)
         self.px_btn.setEnabled(enabled)
+        self.snap_button.setEnabled(enabled)
+        self.live_button.setEnabled(enabled)
 
     @ensure_main_thread
     def update_viewer(self, data=None) -> None:
@@ -340,16 +341,6 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
-
-    # def _update_mda_engine(self, newEngine: PMDAEngine, oldEngine: PMDAEngine):
-
-    # oldEngine.events.frameReady.disconnect(self._on_mda_frame)
-    # oldEngine.events.sequenceStarted.disconnect(self._on_mda_started)
-    # oldEngine.events.sequenceFinished.disconnect(self._on_mda_finished)
-
-    # newEngine.events.frameReady.connect(self._on_mda_frame)
-    # newEngine.events.sequenceStarted.connect(self._on_mda_started)
-    # newEngine.events.sequenceFinished.connect(self._on_mda_finished)
 
     @ensure_main_thread
     def _on_mda_started(self, sequence: useq.MDASequence) -> None:
