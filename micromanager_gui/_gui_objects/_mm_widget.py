@@ -43,6 +43,7 @@ class MicroManagerWidget(QWidget):
         self.shutter_wdg = MMShuttersWidget()
         self.mda = MultiDWidget()
         self.explorer = SampleExplorer()
+        self.group_preset_table_wdg = GroupPresetTableWidget()
 
         self.setLayout(QVBoxLayout())
         self.layout().setSpacing(10)
@@ -108,8 +109,6 @@ class MicroManagerWidget(QWidget):
         self.stages_group_layout.addWidget(self.stages_coll)
         self.stages_group.setLayout(self.stages_group_layout)
         main_layout.addWidget(self.stages_group)
-
-        self.group_preset_table_wdg = GroupPresetTableWidget()
 
         # add tab widget
         main_layout.addWidget(self.tab_wdg)

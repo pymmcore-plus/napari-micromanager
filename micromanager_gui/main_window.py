@@ -13,9 +13,9 @@ from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PropertyBrowser
-from qtpy.QtCore import QTimer
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QMenu, QSizePolicy
+from qtpy.QtWidgets import QMenu, QSizePolicy, QTabWidget, QWidget
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 
 
 class MainWindow(MicroManagerWidget):
@@ -109,6 +110,67 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
         self._add_menu()
+
+    def _add_dock_widget(self, widget: QWidget, name: str) -> QtViewerDockWidget:
+        return self.viewer.window.add_dock_widget(
+            widget, name=name, area="right", allowed_areas=["left", "right"]
+        )
+
+    def _add_dock_widgets(self) -> None:
+
+        self.viewer.window._qt_window.setTabPosition(
+            Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
+        )
+
+        # MDA
+        self.mda_dock = self._add_dock_widget(self.mda, "MDA Widget")
+        self.mda_dock._close_btn = False
+        self.mda_dock.hide()
+
+        # Explorer
+        self.explorer_dock = self._add_dock_widget(self.explorer, "Explorer Widget")
+        self.explorer_dock._close_btn = False
+        self.explorer_dock.hide()
+
+        # mda and explore tabbed
+        self.viewer.window._qt_window.tabifyDockWidget(
+            self.mda_dock, self.explorer_dock
+        )
+
+        # groups & presets
+        self.group_preset_wdg = self._add_dock_widget(
+            self.group_preset_table_wdg, "Groups&Presets"
+        )
+        self.group_preset_wdg.setFloating(True)
+        self.group_preset_wdg._close_btn = False
+        self.group_preset_wdg.hide()
+
+        # NOTE: here we will have all the other widget added as
+        # QtViewerDockWidget following the same pattern
+
+        # each QtViewerDockWidget will be linked to a pushbutton in the
+        # toolbar and will eb shown/raised upon click with the methods below
+
+        # def _show_mda(self) -> None:
+        #     self.mda_dock.show()
+        #     self.mda_dock.raise_()
+
+        # def _show_explorer(self) -> None:
+        #     self.explorer_dock.show()
+        #     self.explorer_dock.raise_()
+
+        # NOTE: at the moment the new methods above are not linked to anything.
+        # to check the beaviour you can run the following code:
+
+        # import napari
+        # from micromanager_gui import MainWindow
+
+        # viewer = napari.Viewer()
+        # win = MainWindow(viewer)
+        # win._add_dock_widgets()
+        # win.mda_dock.show()
+        # win.explorer_dock.show()
+        # win.group_preset_wdg.show()
 
     def _add_menu(self):
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
