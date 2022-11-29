@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
+
+import pytest
+from pymmcore_plus.mda import MDAEngine
+from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
+
+from micromanager_gui._util import event_indices
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -23,7 +30,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     explorer.scan_size_spinBox_r.setValue(2)
     explorer.scan_size_spinBox_c.setValue(2)
     explorer.ovelap_spinBox.setValue(0)
-    explorer.add_ch_explorer_Button.click()
+    explorer.channel_groupbox.add_ch_button.click()
     explorer.radiobtn_grid.setChecked(True)
 
     assert not main_window.viewer.layers
@@ -45,7 +52,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     with qtbot.waitSignals(
         [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
     ):
-        explorer.start_scan_Button.click()
+        explorer.buttons_wdg.run_button.click()
 
         meta = main_window._mda_meta
 
@@ -74,7 +81,6 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert _layer.metadata["grid"] == "001"
     assert _layer.metadata["grid_pos"] == "Pos003"
     assert _layer.metadata["translate"]
-    assert _layer.metadata["positions"] == [([0], -256.0, -256.0, 0.0)]
 
     # checking the linking  of the layers
     assert len(main_window.viewer.layers) == 4
@@ -86,58 +92,87 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert not layer_1.visible
 
 
-# def test_saving_explorer(main_window: MainWindow, qtbot: QtBot):
+@pytest.mark.parametrize("Z", ["", "withZ"])
+@pytest.mark.parametrize("C", ["", "withC"])
+@pytest.mark.parametrize("T", ["", "withT"])
+@pytest.mark.parametrize("Tr", ["", "withTranslate"])
+def test_saving_explorer(
+    qtbot: QtBot, main_window: MainWindow, T, C, Z, Tr, tmp_path: Path
+):
 
-#     mmc = main_window._mmc
+    NAME = "test_explorer"
+    _exp = main_window.explorer
+    _exp.save_explorer_groupbox.setChecked(True)
+    _exp.dir_explorer_lineEdit.setText(str(tmp_path))
+    _exp.fname_explorer_lineEdit.setText(NAME)
 
-#     explorer = main_window.explorer
-#     explorer.scan_size_spinBox_r.setValue(2)
-#     explorer.scan_size_spinBox_c.setValue(2)
-#     explorer.ovelap_spinBox.setValue(0)
-#     explorer.add_ch_explorer_Button.click()
-#     explorer.channel_explorer_comboBox.setCurrentText("Cy5")
-#     explorer.add_ch_explorer_Button.click()
-#     explorer.channel_explorer_comboBox.setCurrentText("FITC")
+    _exp.scan_size_spinBox_r.setValue(2)
+    _exp.scan_size_spinBox_c.setValue(1)
+    _exp.ovelap_spinBox.setValue(0)
 
-#     explorer.save_explorer_groupbox.setChecked(False)
+    _exp.time_groupbox.setChecked(bool(T))
+    _exp.time_groupbox.time_comboBox.setCurrentText("ms")
+    _exp.time_groupbox.timepoints_spinBox.setValue(3)
+    _exp.time_groupbox.interval_spinBox.setValue(250)
 
-#     sequence = None
+    _exp.stack_groupbox.setChecked(bool(Z))
+    _exp.stack_groupbox._zmode_tabs.setCurrentIndex(1)
+    z_range_wdg = _exp.stack_groupbox._zmode_tabs.widget(1)
+    assert isinstance(z_range_wdg, ZRangeAroundSelect)
+    z_range_wdg._zrange_spinbox.setValue(3)
+    _exp.stack_groupbox._zstep_spinbox.setValue(1)
 
-#     @mmc.mda.events.sequenceStarted.connect
-#     def get_seq(seq: MDASequence):
-#         nonlocal sequence
-#         sequence = seq
+    # 2 Channels
+    _exp.channel_groupbox.add_ch_button.click()
+    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
+    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    if C:
+        _exp.channel_groupbox.add_ch_button.click()
+        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 0).setCurrentText("Cy5")
+        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 1).setValue(5)
 
-#     with tempfile.TemporaryDirectory() as td:
-#         tmp_path = Path(td)
+    if Tr:
+        _exp.radiobtn_grid.setChecked(True)
+        _exp.radiobtn_multid_stack.setChecked(False)
+    else:
+        _exp.radiobtn_grid.setChecked(False)
+        _exp.radiobtn_multid_stack.setChecked(True)
 
-#         with qtbot.waitSignals(
-#             [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished]
-#         ):
-#             explorer.start_scan_Button.click()
-#             meta = main_window._mda_meta
+    exp_seq: MDASequence = None
 
-#         layer_list = list(main_window.viewer.layers)
-#         assert len(layer_list) == 4
+    mmc = main_window._mmc
+    # re-register twice to fully exercise the logic of the update
+    # functions - the initial connections are made in init
+    # then after that they are fully handled by the _update_mda_engine
+    # callbacks
+    mmc.register_mda_engine(MDAEngine(mmc))
+    mmc.register_mda_engine(MDAEngine(mmc))
 
-#         _layer = main_window.viewer.layers[0]
-#         assert _layer.data.shape == (2, 512, 512)
-#         assert _layer.metadata["uid"] == sequence.uid
+    @mmc.mda.events.sequenceStarted.connect
+    def _store_mda(_seq):
+        nonlocal exp_seq
+        exp_seq = _seq
 
-#         meta.save_dir = str(tmp_path)
-#         meta.should_save = True
+    # make the images non-square
+    mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-# NEED TO FIX save_sequence
-# save_sequence(sequence, layer_list, meta)
+    with qtbot.waitSignals(
+        [_exp.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
+    ):
+        _exp.buttons_wdg.run_button.click()
 
-# folder = tmp_path / "scan_Experiment_000"  # after _imsave()
+    assert exp_seq is not None
+    data_shape = main_window.viewer.layers[-1].data.shape
+    expected_shape = list(exp_seq.shape) + [500, 512]
 
-# file_list = sorted(pth.name for pth in folder.iterdir())
+    if Tr:
+        expected_shape.pop(list(event_indices(next(exp_seq.iter_events()))).index("p"))
 
-# print(file_list)
-# assert file_list == ["Cy5.tif", "FITC.tif"]
+    assert data_shape == tuple(expected_shape)
 
-# saved_file = tifffile.imread(folder / "Cy5.tif")
-# assert saved_file.shape == (4, 512, 512)
-
-# saved_file = tifffile.imread(folder / "FITC")
+    if Tr:
+        assert [p.name for p in tmp_path.iterdir()] == ["explorer_scan_000"]
+        folder = tmp_path / "explorer_scan_000"
+        assert len([p.name for p in folder.iterdir()]) == 2
+    else:
+        assert [p.name for p in tmp_path.iterdir()] == [f"{NAME}_000.tif"]

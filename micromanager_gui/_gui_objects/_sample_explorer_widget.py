@@ -107,15 +107,15 @@ class SampleExplorer(SampleExplorerWidget):
         self.radiobtn_grid = QRadioButton(text=" grid (layers translation)")
         self.radiobtn_grid.setSizePolicy(fixed_policy)
         self.radiobtn_grid.setChecked(True)
-        radiobtn_multid_stack = QRadioButton(text=" multi-dimensional stack")
-        radiobtn_multid_stack.setSizePolicy(fixed_policy)
+        self.radiobtn_multid_stack = QRadioButton(text=" multi-dimensional stack")
+        self.radiobtn_multid_stack.setSizePolicy(fixed_policy)
 
         group_layout.addWidget(self.radiobtn_grid)
 
         spacer = QSpacerItem(30, 10, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         group_layout.addItem(spacer)
 
-        group_layout.addWidget(radiobtn_multid_stack)
+        group_layout.addWidget(self.radiobtn_multid_stack)
 
         spacer = QSpacerItem(
             10, 10, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding

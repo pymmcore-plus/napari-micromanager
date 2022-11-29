@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 from pymmcore_plus.mda import MDAEngine
+from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
 
 from micromanager_gui import _mda_meta
@@ -55,22 +56,26 @@ def test_saving_mda(
     _mda.fname_lineEdit.setText(NAME)
 
     _mda.time_groupbox.setChecked(bool(T))
-    _mda.time_comboBox.setCurrentText("ms")
-    _mda.timepoints_spinBox.setValue(3)
-    _mda.interval_spinBox.setValue(250)
+    _mda.time_groupbox.time_comboBox.setCurrentText("ms")
+    _mda.time_groupbox.timepoints_spinBox.setValue(3)
+    _mda.time_groupbox.interval_spinBox.setValue(250)
 
     _mda.stack_groupbox.setChecked(bool(Z))
-    _mda.zrange_spinBox.setValue(3)
-    _mda.step_size_doubleSpinBox.setValue(1)
+    _mda.stack_groupbox._zmode_tabs.setCurrentIndex(1)
+    z_range_wdg = _mda.stack_groupbox._zmode_tabs.widget(1)
+    assert isinstance(z_range_wdg, ZRangeAroundSelect)
+    z_range_wdg._zrange_spinbox.setValue(3)
+    _mda.stack_groupbox._zstep_spinbox.setValue(1)
 
     # 2 Channels
-    _mda.add_ch_button.click()
-    _mda.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-    _mda.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    _mda.channel_groupbox.add_ch_button.click()
+    _mda.channel_groupbox.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
+    _mda.channel_groupbox.channel_tableWidget.cellWidget(0, 1).setValue(5)
     if C:
-        _mda.add_ch_button.click()
-        _mda.channel_tableWidget.cellWidget(1, 1).setValue(5)
-    if splitC:
+        _mda.channel_groupbox.add_ch_button.click()
+        _mda.channel_groupbox.channel_tableWidget.cellWidget(1, 0).setCurrentText("Cy5")
+        _mda.channel_groupbox.channel_tableWidget.cellWidget(1, 1).setValue(5)
+    if C and splitC:
         _mda.checkBox_split_channels.setChecked(True)
 
     mda: MDASequence = None
@@ -92,14 +97,15 @@ def test_saving_mda(
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
     with qtbot.waitSignals(
-        [main_window.mda.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
+        [_mda.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
     ):
-        main_window.mda.run_Button.click()
+        _mda.buttons_wdg.run_button.click()
 
     assert mda is not None
     data_shape = main_window.viewer.layers[-1].data.shape
     expected_shape = list(mda.shape) + [500, 512]
-    if splitC:
+
+    if C and splitC:
         expected_shape.pop(list(event_indices(next(mda.iter_events()))).index("c"))
     # back to tuple after manipulations with pop
     # need to be tuple to compare equality to a tuple
@@ -107,7 +113,8 @@ def test_saving_mda(
 
     assert data_shape == expected_shape
 
-    if splitC:
+    if C and splitC:
+
         nfiles = len(list((tmp_path / f"{NAME}_000").iterdir()))
         assert nfiles == 2 if C else 1
     else:
