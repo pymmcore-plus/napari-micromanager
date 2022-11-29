@@ -122,7 +122,7 @@ class MainWindow(MicroManagerWidget):
 
     def _show_prop_browser(self):
         if not hasattr(self, "_prop_browser"):
-            self._prop_browser = PropertyBrowser(self._mmc, self)
+            self._prop_browser = PropertyBrowser(mmcore=self._mmc, parent=self)
         self._prop_browser.show()
         self._prop_browser.raise_()
 
