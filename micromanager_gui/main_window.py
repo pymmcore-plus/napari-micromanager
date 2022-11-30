@@ -190,7 +190,7 @@ class MainWindow(MicroManagerWidget):
             wdg = self.prop_browser_dock_wdg
 
         elif "Presets" in text:
-            if not hasattr(self, "group_preset_table_wdg"):
+            if not hasattr(self, "group_preset_dock_wdg"):
                 self.group_preset_dock_wdg = self._add_dock_widget(
                     self.group_preset_table_wdg, "Groups&Presets", floating=True
                 )
