@@ -150,7 +150,7 @@ class MainWindow(MicroManagerWidget):
         dp = self._menu.addAction("Device Property Browser")
         dp.triggered.connect(self._show_dock_widget)
 
-        gp = self._menu.addAction("Groups & Presets")
+        gp = self._menu.addAction("Groups and Presets")
         gp.triggered.connect(self._show_dock_widget)
 
         il = self._menu.addAction("Illumination")
