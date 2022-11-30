@@ -12,15 +12,22 @@ import zarr
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
-from qtpy.QtCore import Qt, QTimer
+from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
+from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QMenu, QSizePolicy, QTabWidget, QWidget
+from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
+from ._gui_objects._cam_roi_widget import CamROI
+from ._gui_objects._group_preset_widget import GroupPreset
+from ._gui_objects._illumination_widget import IlluminationWidget
+from ._gui_objects._mda_widget import MultiDWidget
+from ._gui_objects._min_max_widget import MinMax
 from ._gui_objects._mm_widget import MicroManagerWidget
+from ._gui_objects._sample_explorer_widget import SampleExplorer
+from ._gui_objects._stages_widget import MMStagesWidget
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -36,7 +43,7 @@ if TYPE_CHECKING:
 class MainWindow(MicroManagerWidget):
     """The main napari-micromanager widget that gets added to napari."""
 
-    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
+    def __init__(self, viewer: napari.viewer.Viewer) -> None:
         super().__init__()
 
         # create connection to mmcore server or process-local variant
@@ -56,19 +63,27 @@ class MainWindow(MicroManagerWidget):
         sizepolicy = QSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.tab_wdg.setSizePolicy(sizepolicy)
+        self.snap_live.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
 
         self._mda_meta: _mda_meta.SequenceMeta | None = None
 
-        # disable gui
-        self._set_enabled(False)
+        # widgets
+        self.minmax = MinMax()
+        self.illumination = IlluminationWidget(parent=self)
+        self.stages = MMStagesWidget(parent=self)
+        self.cam_roi = CamROI(parent=self)
+        self.prop_browser = PropertyBrowser(mmcore=self._mmc, parent=self)
+        self.px_size_table = PixelSizeWidget(parent=self)
+        self.group_preset_table_wdg = GroupPreset()
+        self.mda = MultiDWidget()
+        self.explorer = SampleExplorer()
 
         # connect mmcore signals
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
+        # self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         self._mmc.events.exposureChanged.connect(self._update_live_exp)
 
         self._mmc.events.imageSnapped.connect(self.update_viewer)
@@ -110,98 +125,135 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
         self._add_menu()
+        self._add_dock_widgets()
 
-    def _add_dock_widget(self, widget: QWidget, name: str) -> QtViewerDockWidget:
-        return self.viewer.window.add_dock_widget(
-            widget, name=name, area="right", allowed_areas=["left", "right"]
+    def _add_dock_widget(
+        self, widget: QWidget, name: str, floating: bool = False, hide: bool = False
+    ) -> QtViewerDockWidget:
+        dock_wdg = self.viewer.window.add_dock_widget(
+            widget,
+            name=name,
+            area="right",
+            allowed_areas=["left", "right"],
         )
+        dock_wdg.setFloating(floating)
+        dock_wdg._close_btn = False
+        if hide:
+            dock_wdg.hide()
+        return dock_wdg
 
     def _add_dock_widgets(self) -> None:
+        """Add widgets as QtViewerDockWidget."""
+        # minmax
+        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
-        self.viewer.window._qt_window.setTabPosition(
-            Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
+        # mda
+        self.mda_dock = self._add_dock_widget(
+            self.mda, "MDA Widget", floating=True, hide=True
         )
 
-        # MDA
-        self.mda_dock = self._add_dock_widget(self.mda, "MDA Widget")
-        self.mda_dock._close_btn = False
-        self.mda_dock.hide()
-
-        # Explorer
-        self.explorer_dock = self._add_dock_widget(self.explorer, "Explorer Widget")
-        self.explorer_dock._close_btn = False
-        self.explorer_dock.hide()
-
-        # mda and explore tabbed
-        self.viewer.window._qt_window.tabifyDockWidget(
-            self.mda_dock, self.explorer_dock
+        # explorer
+        self.explorer_dock = self._add_dock_widget(
+            self.explorer, "Explorer Widget", floating=True, hide=True
         )
 
         # groups & presets
-        self.group_preset_wdg = self._add_dock_widget(
-            self.group_preset_table_wdg, "Groups&Presets"
+        self.group_preset_dock_wdg = self._add_dock_widget(
+            self.group_preset_table_wdg, "Groups&Presets", floating=True, hide=True
         )
-        self.group_preset_wdg.setFloating(True)
-        self.group_preset_wdg._close_btn = False
-        self.group_preset_wdg.hide()
 
-        # NOTE: here we will have all the other widget added as
-        # QtViewerDockWidget following the same pattern
+        # illumination
+        self.illumination_wdg = self._add_dock_widget(
+            self.illumination, "Illumination Control", floating=True, hide=True
+        )
 
-        # each QtViewerDockWidget will be linked to a pushbutton in the
-        # toolbar and will eb shown/raised upon click with the methods below
+        # stages
+        self.stages_wdg = self._add_dock_widget(
+            self.stages, "Stages Control", floating=True, hide=True
+        )
 
-        # def _show_mda(self) -> None:
-        #     self.mda_dock.show()
-        #     self.mda_dock.raise_()
+        # camera roi
+        self.camera_roi = self._add_dock_widget(
+            self.cam_roi, "Camera ROI", floating=True, hide=True
+        )
 
-        # def _show_explorer(self) -> None:
-        #     self.explorer_dock.show()
-        #     self.explorer_dock.raise_()
+        # property browser
+        self.prop_browser_dock_wdg = self._add_dock_widget(
+            self.prop_browser, "Property Browser", floating=True, hide=True
+        )
 
-        # NOTE: at the moment the new methods above are not linked to anything.
-        # to check the beaviour you can run the following code:
+        # pixel size
+        self.px_size_dock_wdg = self._add_dock_widget(
+            self.px_size_table, "Pixel Size", floating=True, hide=True
+        )
 
-        # import napari
-        # from micromanager_gui import MainWindow
-
-        # viewer = napari.Viewer()
-        # win = MainWindow(viewer)
-        # win._add_dock_widgets()
-        # win.mda_dock.show()
-        # win.explorer_dock.show()
-        # win.group_preset_wdg.show()
-
-    def _add_menu(self):
+    def _add_menu(self) -> None:
+        # TODO: this will be removed in the next PR we will use QtoolBar
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
         self._menu = QMenu("&Micro-Manager", w._qt_window)
 
-        action = self._menu.addAction("Device Property Browser...")
-        action.triggered.connect(self._show_prop_browser)
+        dp = self._menu.addAction("Device Property Browser")
+        dp.triggered.connect(self._show_dock_widget)
+
+        gp = self._menu.addAction("Groups & Presets")
+        gp.triggered.connect(self._show_dock_widget)
+
+        il = self._menu.addAction("Illumination")
+        il.triggered.connect(self._show_dock_widget)
+
+        st = self._menu.addAction("Stages Control")
+        st.triggered.connect(self._show_dock_widget)
+
+        cm = self._menu.addAction("Camera ROI")
+        cm.triggered.connect(self._show_dock_widget)
+
+        px = self._menu.addAction("Pixel Size")
+        px.triggered.connect(self._show_dock_widget)
+
+        m = self._menu.addAction("MDA")
+        m.triggered.connect(self._show_dock_widget)
+
+        e = self._menu.addAction("Sample Explorer")
+        e.triggered.connect(self._show_dock_widget)
 
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
-    def _show_prop_browser(self):
-        if not hasattr(self, "_prop_browser"):
-            self._prop_browser = PropertyBrowser(self._mmc, self)
-        self._prop_browser.show()
-        self._prop_browser.raise_()
+    def _show_dock_widget(self) -> None:
+        """Method to show the selected QtViewerDockWidget."""
+        # TODO: temporary suolution, this will be
+        # changed in the next PR where the dockwidgets
+        # will be called by QPushButtons in a Qtoolbar
 
-    def _on_system_cfg_loaded(self):
-        if len(self._mmc.getLoadedDevices()) > 1:
-            self._set_enabled(True)
+        text = self.sender().text()
+
+        if "Browser" in text:
+            wdg = self.prop_browser_dock_wdg
+        elif "Presets" in text:
+            wdg = self.group_preset_dock_wdg
+        elif "Illumination" in text:
+            wdg = self.illumination_wdg
+        elif "Stages" in text:
+            wdg = self.stages_wdg
+        elif "Camera" in text:
+            wdg = self.camera_roi
+        elif "Pixel" in text:
+            wdg = self.px_size_dock_wdg
+        elif "MDA" in text:
+            wdg = self.mda_dock
+        elif "Explorer" in text:
+            wdg = self.explorer_dock
+
+        wdg.show()
+        wdg.raise_()
 
     def _on_meta_info(
         self, meta: _mda_meta.SequenceMeta, sequence: MDASequence
     ) -> None:
         self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
 
-    def _set_enabled(self, enabled):
-        self.illum_btn.setEnabled(enabled)
-
     @ensure_main_thread
-    def update_viewer(self, data=None):
+    def update_viewer(self, data=None) -> None:
         """Update viewer with the latest image from the camera."""
         if data is None:
             try:
@@ -222,49 +274,48 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def _update_max_min(self, event=None):
-
-        if self.tab_wdg.tabWidget.currentIndex() != 0:
-            return
+    def _update_max_min(self, event: Any = None) -> None:
 
         min_max_txt = ""
+        layers: List[napari.layers.Image] = [
+            lr
+            for lr in self.viewer.layers.selection
+            if isinstance(lr, napari.layers.Image) and lr.visible
+        ]
 
-        for layer in self.viewer.layers.selection:
+        if not layers:
+            self.minmax.max_min_val_label.setText(min_max_txt)
+            return
 
-            if isinstance(layer, napari.layers.Image) and layer.visible:
+        for layer in layers:
+            col = layer.colormap.name
+            if col not in QColor.colorNames():
+                col = "gray"
+            # min and max of current slice
+            min_max_show = tuple(layer._calc_data_range(mode="slice"))
+            min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-                col = layer.colormap.name
+        self.minmax.max_min_val_label.setText(min_max_txt)
 
-                if col not in QColor.colorNames():
-                    col = "gray"
-
-                # min and max of current slice
-                min_max_show = tuple(layer._calc_data_range(mode="slice"))
-                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
-
-        self.tab_wdg.max_min_val_label.setText(min_max_txt)
-
-    def _snap(self):
+    def _snap(self) -> None:
         # update in a thread so we don't freeze UI
         create_worker(self._mmc.snap, _start_thread=True)
 
-    def _start_live(self):
+    def _start_live(self) -> None:
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self._mmc.getExposure()))
 
-    def _stop_live(self):
+    def _stop_live(self) -> None:
         if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
 
     @ensure_main_thread
-    def _on_mda_started(self, sequence: useq.MDASequence):
+    def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
         if not self._mda_meta:
             return
-
-        self._set_enabled(False)
 
         # pause acquisition until zarr layer(s) is(are) added
         self._mmc.mda.toggle_pause()
@@ -368,7 +419,7 @@ class MainWindow(MicroManagerWidget):
 
     def _add_mda_channel_layers(
         self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
-    ):
+    ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
         If splitting on Channels then channels will look like ["BF", "GFP",...]
@@ -444,7 +495,7 @@ class MainWindow(MicroManagerWidget):
         return layergroups
 
     @ensure_main_thread
-    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
+    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent) -> None:
 
         if not self._mda_meta:
             return
@@ -572,10 +623,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
-
-        # reactivate gui when mda finishes.
-        self._set_enabled(True)
+    def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
 
         if not self._mda_meta:
             return
@@ -585,7 +633,7 @@ class MainWindow(MicroManagerWidget):
         meta = _mda_meta.SEQUENCE_META.pop(sequence, self._mda_meta)
         save_sequence(sequence, self.viewer.layers, meta)
 
-    def _update_live_exp(self, camera: str, exposure: float):
+    def _update_live_exp(self, camera: str, exposure: float) -> None:
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()

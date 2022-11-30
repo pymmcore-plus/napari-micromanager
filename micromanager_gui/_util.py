@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Iterator, Optional, Tuple
+
+from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
     import useq
@@ -49,3 +51,11 @@ def event_indices(event: useq.MDAEvent) -> Iterator[str]:
     for k in event.sequence.axis_order if event.sequence else []:
         if k in event.index:
             yield k
+
+
+def iter_dev_props(mmc: Optional[CMMCorePlus] = None) -> Iterator[Tuple[str, str]]:
+    """Yield all pairs of currently loaded (device_label, property_name)."""
+    mmc = mmc or CMMCorePlus.instance()
+    for dev in mmc.getLoadedDevices():
+        for prop in mmc.getDevicePropertyNames(dev):
+            yield dev, prop
