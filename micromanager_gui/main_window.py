@@ -125,10 +125,12 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
         self._add_menu()
-        self._add_dock_widgets()
+
+        # add minmax dockwidget
+        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
     def _add_dock_widget(
-        self, widget: QWidget, name: str, floating: bool = False, hide: bool = False
+        self, widget: QWidget, name: str, floating: bool = False
     ) -> QtViewerDockWidget:
         dock_wdg = self.viewer.window.add_dock_widget(
             widget,
@@ -138,54 +140,7 @@ class MainWindow(MicroManagerWidget):
         )
         dock_wdg.setFloating(floating)
         dock_wdg._close_btn = False
-        if hide:
-            dock_wdg.hide()
         return dock_wdg
-
-    def _add_dock_widgets(self) -> None:
-        """Add widgets as QtViewerDockWidget."""
-        # minmax
-        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
-
-        # mda
-        self.mda_dock = self._add_dock_widget(
-            self.mda, "MDA Widget", floating=True, hide=True
-        )
-
-        # explorer
-        self.explorer_dock = self._add_dock_widget(
-            self.explorer, "Explorer Widget", floating=True, hide=True
-        )
-
-        # groups & presets
-        self.group_preset_dock_wdg = self._add_dock_widget(
-            self.group_preset_table_wdg, "Groups&Presets", floating=True, hide=True
-        )
-
-        # illumination
-        self.illumination_wdg = self._add_dock_widget(
-            self.illumination, "Illumination Control", floating=True, hide=True
-        )
-
-        # stages
-        self.stages_wdg = self._add_dock_widget(
-            self.stages, "Stages Control", floating=True, hide=True
-        )
-
-        # camera roi
-        self.camera_roi = self._add_dock_widget(
-            self.cam_roi, "Camera ROI", floating=True, hide=True
-        )
-
-        # property browser
-        self.prop_browser_dock_wdg = self._add_dock_widget(
-            self.prop_browser, "Property Browser", floating=True, hide=True
-        )
-
-        # pixel size
-        self.px_size_dock_wdg = self._add_dock_widget(
-            self.px_size_table, "Pixel Size", floating=True, hide=True
-        )
 
     def _add_menu(self) -> None:
         # TODO: this will be removed in the next PR we will use QtoolBar
@@ -228,20 +183,59 @@ class MainWindow(MicroManagerWidget):
         text = self.sender().text()
 
         if "Browser" in text:
+            if not hasattr(self, "prop_browser_dock_wdg"):
+                self.prop_browser_dock_wdg = self._add_dock_widget(
+                    self.prop_browser, "Property Browser", floating=True
+                )
             wdg = self.prop_browser_dock_wdg
+
         elif "Presets" in text:
+            if not hasattr(self, "group_preset_table_wdg"):
+                self.group_preset_dock_wdg = self._add_dock_widget(
+                    self.group_preset_table_wdg, "Groups&Presets", floating=True
+                )
             wdg = self.group_preset_dock_wdg
+
         elif "Illumination" in text:
-            wdg = self.illumination_wdg
+            if not hasattr(self, "illumination_dock_wdg"):
+                self.illumination_dock_wdg = self._add_dock_widget(
+                    self.illumination, "Illumination Control", floating=True
+                )
+            wdg = self.illumination_dock_wdg
+
         elif "Stages" in text:
-            wdg = self.stages_wdg
+            if not hasattr(self, "stages_dock_wdg"):
+                self.stages_dock_wdg = self._add_dock_widget(
+                    self.stages, "Stages Control", floating=True
+                )
+            wdg = self.stages_dock_wdg
+
         elif "Camera" in text:
-            wdg = self.camera_roi
+            if not hasattr(self, "camera_roi_dock_wdg"):
+                self.camera_roi_dock_wdg = self._add_dock_widget(
+                    self.cam_roi, "Camera ROI", floating=True
+                )
+            wdg = self.camera_roi_dock_wdg
+
         elif "Pixel" in text:
+            if not hasattr(self, "px_size_dock_wdg"):
+                self.px_size_dock_wdg = self._add_dock_widget(
+                    self.px_size_table, "Pixel Size", floating=True
+                )
             wdg = self.px_size_dock_wdg
+
         elif "MDA" in text:
+            if not hasattr(self, "mda_dock"):
+                self.mda_dock = self._add_dock_widget(
+                    self.mda, "MDA Widget", floating=True
+                )
             wdg = self.mda_dock
+
         elif "Explorer" in text:
+            if not hasattr(self, "explorer_dock"):
+                self.explorer_dock = self._add_dock_widget(
+                    self.explorer, "Explorer Widget", floating=True
+                )
             wdg = self.explorer_dock
 
         wdg.show()
