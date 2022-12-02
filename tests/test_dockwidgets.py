@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 from micromanager_gui.main_window import DOCK_WIDGETS
 
 if TYPE_CHECKING:

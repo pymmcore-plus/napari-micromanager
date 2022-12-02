@@ -7,6 +7,7 @@ import pytest
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
+from micromanager_gui._gui_objects._sample_explorer_widget import SampleExplorer
 from micromanager_gui._util import event_indices
 
 if TYPE_CHECKING:
@@ -26,7 +27,9 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
         "Objective", "10X"
     )  # this it is also setting mmc.setPixelSizeConfig('Res10x')
 
-    explorer = main_window.explorer
+    main_window._show_dock_widget("Explorer")
+    explorer = main_window._dock_widgets["Explorer"].widget()
+    assert isinstance(explorer, SampleExplorer)
     explorer.scan_size_spinBox_r.setValue(2)
     explorer.scan_size_spinBox_c.setValue(2)
     explorer.ovelap_spinBox.setValue(0)
@@ -35,7 +38,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     assert not main_window.viewer.layers
 
-    assert main_window.explorer._set_grid() == [
+    assert explorer._set_grid() == [
         ("Grid_001_Pos000", -256.0, 256.0, 0.0),
         ("Grid_001_Pos001", 256.0, 256.0, 0.0),
         ("Grid_001_Pos002", 256.0, -256.0, 0.0),
@@ -101,7 +104,9 @@ def test_saving_explorer(
 ):
 
     NAME = "test_explorer"
-    _exp = main_window.explorer
+    main_window._show_dock_widget("Explorer")
+    _exp = main_window._dock_widgets["Explorer"].widget()
+    assert isinstance(_exp, SampleExplorer)
     _exp.save_explorer_groupbox.setChecked(True)
     _exp.dir_explorer_lineEdit.setText(str(tmp_path))
     _exp.fname_explorer_lineEdit.setText(NAME)

@@ -181,6 +181,8 @@ class SampleExplorer(SampleExplorerWidget):
             or str(Path(__file__).parent.parent.parent),
             translate_explorer=self.radiobtn_grid.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
+            scan_size_c=self.scan_size_c,
+            scan_size_r=self.scan_size_r,
         )
 
         self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())

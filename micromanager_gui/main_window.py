@@ -563,9 +563,9 @@ class MainWindow(MicroManagerWidget):
         layer.visible = True
 
         zoom_out_factor = (
-            self.explorer.scan_size_r
-            if self.explorer.scan_size_r >= self.explorer.scan_size_c
-            else self.explorer.scan_size_c
+            self._mda_meta.scan_size_r
+            if self._mda_meta.scan_size_r >= self._mda_meta.scan_size_c
+            else self._mda_meta.scan_size_c
         )
         self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()

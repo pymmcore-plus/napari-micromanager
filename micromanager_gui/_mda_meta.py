@@ -23,6 +23,8 @@ class SequenceMeta:
     save_pos: bool = False
     translate_explorer: bool = False
     explorer_translation_points: list = field(default_factory=list)
+    scan_size_r: int = 0
+    scan_size_c: int = 0
 
 
 SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}

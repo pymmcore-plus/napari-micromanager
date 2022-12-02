@@ -10,6 +10,7 @@ from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
 
 from micromanager_gui import _mda_meta
+from micromanager_gui._gui_objects._mda_widget import MultiDWidget
 from micromanager_gui._util import event_indices
 from micromanager_gui.main_window import MainWindow
 
@@ -50,7 +51,9 @@ def test_saving_mda(
 ):
 
     NAME = "test_mda"
-    _mda = main_window.mda
+    main_window._show_dock_widget("MDA")
+    _mda = main_window._dock_widgets["MDA"].widget()
+    assert isinstance(_mda, MultiDWidget)
     _mda.save_groupbox.setChecked(True)
     _mda.dir_lineEdit.setText(str(tmp_path))
     _mda.fname_lineEdit.setText(NAME)
