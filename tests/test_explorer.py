@@ -9,6 +9,7 @@ from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
 from micromanager_gui._gui_objects._sample_explorer_widget import SampleExplorer
 from micromanager_gui._util import event_indices
+from micromanager_gui._mda_meta import SEQUENCE_META
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -45,19 +46,19 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
         ("Grid_001_Pos003", -256.0, -256.0, 0.0),
     ]
 
-    sequence = None
+    uid = None
+    meta = None
 
     @mmc.mda.events.sequenceStarted.connect
     def get_seq(seq: MDASequence):
-        nonlocal sequence
-        sequence = seq
+        nonlocal uid, meta
+        meta = SEQUENCE_META[seq]
+        uid = seq.uid
 
     with qtbot.waitSignals(
         [mmc.mda.events.sequenceStarted, mmc.mda.events.sequenceFinished], timeout=7500
     ):
         explorer.buttons_wdg.run_button.click()
-
-        meta = main_window._mda_meta
 
     # wait to finish returning to start pos
     mmc.waitForSystem()
@@ -80,7 +81,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert len(main_window.viewer.layers) == 4
 
     _layer = main_window.viewer.layers[-1]
-    assert _layer.metadata["uid"] == sequence.uid
+    assert _layer.metadata["uid"] == uid
     assert _layer.metadata["grid"] == "001"
     assert _layer.metadata["grid_pos"] == "Pos003"
     assert _layer.metadata["translate"]
@@ -161,9 +162,7 @@ def test_saving_explorer(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignals(
-        [_exp.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
-    ):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
         _exp.buttons_wdg.run_button.click()
 
     assert exp_seq is not None

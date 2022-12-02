@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple, cast
 
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import SampleExplorerWidget
-from qtpy.QtCore import Signal
 from qtpy.QtWidgets import (
     QFileDialog,
     QGroupBox,
@@ -17,15 +16,12 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from useq import MDASequence
 
 from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
 class SampleExplorer(SampleExplorerWidget):
     """napari-micromanager Explorer Widget GUI."""
-
-    metadataInfo = Signal(SequenceMeta, MDASequence)
 
     def __init__(
         self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
@@ -42,7 +38,6 @@ class SampleExplorer(SampleExplorerWidget):
         v_layout.insertWidget(4, self.checkbox)
 
         self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
-        self.buttons_wdg.run_button.clicked.connect(self._send_meta)
 
     def _create_save_group(self) -> QGroupBox:
 
@@ -171,9 +166,13 @@ class SampleExplorer(SampleExplorerWidget):
             t_list = t_list * self.stage_pos_groupbox.stage_tableWidget.rowCount()
         return t_list
 
-    def _send_meta(self) -> None:
-        sequence = self.get_state()
-        SEQUENCE_META[sequence] = SequenceMeta(
+    def _start_scan(self) -> None:
+        """Run the MDA sequence experiment."""
+
+        # construct a `useq.MDASequence` object from the values inserted in the widget
+        experiment = self.get_state()
+
+        SEQUENCE_META[experiment] = SequenceMeta(
             mode="explorer",
             should_save=self.save_explorer_groupbox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
@@ -185,4 +184,6 @@ class SampleExplorer(SampleExplorerWidget):
             scan_size_r=self.scan_size_r,
         )
 
-        self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())
+        # run the MDA experiment asynchronously
+        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        return

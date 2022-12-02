@@ -29,7 +29,6 @@ def test_main_window_mda(main_window: MainWindow):
     )
 
     _mda_meta.SEQUENCE_META[mda] = _mda_meta.SequenceMeta(mode="mda")
-    main_window._on_meta_info(_mda_meta.SEQUENCE_META[mda], mda)
 
     mmc = main_window._mmc
 
@@ -99,9 +98,7 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignals(
-        [_mda.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
-    ):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
         _mda.buttons_wdg.run_button.click()
 
     assert mda is not None
@@ -137,7 +134,6 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     )
 
     _mda_meta.SEQUENCE_META[sequence] = _mda_meta.SequenceMeta(mode="mda")
-    main_window._on_meta_info(_mda_meta.SEQUENCE_META[sequence], sequence)
 
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
         mmc.run_mda(sequence)
