@@ -45,7 +45,7 @@ class MainWindow(MicroManagerWidget):
             },
             "Groups and Presets": {"widget": self.group_preset_wdg, "dockwidget": None},
             "Illumination Control": {"widget": self.illumination, "dockwidget": None},
-            "Stages Control": {"widget": self.stages, "exdockwidgetist": None},
+            "Stages Control": {"widget": self.stages, "dockwidget": None},
             "Camera ROI": {"widget": self.cam_roi, "dockwidget": None},
             "Pixel Size": {"widget": self.px_size_table, "dockwidget": None},
             "MDA": {"widget": self.mda, "dockwidget": None},
