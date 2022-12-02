@@ -81,10 +81,6 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
         self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
 
-        # connect metadata info
-        # self.explorer.metadataInfo.connect(self._on_meta_info)
-        # self.mda.metadataInfo.connect(self._on_meta_info)
-
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
         self._mda_temp_arrays: Dict[str, zarr.Array] = {}
@@ -152,6 +148,7 @@ class MainWindow(MicroManagerWidget):
             wdg = wdg(parent=self, mmcore=self._mmc)
             self.DOCK_WIDGETS[text]["widget"] = wdg
 
+            # connect metadata info
             if isinstance(wdg, (MultiDWidget, SampleExplorer)):
                 wdg.metadataInfo.connect(self._on_meta_info)
 
