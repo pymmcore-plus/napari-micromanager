@@ -8,8 +8,8 @@ from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
 from micromanager_gui._gui_objects._sample_explorer_widget import SampleExplorer
-from micromanager_gui._util import event_indices
 from micromanager_gui._mda_meta import SEQUENCE_META
+from micromanager_gui._util import event_indices
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot

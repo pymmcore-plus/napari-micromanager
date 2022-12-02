@@ -31,9 +31,9 @@ from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._gui_objects._sample_explorer_widget import SampleExplorer
 from ._gui_objects._stages_widget import MMStagesWidget
+from ._mda_meta import SEQUENCE_META
 from ._saving import save_sequence
 from ._util import event_indices
-from ._mda_meta import SEQUENCE_META
 
 if TYPE_CHECKING:
     from typing import Dict
