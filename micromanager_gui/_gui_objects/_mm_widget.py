@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Dict
+
 from pymmcore_widgets import (
     CameraRoiWidget,
     ConfigurationWidget,
@@ -8,7 +10,7 @@ from pymmcore_widgets import (
     PixelSizeWidget,
     PropertyBrowser,
 )
-from qtpy.QtCore import Qt
+from qtpy.QtCore import QObject, Qt
 from qtpy.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
@@ -25,6 +27,9 @@ from ._sample_explorer_widget import SampleExplorer
 from ._snap_live_widget import SnapLiveWidget
 from ._stages_widget import MMStagesWidget
 
+if TYPE_CHECKING:
+    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+
 
 class MicroManagerWidget(QWidget):
     """GUI elements for the Main Window."""
@@ -32,21 +37,20 @@ class MicroManagerWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        # widgets
-        self.illumination = IlluminationWidget(parent=self)
-        self.stages = MMStagesWidget(parent=self)
-        self.cam_roi = CameraRoiWidget()
-        self.prop_browser = PropertyBrowser(parent=self)
-        self.prop_browser.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self.prop_browser._prop_table.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self.px_size_table = PixelSizeWidget(parent=self)
-        self.group_preset_wdg = GroupPresetTableWidget()
-        self.mda = MultiDWidget(parent=self)
-        self.explorer = SampleExplorer(parent=self)
+        self.DOCK_WIDGETS: Dict[str, Dict[str, QObject | QtViewerDockWidget | None]] = {
+            "Device Property Browser": {"widget": PropertyBrowser, "dockwidget": None},
+            "Groups and Presets": {
+                "widget": GroupPresetTableWidget,
+                "dockwidget": None,
+            },
+            "Illumination Control": {"widget": IlluminationWidget, "dockwidget": None},
+            "Stages Control": {"widget": MMStagesWidget, "dockwidget": None},
+            "Camera ROI": {"widget": CameraRoiWidget, "dockwidget": None},
+            "Pixel Size": {"widget": PixelSizeWidget, "dockwidget": None},
+            "MDA": {"widget": MultiDWidget, "dockwidget": None},
+            "Explorer": {"widget": SampleExplorer, "dockwidget": None},
+        }
+
         self.minmax = MinMax(parent=self)
 
         self.cfg_wdg = ConfigurationWidget()

@@ -8,8 +8,10 @@ from qtpy.QtWidgets import QHBoxLayout, QSizePolicy, QWidget
 class MMShuttersWidget(QWidget):
     """Create shutter widget."""
 
-    def __init__(self, mmcore: Optional[CMMCorePlus] = None) -> None:
-        super().__init__()
+    def __init__(
+        self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
+    ) -> None:
+        super().__init__(parent=parent)
 
         self.setLayout(QHBoxLayout())
         self.layout().setSpacing(3)

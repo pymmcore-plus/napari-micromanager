@@ -3,12 +3,12 @@ from typing import Optional
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from pymmcore_widgets import PropertyWidget
-from qtpy.QtWidgets import QDialog, QGridLayout, QLabel, QSizePolicy, QWidget
+from qtpy.QtWidgets import QGridLayout, QLabel, QSizePolicy, QWidget
 
 from .._util import iter_dev_props
 
 
-class IlluminationWidget(QDialog):
+class IlluminationWidget(QWidget):
     """Sliders widget to control illumination."""
 
     def __init__(

@@ -4,22 +4,26 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple, cast
+from typing import TYPE_CHECKING, Any, List, Tuple
 
 import napari
 import numpy as np
 import zarr
+from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from qtpy.QtCore import QTimer
+from pymmcore_widgets import PropertyBrowser
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
+from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
+from ._gui_objects._sample_explorer_widget import SampleExplorer
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -29,7 +33,6 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
-    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 
 
 class MainWindow(MicroManagerWidget):
@@ -37,20 +40,6 @@ class MainWindow(MicroManagerWidget):
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
         super().__init__()
-
-        self.DOCK_WIDGETS: Dict[str, Dict[str, QWidget | QtViewerDockWidget | None]] = {
-            "Device Property Browser": {
-                "widget": self.prop_browser,
-                "dockwidget": None,
-            },
-            "Groups and Presets": {"widget": self.group_preset_wdg, "dockwidget": None},
-            "Illumination Control": {"widget": self.illumination, "dockwidget": None},
-            "Stages Control": {"widget": self.stages, "dockwidget": None},
-            "Camera ROI": {"widget": self.cam_roi, "dockwidget": None},
-            "Pixel Size": {"widget": self.px_size_table, "dockwidget": None},
-            "MDA": {"widget": self.mda, "dockwidget": None},
-            "Explorer": {"widget": self.explorer, "dockwidget": None},
-        }
 
         # create connection to mmcore server or process-local variant
         self._mmc = CMMCorePlus.instance()
@@ -93,8 +82,8 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
 
         # connect metadata info
-        self.explorer.metadataInfo.connect(self._on_meta_info)
-        self.mda.metadataInfo.connect(self._on_meta_info)
+        # self.explorer.metadataInfo.connect(self._on_meta_info)
+        # self.mda.metadataInfo.connect(self._on_meta_info)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
@@ -152,11 +141,33 @@ class MainWindow(MicroManagerWidget):
     def _show_dock_widget(self) -> None:
         """Method to show the selected QtViewerDockWidget."""
         text = self.sender().text()
-        wdg = cast(QWidget, self.DOCK_WIDGETS[text].get("widget"))
+
+        wdg = self.DOCK_WIDGETS[text].get("widget")
+
+        if wdg is None:
+            return
+
+        # TODO: to fix
+        if str(type(wdg)) == "<class 'Shiboken.ObjectType'>":
+            wdg = wdg(parent=self, mmcore=self._mmc)
+            self.DOCK_WIDGETS[text]["widget"] = wdg
+
+            if isinstance(wdg, (MultiDWidget, SampleExplorer)):
+                wdg.metadataInfo.connect(self._on_meta_info)
+
+            if isinstance(wdg, PropertyBrowser):
+                wdg.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+                )
+                wdg._prop_table.setVerticalScrollBarPolicy(
+                    Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+                )
+
         dock_wdg = self.DOCK_WIDGETS[text].get("dockwidget")
         if dock_wdg is None:
             dock_wdg = self._add_dock_widget(wdg, text, floating=True)
             self.DOCK_WIDGETS[text]["dockwidget"] = dock_wdg
+
         dock_wdg.show()
         dock_wdg.raise_()
 

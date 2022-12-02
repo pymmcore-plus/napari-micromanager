@@ -4,16 +4,18 @@ from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import StageWidget
 from qtpy.QtCore import QMimeData, Qt
 from qtpy.QtGui import QDrag
-from qtpy.QtWidgets import QDialog, QGroupBox, QHBoxLayout, QSizePolicy, QWidget
+from qtpy.QtWidgets import QGroupBox, QHBoxLayout, QSizePolicy, QWidget
 
 STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 
 
-class MMStagesWidget(QDialog):
+class MMStagesWidget(QWidget):
     """UI elements for stage control widgets."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
+    def __init__(
+        self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
+    ) -> None:
+        super().__init__(parent=parent)
 
         self.setAcceptDrops(True)
         self.main_layout = QHBoxLayout()
