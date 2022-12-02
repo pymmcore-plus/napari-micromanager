@@ -15,11 +15,12 @@ from pymmcore_plus._util import find_micromanager
 from pymmcore_widgets import PropertyBrowser
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QMenu, QSizePolicy
+from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
+from ._gui_objects._cam_roi_widget import CamROI
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._saving import save_sequence
 from ._util import event_indices
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+    from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 
 
 class MainWindow(MicroManagerWidget):
@@ -60,6 +62,9 @@ class MainWindow(MicroManagerWidget):
         self.streaming_timer: QTimer | None = None
 
         self._mda_meta: _mda_meta.SequenceMeta | None = None
+
+        # widgets
+        self.cam_roi = CamROI(parent=self)
 
         # disable gui
         self._set_enabled(False)
@@ -117,6 +122,9 @@ class MainWindow(MicroManagerWidget):
         action = self._menu.addAction("Device Property Browser...")
         action.triggered.connect(self._show_prop_browser)
 
+        cm = self._menu.addAction("Camera ROI")
+        cm.triggered.connect(self._show_dock_widget)
+
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
@@ -125,6 +133,32 @@ class MainWindow(MicroManagerWidget):
             self._prop_browser = PropertyBrowser(self._mmc, self)
         self._prop_browser.show()
         self._prop_browser.raise_()
+
+    def _add_dock_widget(
+        self, widget: QWidget, name: str, floating: bool = False
+    ) -> QtViewerDockWidget:
+        dock_wdg = self.viewer.window.add_dock_widget(
+            widget,
+            name=name,
+            area="right",
+            allowed_areas=["left", "right"],
+        )
+        dock_wdg.setFloating(floating)
+        dock_wdg._close_btn = False
+        return dock_wdg
+
+    def _show_dock_widget(self) -> None:
+        """Method to show the selected QtViewerDockWidget."""
+        text = self.sender().text()
+
+        if "Camera" in text:
+            if not hasattr(self, "camera_roi_dock_wdg"):
+                self.camera_roi_dock_wdg = self._add_dock_widget(
+                    self.cam_roi, "Camera ROI", floating=True
+                )
+            wdg = self.camera_roi_dock_wdg
+            wdg.show()
+            wdg.raise_()
 
     def _on_system_cfg_loaded(self):
         if len(self._mmc.getLoadedDevices()) > 1:
