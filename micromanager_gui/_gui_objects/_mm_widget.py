@@ -37,6 +37,12 @@ class MicroManagerWidget(QWidget):
         self.stages = MMStagesWidget(parent=self)
         self.cam_roi = CameraRoiWidget()
         self.prop_browser = PropertyBrowser(parent=self)
+        self.prop_browser.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.prop_browser._prop_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.px_size_table = PixelSizeWidget(parent=self)
         self.group_preset_wdg = GroupPresetTableWidget()
         self.mda = MultiDWidget(parent=self)
