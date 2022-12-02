@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Tuple, cast
 
 import napari
 import numpy as np
@@ -12,7 +12,6 @@ import zarr
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PixelSizeWidget, PropertyBrowser
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
@@ -20,14 +19,7 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
-from ._gui_objects._cam_roi_widget import CamROI
-from ._gui_objects._group_preset_widget import GroupPreset
-from ._gui_objects._illumination_widget import IlluminationWidget
-from ._gui_objects._mda_widget import MultiDWidget
-from ._gui_objects._min_max_widget import MinMax
 from ._gui_objects._mm_widget import MicroManagerWidget
-from ._gui_objects._sample_explorer_widget import SampleExplorer
-from ._gui_objects._stages_widget import MMStagesWidget
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -45,6 +37,20 @@ class MainWindow(MicroManagerWidget):
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
         super().__init__()
+
+        self.DOCK_WIDGETS: Dict[str, Dict[str, QWidget | QtViewerDockWidget | None]] = {
+            "Device Property Browser": {
+                "widget": self.prop_browser,
+                "dockwidget": None,
+            },
+            "Groups and Presets": {"widget": self.group_preset_wdg, "dockwidget": None},
+            "Illumination Control": {"widget": self.illumination, "dockwidget": None},
+            "Stages Control": {"widget": self.stages, "exdockwidgetist": None},
+            "Camera ROI": {"widget": self.cam_roi, "dockwidget": None},
+            "Pixel Size": {"widget": self.px_size_table, "dockwidget": None},
+            "MDA": {"widget": self.mda, "dockwidget": None},
+            "Explorer": {"widget": self.explorer, "dockwidget": None},
+        }
 
         # create connection to mmcore server or process-local variant
         self._mmc = CMMCorePlus.instance()
@@ -68,17 +74,6 @@ class MainWindow(MicroManagerWidget):
         self.streaming_timer: QTimer | None = None
 
         self._mda_meta: _mda_meta.SequenceMeta | None = None
-
-        # widgets
-        self.minmax = MinMax()
-        self.illumination = IlluminationWidget(parent=self)
-        self.stages = MMStagesWidget(parent=self)
-        self.cam_roi = CamROI(parent=self)
-        self.prop_browser = PropertyBrowser(mmcore=self._mmc, parent=self)
-        self.px_size_table = PixelSizeWidget(parent=self)
-        self.group_preset_table_wdg = GroupPreset()
-        self.mda = MultiDWidget()
-        self.explorer = SampleExplorer()
 
         # connect mmcore signals
         # note: don't use lambdas with closures on `self`, since the connection
@@ -143,103 +138,27 @@ class MainWindow(MicroManagerWidget):
         return dock_wdg
 
     def _add_menu(self) -> None:
-        # TODO: this will be removed in the next PR we will use QtoolBar
+        # TODO: this will be removed, in the next PR we will use a QtoolBar
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
         self._menu = QMenu("&Micro-Manager", w._qt_window)
 
-        dp = self._menu.addAction("Device Property Browser")
-        dp.triggered.connect(self._show_dock_widget)
-
-        gp = self._menu.addAction("Groups and Presets")
-        gp.triggered.connect(self._show_dock_widget)
-
-        il = self._menu.addAction("Illumination Control")
-        il.triggered.connect(self._show_dock_widget)
-
-        st = self._menu.addAction("Stages Control")
-        st.triggered.connect(self._show_dock_widget)
-
-        cm = self._menu.addAction("Camera ROI")
-        cm.triggered.connect(self._show_dock_widget)
-
-        px = self._menu.addAction("Pixel Size")
-        px.triggered.connect(self._show_dock_widget)
-
-        m = self._menu.addAction("MDA")
-        m.triggered.connect(self._show_dock_widget)
-
-        e = self._menu.addAction("Sample Explorer")
-        e.triggered.connect(self._show_dock_widget)
+        for name in self.DOCK_WIDGETS:
+            action = self._menu.addAction(name)
+            action.triggered.connect(self._show_dock_widget)
 
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
     def _show_dock_widget(self) -> None:
         """Method to show the selected QtViewerDockWidget."""
-        # TODO: temporary suolution, this will be
-        # changed in the next PR where the dockwidgets
-        # will be called by QPushButtons in a Qtoolbar
-
         text = self.sender().text()
-
-        if "Browser" in text:
-            if not hasattr(self, "prop_browser_dock_wdg"):
-                self.prop_browser_dock_wdg = self._add_dock_widget(
-                    self.prop_browser, "Property Browser", floating=True
-                )
-            wdg = self.prop_browser_dock_wdg
-
-        elif "Presets" in text:
-            if not hasattr(self, "group_preset_dock_wdg"):
-                self.group_preset_dock_wdg = self._add_dock_widget(
-                    self.group_preset_table_wdg, "Groups&Presets", floating=True
-                )
-            wdg = self.group_preset_dock_wdg
-
-        elif "Illumination" in text:
-            if not hasattr(self, "illumination_dock_wdg"):
-                self.illumination_dock_wdg = self._add_dock_widget(
-                    self.illumination, "Illumination Control", floating=True
-                )
-            wdg = self.illumination_dock_wdg
-
-        elif "Stages" in text:
-            if not hasattr(self, "stages_dock_wdg"):
-                self.stages_dock_wdg = self._add_dock_widget(
-                    self.stages, "Stages Control", floating=True
-                )
-            wdg = self.stages_dock_wdg
-
-        elif "Camera" in text:
-            if not hasattr(self, "camera_roi_dock_wdg"):
-                self.camera_roi_dock_wdg = self._add_dock_widget(
-                    self.cam_roi, "Camera ROI", floating=True
-                )
-            wdg = self.camera_roi_dock_wdg
-
-        elif "Pixel" in text:
-            if not hasattr(self, "px_size_dock_wdg"):
-                self.px_size_dock_wdg = self._add_dock_widget(
-                    self.px_size_table, "Pixel Size", floating=True
-                )
-            wdg = self.px_size_dock_wdg
-
-        elif "MDA" in text:
-            if not hasattr(self, "mda_dock"):
-                self.mda_dock = self._add_dock_widget(
-                    self.mda, "MDA Widget", floating=True
-                )
-            wdg = self.mda_dock
-
-        elif "Explorer" in text:
-            if not hasattr(self, "explorer_dock"):
-                self.explorer_dock = self._add_dock_widget(
-                    self.explorer, "Explorer Widget", floating=True
-                )
-            wdg = self.explorer_dock
-
-        wdg.show()
-        wdg.raise_()
+        wdg = cast(QWidget, self.DOCK_WIDGETS[text].get("widget"))
+        dock_wdg = self.DOCK_WIDGETS[text].get("dockwidget")
+        if dock_wdg is None:
+            dock_wdg = self._add_dock_widget(wdg, text, floating=True)
+            self.DOCK_WIDGETS[text]["dockwidget"] = dock_wdg
+        dock_wdg.show()
+        dock_wdg.raise_()
 
     def _on_meta_info(
         self, meta: _mda_meta.SequenceMeta, sequence: MDASequence

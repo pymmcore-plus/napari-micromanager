@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from pymmcore_widgets import ConfigurationWidget, ObjectivesWidget
+from pymmcore_widgets import (
+    CameraRoiWidget,
+    ConfigurationWidget,
+    GroupPresetTableWidget,
+    ObjectivesWidget,
+    PixelSizeWidget,
+    PropertyBrowser,
+)
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QGroupBox,
@@ -11,7 +18,12 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ._illumination_widget import IlluminationWidget
+from ._mda_widget import MultiDWidget
+from ._min_max_widget import MinMax
+from ._sample_explorer_widget import SampleExplorer
 from ._snap_live_widget import SnapLiveWidget
+from ._stages_widget import MMStagesWidget
 
 
 class MicroManagerWidget(QWidget):
@@ -20,7 +32,17 @@ class MicroManagerWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        # sub_widgets
+        # widgets
+        self.illumination = IlluminationWidget(parent=self)
+        self.stages = MMStagesWidget(parent=self)
+        self.cam_roi = CameraRoiWidget()
+        self.prop_browser = PropertyBrowser(parent=self)
+        self.px_size_table = PixelSizeWidget(parent=self)
+        self.group_preset_wdg = GroupPresetTableWidget()
+        self.mda = MultiDWidget(parent=self)
+        self.explorer = SampleExplorer(parent=self)
+        self.minmax = MinMax(parent=self)
+
         self.cfg_wdg = ConfigurationWidget()
         self.obj_wdg = ObjectivesWidget()
         self.snap_live = SnapLiveWidget()
