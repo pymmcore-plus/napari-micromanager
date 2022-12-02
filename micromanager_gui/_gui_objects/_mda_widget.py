@@ -135,7 +135,6 @@ class MultiDWidget(MDAWidget):
 
     def _on_run_clicked(self) -> None:
         """Run the MDA sequence experiment."""
-
         # construct a `useq.MDASequence` object from the values inserted in the widget
         experiment = self.get_state()
 

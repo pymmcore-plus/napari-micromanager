@@ -168,7 +168,6 @@ class SampleExplorer(SampleExplorerWidget):
 
     def _start_scan(self) -> None:
         """Run the MDA sequence experiment."""
-
         # construct a `useq.MDASequence` object from the values inserted in the widget
         experiment = self.get_state()
 
