@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, Any, List, Tuple, Type
 
 import napari
 import numpy as np
@@ -13,7 +13,12 @@ from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
+from pymmcore_widgets import (
+    CameraRoiWidget,
+    GroupPresetTableWidget,
+    PixelSizeWidget,
+    PropertyBrowser,
+)
 from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
@@ -21,9 +26,11 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDASequence
 
 from . import _mda_meta
+from ._gui_objects._illumination_widget import IlluminationWidget
 from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._gui_objects._sample_explorer_widget import SampleExplorer
+from ._gui_objects._stages_widget import MMStagesWidget
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -33,6 +40,17 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+
+DOCK_WIDGETS: Dict[str, Type[QWidget]] = {
+    "Device Property Browser": PropertyBrowser,
+    "Groups and Presets": GroupPresetTableWidget,
+    "Illumination Control": IlluminationWidget,
+    "Stages Control": MMStagesWidget,
+    "Camera ROI": CameraRoiWidget,
+    "Pixel Size": PixelSizeWidget,
+    "MDA": MultiDWidget,
+    "Explorer": SampleExplorer,
+}
 
 
 class MainWindow(MicroManagerWidget):
@@ -45,6 +63,7 @@ class MainWindow(MicroManagerWidget):
         self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
+        self._dock_widgets: Dict[str, QtViewerDockWidget] = {}
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -109,44 +128,42 @@ class MainWindow(MicroManagerWidget):
         # add minmax dockwidget
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
-    def _add_dock_widget(
-        self, widget: QWidget, name: str, floating: bool = False
-    ) -> QtViewerDockWidget:
-        dock_wdg = self.viewer.window.add_dock_widget(
-            widget,
-            name=name,
-            area="right",
-            allowed_areas=["left", "right"],
-        )
-        dock_wdg.setFloating(floating)
-        dock_wdg._close_btn = False
-        return dock_wdg
-
     def _add_menu(self) -> None:
         # TODO: this will be removed, in the next PR we will use a QtoolBar
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
         self._menu = QMenu("&Micro-Manager", w._qt_window)
 
-        for name in self.DOCK_WIDGETS:
+        for name in DOCK_WIDGETS:
             action = self._menu.addAction(name)
             action.triggered.connect(self._show_dock_widget)
 
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
-    def _show_dock_widget(self) -> None:
-        """Method to show the selected QtViewerDockWidget."""
-        text = self.sender().text()
+    def _show_dock_widget(self, key: str = "") -> None:
+        """Look up widget class in DOCK_WIDGETS and add/create or show/raise.
 
-        wdg = self.DOCK_WIDGETS[text].get("widget")
+        `key` must be a key in the DOCK_WIDGETS dict.
+        """
+        if not key:
+            key = self.sender().text()
 
-        if wdg is None:
-            return
-
-        # TODO: to fix
-        if str(type(wdg)) == "<class 'Shiboken.ObjectType'>":
-            wdg = wdg(parent=self, mmcore=self._mmc)
-            self.DOCK_WIDGETS[text]["widget"] = wdg
+        if key in self._dock_widgets:
+            # already exists
+            dock_wdg = self._dock_widgets[key]
+            dock_wdg.show()
+            dock_wdg.raise_()
+        else:
+            # creating it for the first time
+            # sourcery skip: extract-method
+            try:
+                wdg_cls = DOCK_WIDGETS[key]
+            except KeyError as e:
+                raise KeyError(
+                    "Not a recognized dock widget key. "
+                    f"Must be one of {list(DOCK_WIDGETS)}"
+                ) from e
+            wdg = wdg_cls(parent=self, mmcore=self._mmc)  # type: ignore
 
             # connect metadata info
             if isinstance(wdg, (MultiDWidget, SampleExplorer)):
@@ -160,13 +177,22 @@ class MainWindow(MicroManagerWidget):
                     Qt.ScrollBarPolicy.ScrollBarAlwaysOff
                 )
 
-        dock_wdg = self.DOCK_WIDGETS[text].get("dockwidget")
-        if dock_wdg is None:
-            dock_wdg = self._add_dock_widget(wdg, text, floating=True)
-            self.DOCK_WIDGETS[text]["dockwidget"] = dock_wdg
+            dock_wdg = self._add_dock_widget(wdg, key, floating=True)
+            self._dock_widgets[key] = dock_wdg
 
-        dock_wdg.show()
-        dock_wdg.raise_()
+    def _add_dock_widget(
+        self, widget: QWidget, name: str, floating: bool = False
+    ) -> QtViewerDockWidget:
+        """Add a docked widget using napari's add_dock_widget."""
+        dock_wdg = self.viewer.window.add_dock_widget(
+            widget,
+            name=name,
+            area="right",
+            allowed_areas=["left", "right"],
+        )
+        dock_wdg.setFloating(floating)
+        dock_wdg._close_btn = False
+        return dock_wdg
 
     def _on_meta_info(
         self, meta: _mda_meta.SequenceMeta, sequence: MDASequence
