@@ -1,10 +1,71 @@
+# https://peps.python.org/pep-0517/
 [build-system]
-requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.setuptools_scm]
-write_to = "micromanager_gui/_version.py"
+# https://peps.python.org/pep-0621/
+[project]
+name = "napari-micromanager"
+description = "Micro-Manager GUI interface in napari."
+keywords = ["microscope", "micro-manager", "remote", "multi-processing"]
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "BSD 3-Clause License" }
+authors = [
+    { name = "Federico Gasparoli", email = "federico.gasparoli@gmail.com" },
+    { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Framework :: napari",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: System :: Hardware",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+    "Topic :: Utilities",
+]
 
+dynamic = ["version"]
+dependencies = [
+    "napari >=0.4.13",
+    "pymmcore-plus>=0.6.0",
+    "useq-schema >=0.1.0",
+    "superqt >=0.3.1",
+    "fonticon-materialdesignicons6",
+    "tifffile",
+    "zarr",
+    "pymmcore-widgets >=0.2.0",
+]
+
+# extras
+# https://peps.python.org/pep-0621/#dependencies-optional-dependencies
+[project.optional-dependencies]
+testing = ["pytest", "pytest-cov", "pytest-qt"]
+pyqt5 = ["PyQt5"]
+pyside2 = ["PySide2"]
+dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit"]
+
+[project.urls]
+Source = "https://github.com/pymmcore-plus/napari-micromanager"
+Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
+# Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
+
+[project.entry-points."napari.manifest"]
+"napari-micromanager" = "micromanager_gui:napari.yaml"
+
+# https://hatch.pypa.io/latest/config/metadata/
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests"]
 
 # https://github.com/charliermarsh/ruff
 [tool.ruff]
@@ -17,7 +78,7 @@ extend-select = [
     "I001", # isort
     "U",    # pyupgrade
     # "N",  # pep8-naming
-    "S",  # bandit
+    "S",    # bandit
     "C",    # flake8-comprehensions
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
@@ -39,6 +100,16 @@ extend-ignore = [
 [tool.ruff.per-file-ignores]
 "tests/*.py" = ["D", "S"]
 
+# https://docs.pytest.org/en/6.2.x/customize.html
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore:distutils Version classes are deprecated",
+    "ignore::DeprecationWarning:ipykernel",
+]
+
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
 files = "micromanager_gui"
@@ -49,3 +120,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "tests.*"
 ignore_errors = true
+
+# https://github.com/mgedmin/check-manifest#configuration
+[tool.check-manifest]
+ignore = [
+    ".pre-commit-config.yaml",
+    "launch-dev.py",
+    "tox.ini",
+    "codecov.yml",
+]

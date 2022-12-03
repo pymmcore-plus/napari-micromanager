@@ -10,10 +10,9 @@ import tifffile
 from ._util import ensure_unique
 
 if TYPE_CHECKING:
+    from micromanager_gui._mda_meta import SequenceMeta
     from napari.components import LayerList
     from useq import MDASequence
-
-    from micromanager_gui._mda_meta import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
