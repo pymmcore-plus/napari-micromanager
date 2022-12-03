@@ -3,7 +3,7 @@ from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import MDAWidget
-from qtpy.QtCore import Qt, Signal
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -17,15 +17,12 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from useq import MDASequence
 
 from .._mda_meta import SEQUENCE_META, SequenceMeta
 
 
 class MultiDWidget(MDAWidget):
     """Main napari-micromanager GUI."""
-
-    metadataInfo = Signal(SequenceMeta, MDASequence)
 
     def __init__(
         self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
@@ -41,8 +38,6 @@ class MultiDWidget(MDAWidget):
         self.checkBox_split_channels.toggled.connect(self._toggle_split_channel)
         g_layout = cast(QGridLayout, self.channel_groupbox.layout())
         g_layout.addWidget(self.checkBox_split_channels, 1, 0)
-
-        self.buttons_wdg.run_button.clicked.connect(self._send_meta)
 
         self.browse_save_button.clicked.connect(self._set_multi_d_acq_dir)
         self.save_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
@@ -138,9 +133,12 @@ class MultiDWidget(MDAWidget):
             self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
             self.checkBox_save_pos.setEnabled(False)
 
-    def _send_meta(self) -> None:
-        sequence = self.get_state()
-        SEQUENCE_META[sequence] = SequenceMeta(
+    def _on_run_clicked(self) -> None:
+        """Run the MDA sequence experiment."""
+        # construct a `useq.MDASequence` object from the values inserted in the widget
+        experiment = self.get_state()
+
+        SEQUENCE_META[experiment] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),
             should_save=self.save_groupbox.isChecked(),
@@ -149,4 +147,7 @@ class MultiDWidget(MDAWidget):
             or str(Path(__file__).parent.parent.parent),
             save_pos=self.checkBox_save_pos.isChecked(),
         )
-        self.metadataInfo.emit(SEQUENCE_META[sequence], self.get_state())
+
+        # run the MDA experiment asynchronously
+        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        return

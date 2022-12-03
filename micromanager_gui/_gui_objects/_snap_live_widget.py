@@ -11,10 +11,7 @@ from qtpy.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
-    QLabel,
     QSizePolicy,
-    QSpacerItem,
-    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -22,32 +19,24 @@ from qtpy.QtWidgets import (
 ICONS = Path(__file__).parent.parent / "icons"
 
 
-class MMTabWidget(QWidget):
+class SnapLiveWidget(QWidget):
     """Tabs shown in the main window."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.setup_gui()
+        self._create_gui()
 
-    def setup_gui(self):
+    def _create_gui(self) -> None:
 
-        # main_layout
-        self.main_layout = QGridLayout()
+        self.main_layout = QVBoxLayout()
         self.main_layout.setSpacing(0)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.main_layout)
 
-        # tabWidget
-        self.tabWidget = QTabWidget()
-        self.tabWidget.setMovable(True)
-        self.tabWidget_layout = QVBoxLayout()
-
-        sizepolicy = QSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        self.snap_live_tab = QGroupBox()
+        self.snap_live_tab.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
-        self.tabWidget.setSizePolicy(sizepolicy)
-
-        # snap_live_tab and layout
-        self.snap_live_tab = QWidget()
         self.snap_live_tab_layout = QGridLayout()
 
         wdg_sizepolicy = QSizePolicy(
@@ -88,32 +77,6 @@ class MMTabWidget(QWidget):
         self.btn_wdg_layout.addWidget(self.live_Button)
         self.btn_wdg.setLayout(self.btn_wdg_layout)
         self.snap_live_tab_layout.addWidget(self.btn_wdg, 1, 0, 1, 2)
-
-        # max min in snap_live_tab
-        self.max_min_wdg = QWidget()
-        self.max_min_wdg_layout = QHBoxLayout()
-        self.max_min_val_label_name = QLabel()
-        self.max_min_val_label_name.setText("(min, max)")
-        self.max_min_val_label_name.setMaximumWidth(70)
-        self.max_min_val_label = QLabel()
-        self.max_min_wdg_layout.addWidget(self.max_min_val_label_name)
-        self.max_min_wdg_layout.addWidget(self.max_min_val_label)
-        self.max_min_wdg.setLayout(self.max_min_wdg_layout)
-        self.snap_live_tab_layout.addWidget(self.max_min_wdg, 2, 0, 1, 2)
-
-        # spacer
-        spacer = QSpacerItem(
-            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
-        )
-        self.snap_live_tab_layout.addItem(spacer, 3, 0)
-
-        # set snap_live_tab layout
         self.snap_live_tab.setLayout(self.snap_live_tab_layout)
 
-        # add tabWidget
-        self.tabWidget.setLayout(self.tabWidget_layout)
-        self.tabWidget.addTab(self.snap_live_tab, "Snap/Live")
-        self.main_layout.addWidget(self.tabWidget)
-
-        # Set main layout
-        self.setLayout(self.main_layout)
+        self.main_layout.addWidget(self.snap_live_tab)
