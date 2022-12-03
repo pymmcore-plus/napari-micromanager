@@ -126,6 +126,5 @@ ignore_errors = true
 ignore = [
     ".pre-commit-config.yaml",
     "launch-dev.py",
-    "tox.ini",
     "codecov.yml",
 ]
