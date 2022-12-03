@@ -157,7 +157,7 @@ def test_saving_explorer(
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
     with qtbot.waitSignals(
-        [_exp.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
+        [_exp.metadataInfo, mmc.mda.events.sequenceFinished], timeout=10000
     ):
         _exp.buttons_wdg.run_button.click()
 
