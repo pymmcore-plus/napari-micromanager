@@ -31,7 +31,7 @@ from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
 from ._gui_objects._sample_explorer_widget import SampleExplorer
 from ._gui_objects._stages_widget import MMStagesWidget
-from ._mda_meta import SEQUENCE_META
+from ._mda_meta import SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -40,6 +40,12 @@ if TYPE_CHECKING:
     import napari.layers
     import napari.viewer
     import useq
+
+    class ActiveMDAEvent(MDAEvent):
+        """Event that has been assigned a sequence."""
+
+        sequence: MDASequence
+
 
 DOCK_WIDGETS: Dict[str, type[QWidget]] = {  # noqa: U006
     "Device Property Browser": PropertyBrowser,
@@ -111,7 +117,7 @@ class MainWindow(MicroManagerWidget):
         # and more importantly because I couldn't get it working with pytest
         # because tempfile seems to register an atexit before we do.
         @atexit.register
-        def cleanup():
+        def cleanup() -> None:
             """Clean up temporary files we opened."""
             for v in self._mda_temp_files.values():
                 with contextlib.suppress(NotADirectoryError):
@@ -161,7 +167,7 @@ class MainWindow(MicroManagerWidget):
                     "Not a recognized dock widget key. "
                     f"Must be one of {list(DOCK_WIDGETS)}"
                 ) from e
-            wdg = wdg_cls(parent=self, mmcore=self._mmc)  # type: ignore
+            wdg = wdg_cls(parent=self, mmcore=self._mmc)
 
             if isinstance(wdg, PropertyBrowser):
                 wdg.setSizePolicy(
@@ -188,7 +194,7 @@ class MainWindow(MicroManagerWidget):
         dock_wdg._close_btn = False
         return dock_wdg
 
-    @ensure_main_thread
+    @ensure_main_thread  # type: ignore [misc]
     def update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the camera."""
         if data is None:
@@ -247,10 +253,10 @@ class MainWindow(MicroManagerWidget):
             self.streaming_timer.stop()
             self.streaming_timer = None
 
-    @ensure_main_thread
+    @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
-        meta = SEQUENCE_META.get(sequence)
+        meta = _mda_meta.SEQUENCE_META.get(sequence)
         if meta is None:
             return
 
@@ -312,13 +318,14 @@ class MainWindow(MicroManagerWidget):
         """
         channels = []
         for i in sequence.iter_events():
-            ch = f"_{i.channel.config}_{i.index['c']:03d}"
-            if ch not in channels:
-                channels.append(ch)
+            if i.channel:
+                ch = f"_{i.channel.config}_{i.index['c']:03d}"
+                if ch not in channels:
+                    channels.append(ch)
         return channels
 
     def _interpret_split_channels(
-        self, sequence: MDASequence, meta: _mda_meta.SequenceMeta
+        self, sequence: MDASequence, meta: SequenceMeta
     ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
@@ -358,7 +365,7 @@ class MainWindow(MicroManagerWidget):
         shape: tuple[int, ...],
         channels: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
@@ -397,7 +404,7 @@ class MainWindow(MicroManagerWidget):
         shape: tuple[int, ...],
         positions: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
@@ -424,7 +431,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["grid"] = pos.split("_")[-3]
             layer.metadata["grid_pos"] = pos.split("_")[-2]
 
-    def _get_defaultdict_layers(self, event: MDAEvent) -> defaultdict[Any, set]:
+    def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
         for lay in self.viewer.layers:
             if lay.metadata.get("uid") == event.sequence.uid:
@@ -432,9 +439,9 @@ class MainWindow(MicroManagerWidget):
                 layergroups[key].add(lay)
         return layergroups
 
-    @ensure_main_thread
-    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent) -> None:
-        meta = SEQUENCE_META.get(event.sequence)
+    @ensure_main_thread  # type: ignore [misc]
+    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+        meta = _mda_meta.SEQUENCE_META.get(event.sequence)
         if meta is None:
             return
 
@@ -447,14 +454,14 @@ class MainWindow(MicroManagerWidget):
                 self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
-        self, image: np.ndarray, event: useq.MDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
         # Remove 'c' from idxs if we are splitting channels
         # also prepare the channel suffix that we use for keeping track of arrays
         channel = ""
-        if meta.split_channels:
+        if meta.split_channels and event.channel:
             channel = f"_{event.channel.config}_{event.index['c']:03d}"
 
             # split channels checked but no channels added
@@ -482,7 +489,7 @@ class MainWindow(MicroManagerWidget):
         # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
-        self, image: np.ndarray, event: useq.MDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -501,7 +508,7 @@ class MainWindow(MicroManagerWidget):
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
-        self, image: np.ndarray, event: useq.MDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
         axis_order = list(event_indices(event))
 

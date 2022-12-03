@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from pymmcore_widgets import ConfigurationWidget, ObjectivesWidget
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -15,9 +13,6 @@ from qtpy.QtWidgets import (
 
 from ._min_max_widget import MinMax
 from ._snap_live_widget import SnapLiveWidget
-
-if TYPE_CHECKING:
-    pass
 
 
 class MicroManagerWidget(QWidget):
@@ -64,7 +59,7 @@ class MicroManagerWidget(QWidget):
 
         return wdg
 
-    def add_mm_objectives_widget(self):
+    def add_mm_objectives_widget(self) -> QGroupBox:
         obj_wdg = QGroupBox()
         obj_wdg_layout = QHBoxLayout()
         obj_wdg_layout.setContentsMargins(5, 5, 5, 5)

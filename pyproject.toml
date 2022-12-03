@@ -50,7 +50,7 @@ dependencies = [
 testing = ["pytest", "pytest-cov", "pytest-qt"]
 pyqt5 = ["PyQt5"]
 pyside2 = ["PySide2"]
-dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit"]
+dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
 
 [project.urls]
 Source = "https://github.com/pymmcore-plus/napari-micromanager"
@@ -120,6 +120,9 @@ disallow_subclassing_any = false
 show_error_codes = true
 pretty = true
 
+[[tool.mypy.overrides]]
+module = ["qtpy.*", "pymmcore_widgets.*", "superqt.*", "napari.*", "zarr.*", "tifffile.*"]
+ignore_missing_imports = true
 
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]

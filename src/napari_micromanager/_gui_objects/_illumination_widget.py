@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from pymmcore_widgets import PropertyWidget
@@ -42,9 +42,10 @@ class IlluminationWidget(QWidget):
             and self._mmc.getPropertyType(*dp)
             in {PropertyType.Integer, PropertyType.Float}
         ]
+        layout = cast(QGridLayout, self.layout())
         for i, (dev, prop) in enumerate(lights):
-            self.layout().addWidget(QLabel(f"{dev}::{prop}"), i, 0)
-            self.layout().addWidget(PropertyWidget(dev, prop, mmcore=self._mmc), i, 1)
+            layout.addWidget(QLabel(f"{dev}::{prop}"), i, 0)
+            layout.addWidget(PropertyWidget(dev, prop, mmcore=self._mmc), i, 1)
 
     def _on_cfg_loaded(self) -> None:
         self._clear()
