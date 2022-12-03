@@ -38,4 +38,12 @@ repos:
     rev: v0.991
     hooks:
       - id: mypy
-        exclude: "tests"
+        files: "^src/"
+        additional_dependencies:
+          - useq-schema
+          - pymmcore_plus
+          # # unfortunately... bringing these in brings in qtpy
+          # # which has too many attr-defined errors ...
+          # # and selectively ignoring them isn't working
+          # - superqt
+          # - pymmcore_widgets
