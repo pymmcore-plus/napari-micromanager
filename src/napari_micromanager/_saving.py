@@ -16,7 +16,9 @@ if TYPE_CHECKING:
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
-    tifffile.imwrite(str(file), data.astype(dtype), imagej=data.ndim <= 5)
+    tifffile.imwrite(
+        str(file), data.astype(dtype), imagej=data.ndim <= 5, photometric="MINISBLACK"
+    )
 
 
 def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
