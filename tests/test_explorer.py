@@ -162,7 +162,7 @@ def test_saving_explorer(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
         _exp.buttons_wdg.run_button.click()
 
     assert exp_seq is not None

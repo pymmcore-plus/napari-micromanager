@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple, Type
+from typing import TYPE_CHECKING, Any, Dict
 
 import napari
 import numpy as np
@@ -36,13 +36,12 @@ from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-    from typing import Dict
 
     import napari.layers
     import napari.viewer
     import useq
 
-DOCK_WIDGETS: Dict[str, Type[QWidget]] = {
+DOCK_WIDGETS: Dict[str, type[QWidget]] = {  # noqa: U006
     "Device Property Browser": PropertyBrowser,
     "Groups and Presets": GroupPresetTableWidget,
     "Illumination Control": IlluminationWidget,
@@ -64,7 +63,7 @@ class MainWindow(MicroManagerWidget):
         self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
-        self._dock_widgets: Dict[str, QtViewerDockWidget] = {}
+        self._dock_widgets: dict[str, QtViewerDockWidget] = {}
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -101,10 +100,10 @@ class MainWindow(MicroManagerWidget):
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
-        self._mda_temp_arrays: Dict[str, zarr.Array] = {}
+        self._mda_temp_arrays: dict[str, zarr.Array] = {}
         # mapping of str `str(sequence.uid) + channel` -> temporary directory where
         # the zarr.Array is stored
-        self._mda_temp_files: Dict[str, tempfile.TemporaryDirectory] = {}
+        self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
 
         # TODO: consider using weakref here like in pymmc+
         # didn't implement here because this object shouldn't be del'd until
@@ -214,7 +213,7 @@ class MainWindow(MicroManagerWidget):
     def _update_max_min(self, event: Any = None) -> None:
 
         min_max_txt = ""
-        layers: List[napari.layers.Image] = [
+        layers: list[napari.layers.Image] = [
             lr
             for lr in self.viewer.layers.selection
             if isinstance(lr, napari.layers.Image) and lr.visible
@@ -291,7 +290,7 @@ class MainWindow(MicroManagerWidget):
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
-    ) -> Tuple[List[str], List[int]]:
+    ) -> tuple[list[str], list[int]]:
         """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         axis_order = event_indices(next(sequence.iter_events()))
@@ -306,7 +305,7 @@ class MainWindow(MicroManagerWidget):
 
         return labels, shape
 
-    def _get_channel_name_with_index(self, sequence: MDASequence) -> List[str]:
+    def _get_channel_name_with_index(self, sequence: MDASequence) -> list[str]:
         """Store index in addition to channel.config.
 
         It is possible to have two or more of the same channel in one sequence.
@@ -320,7 +319,7 @@ class MainWindow(MicroManagerWidget):
 
     def _interpret_split_channels(
         self, sequence: MDASequence, meta: _mda_meta.SequenceMeta
-    ) -> Tuple[List[int], List[str], List[str]] | None:
+    ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
 
@@ -340,7 +339,7 @@ class MainWindow(MicroManagerWidget):
 
     def _interpret_explorer_positions(
         self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
+    ) -> tuple[list[int], list[str], list[str]]:
         """Determine shape, positions and labels.
 
         ...by removing positions index.
@@ -356,8 +355,8 @@ class MainWindow(MicroManagerWidget):
 
     def _add_mda_channel_layers(
         self,
-        shape: Tuple[int, ...],
-        channels: List[str],
+        shape: tuple[int, ...],
+        channels: list[str],
         sequence: MDASequence,
         meta: _mda_meta.SequenceMeta,
     ) -> None:
@@ -395,8 +394,8 @@ class MainWindow(MicroManagerWidget):
 
     def _add_explorer_positions_layers(
         self,
-        shape: Tuple[int, ...],
-        positions: List[str],
+        shape: tuple[int, ...],
+        positions: list[str],
         sequence: MDASequence,
         meta: _mda_meta.SequenceMeta,
     ) -> None:
