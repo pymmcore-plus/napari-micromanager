@@ -23,7 +23,7 @@ from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
-from useq import MDASequence
+from useq import MDAEvent, MDASequence
 
 from . import _mda_meta
 from ._gui_objects._illumination_widget import IlluminationWidget
@@ -189,7 +189,7 @@ class MainWindow(MicroManagerWidget):
         return dock_wdg
 
     @ensure_main_thread
-    def update_viewer(self, data=None) -> None:
+    def update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the camera."""
         if data is None:
             try:
@@ -424,7 +424,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["grid"] = pos.split("_")[-3]
             layer.metadata["grid_pos"] = pos.split("_")[-2]
 
-    def _get_defaultdict_layers(self, event) -> defaultdict[Any, set]:
+    def _get_defaultdict_layers(self, event: MDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
         for lay in self.viewer.layers:
             if lay.metadata.get("uid") == event.sequence.uid:
