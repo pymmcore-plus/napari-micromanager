@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 import napari
 import numpy as np
@@ -25,7 +25,6 @@ from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-    from typing import Dict
 
     import napari.layers
     import napari.viewer
@@ -87,10 +86,10 @@ class MainWindow(MicroManagerWidget):
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
-        self._mda_temp_arrays: Dict[str, zarr.Array] = {}
+        self._mda_temp_arrays: dict[str, zarr.Array] = {}
         # mapping of str `str(sequence.uid) + channel` -> temporary directory where
         # the zarr.Array is stored
-        self._mda_temp_files: Dict[str, tempfile.TemporaryDirectory] = {}
+        self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
 
         # TODO: consider using weakref here like in pymmc+
         # didn't implement here because this object shouldn't be del'd until
@@ -238,7 +237,7 @@ class MainWindow(MicroManagerWidget):
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
-    ) -> Tuple[List[str], List[int]]:
+    ) -> tuple[list[str], list[int]]:
         """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         axis_order = event_indices(next(sequence.iter_events()))
@@ -253,7 +252,7 @@ class MainWindow(MicroManagerWidget):
 
         return labels, shape
 
-    def _get_channel_name_with_index(self, sequence: MDASequence) -> List[str]:
+    def _get_channel_name_with_index(self, sequence: MDASequence) -> list[str]:
         """Store index in addition to channel.config.
 
         It is possible to have two or more of the same channel in one sequence.
@@ -267,7 +266,7 @@ class MainWindow(MicroManagerWidget):
 
     def _interpret_split_channels(
         self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]] | None:
+    ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
 
@@ -290,7 +289,7 @@ class MainWindow(MicroManagerWidget):
 
     def _interpret_explorer_positions(
         self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
+    ) -> tuple[list[int], list[str], list[str]]:
         """Determine shape, positions and labels.
 
         ...by removing positions index.
@@ -305,7 +304,7 @@ class MainWindow(MicroManagerWidget):
         return shape, positions, labels
 
     def _add_mda_channel_layers(
-        self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
+        self, shape: tuple[int, ...], channels: list[str], sequence: MDASequence
     ):
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
@@ -343,7 +342,7 @@ class MainWindow(MicroManagerWidget):
             layer.metadata["ch_id"] = f"{channel}"
 
     def _add_explorer_positions_layers(
-        self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
+        self, shape: tuple[int, ...], positions: list[str], sequence: MDASequence
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         if not self._mda_meta:
