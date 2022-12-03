@@ -131,3 +131,19 @@ ignore = [
     "launch-dev.py",
     "codecov.yml",
 ]
+
+# https://coverage.readthedocs.io/en/6.4/config.html
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "@overload",
+    "except ImportError",
+    "raise AssertionError",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "\\.\\.\\."
+]
+
+[tool.coverage.run]
+source = ["src/napari_micromanager"]
