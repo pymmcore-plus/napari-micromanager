@@ -58,7 +58,7 @@ Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
 # Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
 
 [project.entry-points."napari.manifest"]
-"napari-micromanager" = "micromanager_gui:napari.yaml"
+"napari-micromanager" = "napari_micromanager:napari.yaml"
 
 # https://hatch.pypa.io/latest/config/metadata/
 [tool.hatch.version]
@@ -112,7 +112,7 @@ filterwarnings = [
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
 [tool.mypy]
-files = "micromanager_gui"
+files = "src/**/*.py"
 disallow_untyped_defs = false
 show_error_codes = true
 ignore_missing_imports = true

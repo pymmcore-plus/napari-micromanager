@@ -5,14 +5,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from napari_micromanager import _mda_meta
+from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._util import event_indices
+from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
-
-from micromanager_gui import _mda_meta
-from micromanager_gui._gui_objects._mda_widget import MultiDWidget
-from micromanager_gui._util import event_indices
-from micromanager_gui.main_window import MainWindow
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot

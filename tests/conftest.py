@@ -1,9 +1,8 @@
 from pathlib import Path
 
 import pytest
+from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
-
-from micromanager_gui.main_window import MainWindow
 
 
 # to create a new CMMCorePlus() for every test
