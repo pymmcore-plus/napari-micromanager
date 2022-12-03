@@ -4,7 +4,7 @@ contributions:
   commands:
   - id: napari-micromanager.MainWindow
     title: Create Main Window
-    python_name: micromanager_gui.main_window:MainWindow
+    python_name: napari_micromanager.main_window:MainWindow
   widgets:
   - command: napari-micromanager.MainWindow
     display_name: Main Window

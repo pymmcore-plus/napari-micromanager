@@ -11,13 +11,14 @@ from ._util import ensure_unique
 
 if TYPE_CHECKING:
     from napari.components import LayerList
+    from napari_micromanager._mda_meta import SequenceMeta
     from useq import MDASequence
-
-    from micromanager_gui._mda_meta import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
-    tifffile.imwrite(str(file), data.astype(dtype), imagej=data.ndim <= 5)
+    tifffile.imwrite(
+        str(file), data.astype(dtype), imagej=data.ndim <= 5, photometric="MINISBLACK"
+    )
 
 
 def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):

@@ -4,18 +4,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from napari_micromanager._gui_objects._sample_explorer_widget import SampleExplorer
+from napari_micromanager._mda_meta import SEQUENCE_META
+from napari_micromanager._util import event_indices
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
-from micromanager_gui._gui_objects._sample_explorer_widget import SampleExplorer
-from micromanager_gui._mda_meta import SEQUENCE_META
-from micromanager_gui._util import event_indices
-
 if TYPE_CHECKING:
+    from napari_micromanager.main_window import MainWindow
     from pytestqt.qtbot import QtBot
     from useq import MDASequence
-
-    from micromanager_gui.main_window import MainWindow
 
 
 def test_explorer_main(main_window: MainWindow, qtbot: QtBot):

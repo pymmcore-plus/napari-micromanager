@@ -43,8 +43,7 @@ export MICROMANAGER_PATH='/path/to/Micro-Manager-...'
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome.
 
 ### Launching napari with plugin
 You can launch napari and automatically load this plugin using the `launch-dev.py` script:
@@ -80,6 +79,5 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 [file an issue]: https://github.com/pymmcore-plus/napari-micromanager/issues
 [napari]: https://github.com/napari/napari
-[tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
