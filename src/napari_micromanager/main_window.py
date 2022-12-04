@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import napari
 import numpy as np
@@ -23,10 +23,10 @@ from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-
     import napari.layers
     import napari.viewer
     import useq
+    from pymmcore_plus.core.events._protocol import PSignalInstance
 
     class ActiveMDAEvent(MDAEvent):
         """Event that has been assigned a sequence."""
@@ -56,22 +56,23 @@ class MainWindow(MicroManagerToolbar):
 
         self.streaming_timer: QTimer | None = None
 
-        # connect mmcore signals
-        # note: don't use lambdas with closures on `self`, since the connection
-        # to core may outlive the lifetime of this particular widget.
-        # self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        self._mmc.events.exposureChanged.connect(self._update_live_exp)
-
-        self._mmc.events.imageSnapped.connect(self.update_viewer)
-        self._mmc.events.imageSnapped.connect(self._stop_live)
-
-        # mda events
-        self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
-        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
-        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-
-        self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
-        self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
+        # Add all core connections to this list.  This makes it easy to disconnect
+        # from core when this widget is closed.
+        self._connections: list[tuple[PSignalInstance, Callable]] = [
+            (self._mmc.events.exposureChanged, self._update_live_exp),
+            (self._mmc.events.imageSnapped, self.update_viewer),
+            (self._mmc.events.imageSnapped, self._stop_live),
+            (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
+            (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
+            (self._mmc.mda.events.frameReady, self._on_mda_frame),
+            (self._mmc.mda.events.sequenceStarted, self._on_mda_started),
+            (self._mmc.mda.events.sequenceFinished, self._on_mda_finished),
+            (self.viewer.layers.events, self._update_max_min),
+            (self.viewer.layers.selection.events, self._update_max_min),
+            (self.viewer.dims.events.current_step, self._update_max_min),
+        ]
+        for signal, slot in self._connections:
+            signal.connect(slot)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
@@ -80,24 +81,22 @@ class MainWindow(MicroManagerToolbar):
         # the zarr.Array is stored
         self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
 
-        # TODO: consider using weakref here like in pymmc+
-        # didn't implement here because this object shouldn't be del'd until
-        # napari is closed so probably not a big issue
-        # and more importantly because I couldn't get it working with pytest
-        # because tempfile seems to register an atexit before we do.
-        @atexit.register
-        def cleanup() -> None:
-            """Clean up temporary files we opened."""
-            for v in self._mda_temp_files.values():
-                with contextlib.suppress(NotADirectoryError):
-                    v.cleanup()
-
-        self.viewer.layers.events.connect(self._update_max_min)
-        self.viewer.layers.selection.events.connect(self._update_max_min)
-        self.viewer.dims.events.current_step.connect(self._update_max_min)
-
         # add minmax dockwidget
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
+
+        # queue cleanup
+        self.destroyed.connect(self._cleanup)
+        atexit.register(self._cleanup)
+
+    def _cleanup(self) -> None:
+        for signal, slot in self._connections:
+            with contextlib.suppress(RuntimeError):
+                signal.disconnect(slot)
+        # Clean up temporary files we opened.
+        for v in self._mda_temp_files.values():
+            with contextlib.suppress(NotADirectoryError):
+                v.cleanup()
+        atexit.unregister(self._cleanup)  # doesn't raise if not connected
 
     @ensure_main_thread  # type: ignore [misc]
     def update_viewer(self, data: np.ndarray | None = None) -> None:
@@ -156,6 +155,7 @@ class MainWindow(MicroManagerToolbar):
     def _stop_live(self) -> None:
         if self.streaming_timer:
             self.streaming_timer.stop()
+            self.streaming_timer.deleteLater()
             self.streaming_timer = None
 
     @ensure_main_thread  # type: ignore [misc]
