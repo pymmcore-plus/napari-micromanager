@@ -73,7 +73,7 @@ class MicroManagerToolbar(QMainWindow):
         super().__init__()
 
         self._mmc = CMMCorePlus.instance()
-        self.viewer = viewer
+        self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
 
         # min max widget
         self.minmax = MinMax(parent=self)
