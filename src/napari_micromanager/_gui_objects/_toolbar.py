@@ -78,10 +78,17 @@ class MicroManagerToolbar(QMainWindow):
         # min max widget
         self.minmax = MinMax(parent=self)
 
-        # make the tabs of tabbed dockwidgets apprearing on top
-        self.viewer.window._qt_window.setTabPosition(
-            Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
-        )
+        # make the tabs of tabbed dockwidgets apprearing on top (North)
+        areas = [
+            Qt.DockWidgetArea.RightDockWidgetArea,
+            Qt.DockWidgetArea.LeftDockWidgetArea,
+            Qt.DockWidgetArea.TopDockWidgetArea,
+            Qt.DockWidgetArea.BottomDockWidgetArea,
+        ]
+        for area in areas:
+            self.viewer.window._qt_window.setTabPosition(
+                area, QTabWidget.TabPosition.North
+            )
 
         self._dock_widgets: dict[str, QDockWidget] = {}
 
