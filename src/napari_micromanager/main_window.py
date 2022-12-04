@@ -17,8 +17,8 @@ from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
-from . import _mda_meta
 from ._gui_objects._toolbar import MicroManagerToolbar
+from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -161,7 +161,7 @@ class MainWindow(MicroManagerToolbar):
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
-        meta = _mda_meta.SEQUENCE_META.get(sequence)
+        meta: SequenceMeta | None = sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
 
@@ -230,7 +230,7 @@ class MainWindow(MicroManagerToolbar):
         return channels
 
     def _interpret_split_channels(
-        self, sequence: MDASequence, meta: _mda_meta.SequenceMeta
+        self, sequence: MDASequence, meta: SequenceMeta
     ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
@@ -270,7 +270,7 @@ class MainWindow(MicroManagerToolbar):
         shape: tuple[int, ...],
         channels: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
@@ -309,7 +309,7 @@ class MainWindow(MicroManagerToolbar):
         shape: tuple[int, ...],
         positions: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
@@ -346,7 +346,7 @@ class MainWindow(MicroManagerToolbar):
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
-        meta = _mda_meta.SEQUENCE_META.get(event.sequence)
+        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
 
@@ -359,7 +359,7 @@ class MainWindow(MicroManagerToolbar):
                 self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -394,7 +394,7 @@ class MainWindow(MicroManagerToolbar):
         # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -413,7 +413,7 @@ class MainWindow(MicroManagerToolbar):
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
         axis_order = list(event_indices(event))
 
@@ -465,8 +465,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         # Save layer and add increment to save name.
-        meta = _mda_meta.SEQUENCE_META.pop(sequence, None)
-        if meta is not None:
+        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
             save_sequence(sequence, self.viewer.layers, meta)
 
     def _update_live_exp(self, camera: str, exposure: float) -> None:

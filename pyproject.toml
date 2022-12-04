@@ -57,6 +57,9 @@ Source = "https://github.com/pymmcore-plus/napari-micromanager"
 Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
 # Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
 
+[project.scripts]
+napari-micromanager = "napari_micromanager.__main__:main"
+
 [project.entry-points."napari.manifest"]
 "napari-micromanager" = "napari_micromanager:napari.yaml"
 
