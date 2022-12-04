@@ -4,9 +4,9 @@ def main() -> None:
 
     viewer = napari.Viewer()
     win = MainWindow(viewer)
-    viewer.window.add_dock_widget(
-        win, name="MicroManager", area="top"
-    )._close_btn = False
+    dw = viewer.window.add_dock_widget(win, name="MicroManager", area="top")
+    if hasattr(dw, "_close_btn"):
+        dw._close_btn = False
     napari.run()
 
 
