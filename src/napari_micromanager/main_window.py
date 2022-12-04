@@ -4,34 +4,21 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 import napari
 import numpy as np
 import zarr
-from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import (
-    CameraRoiWidget,
-    GroupPresetTableWidget,
-    PixelSizeWidget,
-    PropertyBrowser,
-)
-from qtpy.QtCore import Qt, QTimer
+from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
 from . import _mda_meta
-from ._gui_objects._illumination_widget import IlluminationWidget
-from ._gui_objects._mda_widget import MultiDWidget
-from ._gui_objects._mm_widget import MicroManagerWidget
-from ._gui_objects._sample_explorer_widget import SampleExplorer
-from ._gui_objects._stages_widget import MMStagesWidget
-from ._mda_meta import SequenceMeta
+from ._gui_objects._toolbar import MicroManagerToolbar
 from ._saving import save_sequence
 from ._util import event_indices
 
@@ -48,29 +35,17 @@ if TYPE_CHECKING:
         sequence: MDASequence
 
 
-DOCK_WIDGETS: Dict[str, type[QWidget]] = {  # noqa: U006
-    "Device Property Browser": PropertyBrowser,
-    "Groups and Presets": GroupPresetTableWidget,
-    "Illumination Control": IlluminationWidget,
-    "Stages Control": MMStagesWidget,
-    "Camera ROI": CameraRoiWidget,
-    "Pixel Size": PixelSizeWidget,
-    "MDA": MultiDWidget,
-    "Explorer": SampleExplorer,
-}
-
-
-class MainWindow(MicroManagerWidget):
+class MainWindow(MicroManagerToolbar):
     """The main napari-micromanager widget that gets added to napari."""
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
-        super().__init__()
+        super().__init__(viewer)
 
         # create connection to mmcore server or process-local variant
         self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
-        self._dock_widgets: dict[str, QtViewerDockWidget] = {}
+        # self._dock_widgets: dict[str, QtViewerDockWidget] = {}
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -79,12 +54,6 @@ class MainWindow(MicroManagerWidget):
                 "`python -m pymmcore_plus.install` or install manually and set "
                 "MICROMANAGER_PATH."
             )
-
-        # add mda and explorer tabs to mm_tab widget
-        sizepolicy = QSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self.snap_live.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
 
@@ -128,72 +97,8 @@ class MainWindow(MicroManagerWidget):
         self.viewer.layers.selection.events.connect(self._update_max_min)
         self.viewer.dims.events.current_step.connect(self._update_max_min)
 
-        self._add_menu()
-
         # add minmax dockwidget
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
-
-    def _add_menu(self) -> None:
-        # TODO: this will be removed, in the next PR we will use a QtoolBar
-        w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
-        self._menu = QMenu("&Micro-Manager", w._qt_window)
-
-        for name in DOCK_WIDGETS:
-            action = self._menu.addAction(name)
-            action.triggered.connect(self._show_dock_widget)
-
-        bar = w._qt_window.menuBar()
-        bar.insertMenu(list(bar.actions())[-1], self._menu)
-
-    def _show_dock_widget(self, key: str = "") -> None:
-        """Look up widget class in DOCK_WIDGETS and add/create or show/raise.
-
-        `key` must be a key in the DOCK_WIDGETS dict.
-        """
-        if not key:
-            key = self.sender().text()
-
-        if key in self._dock_widgets:
-            # already exists
-            dock_wdg = self._dock_widgets[key]
-            dock_wdg.show()
-            dock_wdg.raise_()
-        else:
-            # creating it for the first time
-            # sourcery skip: extract-method
-            try:
-                wdg_cls = DOCK_WIDGETS[key]
-            except KeyError as e:
-                raise KeyError(
-                    "Not a recognized dock widget key. "
-                    f"Must be one of {list(DOCK_WIDGETS)}"
-                ) from e
-            wdg = wdg_cls(parent=self, mmcore=self._mmc)
-
-            if isinstance(wdg, PropertyBrowser):
-                wdg.setSizePolicy(
-                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-                )
-                wdg._prop_table.setVerticalScrollBarPolicy(
-                    Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-                )
-
-            dock_wdg = self._add_dock_widget(wdg, key, floating=True)
-            self._dock_widgets[key] = dock_wdg
-
-    def _add_dock_widget(
-        self, widget: QWidget, name: str, floating: bool = False
-    ) -> QtViewerDockWidget:
-        """Add a docked widget using napari's add_dock_widget."""
-        dock_wdg = self.viewer.window.add_dock_widget(
-            widget,
-            name=name,
-            area="right",
-            allowed_areas=["left", "right"],
-        )
-        dock_wdg.setFloating(floating)
-        dock_wdg._close_btn = False
-        return dock_wdg
 
     @ensure_main_thread  # type: ignore [misc]
     def update_viewer(self, data: np.ndarray | None = None) -> None:
@@ -326,7 +231,7 @@ class MainWindow(MicroManagerWidget):
         return channels
 
     def _interpret_split_channels(
-        self, sequence: MDASequence, meta: SequenceMeta
+        self, sequence: MDASequence, meta: _mda_meta.SequenceMeta
     ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
@@ -366,7 +271,7 @@ class MainWindow(MicroManagerWidget):
         shape: tuple[int, ...],
         channels: list[str],
         sequence: MDASequence,
-        meta: SequenceMeta,
+        meta: _mda_meta.SequenceMeta,
     ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
@@ -405,7 +310,7 @@ class MainWindow(MicroManagerWidget):
         shape: tuple[int, ...],
         positions: list[str],
         sequence: MDASequence,
-        meta: SequenceMeta,
+        meta: _mda_meta.SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
@@ -455,7 +360,7 @@ class MainWindow(MicroManagerWidget):
                 self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -490,7 +395,7 @@ class MainWindow(MicroManagerWidget):
         # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -509,7 +414,7 @@ class MainWindow(MicroManagerWidget):
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
     ) -> None:
         axis_order = list(event_indices(event))
 
