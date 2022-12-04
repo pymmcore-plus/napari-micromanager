@@ -354,7 +354,6 @@ class MicroManagerToolbar(QMainWindow):
             widget,
             name=name,
             area="right",
-            # allowed_areas=["left", "right"],
             tabify=tabify,
         )
         dock_wdg.setFloating(floating)
