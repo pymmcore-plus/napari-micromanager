@@ -4,46 +4,73 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict
 
 import napari
 import numpy as np
 import zarr
+from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.experimental import link_layers, unlink_layers
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
-from pymmcore_widgets import PropertyBrowser
-from qtpy.QtCore import QTimer
+from pymmcore_widgets import (
+    CameraRoiWidget,
+    GroupPresetTableWidget,
+    PixelSizeWidget,
+    PropertyBrowser,
+)
+from qtpy.QtCore import Qt, QTimer
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QMenu, QSizePolicy, QWidget
 from superqt.utils import create_worker, ensure_main_thread
-from useq import MDASequence
+from useq import MDAEvent, MDASequence
 
 from . import _mda_meta
-from ._gui_objects._cam_roi_widget import CamROI
+from ._gui_objects._illumination_widget import IlluminationWidget
+from ._gui_objects._mda_widget import MultiDWidget
 from ._gui_objects._mm_widget import MicroManagerWidget
+from ._gui_objects._sample_explorer_widget import SampleExplorer
+from ._gui_objects._stages_widget import MMStagesWidget
+from ._mda_meta import SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-    from typing import Dict
 
     import napari.layers
     import napari.viewer
     import useq
     from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 
+    class ActiveMDAEvent(MDAEvent):
+        """Event that has been assigned a sequence."""
+
+        sequence: MDASequence
+
+
+DOCK_WIDGETS: Dict[str, type[QWidget]] = {  # noqa: U006
+    "Device Property Browser": PropertyBrowser,
+    "Groups and Presets": GroupPresetTableWidget,
+    "Illumination Control": IlluminationWidget,
+    "Stages Control": MMStagesWidget,
+    "Camera ROI": CameraRoiWidget,
+    "Pixel Size": PixelSizeWidget,
+    "MDA": MultiDWidget,
+    "Explorer": SampleExplorer,
+}
+
 
 class MainWindow(MicroManagerWidget):
     """The main napari-micromanager widget that gets added to napari."""
 
-    def __init__(self, viewer: napari.viewer.Viewer, remote=False):
+    def __init__(self, viewer: napari.viewer.Viewer) -> None:
         super().__init__()
 
         # create connection to mmcore server or process-local variant
         self._mmc = CMMCorePlus.instance()
 
         self.viewer = viewer
+        self._dock_widgets: dict[str, QtViewerDockWidget] = {}
 
         adapter_path = find_micromanager()
         if not adapter_path:
@@ -57,22 +84,14 @@ class MainWindow(MicroManagerWidget):
         sizepolicy = QSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.tab_wdg.setSizePolicy(sizepolicy)
+        self.snap_live.setSizePolicy(sizepolicy)
 
         self.streaming_timer: QTimer | None = None
-
-        self._mda_meta: _mda_meta.SequenceMeta | None = None
-
-        # widgets
-        self.cam_roi = CamROI(parent=self)
-
-        # disable gui
-        self._set_enabled(False)
 
         # connect mmcore signals
         # note: don't use lambdas with closures on `self`, since the connection
         # to core may outlive the lifetime of this particular widget.
-        self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
+        # self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
         self._mmc.events.exposureChanged.connect(self._update_live_exp)
 
         self._mmc.events.imageSnapped.connect(self.update_viewer)
@@ -86,16 +105,12 @@ class MainWindow(MicroManagerWidget):
         self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
         self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
 
-        # connect metadata info
-        self.explorer.metadataInfo.connect(self._on_meta_info)
-        self.mda.metadataInfo.connect(self._on_meta_info)
-
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
-        self._mda_temp_arrays: Dict[str, zarr.Array] = {}
+        self._mda_temp_arrays: dict[str, zarr.Array] = {}
         # mapping of str `str(sequence.uid) + channel` -> temporary directory where
         # the zarr.Array is stored
-        self._mda_temp_files: Dict[str, tempfile.TemporaryDirectory] = {}
+        self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
 
         # TODO: consider using weakref here like in pymmc+
         # didn't implement here because this object shouldn't be del'd until
@@ -103,7 +118,7 @@ class MainWindow(MicroManagerWidget):
         # and more importantly because I couldn't get it working with pytest
         # because tempfile seems to register an atexit before we do.
         @atexit.register
-        def cleanup():
+        def cleanup() -> None:
             """Clean up temporary files we opened."""
             for v in self._mda_temp_files.values():
                 with contextlib.suppress(NotADirectoryError):
@@ -115,28 +130,61 @@ class MainWindow(MicroManagerWidget):
 
         self._add_menu()
 
-    def _add_menu(self):
+        # add minmax dockwidget
+        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
+
+    def _add_menu(self) -> None:
+        # TODO: this will be removed, in the next PR we will use a QtoolBar
         w = getattr(self.viewer, "__wrapped__", self.viewer).window  # don't do this.
         self._menu = QMenu("&Micro-Manager", w._qt_window)
 
-        action = self._menu.addAction("Device Property Browser...")
-        action.triggered.connect(self._show_prop_browser)
-
-        cm = self._menu.addAction("Camera ROI")
-        cm.triggered.connect(self._show_dock_widget)
+        for name in DOCK_WIDGETS:
+            action = self._menu.addAction(name)
+            action.triggered.connect(self._show_dock_widget)
 
         bar = w._qt_window.menuBar()
         bar.insertMenu(list(bar.actions())[-1], self._menu)
 
-    def _show_prop_browser(self):
-        if not hasattr(self, "_prop_browser"):
-            self._prop_browser = PropertyBrowser(mmcore=self._mmc, parent=self)
-        self._prop_browser.show()
-        self._prop_browser.raise_()
+    def _show_dock_widget(self, key: str = "") -> None:
+        """Look up widget class in DOCK_WIDGETS and add/create or show/raise.
+
+        `key` must be a key in the DOCK_WIDGETS dict.
+        """
+        if not key:
+            key = self.sender().text()
+
+        if key in self._dock_widgets:
+            # already exists
+            dock_wdg = self._dock_widgets[key]
+            dock_wdg.show()
+            dock_wdg.raise_()
+        else:
+            # creating it for the first time
+            # sourcery skip: extract-method
+            try:
+                wdg_cls = DOCK_WIDGETS[key]
+            except KeyError as e:
+                raise KeyError(
+                    "Not a recognized dock widget key. "
+                    f"Must be one of {list(DOCK_WIDGETS)}"
+                ) from e
+            wdg = wdg_cls(parent=self, mmcore=self._mmc)
+
+            if isinstance(wdg, PropertyBrowser):
+                wdg.setSizePolicy(
+                    QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+                )
+                wdg._prop_table.setVerticalScrollBarPolicy(
+                    Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+                )
+
+            dock_wdg = self._add_dock_widget(wdg, key, floating=True)
+            self._dock_widgets[key] = dock_wdg
 
     def _add_dock_widget(
         self, widget: QWidget, name: str, floating: bool = False
     ) -> QtViewerDockWidget:
+        """Add a docked widget using napari's add_dock_widget."""
         dock_wdg = self.viewer.window.add_dock_widget(
             widget,
             name=name,
@@ -147,33 +195,8 @@ class MainWindow(MicroManagerWidget):
         dock_wdg._close_btn = False
         return dock_wdg
 
-    def _show_dock_widget(self) -> None:
-        """Method to show the selected QtViewerDockWidget."""
-        text = self.sender().text()
-
-        if "Camera" in text:
-            if not hasattr(self, "camera_roi_dock_wdg"):
-                self.camera_roi_dock_wdg = self._add_dock_widget(
-                    self.cam_roi, "Camera ROI", floating=True
-                )
-            wdg = self.camera_roi_dock_wdg
-            wdg.show()
-            wdg.raise_()
-
-    def _on_system_cfg_loaded(self):
-        if len(self._mmc.getLoadedDevices()) > 1:
-            self._set_enabled(True)
-
-    def _on_meta_info(
-        self, meta: _mda_meta.SequenceMeta, sequence: MDASequence
-    ) -> None:
-        self._mda_meta = _mda_meta.SEQUENCE_META.get(sequence, meta)
-
-    def _set_enabled(self, enabled):
-        self.illum_btn.setEnabled(enabled)
-
-    @ensure_main_thread
-    def update_viewer(self, data=None):
+    @ensure_main_thread  # type: ignore [misc]
+    def update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the camera."""
         if data is None:
             try:
@@ -194,74 +217,76 @@ class MainWindow(MicroManagerWidget):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def _update_max_min(self, event=None):
-
-        if self.tab_wdg.tabWidget.currentIndex() != 0:
-            return
+    def _update_max_min(self, event: Any = None) -> None:
 
         min_max_txt = ""
+        layers: list[napari.layers.Image] = [
+            lr
+            for lr in self.viewer.layers.selection
+            if isinstance(lr, napari.layers.Image) and lr.visible
+        ]
 
-        for layer in self.viewer.layers.selection:
+        if not layers:
+            self.minmax.max_min_val_label.setText(min_max_txt)
+            return
 
-            if isinstance(layer, napari.layers.Image) and layer.visible:
+        for layer in layers:
+            col = layer.colormap.name
+            if col not in QColor.colorNames():
+                col = "gray"
+            # min and max of current slice
+            min_max_show = tuple(layer._calc_data_range(mode="slice"))
+            min_max_txt += f'<font color="{col}">{min_max_show}</font>'
 
-                col = layer.colormap.name
+        self.minmax.max_min_val_label.setText(min_max_txt)
 
-                if col not in QColor.colorNames():
-                    col = "gray"
-
-                # min and max of current slice
-                min_max_show = tuple(layer._calc_data_range(mode="slice"))
-                min_max_txt += f'<font color="{col}">{min_max_show}</font>'
-
-        self.tab_wdg.max_min_val_label.setText(min_max_txt)
-
-    def _snap(self):
+    def _snap(self) -> None:
         # update in a thread so we don't freeze UI
         create_worker(self._mmc.snap, _start_thread=True)
 
-    def _start_live(self):
+    def _start_live(self) -> None:
         self.streaming_timer = QTimer()
         self.streaming_timer.timeout.connect(self.update_viewer)
         self.streaming_timer.start(int(self._mmc.getExposure()))
 
-    def _stop_live(self):
+    def _stop_live(self) -> None:
         if self.streaming_timer:
             self.streaming_timer.stop()
             self.streaming_timer = None
 
-    @ensure_main_thread
-    def _on_mda_started(self, sequence: useq.MDASequence):
+    @ensure_main_thread  # type: ignore [misc]
+    def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
-        if not self._mda_meta:
+        meta = _mda_meta.SEQUENCE_META.get(sequence)
+        if meta is None:
             return
-
-        self._set_enabled(False)
 
         # pause acquisition until zarr layer(s) is(are) added
         self._mmc.mda.toggle_pause()
 
-        if self._mda_meta.mode in ["mda", ""]:
+        if meta.mode in ["mda", ""]:
             # work out what the shapes of the mda layers will be
             # depends on whether the user selected Split Channels or not
-            sh_ch_lbl = self._interpret_split_channels(sequence)
+            sh_ch_lbl = self._interpret_split_channels(sequence, meta)
             if sh_ch_lbl is None:
                 return
             shape, channels, labels = sh_ch_lbl
             # create the viewer layers backed by zarr stores
-            self._add_mda_channel_layers(tuple(shape), channels, sequence)
+            self._add_mda_channel_layers(tuple(shape), channels, sequence, meta)
 
-        elif self._mda_meta.mode == "explorer":
+        elif meta.mode == "explorer":
 
-            if self._mda_meta.translate_explorer:
+            if meta.translate_explorer:
                 shape, positions, labels = self._interpret_explorer_positions(sequence)
-                self._add_explorer_positions_layers(tuple(shape), positions, sequence)
+                self._add_explorer_positions_layers(
+                    tuple(shape), positions, sequence, meta
+                )
             else:
-                sh_ch_lbl = self._interpret_split_channels(sequence)
+                sh_ch_lbl = self._interpret_split_channels(sequence, meta)
                 if sh_ch_lbl is None:
                     return
                 shape, channels, labels = sh_ch_lbl
-                self._add_mda_channel_layers(tuple(shape), channels, sequence)
+                self._add_mda_channel_layers(tuple(shape), channels, sequence, meta)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = labels
@@ -272,7 +297,7 @@ class MainWindow(MicroManagerWidget):
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
-    ) -> Tuple[List[str], List[int]]:
+    ) -> tuple[list[str], list[int]]:
         """Determine the shape of layers and the dimension labels."""
         img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
         axis_order = event_indices(next(sequence.iter_events()))
@@ -287,31 +312,29 @@ class MainWindow(MicroManagerWidget):
 
         return labels, shape
 
-    def _get_channel_name_with_index(self, sequence: MDASequence) -> List[str]:
+    def _get_channel_name_with_index(self, sequence: MDASequence) -> list[str]:
         """Store index in addition to channel.config.
 
         It is possible to have two or more of the same channel in one sequence.
         """
         channels = []
         for i in sequence.iter_events():
-            ch = f"_{i.channel.config}_{i.index['c']:03d}"
-            if ch not in channels:
-                channels.append(ch)
+            if i.channel:
+                ch = f"_{i.channel.config}_{i.index['c']:03d}"
+                if ch not in channels:
+                    channels.append(ch)
         return channels
 
     def _interpret_split_channels(
-        self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]] | None:
+        self, sequence: MDASequence, meta: SequenceMeta
+    ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
 
         ...based on whether we are splitting on channels
         """
-        if not self._mda_meta:
-            return None
-
         labels, shape = self._get_shape_and_labels(sequence)
-        if self._mda_meta.split_channels:
+        if meta.split_channels:
             channels = self._get_channel_name_with_index(sequence)
             with contextlib.suppress(ValueError):
                 c_idx = labels.index("c")
@@ -324,7 +347,7 @@ class MainWindow(MicroManagerWidget):
 
     def _interpret_explorer_positions(
         self, sequence: MDASequence
-    ) -> Tuple[List[int], List[str], List[str]]:
+    ) -> tuple[list[int], list[str], list[str]]:
         """Determine shape, positions and labels.
 
         ...by removing positions index.
@@ -339,17 +362,18 @@ class MainWindow(MicroManagerWidget):
         return shape, positions, labels
 
     def _add_mda_channel_layers(
-        self, shape: Tuple[int, ...], channels: List[str], sequence: MDASequence
-    ):
+        self,
+        shape: tuple[int, ...],
+        channels: list[str],
+        sequence: MDASequence,
+        meta: SequenceMeta,
+    ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
         If splitting on Channels then channels will look like ["BF", "GFP",...]
         and if we do not split on channels it will look like [""] and only one
         layer/zarr store will be created.
         """
-        if not self._mda_meta:
-            return
-
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
         # create a zarr store for each channel (or all channels when not splitting)
@@ -366,23 +390,24 @@ class MainWindow(MicroManagerWidget):
             self._mda_temp_arrays[id_] = z = zarr.open(
                 str(tmp.name), shape=shape, dtype=dtype
             )
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            fname = meta.file_name if meta.should_save else "Exp"
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
             layer.visible = False
 
             # add metadata to layer
-            layer.metadata["mode"] = self._mda_meta.mode
+            layer.metadata["mode"] = meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}"
 
     def _add_explorer_positions_layers(
-        self, shape: Tuple[int, ...], positions: List[str], sequence: MDASequence
+        self,
+        shape: tuple[int, ...],
+        positions: list[str],
+        sequence: MDASequence,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
-        if not self._mda_meta:
-            return
-
         dtype = f"uint{self._mmc.getImageBitDepth()}"
 
         for pos in positions:
@@ -396,18 +421,18 @@ class MainWindow(MicroManagerWidget):
             self._mda_temp_arrays[id_] = z = zarr.open(
                 str(tmp.name), shape=shape, dtype=dtype
             )
-            fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+            fname = meta.file_name if meta.should_save else "Exp"
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
             layer.visible = False
 
             # add metadata to layer
-            layer.metadata["mode"] = self._mda_meta.mode
+            layer.metadata["mode"] = meta.mode
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["grid"] = pos.split("_")[-3]
             layer.metadata["grid_pos"] = pos.split("_")[-2]
 
-    def _get_defaultdict_layers(self, event) -> defaultdict[Any, set]:
+    def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
         for lay in self.viewer.layers:
             if lay.metadata.get("uid") == event.sequence.uid:
@@ -415,32 +440,29 @@ class MainWindow(MicroManagerWidget):
                 layergroups[key].add(lay)
         return layergroups
 
-    @ensure_main_thread
-    def _on_mda_frame(self, image: np.ndarray, event: useq.MDAEvent):
-
-        if not self._mda_meta:
+    @ensure_main_thread  # type: ignore [misc]
+    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+        meta = _mda_meta.SEQUENCE_META.get(event.sequence)
+        if meta is None:
             return
 
-        if self._mda_meta.mode == "mda":
-            self._mda_acquisition(image, event, self._mda_meta)
-        elif self._mda_meta.mode == "explorer":
-            if self._mda_meta.translate_explorer:
-                self._explorer_acquisition_translate(image, event, self._mda_meta)
+        if meta.mode == "mda":
+            self._mda_acquisition(image, event, meta)
+        elif meta.mode == "explorer":
+            if meta.translate_explorer:
+                self._explorer_acquisition_translate(image, event, meta)
             else:
-                self._explorer_acquisition_stack(image, event)
+                self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
-        self, image: np.ndarray, event: useq.MDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-
-        if not self._mda_meta:
-            return
 
         axis_order = list(event_indices(event))
         # Remove 'c' from idxs if we are splitting channels
         # also prepare the channel suffix that we use for keeping track of arrays
         channel = ""
-        if meta.split_channels:
+        if meta.split_channels and event.channel:
             channel = f"_{event.channel.config}_{event.index['c']:03d}"
 
             # split channels checked but no channels added
@@ -460,7 +482,7 @@ class MainWindow(MicroManagerWidget):
         self.viewer.dims.current_step = tuple(cs)
 
         # display
-        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        fname = meta.file_name if meta.should_save else "Exp"
         layer_name = f"{fname}_{event.sequence.uid}{channel}"
         layer = self.viewer.layers[layer_name]
         if not layer.visible:
@@ -468,11 +490,8 @@ class MainWindow(MicroManagerWidget):
         # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
-        self, image: np.ndarray, event: useq.MDAEvent
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-
-        if not self._mda_meta:
-            return
 
         axis_order = list(event_indices(event))
         im_idx = tuple(event.index[k] for k in axis_order)
@@ -483,19 +502,15 @@ class MainWindow(MicroManagerWidget):
             cs[a] = v
         self.viewer.dims.current_step = tuple(cs)
 
-        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        fname = meta.file_name if meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
         if not layer.visible:
             layer.visible = True
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
-        self, image: np.ndarray, event: useq.MDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-
-        if not self._mda_meta:
-            return
-
         axis_order = list(event_indices(event))
 
         with contextlib.suppress(ValueError):
@@ -515,7 +530,7 @@ class MainWindow(MicroManagerWidget):
             unlink_layers(group)
 
         # translate only once
-        fname = self._mda_meta.file_name if self._mda_meta.should_save else "Exp"
+        fname = meta.file_name if meta.should_save else "Exp"
         layer = self.viewer.layers[f"{fname}_{layer_name}"]
         if (layer.translate[-2], layer.translate[-1]) != (y, x):
             layer.translate = (y, x)
@@ -537,27 +552,20 @@ class MainWindow(MicroManagerWidget):
         layer.visible = True
 
         zoom_out_factor = (
-            self.explorer.scan_size_r
-            if self.explorer.scan_size_r >= self.explorer.scan_size_c
-            else self.explorer.scan_size_c
+            meta.scan_size_r
+            if meta.scan_size_r >= meta.scan_size_c
+            else meta.scan_size_c
         )
         self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
-    def _on_mda_finished(self, sequence: useq.MDASequence):
-
-        # reactivate gui when mda finishes.
-        self._set_enabled(True)
-
-        if not self._mda_meta:
-            return
-
+    def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         # Save layer and add increment to save name.
-        meta = self._mda_meta
-        meta = _mda_meta.SEQUENCE_META.pop(sequence, self._mda_meta)
-        save_sequence(sequence, self.viewer.layers, meta)
+        meta = _mda_meta.SEQUENCE_META.pop(sequence, None)
+        if meta is not None:
+            save_sequence(sequence, self.viewer.layers, meta)
 
-    def _update_live_exp(self, camera: str, exposure: float):
+    def _update_live_exp(self, camera: str, exposure: float) -> None:
         if self.streaming_timer:
             self.streaming_timer.setInterval(int(exposure))
             self._mmc.stopSequenceAcquisition()

@@ -46,7 +46,7 @@ jobs:
         run: python -m pymmcore_plus.install
 
       - name: Test
-        run: python -m pytest -v --color=yes --cov=micromanager_gui --cov-report=xml
+        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v3

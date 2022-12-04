@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from napari_micromanager import _mda_meta
+from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._util import event_indices
+from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
-
-from micromanager_gui import _mda_meta
-from micromanager_gui._util import event_indices
-from micromanager_gui.main_window import MainWindow
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -28,7 +28,6 @@ def test_main_window_mda(main_window: MainWindow):
     )
 
     _mda_meta.SEQUENCE_META[mda] = _mda_meta.SequenceMeta(mode="mda")
-    main_window._on_meta_info(_mda_meta.SEQUENCE_META[mda], mda)
 
     mmc = main_window._mmc
 
@@ -50,7 +49,9 @@ def test_saving_mda(
 ):
 
     NAME = "test_mda"
-    _mda = main_window.mda
+    main_window._show_dock_widget("MDA")
+    _mda = main_window._dock_widgets["MDA"].widget()
+    assert isinstance(_mda, MultiDWidget)
     _mda.save_groupbox.setChecked(True)
     _mda.dir_lineEdit.setText(str(tmp_path))
     _mda.fname_lineEdit.setText(NAME)
@@ -96,9 +97,7 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignals(
-        [_mda.metadataInfo, mmc.mda.events.sequenceFinished], timeout=4000
-    ):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
         _mda.buttons_wdg.run_button.click()
 
     assert mda is not None
@@ -134,7 +133,6 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     )
 
     _mda_meta.SEQUENCE_META[sequence] = _mda_meta.SequenceMeta(mode="mda")
-    main_window._on_meta_info(_mda_meta.SEQUENCE_META[sequence], sequence)
 
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
         mmc.run_mda(sequence)

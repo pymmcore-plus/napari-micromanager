@@ -11,16 +11,17 @@ from ._util import ensure_unique
 
 if TYPE_CHECKING:
     from napari.components import LayerList
+    from napari_micromanager._mda_meta import SequenceMeta
     from useq import MDASequence
 
-    from micromanager_gui._mda_meta import SequenceMeta
+
+def _imsave(file: Path, data: np.ndarray, dtype: str = "uint16") -> None:
+    tifffile.imwrite(
+        str(file), data.astype(dtype), imagej=data.ndim <= 5, photometric="MINISBLACK"
+    )
 
 
-def _imsave(file: Path, data: np.ndarray, dtype="uint16"):
-    tifffile.imwrite(str(file), data.astype(dtype), imagej=data.ndim <= 5)
-
-
-def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta) -> None:
     """Save `layers` associated with an MDA `sequence` to disk.
 
     Parameters
@@ -43,7 +44,9 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
     raise NotImplementedError(f"cannot save experiment with mode: {meta.mode}")
 
 
-def _save_mda_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta):
+def _save_mda_sequence(
+    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
+) -> None:
     path = Path(meta.save_dir)
     file_name = meta.file_name
     folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
