@@ -17,7 +17,7 @@ from pymmcore_widgets import (
     PropertyBrowser,
     SnapButton,
 )
-from qtpy.QtCore import QSize, Qt
+from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
     QGroupBox,
@@ -69,7 +69,7 @@ class MicroManagerToolbar(QMainWindow):
 
         self._mmc = CMMCorePlus.instance()
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
-
+        self._napari_win: QMainWindow = self.viewer.window._qt_window
         # min max widget
         self.minmax = MinMax(parent=self)
 
@@ -100,6 +100,31 @@ class MicroManagerToolbar(QMainWindow):
         ]
         for item in toolbar_items:
             self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
+
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        """Event filter that ensures that this widget is shown at the top.
+
+        npe2 plugins don't have a way to specify where they should be added, so this
+        event filter listens for the event when this widget is docked in the main
+        window, then redocks it at the top and assigns allowed areas.
+        """
+        # the move event is one of the first events that is fired when the widget is
+        # docked, so we use it to re-dock this widget at the top
+        if event.type() == QEvent.Type.Move and obj is self:
+            dw = self.parent()
+            if (
+                isinstance(dw, QDockWidget)
+                and self._napari_win.dockWidgetArea(dw)
+                is not Qt.DockWidgetArea.TopDockWidgetArea
+            ):
+                was_visible = dw.isVisible()
+                self._napari_win.removeDockWidget(dw)
+                dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
+                self._napari_win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
+                dw.setVisible(was_visible)  # necessary after using removeDockWidget
+        return False
 
     def _add_cfg(self) -> QToolBar:
         """Create a QToolBar with the `ConfigurationWidget`."""
