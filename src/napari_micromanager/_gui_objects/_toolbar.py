@@ -27,6 +27,7 @@ from qtpy.QtWidgets import (
     QMainWindow,
     QPushButton,
     QSizePolicy,
+    QTabWidget,
     QToolBar,
     QWidget,
 )
@@ -54,6 +55,7 @@ PUSHBUTTON_STYLE = """
     """
 
 
+# Dict for QObject and its QPushButton icon
 DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
     "Device Property Browser": (PropertyBrowser, "table_large"),
     "Groups and Presets Table": (GroupPresetTableWidget, "table_large_plus"),
@@ -75,7 +77,13 @@ class MicroManagerToolbar(QMainWindow):
         self._mmc = CMMCorePlus.instance()
         self.viewer = viewer
 
+        # min max widget
         self.minmax = MinMax(parent=self)
+
+        # make the tabs of tabbed dockwidgets apprearing on top
+        self.viewer.window._qt_window.setTabPosition(
+            Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
+        )
 
         self._dock_widgets: dict[str, QtViewerDockWidget] = {}
 
@@ -341,11 +349,11 @@ class MicroManagerToolbar(QMainWindow):
                     Qt.ScrollBarPolicy.ScrollBarAlwaysOff
                 )
 
-            dock_wdg = self._add_dock_widget(wdg, key, floating=True)
+            dock_wdg = self._add_dock_widget(wdg, key, tabify=True)
             self._dock_widgets[key] = dock_wdg
 
     def _add_dock_widget(
-        self, widget: QWidget, name: str, floating: bool = False
+        self, widget: QWidget, name: str, floating: bool = False, tabify: bool = False
     ) -> QtViewerDockWidget:
         """Add a docked widget using napari's add_dock_widget."""
         dock_wdg = self.viewer.window.add_dock_widget(
@@ -353,6 +361,7 @@ class MicroManagerToolbar(QMainWindow):
             name=name,
             area="right",
             allowed_areas=["left", "right"],
+            tabify=tabify,
         )
         dock_wdg.setFloating(floating)
         dock_wdg._close_btn = False
