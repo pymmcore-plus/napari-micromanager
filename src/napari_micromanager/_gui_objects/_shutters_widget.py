@@ -28,8 +28,13 @@ class MMShuttersWidget(QWidget):
         self._clear()
 
         if not self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
-            empty_shutter = ShuttersWidget("")
-            self.layout().addWidget(empty_shutter)
+            # FIXME:
+            # ShuttersWidget has not been tested with an empty device label...
+            # it raises all sorts of errors.
+            # if we want to have a "placeholder" widget, it needs more testing.
+
+            # empty_shutter = ShuttersWidget("")
+            # self.layout().addWidget(empty_shutter)
             return
 
         shutters_devs = list(self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice))

@@ -60,7 +60,7 @@ class MainWindow(MicroManagerToolbar):
         # from core when this widget is closed.
         self._connections: list[tuple[PSignalInstance, Callable]] = [
             (self._mmc.events.exposureChanged, self._update_live_exp),
-            (self._mmc.events.imageSnapped, self.update_viewer),
+            (self._mmc.events.imageSnapped, self._update_viewer),
             (self._mmc.events.imageSnapped, self._stop_live),
             (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
@@ -99,8 +99,8 @@ class MainWindow(MicroManagerToolbar):
         atexit.unregister(self._cleanup)  # doesn't raise if not connected
 
     @ensure_main_thread  # type: ignore [misc]
-    def update_viewer(self, data: np.ndarray | None = None) -> None:
-        """Update viewer with the latest image from the camera."""
+    def _update_viewer(self, data: np.ndarray | None = None) -> None:
+        """Update viewer with the latest image from the circular buffer."""
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -149,7 +149,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _start_live(self) -> None:
         self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.timeout.connect(self._update_viewer)
         self.streaming_timer.start(int(self._mmc.getExposure()))
 
     def _stop_live(self) -> None:
