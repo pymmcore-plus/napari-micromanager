@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Tuple
+from typing import TYPE_CHECKING, Any, List
 
 import napari
 import numpy as np
@@ -356,7 +356,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _get_scale_from_sequence(
         self, sequence: MDASequence, layer: napari.layers.Image
-    ) -> Tuple[float, ...]:  # noqa: U006
+    ) -> List[float]:  # noqa: U006
         """Calculate and return the layer scale.
 
         ...using pixel size, layer shape and the MDASequence z info.
@@ -369,7 +369,7 @@ class MainWindow(MicroManagerToolbar):
                 scale[-3] = sequence.z_plan.step
             elif sequence.axis_order.index("z") == 2:
                 scale[-4] = sequence.z_plan.step
-        return tuple(scale)
+        return scale
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
