@@ -359,7 +359,7 @@ class MainWindow(MicroManagerToolbar):
     ) -> Tuple[float, ...]:  # noqa: U006
         """Calculate and return the layer scale.
 
-        ...using layer shape and the MDASequence z info.
+        ...using pixel size, layer shape and the MDASequence z info.
         """
         scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
         if len(sequence.z_plan) > 1 and isinstance(
