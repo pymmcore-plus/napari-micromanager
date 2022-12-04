@@ -46,11 +46,6 @@ if TYPE_CHECKING:
 TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
 GROUPBOX_STYLE = "QGroupBox { border-radius: 3px; }"
-TOOLBAR_STYLE = "QToolButton::menu-indicator{ image: none; }"
-PUSHBUTTON_STYLE = """
-        color: rgb(0, 255, 0);
-        font-weight: bold;
-    """
 
 
 # Dict for QObject and its QPushButton icon
