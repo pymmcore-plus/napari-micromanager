@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any
 
 import napari
 import numpy as np
@@ -15,7 +15,7 @@ from pymmcore_plus._util import find_micromanager
 from qtpy.QtCore import QTimer
 from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
-from useq import MDAEvent, MDASequence, ZAboveBelow, ZRangeAround, ZTopBottom
+from useq import MDAEvent, MDASequence
 
 from . import _mda_meta
 from ._gui_objects._toolbar import MicroManagerToolbar
@@ -116,7 +116,6 @@ class MainWindow(MicroManagerToolbar):
 
         preview_layer.metadata["mode"] = "preview"
         preview_layer.scale = (self._mmc.getPixelSizeUm(), self._mmc.getPixelSizeUm())
-        preview_layer.metadata["scale"] = preview_layer.scale
 
         self._update_max_min()
 
@@ -308,7 +307,6 @@ class MainWindow(MicroManagerToolbar):
             layer.metadata["useq_sequence"] = sequence
             layer.metadata["uid"] = sequence.uid
             layer.metadata["ch_id"] = f"{channel}"
-            layer.metadata["scale"] = layer.scale
 
     def _add_explorer_positions_layers(
         self,
@@ -344,7 +342,6 @@ class MainWindow(MicroManagerToolbar):
             layer.metadata["uid"] = sequence.uid
             layer.metadata["grid"] = pos.split("_")[-3]
             layer.metadata["grid_pos"] = pos.split("_")[-2]
-            layer.metadata["scale"] = layer.scale
 
     def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
@@ -356,19 +353,22 @@ class MainWindow(MicroManagerToolbar):
 
     def _get_scale_from_sequence(
         self, sequence: MDASequence, layer: napari.layers.Image
-    ) -> List[float]:  # noqa: U006
+    ) -> list[float]:
         """Calculate and return the layer scale.
 
         ...using pixel size, layer shape and the MDASequence z info.
         """
-        scale = [self._mmc.getPixelSizeUm()] * len(layer.data.shape)
-        if len(sequence.z_plan) > 1 and isinstance(
-            sequence.z_plan, (ZTopBottom, ZRangeAround, ZAboveBelow)
-        ):
-            if sequence.axis_order.index("z") == 3:
-                scale[-3] = sequence.z_plan.step
-            elif sequence.axis_order.index("z") == 2:
-                scale[-4] = sequence.z_plan.step
+        scale = [1.0] * len(layer.data.shape)
+        scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
+        try:
+            index = sequence.axis_order.index("z")
+            if index == 2:
+                index = -4
+            elif index == 3:
+                index = -3
+            scale[index] = getattr(sequence.z_plan, "step", 1)
+        except ValueError:
+            pass  # z not in used_axes
         return scale
 
     @ensure_main_thread  # type: ignore [misc]
