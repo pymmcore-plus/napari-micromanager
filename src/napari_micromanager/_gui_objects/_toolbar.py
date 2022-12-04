@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, Tuple, cast
 
 from fonticon_mdi6 import MDI6
-from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import (
     CameraRoiWidget,
@@ -19,6 +18,7 @@ from pymmcore_widgets import (
 )
 from qtpy.QtCore import QSize, Qt
 from qtpy.QtWidgets import (
+    QDockWidget,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -82,7 +82,7 @@ class MicroManagerToolbar(QMainWindow):
             Qt.DockWidgetArea.RightDockWidgetArea, QTabWidget.TabPosition.North
         )
 
-        self._dock_widgets: dict[str, QtViewerDockWidget] = {}
+        self._dock_widgets: dict[str, QDockWidget] = {}
 
         # add toolbar items
         toolbar_items = [
@@ -348,7 +348,7 @@ class MicroManagerToolbar(QMainWindow):
 
     def _add_dock_widget(
         self, widget: QWidget, name: str, floating: bool = False, tabify: bool = False
-    ) -> QtViewerDockWidget:
+    ) -> QDockWidget:
         """Add a docked widget using napari's add_dock_widget."""
         dock_wdg = self.viewer.window.add_dock_widget(
             widget,
