@@ -78,7 +78,7 @@ def test_saving_mda(
     if C and splitC:
         _mda.checkBox_split_channels.setChecked(True)
 
-    mda: MDASequence = None
+    mda: MDASequence | None = None
 
     mmc = main_window._mmc
     # re-register twice to fully exercise the logic of the update
@@ -96,7 +96,7 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=4000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
         _mda.buttons_wdg.run_button.click()
 
     assert mda is not None
