@@ -69,21 +69,22 @@ class MicroManagerToolbar(QMainWindow):
 
         self._mmc = CMMCorePlus.instance()
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
-        self._napari_win: QMainWindow = self.viewer.window._qt_window
+
         # min max widget
         self.minmax = MinMax(parent=self)
 
-        # make the tabs of tabbed dockwidgets apprearing on top (North)
-        areas = [
-            Qt.DockWidgetArea.RightDockWidgetArea,
-            Qt.DockWidgetArea.LeftDockWidgetArea,
-            Qt.DockWidgetArea.TopDockWidgetArea,
-            Qt.DockWidgetArea.BottomDockWidgetArea,
-        ]
-        for area in areas:
-            self.viewer.window._qt_window.setTabPosition(
-                area, QTabWidget.TabPosition.North
-            )
+        if win := getattr(self.viewer.window, "_qt_window", None) is not None:
+            # make the tabs of tabbed dockwidgets apprearing on top (North)
+            areas = [
+                Qt.DockWidgetArea.RightDockWidgetArea,
+                Qt.DockWidgetArea.LeftDockWidgetArea,
+                Qt.DockWidgetArea.TopDockWidgetArea,
+                Qt.DockWidgetArea.BottomDockWidgetArea,
+            ]
+            for area in areas:
+                cast(QMainWindow, win).setTabPosition(
+                    area, QTabWidget.TabPosition.North
+                )
 
         self._dock_widgets: dict[str, QDockWidget] = {}
 
@@ -114,15 +115,17 @@ class MicroManagerToolbar(QMainWindow):
         # docked, so we use it to re-dock this widget at the top
         if event.type() == QEvent.Type.Move and obj is self:
             dw = self.parent()
+            if not (win := getattr(self.viewer.window, "_qt_window", None)):
+                return False
+            win = cast(QMainWindow, win)
             if (
                 isinstance(dw, QDockWidget)
-                and self._napari_win.dockWidgetArea(dw)
-                is not Qt.DockWidgetArea.TopDockWidgetArea
+                and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
             ):
                 was_visible = dw.isVisible()
-                self._napari_win.removeDockWidget(dw)
+                win.removeDockWidget(dw)
                 dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
-                self._napari_win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
+                win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
                 dw.setVisible(was_visible)  # necessary after using removeDockWidget
         return False
 
