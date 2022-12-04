@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING, Dict, Tuple, cast
 
 from fonticon_mdi6 import MDI6
@@ -358,5 +359,6 @@ class MicroManagerToolbar(QMainWindow):
             tabify=tabify,
         )
         dock_wdg.setFloating(floating)
-        dock_wdg._close_btn = False
+        with contextlib.suppress(AttributeError):
+            dock_wdg._close_btn = False
         return dock_wdg
