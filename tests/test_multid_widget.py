@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
-from napari_micromanager import _mda_meta
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager._util import event_indices
 from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
@@ -25,9 +25,8 @@ def test_main_window_mda(main_window: MainWindow):
         time_plan={"loops": 4, "interval": 0.1},
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
+        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
-
-    _mda_meta.SEQUENCE_META[mda] = _mda_meta.SequenceMeta(mode="mda")
 
     mmc = main_window._mmc
 
@@ -130,9 +129,8 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
         z_plan={"range": 4, "step": 5},
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],
+        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
-
-    _mda_meta.SEQUENCE_META[sequence] = _mda_meta.SequenceMeta(mode="mda")
 
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
         mmc.run_mda(sequence)

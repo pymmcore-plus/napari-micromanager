@@ -8,7 +8,4 @@ except PackageNotFoundError:
 
 from .main_window import MainWindow
 
-__all__ = [
-    "__version__",
-    "MainWindow",
-]
+__all__ = ["__version__", "MainWindow"]
