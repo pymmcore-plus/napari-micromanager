@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._gui_objects._sample_explorer_widget import SampleExplorer
-from napari_micromanager._mda_meta import SEQUENCE_META
+from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager._util import event_indices
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
@@ -50,7 +50,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     @mmc.mda.events.sequenceStarted.connect
     def get_seq(seq: MDASequence):
         nonlocal uid, meta
-        meta = SEQUENCE_META[seq]
+        meta = seq.metadata[SEQUENCE_META_KEY]
         uid = seq.uid
 
     with qtbot.waitSignals(
@@ -65,7 +65,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert mmc.getROI(mmc.getCameraDevice())[-1] == 512
     assert mmc.getROI(mmc.getCameraDevice())[-2] == 512
 
-    assert meta
+    assert isinstance(meta, SequenceMeta)
     assert meta.mode == "explorer"
 
     assert meta.explorer_translation_points == [

@@ -3,12 +3,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from useq import MDASequence
 
-__all__ = [
-    "SequenceMeta",
-    "SEQUENCE_META",
-]
+__all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
+
+
+# This is the key in the MDASequence.metadata dict that will contain the
+# SequenceMeta object.
+SEQUENCE_META_KEY = "napari_mm_sequence_meta"
 
 
 @dataclass
@@ -25,6 +26,3 @@ class SequenceMeta:
     explorer_translation_points: list = field(default_factory=list)
     scan_size_r: int = 0
     scan_size_c: int = 0
-
-
-SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}

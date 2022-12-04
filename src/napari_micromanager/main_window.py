@@ -4,7 +4,7 @@ import atexit
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import napari
 import numpy as np
@@ -17,16 +17,16 @@ from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
-from . import _mda_meta
 from ._gui_objects._toolbar import MicroManagerToolbar
+from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
 from ._util import event_indices
 
 if TYPE_CHECKING:
-
     import napari.layers
     import napari.viewer
     import useq
+    from pymmcore_plus.core.events._protocol import PSignalInstance
 
     class ActiveMDAEvent(MDAEvent):
         """Event that has been assigned a sequence."""
@@ -56,22 +56,23 @@ class MainWindow(MicroManagerToolbar):
 
         self.streaming_timer: QTimer | None = None
 
-        # connect mmcore signals
-        # note: don't use lambdas with closures on `self`, since the connection
-        # to core may outlive the lifetime of this particular widget.
-        # self._mmc.events.systemConfigurationLoaded.connect(self._on_system_cfg_loaded)
-        self._mmc.events.exposureChanged.connect(self._update_live_exp)
-
-        self._mmc.events.imageSnapped.connect(self.update_viewer)
-        self._mmc.events.imageSnapped.connect(self._stop_live)
-
-        # mda events
-        self._mmc.mda.events.frameReady.connect(self._on_mda_frame)
-        self._mmc.mda.events.sequenceStarted.connect(self._on_mda_started)
-        self._mmc.mda.events.sequenceFinished.connect(self._on_mda_finished)
-
-        self._mmc.events.continuousSequenceAcquisitionStarted.connect(self._start_live)
-        self._mmc.events.sequenceAcquisitionStopped.connect(self._stop_live)
+        # Add all core connections to this list.  This makes it easy to disconnect
+        # from core when this widget is closed.
+        self._connections: list[tuple[PSignalInstance, Callable]] = [
+            (self._mmc.events.exposureChanged, self._update_live_exp),
+            (self._mmc.events.imageSnapped, self._update_viewer),
+            (self._mmc.events.imageSnapped, self._stop_live),
+            (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
+            (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
+            (self._mmc.mda.events.frameReady, self._on_mda_frame),
+            (self._mmc.mda.events.sequenceStarted, self._on_mda_started),
+            (self._mmc.mda.events.sequenceFinished, self._on_mda_finished),
+            (self.viewer.layers.events, self._update_max_min),
+            (self.viewer.layers.selection.events, self._update_max_min),
+            (self.viewer.dims.events.current_step, self._update_max_min),
+        ]
+        for signal, slot in self._connections:
+            signal.connect(slot)
 
         # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
         # being added during an MDA
@@ -80,28 +81,26 @@ class MainWindow(MicroManagerToolbar):
         # the zarr.Array is stored
         self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
 
-        # TODO: consider using weakref here like in pymmc+
-        # didn't implement here because this object shouldn't be del'd until
-        # napari is closed so probably not a big issue
-        # and more importantly because I couldn't get it working with pytest
-        # because tempfile seems to register an atexit before we do.
-        @atexit.register
-        def cleanup() -> None:
-            """Clean up temporary files we opened."""
-            for v in self._mda_temp_files.values():
-                with contextlib.suppress(NotADirectoryError):
-                    v.cleanup()
-
-        self.viewer.layers.events.connect(self._update_max_min)
-        self.viewer.layers.selection.events.connect(self._update_max_min)
-        self.viewer.dims.events.current_step.connect(self._update_max_min)
-
         # add minmax dockwidget
         self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
+        # queue cleanup
+        self.destroyed.connect(self._cleanup)
+        atexit.register(self._cleanup)
+
+    def _cleanup(self) -> None:
+        for signal, slot in self._connections:
+            with contextlib.suppress(RuntimeError):
+                signal.disconnect(slot)
+        # Clean up temporary files we opened.
+        for v in self._mda_temp_files.values():
+            with contextlib.suppress(NotADirectoryError):
+                v.cleanup()
+        atexit.unregister(self._cleanup)  # doesn't raise if not connected
+
     @ensure_main_thread  # type: ignore [misc]
-    def update_viewer(self, data: np.ndarray | None = None) -> None:
-        """Update viewer with the latest image from the camera."""
+    def _update_viewer(self, data: np.ndarray | None = None) -> None:
+        """Update viewer with the latest image from the circular buffer."""
         if data is None:
             try:
                 data = self._mmc.getLastImage()
@@ -151,18 +150,19 @@ class MainWindow(MicroManagerToolbar):
 
     def _start_live(self) -> None:
         self.streaming_timer = QTimer()
-        self.streaming_timer.timeout.connect(self.update_viewer)
+        self.streaming_timer.timeout.connect(self._update_viewer)
         self.streaming_timer.start(int(self._mmc.getExposure()))
 
     def _stop_live(self) -> None:
         if self.streaming_timer:
             self.streaming_timer.stop()
+            self.streaming_timer.deleteLater()
             self.streaming_timer = None
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: useq.MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
-        meta = _mda_meta.SEQUENCE_META.get(sequence)
+        meta: SequenceMeta | None = sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
 
@@ -231,7 +231,7 @@ class MainWindow(MicroManagerToolbar):
         return channels
 
     def _interpret_split_channels(
-        self, sequence: MDASequence, meta: _mda_meta.SequenceMeta
+        self, sequence: MDASequence, meta: SequenceMeta
     ) -> tuple[list[int], list[str], list[str]] | None:
         """
         Determine shape, channels and labels.
@@ -271,7 +271,7 @@ class MainWindow(MicroManagerToolbar):
         shape: tuple[int, ...],
         channels: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back MDA and display as new viewer layer(s).
 
@@ -313,7 +313,7 @@ class MainWindow(MicroManagerToolbar):
         shape: tuple[int, ...],
         positions: list[str],
         sequence: MDASequence,
-        meta: _mda_meta.SequenceMeta,
+        meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
         dtype = f"uint{self._mmc.getImageBitDepth()}"
@@ -373,7 +373,7 @@ class MainWindow(MicroManagerToolbar):
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
-        meta = _mda_meta.SEQUENCE_META.get(event.sequence)
+        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
 
@@ -386,7 +386,7 @@ class MainWindow(MicroManagerToolbar):
                 self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -421,7 +421,7 @@ class MainWindow(MicroManagerToolbar):
         # layer.reset_contrast_limits()
 
     def _explorer_acquisition_stack(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
         axis_order = list(event_indices(event))
@@ -440,7 +440,7 @@ class MainWindow(MicroManagerToolbar):
         layer.reset_contrast_limits()
 
     def _explorer_acquisition_translate(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: _mda_meta.SequenceMeta
+        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
         axis_order = list(event_indices(event))
 
@@ -492,8 +492,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _on_mda_finished(self, sequence: useq.MDASequence) -> None:
         # Save layer and add increment to save name.
-        meta = _mda_meta.SEQUENCE_META.pop(sequence, None)
-        if meta is not None:
+        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
             save_sequence(sequence, self.viewer.layers, meta)
 
     def _update_live_exp(self, camera: str, exposure: float) -> None:

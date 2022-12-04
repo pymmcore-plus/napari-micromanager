@@ -18,7 +18,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from .._mda_meta import SEQUENCE_META, SequenceMeta
+from .._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 
 class MultiDWidget(MDAWidget):
@@ -136,9 +136,8 @@ class MultiDWidget(MDAWidget):
     def _on_run_clicked(self) -> None:
         """Run the MDA sequence experiment."""
         # construct a `useq.MDASequence` object from the values inserted in the widget
-        experiment = self.get_state()
-
-        SEQUENCE_META[experiment] = SequenceMeta(
+        sequence = self.get_state()
+        sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),
             should_save=self.save_groupbox.isChecked(),
@@ -149,5 +148,5 @@ class MultiDWidget(MDAWidget):
         )
 
         # run the MDA experiment asynchronously
-        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
+        self._mmc.run_mda(sequence)
         return
