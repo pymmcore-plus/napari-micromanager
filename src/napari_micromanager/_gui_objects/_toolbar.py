@@ -17,7 +17,7 @@ from pymmcore_widgets import (
     PropertyBrowser,
     SnapButton,
 )
-from qtpy.QtCore import QSize, Qt
+from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
     QGroupBox,
@@ -73,17 +73,18 @@ class MicroManagerToolbar(QMainWindow):
         # min max widget
         self.minmax = MinMax(parent=self)
 
-        # make the tabs of tabbed dockwidgets apprearing on top (North)
-        areas = [
-            Qt.DockWidgetArea.RightDockWidgetArea,
-            Qt.DockWidgetArea.LeftDockWidgetArea,
-            Qt.DockWidgetArea.TopDockWidgetArea,
-            Qt.DockWidgetArea.BottomDockWidgetArea,
-        ]
-        for area in areas:
-            self.viewer.window._qt_window.setTabPosition(
-                area, QTabWidget.TabPosition.North
-            )
+        if (win := getattr(self.viewer.window, "_qt_window", None)) is not None:
+            # make the tabs of tabbed dockwidgets apprearing on top (North)
+            areas = [
+                Qt.DockWidgetArea.RightDockWidgetArea,
+                Qt.DockWidgetArea.LeftDockWidgetArea,
+                Qt.DockWidgetArea.TopDockWidgetArea,
+                Qt.DockWidgetArea.BottomDockWidgetArea,
+            ]
+            for area in areas:
+                cast(QMainWindow, win).setTabPosition(
+                    area, QTabWidget.TabPosition.North
+                )
 
         self._dock_widgets: dict[str, QDockWidget] = {}
 
@@ -100,6 +101,33 @@ class MicroManagerToolbar(QMainWindow):
         ]
         for item in toolbar_items:
             self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
+
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        """Event filter that ensures that this widget is shown at the top.
+
+        npe2 plugins don't have a way to specify where they should be added, so this
+        event filter listens for the event when this widget is docked in the main
+        window, then redocks it at the top and assigns allowed areas.
+        """
+        # the move event is one of the first events that is fired when the widget is
+        # docked, so we use it to re-dock this widget at the top
+        if event.type() == QEvent.Type.Move and obj is self:
+            dw = self.parent()
+            if not (win := getattr(self.viewer.window, "_qt_window", None)):
+                return False
+            win = cast(QMainWindow, win)
+            if (
+                isinstance(dw, QDockWidget)
+                and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
+            ):
+                was_visible = dw.isVisible()
+                win.removeDockWidget(dw)
+                dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
+                win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
+                dw.setVisible(was_visible)  # necessary after using removeDockWidget
+        return False
 
     def _add_cfg(self) -> QToolBar:
         """Create a QToolBar with the `ConfigurationWidget`."""
