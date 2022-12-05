@@ -35,9 +35,13 @@ MDAS = [
     {"time_plan": t, "z_plan": z, "channels": c}
     for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
 ]
+MDA_IDS = [
+    f"nT={t and len(t)}-nZ={z and len(z)}-nC={len(c)}"
+    for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
+]
 
 
-@pytest.fixture(params=MDAS)
+@pytest.fixture(params=MDAS, ids=MDA_IDS)
 def mda_sequence(request) -> useq.MDASequence:
     meta = {
         SEQUENCE_META_KEY: SequenceMeta(
@@ -47,7 +51,7 @@ def mda_sequence(request) -> useq.MDASequence:
     return useq.MDASequence(**request.param, metadata=meta)
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False], ids=["splitC", "no_splitC"])
 def mda_sequence_splits(mda_sequence: useq.MDASequence, request) -> useq.MDASequence:
     if request.param:
         meta: SequenceMeta = mda_sequence.metadata[SEQUENCE_META_KEY]

@@ -89,7 +89,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
-            with contextlib.suppress(RuntimeError):
+            with contextlib.suppress(TypeError):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         for v in self._mda_temp_files.values():
