@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from napari_micromanager._util import event_indices
 from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
@@ -99,12 +98,12 @@ def test_saving_mda(
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
         _mda.buttons_wdg.run_button.click()
 
-    assert mda is not None
+    assert isinstance(mda, MDASequence)
     data_shape = main_window.viewer.layers[-1].data.shape
     expected_shape = list(mda.shape) + [500, 512]
 
     if C and splitC:
-        expected_shape.pop(list(event_indices(next(mda.iter_events()))).index("c"))
+        expected_shape.pop(list(mda.used_axes).index("p"))
     # back to tuple after manipulations with pop
     # need to be tuple to compare equality to a tuple
     expected_shape = tuple(expected_shape)

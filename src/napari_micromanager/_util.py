@@ -45,12 +45,6 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     return path.parent / f"{stem}{number}{extension}"
 
 
-# move these to useq:
-def event_indices(event: useq.MDAEvent) -> Iterator[str]:
-    """Yield ordered axis names in an event."""
-    for k in event.sequence.axis_order if event.sequence else []:
-        if k in event.index:
-            yield k
 
 
 def iter_dev_props(mmc: CMMCorePlus | None = None) -> Iterator[tuple[str, str]]:
