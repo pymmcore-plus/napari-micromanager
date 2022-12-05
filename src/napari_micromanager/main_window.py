@@ -300,7 +300,10 @@ class MainWindow(MicroManagerToolbar):
             layer.visible = False
 
             # set layer scale
-            layer.scale = self._get_scale_from_sequence(sequence, layer)
+            layer.scale = self._get_scale_from_sequence(
+                sequence, layer.data.shape, meta
+            )
+            print("#############", layer.scale, layer.data.shape)
 
             # add metadata to layer
             layer.metadata["mode"] = meta.mode
@@ -334,7 +337,9 @@ class MainWindow(MicroManagerToolbar):
             layer.visible = False
 
             # set layer scale
-            layer.scale = self._get_scale_from_sequence(sequence, layer)
+            layer.scale = self._get_scale_from_sequence(
+                sequence, layer.data.shape, meta
+            )
 
             # add metadata to layer
             layer.metadata["mode"] = meta.mode
@@ -352,21 +357,19 @@ class MainWindow(MicroManagerToolbar):
         return layergroups
 
     def _get_scale_from_sequence(
-        self, sequence: MDASequence, layer: napari.layers.Image
+        self, sequence: MDASequence, layer_shape: tuple[int], meta: SequenceMeta
     ) -> list[float]:
         """Calculate and return the layer scale.
 
         ...using pixel size, layer shape and the MDASequence z info.
         """
-        scale = [1.0] * len(layer.data.shape)
+        scale = [1.0] * len(layer_shape)
         scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
         # sourcery skip: use-contextlib-suppress
         try:
-            index = sequence.axis_order.index("z")
-            if index == 2:
-                index = -4
-            elif index == 3:
-                index = -3
+            index = sequence.used_axes.index("z")
+            if meta.split_channels and sequence.axis_order == "tpcz":
+                index -= 1
             scale[index] = getattr(sequence.z_plan, "step", 1)
         except ValueError:
             pass  # z not in used_axes
