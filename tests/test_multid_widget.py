@@ -14,7 +14,6 @@ from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
 
 if TYPE_CHECKING:
-    import napari.layers
     from pytestqt.qtbot import QtBot
 
 
@@ -140,6 +139,4 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     viewer = main_window.viewer
     viewer_layer_names = [layer.name for layer in viewer.layers]
     assert layer_name in viewer_layer_names
-    layer: napari.layers.Image = viewer.layers[layer_name]
-    assert list(layer.scale) == main_window._get_scale_from_sequence(sequence, layer)
     assert sequence.shape == viewer.layers[layer_name].data.shape[:-2]

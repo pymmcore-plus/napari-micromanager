@@ -67,4 +67,3 @@ def test_layer_scale(qtbot: QtBot, main_window: MainWindow, T, C, splitC, Z):
                 assert val == mmc.getPixelSizeUm()
             else:
                 assert val == 1.0
-    assert list(layer.scale) == main_window._get_scale_from_sequence(mda, layer)
