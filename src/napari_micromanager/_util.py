@@ -1,16 +1,9 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import Iterator
 
 from pymmcore_plus import CMMCorePlus
-
-if TYPE_CHECKING:
-    pass
-
-MAG_PATTERN = re.compile(r"(\d{1,3})[xX]")
-RESOLUTION_ID_PREFIX = "px_size_"
 
 
 def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path:
