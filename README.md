@@ -25,7 +25,7 @@ You can install `napari-micromanager` via [pip]:
 The easiest way to get the micromanager adapters is to use:
 
 ```
-python -m pymmcore_plus.install
+mmcore install
 ```
 
 this will install micromanager to the pymmcore_plus folder in your site-package; use this to see where:

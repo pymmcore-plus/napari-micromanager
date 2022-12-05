@@ -50,7 +50,7 @@ class MainWindow(MicroManagerToolbar):
         if not adapter_path:
             raise RuntimeError(
                 "Could not find micromanager adapters. Please run "
-                "`python -m pymmcore_plus.install` or install manually and set "
+                "`mmcore install` or install manually and set "
                 "MICROMANAGER_PATH."
             )
 
