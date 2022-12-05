@@ -360,6 +360,7 @@ class MainWindow(MicroManagerToolbar):
         """
         scale = [1.0] * len(layer.data.shape)
         scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
+        # sourcery skip: use-contextlib-suppress
         try:
             index = sequence.axis_order.index("z")
             if index == 2:
@@ -471,8 +472,6 @@ class MainWindow(MicroManagerToolbar):
         for group in layergroups.values():
             link_layers(group)
 
-        # for a, v in enumerate(im_idx):
-        #     self.viewer.dims.set_point(a, v)
         cs = list(self.viewer.dims.current_step)
         for a, v in enumerate(im_idx):
             cs[a] = v
