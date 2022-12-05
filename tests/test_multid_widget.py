@@ -103,7 +103,7 @@ def test_saving_mda(
     expected_shape = list(mda.shape) + [500, 512]
 
     if C and splitC:
-        expected_shape.pop(list(mda.used_axes).index("p"))
+        expected_shape.pop(list(mda.used_axes).index("c"))
     # back to tuple after manipulations with pop
     # need to be tuple to compare equality to a tuple
     expected_shape = tuple(expected_shape)
