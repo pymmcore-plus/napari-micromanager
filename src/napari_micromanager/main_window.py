@@ -200,12 +200,12 @@ class MainWindow(MicroManagerToolbar):
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
-    ) -> tuple[tuple[str, ...], tuple[int, ...]]:
+    ) -> tuple[list[str], list[int]]:
         """Determine the shape of layers and the dimension labels."""
         labels, shape = zip(*((k, v) for k, v in sequence.sizes.items() if v > 0))
         labels = labels + ("y", "x")
         shape = shape + (self._mmc.getImageHeight(), self._mmc.getImageWidth())
-        return labels, shape
+        return list(labels), list(shape)
 
     def _get_channel_name_with_index(self, sequence: MDASequence) -> list[str]:
         """Store index in addition to channel.config.

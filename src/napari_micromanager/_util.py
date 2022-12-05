@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Iterator
 from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
-    import useq
+    pass
 
 MAG_PATTERN = re.compile(r"(\d{1,3})[xX]")
 RESOLUTION_ID_PREFIX = "px_size_"
@@ -43,8 +43,6 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
-
-
 
 
 def iter_dev_props(mmc: CMMCorePlus | None = None) -> Iterator[tuple[str, str]]:
