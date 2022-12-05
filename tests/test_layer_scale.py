@@ -23,7 +23,7 @@ def test_layer_scale(qtbot: QtBot, main_window: MainWindow, Z, C, splitC, T):
     mmc = main_window._mmc
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
 
-    for order in ["tpcz", "tpzc"]:
+    for order in ["tpcz", "tpzc", "ptcz", "ptzc"]:
         sequence = MDASequence(
             axis_order=order,
             channels=["DAPI", "Cy5"] if (C and splitC) else ["DAPI"],

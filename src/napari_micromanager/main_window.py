@@ -303,7 +303,6 @@ class MainWindow(MicroManagerToolbar):
             layer.scale = self._get_scale_from_sequence(
                 sequence, layer.data.shape, meta
             )
-            print("#############", layer.scale, layer.data.shape)
 
             # add metadata to layer
             layer.metadata["mode"] = meta.mode
@@ -368,7 +367,7 @@ class MainWindow(MicroManagerToolbar):
         # sourcery skip: use-contextlib-suppress
         try:
             index = sequence.used_axes.index("z")
-            if meta.split_channels and sequence.axis_order == "tpcz":
+            if meta.split_channels and sequence.axis_order in ["tpcz", "ptcz"]:
                 index -= 1
             scale[index] = getattr(sequence.z_plan, "step", 1)
         except ValueError:
