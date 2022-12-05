@@ -43,7 +43,7 @@ jobs:
           python -m pip install -e .[testing,${{ matrix.backend }}]
 
       - name: Install Micro-Manager
-        run: python -m pymmcore_plus.install
+        run: mmcore install
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
