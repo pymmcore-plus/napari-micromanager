@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
-from useq import MDASequence
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
@@ -49,27 +49,22 @@ def test_layer_scale(qtbot: QtBot, main_window: MainWindow, T, C, splitC, Z):
         _mda.checkBox_split_channels.setChecked(True)
 
     mmc = main_window._mmc
-    mda: MDASequence | None = None
+    mda = _mda.get_state()
+    mda.metadata[SEQUENCE_META_KEY] = SequenceMeta(
+        mode="mda", split_channels=_mda.checkBox_split_channels.isChecked()
+    )
 
-    @mmc.mda.events.sequenceStarted.connect
-    def _store_mda(_mda: MDASequence):
-        nonlocal mda
-        mda = _mda
-
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
-        _mda.buttons_wdg.run_button.click()
-
-    assert mda is not None
+    main_window._on_mda_started(mda)
 
     layer = main_window.viewer.layers[-1]
-    data_shape = layer.data.shape
     # if mda.z_plan, z stack will have 4 images
     if len(mda.z_plan) == 4:
+        data_shape = layer.data.shape
         assert layer.scale[data_shape.index(4)] == float(STEP_SIZE)
     else:
         for idx, val in enumerate(reversed(layer.scale)):
             if idx <= 1:
-                assert val == 0.5
+                assert val == mmc.getPixelSizeUm()
             else:
                 assert val == 1.0
     assert list(layer.scale) == main_window._get_scale_from_sequence(mda, layer)
