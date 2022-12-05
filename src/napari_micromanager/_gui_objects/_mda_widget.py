@@ -17,6 +17,7 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from useq import MDASequence
 
 from .._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
@@ -133,10 +134,8 @@ class MultiDWidget(MDAWidget):
             self.checkBox_save_pos.setCheckState(Qt.CheckState.Unchecked)
             self.checkBox_save_pos.setEnabled(False)
 
-    def _on_run_clicked(self) -> None:
-        """Run the MDA sequence experiment."""
-        # construct a `useq.MDASequence` object from the values inserted in the widget
-        sequence = self.get_state()
+    def get_state(self) -> MDASequence:
+        sequence = cast(MDASequence, super().get_state())
         sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="mda",
             split_channels=self.checkBox_split_channels.isChecked(),
@@ -146,7 +145,25 @@ class MultiDWidget(MDAWidget):
             or str(Path(__file__).parent.parent.parent),
             save_pos=self.checkBox_save_pos.isChecked(),
         )
+        return sequence
 
-        # run the MDA experiment asynchronously
-        self._mmc.run_mda(sequence)
-        return
+    def set_state(self, state: dict | MDASequence | str | Path) -> None:
+        super().set_state(state)
+        meta = None
+        if isinstance(state, dict):
+            meta = state.get("metadata", {}).get(SEQUENCE_META_KEY)
+        elif isinstance(state, MDASequence):
+            meta = state.metadata.get(SEQUENCE_META_KEY)
+
+        if meta is None:
+            return
+        if not isinstance(meta, SequenceMeta):
+            raise TypeError(f"Expected {SequenceMeta}, got {type(meta)}")
+        if meta.mode.lower() != "mda":
+            raise ValueError(f"Expected mode 'mda', got {meta.mode}")
+
+        self.checkBox_split_channels.setChecked(meta.split_channels)
+        self.save_groupbox.setChecked(meta.should_save)
+        self.fname_lineEdit.setText(meta.file_name)
+        self.dir_lineEdit.setText(meta.save_dir)
+        self.checkBox_save_pos.setChecked(meta.save_pos)

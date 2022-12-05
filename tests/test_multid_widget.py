@@ -4,12 +4,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pytest
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
-from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 from useq import MDASequence
 
 if TYPE_CHECKING:
@@ -46,13 +44,16 @@ def test_saving_mda(
 ) -> None:
     mda = mda_sequence_splits
     meta: SequenceMeta = mda.metadata[SEQUENCE_META_KEY]
-    meta.save_dir = str(tmp_path)
+    meta = meta.replace(save_dir=str(tmp_path))
+    mda.metadata[SEQUENCE_META_KEY] = meta
 
     main_window._show_dock_widget("MDA")
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
+    mda_widget.set_state(mda)
 
     mmc = main_window._mmc
+
     # re-register twice to fully exercise the logic of the update
     # functions - the initial connections are made in init
     # then after that they are fully handled by the _update_mda_engine
@@ -62,26 +63,21 @@ def test_saving_mda(
 
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
-        # mda_widget.buttons_wdg.run_button.click()
-        mmc.run_mda(mda)
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
+        mda_widget.buttons_wdg.run_button.click()
 
-    data_shape = main_window.viewer.layers[-1].data.shape
-    expected_shape = list(mda.shape) + [500, 512]
+    data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
+    expected_shape = [x for x in mda.shape + (500, 512) if x > 1]
 
     multiC = len(mda.channels) > 1
-
-    if multiC and meta.split_channels:
-        expected_shape.pop(list(mda.used_axes).index("c"))
-
-    assert data_shape == tuple(expected_shape)
-
-    if multiC and meta.split_channels:
+    splitC = mda.metadata[SEQUENCE_META_KEY].split_channels
+    if multiC and splitC:
+        expected_shape.pop(mda.used_axes.find("c"))
         nfiles = len(list((tmp_path / f"{meta.file_name}_000").iterdir()))
         assert nfiles == 2 if multiC else 1
     else:
         assert [p.name for p in tmp_path.iterdir()] == [f"{meta.file_name}_000.tif"]
-        assert data_shape == tuple(expected_shape)
+    assert data_shape == expected_shape
 
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):

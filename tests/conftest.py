@@ -2,12 +2,10 @@ import itertools
 from pathlib import Path
 
 import pytest
-from napari_micromanager.main_window import MainWindow
-
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from pymmcore_plus import CMMCorePlus
-from itertools import product
 import useq
+from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from napari_micromanager.main_window import MainWindow
+from pymmcore_plus import CMMCorePlus
 
 # to create a new CMMCorePlus() for every test
 @pytest.fixture
@@ -41,12 +39,18 @@ MDAS = [
 
 @pytest.fixture(params=MDAS)
 def mda_sequence(request) -> useq.MDASequence:
-    meta = {SEQUENCE_META_KEY: SequenceMeta(mode="mda", file_name="test_mda")}
+    meta = {
+        SEQUENCE_META_KEY: SequenceMeta(
+            mode="mda", file_name="test_mda", should_save=True
+        )
+    }
     return useq.MDASequence(**request.param, metadata=meta)
 
 
 @pytest.fixture(params=[True, False])
 def mda_sequence_splits(mda_sequence: useq.MDASequence, request) -> useq.MDASequence:
     if request.param:
-        mda_sequence.metadata[SEQUENCE_META_KEY].split_channels = True
+        meta: SequenceMeta = mda_sequence.metadata[SEQUENCE_META_KEY]
+        meta = meta.replace(split_channels=True)
+        mda_sequence.metadata[SEQUENCE_META_KEY] = meta
     return mda_sequence
