@@ -113,6 +113,7 @@ class MainWindow(MicroManagerToolbar):
             preview_layer = self.viewer.add_image(data, name="preview")
 
         preview_layer.metadata["mode"] = "preview"
+        preview_layer.scale = (self._mmc.getPixelSizeUm(), self._mmc.getPixelSizeUm())
 
         self._update_max_min()
 
@@ -289,6 +290,11 @@ class MainWindow(MicroManagerToolbar):
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
             layer.visible = False
 
+            # set layer scale
+            layer.scale = self._get_scale_from_sequence(
+                sequence, layer.data.shape, meta
+            )
+
             # add metadata to layer
             layer.metadata["mode"] = meta.mode
             layer.metadata["useq_sequence"] = sequence
@@ -320,6 +326,11 @@ class MainWindow(MicroManagerToolbar):
             layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
             layer.visible = False
 
+            # set layer scale
+            layer.scale = self._get_scale_from_sequence(
+                sequence, layer.data.shape, meta
+            )
+
             # add metadata to layer
             layer.metadata["mode"] = meta.mode
             layer.metadata["useq_sequence"] = sequence
@@ -334,6 +345,21 @@ class MainWindow(MicroManagerToolbar):
                 key = lay.metadata.get("grid")[:8]
                 layergroups[key].add(lay)
         return layergroups
+
+    def _get_scale_from_sequence(
+        self, sequence: MDASequence, layer_shape: tuple[int], meta: SequenceMeta
+    ) -> list[float]:
+        """Calculate and return the layer scale.
+
+        ...using pixel size, layer shape and the MDASequence z info.
+        """
+        scale = [1.0] * len(layer_shape)
+        scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
+        if (index := sequence.used_axes.find("z")) > -1:
+            if meta.split_channels and sequence.used_axes.find("c") < index:
+                index -= 1
+            scale[index] = getattr(sequence.z_plan, "step", 1)
+        return scale
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
@@ -428,8 +454,6 @@ class MainWindow(MicroManagerToolbar):
         for group in layergroups.values():
             link_layers(group)
 
-        # for a, v in enumerate(im_idx):
-        #     self.viewer.dims.set_point(a, v)
         cs = list(self.viewer.dims.current_step)
         for a, v in enumerate(im_idx):
             cs[a] = v

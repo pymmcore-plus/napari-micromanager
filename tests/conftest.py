@@ -26,7 +26,7 @@ def main_window(core: CMMCorePlus, make_napari_viewer):
 
 
 TIME_PLANS = (None, useq.TIntervalLoops(loops=3, interval=0.250))
-Z_PLANS = (None, useq.ZRangeAround(range=3, step=1))
+Z_PLANS = (None, useq.ZRangeAround(range=3, step=0.5))
 CHANNEL_PLANS = (
     (useq.Channel(config="DAPI", exposure=5),),
     (useq.Channel(config="DAPI", exposure=5), useq.Channel(config="Cy5", exposure=5)),
