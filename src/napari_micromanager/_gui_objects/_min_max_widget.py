@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Iterable
 
-from qtpy.QtCore import Qt
 from qtpy.QtGui import QColor
-from qtpy.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QWidget
+from qtpy.QtWidgets import QLabel, QScrollArea, QWidget
 
 if TYPE_CHECKING:
     from napari.layers import Image
@@ -18,32 +18,18 @@ class MinMax(QScrollArea):
     def __init__(self, *, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
         self.setWidgetResizable(True)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
         self._label = QLabel()
-
-        lbl = QLabel("(min, max)")
-        lbl.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-
-        central = QWidget()
-        central.setLayout(QHBoxLayout())
-        central.layout().setContentsMargins(0, 0, 0, 0)
-        central.layout().addWidget(lbl)
-        central.layout().addWidget(self._label)
-        self.setWidget(central)
+        self.setWidget(self._label)
 
     def update_from_layers(self, layers: Iterable[Image]) -> None:
         """Update the minmax label based on data from layers."""
-        min_max_txt = ""
+        min_max_txt = "(min, max):  "
         for layer in layers:
             col = col if (col := layer.colormap.name) in QCOLORS else "gray"
             try:
                 minmax = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f' <font color="{col}">{minmax}</font>'
             except Exception:
-                import warnings
-
                 warnings.warn("cannot update minmax. napari api changed?")
-                continue
-            min_max_txt += f'<font color="{col}">{minmax}</font>'
 
         self._label.setText(min_max_txt)
