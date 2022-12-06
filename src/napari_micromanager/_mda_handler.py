@@ -97,17 +97,21 @@ class _NapariMDAHandler:
 
         # determine the new layers that need to be created for this experiment
         # (based on the sequence mode, and whether we're splitting C/P, etc.)
-        img_shape = (self._mmc.getImageHeight(), self._mmc.getImageWidth())
-        axis_labels, layers_to_create = _determine_sequence_layers(sequence, img_shape)
+        axis_labels, layers_to_create = _determine_sequence_layers(sequence)
+        yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
         # now create a zarr array in a temporary directory for each layer
         for (id_, shape, kwargs) in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
             dtype = f"uint{self._mmc.getImageBitDepth()}"
-            z = zarr.open(str(tmp.name), shape=shape, dtype=dtype)
-            self._tmp_arrays[id_] = (z, tmp)
+
+            # create the zarr array and add it to the viewer
+            z = zarr.open(str(tmp.name), shape=shape + yx_shape, dtype=dtype)
             fname = meta.file_name if meta.should_save else "Exp"
             self._create_empty_image_layer(z, f"{fname}_{id_}", sequence, **kwargs)
+
+            # store the zarr array and temporary directory for later cleanup
+            self._tmp_arrays[id_] = (z, tmp)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = axis_labels
@@ -293,7 +297,7 @@ class _NapariMDAHandler:
 
 
 def _determine_sequence_layers(
-    sequence: MDASequence, img_shape: tuple[int, int]
+    sequence: MDASequence,
 ) -> tuple[list[str], list[tuple[str, list[int], dict[str, Any]]]]:
     """Return (axis_labels, (id, shape, and metadata)) for each layer to add for seq.
 
@@ -313,10 +317,12 @@ def _determine_sequence_layers(
     Returns
     -------
     tuple[list[str], list[tuple[str, list[int], dict[str, Any]]]]
-        A tuple of (axis_labels, layers) where:
-            - axis_labels is a list of axis names, like: `['t', 'c', 'z', 'y', 'x']`
-            - layers is a list of (id, layer_shape, layer_meta) tuples, like:
-                `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
+        A 2-tuple of `(axis_labels, layer_info)` where:
+            - `axis_labels` is a list of axis names, like: `['t', 'c', 'z', 'y', 'x']`
+            - `layer_info` is a list of `(id, layer_shape, layer_meta)` tuples, where
+              `id` is a unique id for the layer, `layer_shape` is the shape of the
+              layer, and `layer_meta` is metadata to add to `layer.metadata`.  e.g.:
+              `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
     """
     # sourcery skip: extract-duplicate-method
 
@@ -324,7 +330,7 @@ def _determine_sequence_layers(
     meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
 
     axis_labels = list(sequence.used_axes)
-    layer_shape = [sequence.sizes[k] for k in axis_labels] + list(img_shape)
+    layer_shape = [sequence.sizes[k] for k in axis_labels]
 
     # these are all the layers we're going to create
     # each item is a tuple of (id, shape, layer_metadata)
