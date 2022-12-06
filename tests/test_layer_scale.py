@@ -1,29 +1,27 @@
 from __future__ import annotations
 
+import pytest
 from napari_micromanager.main_window import MainWindow
 from useq import MDASequence
 
 
-def test_layer_scale(main_window: MainWindow, mda_sequence_splits: MDASequence) -> None:
+@pytest.mark.parametrize("axis_order", ["tpcz", "tpzc"])
+def test_layer_scale(
+    main_window: MainWindow,
+    mda_sequence_splits: MDASequence,
+    axis_order: str,
+) -> None:
 
     mmc = main_window._mmc
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
+    sequence = mda_sequence_splits.replace(axis_order=axis_order)
 
-    for order in ["tpcz", "tpzc"]:
-        sequence = mda_sequence_splits
-        sequence = sequence.replace(axis_order=order)
+    # create zarr layer
+    main_window._on_mda_started(sequence)
 
-        # create zarr layer
-        main_window._on_mda_started(sequence)
-
-        layer = main_window.viewer.layers[0]
-        if sequence.z_plan:
-            assert layer.scale[layer.data.shape.index(len(sequence.z_plan))] == 1.0
-        else:
-            for idx, val in enumerate(reversed(layer.scale)):
-                if idx <= 1:
-                    assert val == mmc.getPixelSizeUm()
-                else:
-                    assert val == 1.0
-        main_window.viewer.layers.clear()
-        assert not list(main_window.viewer.layers)
+    layer = main_window.viewer.layers[0]
+    if sequence.z_plan:
+        assert layer.scale[layer.data.shape.index(len(sequence.z_plan))] == 1.0
+    else:
+        expect = [1] * (layer.data.ndim - 2) + [mmc.getPixelSizeUm()] * 2
+        assert tuple(layer.scale) == tuple(expect)
