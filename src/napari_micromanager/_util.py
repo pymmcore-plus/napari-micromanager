@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterator
-
-from pymmcore_plus import CMMCorePlus
 
 
 def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path:
@@ -36,11 +33,3 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
-
-
-def iter_dev_props(mmc: CMMCorePlus | None = None) -> Iterator[tuple[str, str]]:
-    """Yield all pairs of currently loaded (device_label, property_name)."""
-    mmc = mmc or CMMCorePlus.instance()
-    for dev in mmc.getLoadedDevices():
-        for prop in mmc.getDevicePropertyNames(dev):
-            yield dev, prop
