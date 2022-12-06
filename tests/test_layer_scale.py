@@ -31,4 +31,5 @@ def test_layer_scale(
         expect = [1] * (layer.data.ndim - 2) + [mmc.getPixelSizeUm()] * 2
         assert tuple(layer.scale) == tuple(expect)
 
+    # cleanup zarr resources
     handler._cleanup()
