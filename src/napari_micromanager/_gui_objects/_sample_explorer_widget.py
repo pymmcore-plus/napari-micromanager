@@ -16,8 +16,9 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from useq import MDASequence
 
-from .._mda_meta import SEQUENCE_META, SequenceMeta
+from .._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 
 class SampleExplorer(SampleExplorerWidget):
@@ -166,12 +167,9 @@ class SampleExplorer(SampleExplorerWidget):
             t_list = t_list * self.stage_pos_groupbox.stage_tableWidget.rowCount()
         return t_list
 
-    def _start_scan(self) -> None:
-        """Run the MDA sequence experiment."""
-        # construct a `useq.MDASequence` object from the values inserted in the widget
-        experiment = self.get_state()
-
-        SEQUENCE_META[experiment] = SequenceMeta(
+    def get_state(self) -> MDASequence:
+        sequence = cast(MDASequence, super().get_state())
+        sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="explorer",
             should_save=self.save_explorer_groupbox.isChecked(),
             file_name=self.fname_explorer_lineEdit.text(),
@@ -182,7 +180,4 @@ class SampleExplorer(SampleExplorerWidget):
             scan_size_c=self.scan_size_c,
             scan_size_r=self.scan_size_r,
         )
-
-        # run the MDA experiment asynchronously
-        self._mmc.run_mda(experiment)  # run the MDA experiment asynchronously
-        return
+        return sequence

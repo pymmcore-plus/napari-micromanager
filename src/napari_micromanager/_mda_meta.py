@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-from useq import MDASequence
-
-__all__ = [
-    "SequenceMeta",
-    "SEQUENCE_META",
-]
+from dataclasses import replace as _replace
+from typing import Any
 
 
-@dataclass
+__all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
+
+
+# This is the key in the MDASequence.metadata dict that will contain the
+# SequenceMeta object.
+SEQUENCE_META_KEY = "napari_mm_sequence_meta"
+
+
+@dataclass(frozen=True)
 class SequenceMeta:
     """Metadata associated with an MDA sequence."""
 
@@ -26,5 +29,6 @@ class SequenceMeta:
     scan_size_r: int = 0
     scan_size_c: int = 0
 
-
-SEQUENCE_META: dict[MDASequence, SequenceMeta] = {}
+    def replace(self, **kwargs: Any) -> SequenceMeta:
+        """Return a new SequenceMeta with the given kwargs replaced."""
+        return _replace(self, **kwargs)

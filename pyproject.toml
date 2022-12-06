@@ -35,7 +35,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "napari >=0.4.13",
-    "pymmcore-plus>=0.6.0",
+    "pymmcore-plus >=0.6.3",
     "useq-schema >=0.1.0",
     "superqt >=0.3.1",
     "fonticon-materialdesignicons6",
@@ -56,6 +56,9 @@ dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
 Source = "https://github.com/pymmcore-plus/napari-micromanager"
 Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
 # Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
+
+[project.scripts]
+napari-micromanager = "napari_micromanager.__main__:main"
 
 [project.entry-points."napari.manifest"]
 "napari-micromanager" = "napari_micromanager:napari.yaml"
@@ -83,7 +86,6 @@ extend-select = [
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
-    "M001", # Unused noqa directive
 ]
 extend-ignore = [
     "D100", # Missing docstring in public module
