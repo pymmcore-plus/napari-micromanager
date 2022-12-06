@@ -63,7 +63,7 @@ def test_saving_mda(
 
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
         mda_widget.buttons_wdg.run_button.click()
 
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]

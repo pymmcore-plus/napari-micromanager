@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Iterator, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import napari
 import numpy as np
@@ -95,15 +95,19 @@ class _NapariMDAHandler:
         # pause acquisition until zarr layer(s) are added
         self._mmc.mda.toggle_pause()
 
+        # determine the new layers that need to be created for this experiment
+        # (based on the sequence mode, and whether we're splitting C/P, etc.)
         img_shape = (self._mmc.getImageHeight(), self._mmc.getImageWidth())
         axis_labels, layers_to_create = _determine_sequence_layers(sequence, img_shape)
+
+        # now create a zarr array in a temporary directory for each layer
         for (id_, shape, kwargs) in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
-
             dtype = f"uint{self._mmc.getImageBitDepth()}"
             z = zarr.open(str(tmp.name), shape=shape, dtype=dtype)
             self._tmp_arrays[id_] = (z, tmp)
-            self._add_image(z, id_, sequence, **kwargs)
+            fname = meta.file_name if meta.should_save else "Exp"
+            self._create_empty_image_layer(z, f"{fname}_{id_}", sequence, **kwargs)
 
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = axis_labels
@@ -117,53 +121,67 @@ class _NapariMDAHandler:
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+        """Called on the `frameReady` event from the core."""
         meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
 
         if meta.mode in ("mda", ""):
-            self._mda_acquisition(image, event, meta)
+            self._add_frame_to_mda_layer(image, event, meta)
         elif meta.mode == "explorer":
             if meta.translate_explorer:
-                self._explorer_acquisition_translate(image, event, meta)
+                self._add_frame_to_explorer_translate_layer(image, event, meta)
             else:
-                self._explorer_acquisition_stack(image, event, meta)
+                self._add_frame_to_explorer_layer(image, event, meta)
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         # Save layer and add increment to save name.
         if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
             save_sequence(sequence, self.viewer.layers, meta)
 
-    def _add_image(
+    def _create_empty_image_layer(
         self,
-        z: zarr.Array,
-        id: str,
+        arr: zarr.Array,
+        name: str,
         sequence: MDASequence,
         **kwargs: Any,  # extra kwargs to add to layer metadata
     ) -> napari.layers.Image:
-        """Add a new image to the viewer."""
+        """Create new napari layer for zarr array about to be acquired.
+
+        Parameters
+        ----------
+        arr : zarr.Array
+            The array to create a layer for.
+        name : str
+            The name of the layer.
+        sequence : MDASequence
+            The sequence that will be acquired.
+        **kwargs
+            Extra kwargs will be added to `layer.metadata`.
+        """
         # we won't have reached this point if meta is None
         meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
-        fname = meta.file_name if meta.should_save else "Exp"
-        layer = self.viewer.add_image(z, name=f"{fname}_{id}", blending="additive")
-        layer.visible = False
 
-        # set layer scale
-        scale = [1.0] * z.ndim
-        scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
+        # add Z to layer scale
+        scale = [1.0] * (arr.ndim - 2) + [self._mmc.getPixelSizeUm()] * 2
         if (index := sequence.used_axes.find("z")) > -1:
             if meta.split_channels and sequence.used_axes.find("c") < index:
                 index -= 1
             scale[index] = getattr(sequence.z_plan, "step", 1)
-        layer.scale = scale
 
-        # add metadata to layer
-        layer.metadata["mode"] = meta.mode
-        layer.metadata["useq_sequence"] = sequence
-        layer.metadata["uid"] = sequence.uid
-        for k, v in kwargs.items():
-            layer.metadata[k] = v
-        return layer
+        return self.viewer.add_image(
+            arr,
+            name=name,
+            blending="additive",
+            visible=False,
+            scale=scale,
+            metadata={
+                "mode": meta.mode,
+                "useq_sequence": sequence,
+                "uid": sequence.uid,
+                **kwargs,
+            },
+        )
 
     def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
@@ -173,7 +191,7 @@ class _NapariMDAHandler:
                 layergroups[key].add(lay)
         return layergroups
 
-    def _mda_acquisition(
+    def _add_frame_to_mda_layer(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
         """Method called on every frame in `mda` mode."""
@@ -191,7 +209,7 @@ class _NapariMDAHandler:
         # get the actual index of this image into the array and
         # add it to the zarr store
         im_idx = tuple(event.index[k] for k in axis_order)
-        breakpoint()
+
         z_arr = self._tmp_arrays[str(event.sequence.uid) + channel][0]
         z_arr[im_idx] = image
 
@@ -210,7 +228,7 @@ class _NapariMDAHandler:
             layer.visible = True
         # layer.reset_contrast_limits()
 
-    def _explorer_acquisition_stack(
+    def _add_frame_to_explorer_layer(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
@@ -229,7 +247,7 @@ class _NapariMDAHandler:
             layer.visible = True
         layer.reset_contrast_limits()
 
-    def _explorer_acquisition_translate(
+    def _add_frame_to_explorer_translate_layer(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
         im_idx = tuple(event.index[k] for k in event.sequence.used_axes if k != "p")
@@ -256,8 +274,6 @@ class _NapariMDAHandler:
         for group in layergroups.values():
             link_layers(group)
 
-        # for a, v in enumerate(im_idx):
-        #     self.viewer.dims.set_point(a, v)
         cs = list(self.viewer.dims.current_step)
         for a, v in enumerate(im_idx):
             cs[a] = v
@@ -276,16 +292,15 @@ class _NapariMDAHandler:
         self.viewer.reset_view()
 
 
-
 def _determine_sequence_layers(
     sequence: MDASequence, img_shape: tuple[int, int]
 ) -> tuple[list[str], list[tuple[str, list[int], dict[str, Any]]]]:
     """Return (axis_labels, (id, shape, and metadata)) for each layer to add for seq.
-    
+
     This function is called at the beginning of a new MDA sequence to determine
     how many layers we're going to create, and what their shapes and metadata
     should be.  The data is used to create new empty zarr arrays and napari layers.
-    
+
     Parameters
     ----------
     sequence : MDASequence
@@ -294,50 +309,60 @@ def _determine_sequence_layers(
         The YX shape of a single image in the sequence.
         (this argument might not need to be passed here, perhaps could be handled
         be the caller of this function)
-    
+
     Returns
     -------
     tuple[list[str], list[tuple[str, list[int], dict[str, Any]]]]
         A tuple of (axis_labels, layers) where:
             - axis_labels is a list of axis names, like: `['t', 'c', 'z', 'y', 'x']`
-            - layers is a list of (id, shape, layer_meta) tuples, like:
+            - layers is a list of (id, layer_shape, layer_meta) tuples, like:
                 `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
     """
+    # sourcery skip: extract-duplicate-method
+
+    # if we got to this point, sequence.metadata[SEQUENCE_META_KEY] should exist
     meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
 
-    # _get_shape_and_labels
-    # sizes is a dict of each axis size, like: `{'t': 5, 'p': 0, 'c': 3, 'z': 9}`
-    # so this would make `labels, shapes = [('t', 'c', 'z'), (5, 3, 9)]`
-    labels = list(sequence.used_axes)
-    shape = [sequence.sizes[k] for k in labels]
+    axis_labels = list(sequence.used_axes)
+    layer_shape = [sequence.sizes[k] for k in axis_labels] + list(img_shape)
 
     # these are all the layers we're going to create
-    layers: list[tuple[str, list[int], dict[str, Any]]] = []
+    # each item is a tuple of (id, shape, layer_metadata)
+    _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
+    # in explorer/translate mode, we need to create a layer for each position
     if meta.mode == "explorer" and meta.translate_explorer:
-        # in explorer/translate mode, we need to create a layer for each position
-        labels.remove("p")
-        shape = [sequence.sizes[k] for k in labels] + list(img_shape)
+        p_idx = axis_labels.index("p")
+        axis_labels.pop(p_idx)
+        layer_shape.pop(p_idx)
         for p in sequence.stage_positions:
             # TODO: modify id_ to try and divide the grids when saving
             # see also line 378 (layer.metadata["grid"])
-            pos = f"{p.name}_"
-            id_ = pos + str(sequence.uid)
-            ps = pos.split("_")
-            layers.append((id_, shape, {"grid": ps[-3], "grid_pos": ps[-2]}))
+            if not p.name or "_" not in p.name:
+                raise ValueError(
+                    f"Invalid stage position name: {p.name!r}. "
+                    "Expected something like 'Grid_001_Pos000'"
+                )
+            # FIXME: the location of a stage position within a grid should not
+            # be stored in the position name, but rather in the metadata.
+            # e.g. sequence.metata["grid"] = {(x,y,z): (grid, grid_pos)}
+            *_, grid, grid_pos = p.name.split("_")
+            id_ = f"{p.name}_{sequence.uid}"
+            _layer_info.append((id_, layer_shape, {"grid": grid, "grid_pos": grid_pos}))
 
+    # in split channels mode, we need to create a layer for each channel
     elif meta.split_channels:
-        # in split channels mode, we need to create a layer for each channel
-        labels.remove("c")
-        shape = [sequence.sizes[k] for k in labels] + list(img_shape)
+        c_idx = axis_labels.index("c")
+        axis_labels.pop(c_idx)
+        layer_shape.pop(c_idx)
         for i, ch in enumerate(sequence.channels):
             channel_id = f"{ch.config}_{i:03d}"
-            id_ = str(sequence.uid) + channel_id
-            layers.append((id_, shape, {"ch_id": channel_id}))
-    else:
-        # otherwise, we just need one layer
-        layers.append((str(sequence.uid), shape, {}))
+            id_ = f"{sequence.uid}_{channel_id}"
+            _layer_info.append((id_, layer_shape, {"ch_id": channel_id}))
 
-    labels += ["y", "x"]
-    print(labels, layers)    
-    return labels, layers
+    # otherwise, we just need one layer
+    else:
+        _layer_info.append((str(sequence.uid), layer_shape, {}))
+
+    axis_labels += ["y", "x"]
+    return axis_labels, _layer_info
