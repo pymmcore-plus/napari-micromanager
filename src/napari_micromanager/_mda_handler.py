@@ -17,14 +17,30 @@ from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     import napari.layers
     import napari.viewer
     from pymmcore_plus.core.events._protocol import PSignalInstance
+    from typing_extensions import NotRequired, TypedDict
 
     class ActiveMDAEvent(MDAEvent):
         """Event that has been assigned a sequence."""
 
         sequence: MDASequence
+
+    # TODO: the keys are accurate, but currently this is at the top level layer.metadata
+    # we should nest it under a napari_micromanager key
+    class LayerMeta(TypedDict):
+        """Metadata that we add to layer.metadata."""
+
+        mode: str
+        useq_sequence: MDASequence
+        uid: UUID
+        grid: NotRequired[str]
+        grid_pos: NotRequired[str]
+        ch_id: NotRequired[str]
+        translate: NotRequired[bool]
 
 
 class _NapariMDAHandler:
@@ -44,12 +60,10 @@ class _NapariMDAHandler:
         self._mmc = mmcore
         self.viewer = viewer
 
-        # mapping of str `str(sequence.uid) + channel` -> zarr.Array for each layer
-        # being added during an MDA
-        self._mda_temp_arrays: dict[str, zarr.Array] = {}
-        # mapping of str `str(sequence.uid) + channel` -> temporary directory where
-        # the zarr.Array is stored
-        self._mda_temp_files: dict[str, tempfile.TemporaryDirectory] = {}
+        # mapping of id -> (zarr.Array, temporary directory) for each layer created
+        self._mda_temp_files: dict[
+            str, tuple[zarr.Array, tempfile.TemporaryDirectory]
+        ] = {}
 
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
@@ -66,9 +80,8 @@ class _NapariMDAHandler:
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
-        for z in self._mda_temp_arrays.values():
+        for z, v in self._mda_temp_files.values():
             z.store.close()
-        for v in self._mda_temp_files.values():
             with contextlib.suppress(NotADirectoryError):
                 v.cleanup()
 
@@ -112,6 +125,25 @@ class _NapariMDAHandler:
         # resume acquisition after zarr layer(s) is(are) added
         if [i for i in self.viewer.layers if i.metadata.get("uid") == sequence.uid]:
             self._mmc.mda.toggle_pause()
+
+    @ensure_main_thread  # type: ignore [misc]
+    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
+        if meta is None:
+            return
+
+        if meta.mode == "mda":
+            self._mda_acquisition(image, event, meta)
+        elif meta.mode == "explorer":
+            if meta.translate_explorer:
+                self._explorer_acquisition_translate(image, event, meta)
+            else:
+                self._explorer_acquisition_stack(image, event, meta)
+
+    def _on_mda_finished(self, sequence: MDASequence) -> None:
+        # Save layer and add increment to save name.
+        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
+            save_sequence(sequence, self.viewer.layers, meta)
 
     def _get_shape_and_labels(
         self, sequence: MDASequence
@@ -184,36 +216,12 @@ class _NapariMDAHandler:
         and if we do not split on channels it will look like [""] and only one
         layer/zarr store will be created.
         """
-        dtype = f"uint{self._mmc.getImageBitDepth()}"
-
         # create a zarr store for each channel (or all channels when not splitting)
         # to store the images to display so we don't overflow memory.
         for channel in channels:
             id_ = str(sequence.uid) + channel
-            tmp = tempfile.TemporaryDirectory()
-
-            # keep track of temp files so we can clean them up when we quit
-            # we can't have them auto clean up because then the zarr wouldn't last
-            # till the end
-            # TODO: when the layer is deleted we should release the zarr store.
-            self._mda_temp_files[id_] = tmp
-            self._mda_temp_arrays[id_] = z = zarr.open(
-                str(tmp.name), shape=shape, dtype=dtype
-            )
-            fname = meta.file_name if meta.should_save else "Exp"
-            layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
-            layer.visible = False
-
-            # set layer scale
-            layer.scale = self._get_scale_from_sequence(
-                sequence, layer.data.shape, meta
-            )
-
-            # add metadata to layer
-            layer.metadata["mode"] = meta.mode
-            layer.metadata["useq_sequence"] = sequence
-            layer.metadata["uid"] = sequence.uid
-            layer.metadata["ch_id"] = f"{channel}"
+            z = self._create_zarr_store(id_, shape)
+            self._add_image(z, id_, sequence, meta, ch_idx=channel)
 
     def _add_explorer_positions_layers(
         self,
@@ -223,34 +231,55 @@ class _NapariMDAHandler:
         meta: SequenceMeta,
     ) -> None:
         """Create Zarr stores to back Explorer and display as new viewer layer(s)."""
-        dtype = f"uint{self._mmc.getImageBitDepth()}"
-
         for pos in positions:
-            # TODO: modify id_ to try and divede the grids when saving
+            # TODO: modify id_ to try and divide the grids when saving
             # see also line 378 (layer.metadata["grid"])
             id_ = pos + str(sequence.uid)
+            z = self._create_zarr_store(id_, shape)
+            ps = pos.split("_")
+            self._add_image(z, id_, sequence, meta, grid=ps[-3], grid_pos=ps[-2])
 
-            tmp = tempfile.TemporaryDirectory()
+    def _create_zarr_store(self, id: str, shape: tuple[int, ...]) -> zarr.Array:
+        # keep track of temp files so we can clean them up when we quit
+        # we can't have them auto clean up because then the zarr wouldn't last
+        # till the end
+        # TODO: when the layer is deleted we should release the zarr store.
+        tmp = tempfile.TemporaryDirectory()
+        dtype = f"uint{self._mmc.getImageBitDepth()}"
 
-            self._mda_temp_files[id_] = tmp
-            self._mda_temp_arrays[id_] = z = zarr.open(
-                str(tmp.name), shape=shape, dtype=dtype
-            )
-            fname = meta.file_name if meta.should_save else "Exp"
-            layer = self.viewer.add_image(z, name=f"{fname}_{id_}", blending="additive")
-            layer.visible = False
+        z = zarr.open(str(tmp.name), shape=shape, dtype=dtype)
+        self._mda_temp_files[id] = (z, tmp)
+        return z
 
-            # set layer scale
-            layer.scale = self._get_scale_from_sequence(
-                sequence, layer.data.shape, meta
-            )
+    def _add_image(
+        self,
+        z: zarr.Array,
+        id: str,
+        sequence: MDASequence,
+        meta: SequenceMeta,
+        **kwargs: Any,  # extra kwargs to add to layer metadata
+    ) -> napari.layers.Image:
+        """Add a new image to the viewer."""
+        fname = meta.file_name if meta.should_save else "Exp"
+        layer = self.viewer.add_image(z, name=f"{fname}_{id}", blending="additive")
+        layer.visible = False
 
-            # add metadata to layer
-            layer.metadata["mode"] = meta.mode
-            layer.metadata["useq_sequence"] = sequence
-            layer.metadata["uid"] = sequence.uid
-            layer.metadata["grid"] = pos.split("_")[-3]
-            layer.metadata["grid_pos"] = pos.split("_")[-2]
+        # set layer scale
+        scale = [1.0] * len(layer.data.shape)
+        scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
+        if (index := sequence.used_axes.find("z")) > -1:
+            if meta.split_channels and sequence.used_axes.find("c") < index:
+                index -= 1
+            scale[index] = getattr(sequence.z_plan, "step", 1)
+        layer.scale = scale
+
+        # add metadata to layer
+        layer.metadata["mode"] = meta.mode
+        layer.metadata["useq_sequence"] = sequence
+        layer.metadata["uid"] = sequence.uid
+        for k, v in kwargs.items():
+            layer.metadata[k] = v
+        return layer
 
     def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
         layergroups = defaultdict(set)
@@ -259,35 +288,6 @@ class _NapariMDAHandler:
                 key = lay.metadata.get("grid")[:8]
                 layergroups[key].add(lay)
         return layergroups
-
-    def _get_scale_from_sequence(
-        self, sequence: MDASequence, layer_shape: tuple[int], meta: SequenceMeta
-    ) -> list[float]:
-        """Calculate and return the layer scale.
-
-        ...using pixel size, layer shape and the MDASequence z info.
-        """
-        scale = [1.0] * len(layer_shape)
-        scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
-        if (index := sequence.used_axes.find("z")) > -1:
-            if meta.split_channels and sequence.used_axes.find("c") < index:
-                index -= 1
-            scale[index] = getattr(sequence.z_plan, "step", 1)
-        return scale
-
-    @ensure_main_thread  # type: ignore [misc]
-    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
-        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
-        if meta is None:
-            return
-
-        if meta.mode == "mda":
-            self._mda_acquisition(image, event, meta)
-        elif meta.mode == "explorer":
-            if meta.translate_explorer:
-                self._explorer_acquisition_translate(image, event, meta)
-            else:
-                self._explorer_acquisition_stack(image, event, meta)
 
     def _mda_acquisition(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
@@ -307,7 +307,8 @@ class _NapariMDAHandler:
         # get the actual index of this image into the array and
         # add it to the zarr store
         im_idx = tuple(event.index[k] for k in axis_order)
-        self._mda_temp_arrays[str(event.sequence.uid) + channel][im_idx] = image
+        z_arr = self._mda_temp_files[str(event.sequence.uid) + channel][0]
+        z_arr[im_idx] = image
 
         # move the viewer step to the most recently added image
         # this seems to work better than self.viewer.dims.set_point(a, v)
@@ -329,7 +330,8 @@ class _NapariMDAHandler:
     ) -> None:
 
         im_idx = tuple(event.index[k] for k in event.sequence.used_axes)
-        self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
+        z_arr = self._mda_temp_files[str(event.sequence.uid)][0]
+        z_arr[im_idx] = image
 
         cs = list(self.viewer.dims.current_step)
         for a, v in enumerate(im_idx):
@@ -347,7 +349,8 @@ class _NapariMDAHandler:
     ) -> None:
         im_idx = tuple(event.index[k] for k in event.sequence.used_axes if k != "p")
         layer_name = f"{event.pos_name}_{event.sequence.uid}"
-        self._mda_temp_arrays[layer_name][im_idx] = image
+        z_arr = self._mda_temp_files[layer_name][0]
+        z_arr[im_idx] = image
 
         x = meta.explorer_translation_points[event.index["p"]][0]
         y = -meta.explorer_translation_points[event.index["p"]][1]
@@ -386,8 +389,3 @@ class _NapariMDAHandler:
         )
         self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
-
-    def _on_mda_finished(self, sequence: MDASequence) -> None:
-        # Save layer and add increment to save name.
-        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
-            save_sequence(sequence, self.viewer.layers, meta)
