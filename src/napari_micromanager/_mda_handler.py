@@ -221,7 +221,7 @@ class _NapariMDAHandler:
         for channel in channels:
             id_ = str(sequence.uid) + channel
             z = self._create_zarr_store(id_, shape)
-            self._add_image(z, id_, sequence, meta, ch_idx=channel)
+            self._add_image(z, id_, sequence, meta, ch_id=channel)
 
     def _add_explorer_positions_layers(
         self,
