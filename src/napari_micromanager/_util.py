@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
-
-
-if TYPE_CHECKING:
-    import useq
-
-MAG_PATTERN = re.compile(r"(\d{1,3})[xX]")
-RESOLUTION_ID_PREFIX = "px_size_"
 
 
 def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path:
@@ -42,11 +33,3 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
-
-
-# move these to useq:
-def event_indices(event: useq.MDAEvent) -> Iterator[str]:
-    """Yield ordered axis names in an event."""
-    for k in event.sequence.axis_order if event.sequence else []:
-        if k in event.index:
-            yield k

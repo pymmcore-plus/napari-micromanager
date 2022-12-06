@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 import pytest
 from napari_micromanager._gui_objects._sample_explorer_widget import SampleExplorer
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from napari_micromanager._util import event_indices
 from pymmcore_plus.mda import MDAEngine
 from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
@@ -168,7 +167,7 @@ def test_saving_explorer(
     expected_shape = list(exp_seq.shape) + [500, 512]
 
     if Tr:
-        expected_shape.pop(list(event_indices(next(exp_seq.iter_events()))).index("p"))
+        expected_shape.pop(list(exp_seq.used_axes).index("p"))
 
     assert data_shape == tuple(expected_shape)
 
