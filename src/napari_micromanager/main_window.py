@@ -355,14 +355,10 @@ class MainWindow(MicroManagerToolbar):
         """
         scale = [1.0] * len(layer_shape)
         scale[-2:] = [self._mmc.getPixelSizeUm()] * 2
-        # sourcery skip: use-contextlib-suppress
-        try:
-            index = sequence.used_axes.index("z")
-            if meta.split_channels and sequence.axis_order in ["tpcz", "ptcz"]:
+        if (index := sequence.used_axes.find("z")) > -1:
+            if meta.split_channels and sequence.used_axes.find("c") < index:
                 index -= 1
             scale[index] = getattr(sequence.z_plan, "step", 1)
-        except ValueError:
-            pass  # z not in used_axes
         return scale
 
     @ensure_main_thread  # type: ignore [misc]
