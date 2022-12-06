@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
 from useq import MDASequence
 
@@ -13,8 +12,6 @@ def test_layer_scale(main_window: MainWindow, mda_sequence_splits: MDASequence) 
     for order in ["tpcz", "tpzc"]:
         sequence = mda_sequence_splits
         sequence = sequence.replace(axis_order=order)
-        meta: SequenceMeta = sequence.metadata[SEQUENCE_META_KEY]
-        sequence.metadata[SEQUENCE_META_KEY] = meta
 
         # create zarr layer
         main_window._on_mda_started(sequence)
