@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from dataclasses import replace as _replace
+from typing import Any
 
 
 __all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
@@ -12,7 +14,7 @@ __all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
 SEQUENCE_META_KEY = "napari_mm_sequence_meta"
 
 
-@dataclass
+@dataclass(frozen=True)
 class SequenceMeta:
     """Metadata associated with an MDA sequence."""
 
@@ -26,3 +28,7 @@ class SequenceMeta:
     explorer_translation_points: list = field(default_factory=list)
     scan_size_r: int = 0
     scan_size_c: int = 0
+
+    def replace(self, **kwargs: Any) -> SequenceMeta:
+        """Return a new SequenceMeta with the given kwargs replaced."""
+        return _replace(self, **kwargs)

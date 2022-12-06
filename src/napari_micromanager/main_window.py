@@ -20,7 +20,6 @@ from useq import MDAEvent, MDASequence
 from ._gui_objects._toolbar import MicroManagerToolbar
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
-from ._util import event_indices
 
 if TYPE_CHECKING:
     import napari.layers
@@ -90,7 +89,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
-            with contextlib.suppress(RuntimeError):
+            with contextlib.suppress(TypeError):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         for v in self._mda_temp_files.values():
@@ -204,18 +203,10 @@ class MainWindow(MicroManagerToolbar):
         self, sequence: MDASequence
     ) -> tuple[list[str], list[int]]:
         """Determine the shape of layers and the dimension labels."""
-        img_shape = self._mmc.getImageHeight(), self._mmc.getImageWidth()
-        axis_order = event_indices(next(sequence.iter_events()))
-        labels = []
-        shape = []
-        for i, a in enumerate(axis_order):
-            dim = sequence.shape[i]
-            labels.append(a)
-            shape.append(dim)
-        labels.extend(["y", "x"])
-        shape.extend(img_shape)
-
-        return labels, shape
+        labels, shape = zip(*((k, v) for k, v in sequence.sizes.items() if v > 0))
+        labels = labels + ("y", "x")
+        shape = shape + (self._mmc.getImageHeight(), self._mmc.getImageWidth())
+        return list(labels), list(shape)
 
     def _get_channel_name_with_index(self, sequence: MDASequence) -> list[str]:
         """Store index in addition to channel.config.
@@ -392,7 +383,7 @@ class MainWindow(MicroManagerToolbar):
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
-        axis_order = list(event_indices(event))
+        axis_order = list(event.sequence.used_axes)
         # Remove 'c' from idxs if we are splitting channels
         # also prepare the channel suffix that we use for keeping track of arrays
         channel = ""
@@ -427,8 +418,7 @@ class MainWindow(MicroManagerToolbar):
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
 
-        axis_order = list(event_indices(event))
-        im_idx = tuple(event.index[k] for k in axis_order)
+        im_idx = tuple(event.index[k] for k in event.sequence.used_axes)
         self._mda_temp_arrays[str(event.sequence.uid)][im_idx] = image
 
         cs = list(self.viewer.dims.current_step)
@@ -445,14 +435,8 @@ class MainWindow(MicroManagerToolbar):
     def _explorer_acquisition_translate(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-        axis_order = list(event_indices(event))
-
-        with contextlib.suppress(ValueError):
-            axis_order.remove("p")
-
-        im_idx = tuple(event.index[k] for k in axis_order)
-        pos_name = event.pos_name
-        layer_name = f"{pos_name}_{event.sequence.uid}"
+        im_idx = tuple(event.index[k] for k in event.sequence.used_axes if k != "p")
+        layer_name = f"{event.pos_name}_{event.sequence.uid}"
         self._mda_temp_arrays[layer_name][im_idx] = image
 
         x = meta.explorer_translation_points[event.index["p"]][0]
