@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from napari_micromanager._gui_objects._sample_explorer_widget import SampleExplorer
@@ -103,11 +103,11 @@ def test_saving_explorer(
 
     NAME = "test_explorer"
     main_window._show_dock_widget("Explorer")
-    _exp = main_window._dock_widgets["Explorer"].widget()
+    _exp = cast(SampleExplorer, main_window._dock_widgets["Explorer"].widget())
     assert isinstance(_exp, SampleExplorer)
-    _exp.save_explorer_groupbox.setChecked(True)
-    _exp.dir_explorer_lineEdit.setText(str(tmp_path))
-    _exp.fname_explorer_lineEdit.setText(NAME)
+    _exp._save_groupbox.setChecked(True)
+    _exp._save_groupbox._directory.setText(str(tmp_path))
+    _exp._save_groupbox._fname.setText(NAME)
 
     _exp.scan_size_spinBox_r.setValue(2)
     _exp.scan_size_spinBox_c.setValue(1)
