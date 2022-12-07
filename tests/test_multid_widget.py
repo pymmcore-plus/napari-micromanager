@@ -92,7 +92,7 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
         metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=2000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
         mmc.run_mda(sequence)
 
     layer_name = f"Exp_{sequence.uid}"
