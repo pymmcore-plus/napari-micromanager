@@ -1,34 +1,35 @@
-from typing import Optional
+from __future__ import annotations
 
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QHBoxLayout, QLabel, QScrollArea, QWidget
+import warnings
+from typing import TYPE_CHECKING, Iterable
+
+from qtpy.QtGui import QColor
+from qtpy.QtWidgets import QLabel, QScrollArea, QWidget
+
+if TYPE_CHECKING:
+    from napari.layers import Image
+
+QCOLORS = set(QColor.colorNames())
 
 
-class MinMax(QWidget):
+class MinMax(QScrollArea):
     """A Widget to display min and max layer grey values."""
 
-    def __init__(self, *, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, *, parent: QWidget | None = None) -> None:
         super().__init__(parent=parent)
+        self.setWidgetResizable(True)
+        self._label = QLabel()
+        self.setWidget(self._label)
 
-        self.setLayout(QHBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
+    def update_from_layers(self, layers: Iterable[Image]) -> None:
+        """Update the minmax label based on data from layers."""
+        min_max_txt = "(min, max):  "
+        for layer in layers:
+            col = col if (col := layer.colormap.name) in QCOLORS else "gray"
+            try:
+                minmax = tuple(layer._calc_data_range(mode="slice"))
+                min_max_txt += f' <font color="{col}">{minmax}</font>'
+            except Exception:
+                warnings.warn("cannot update minmax. napari api changed?")
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        max_min_wdg = QWidget()
-        max_min_wdg_layout = QHBoxLayout()
-        max_min_wdg_layout.setContentsMargins(0, 0, 0, 0)
-        max_min_wdg.setLayout(max_min_wdg_layout)
-
-        self.max_min_val_label_name = QLabel()
-        self.max_min_val_label_name.setText("(min, max)")
-        self.max_min_val_label_name.setMaximumWidth(70)
-        max_min_wdg_layout.addWidget(self.max_min_val_label_name)
-
-        self.max_min_val_label = QLabel()
-        max_min_wdg_layout.addWidget(self.max_min_val_label)
-
-        scroll.setWidget(max_min_wdg)
-        self.layout().addWidget(scroll)
+        self._label.setText(min_max_txt)
