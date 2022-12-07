@@ -9,7 +9,6 @@ import numpy as np
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from qtpy.QtCore import QTimer
-from qtpy.QtGui import QColor
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._gui_objects._toolbar import MicroManagerToolbar
@@ -95,28 +94,11 @@ class MainWindow(MicroManagerToolbar):
         if self.streaming_timer is None:
             self.viewer.reset_view()
 
-    def _update_max_min(self, event: Any = None) -> None:
-
-        min_max_txt = ""
-        layers: list[napari.layers.Image] = [
-            lr
-            for lr in self.viewer.layers.selection
-            if isinstance(lr, napari.layers.Image) and lr.visible
-        ]
-
-        if not layers:
-            self.minmax.max_min_val_label.setText(min_max_txt)
-            return
-
-        for layer in layers:
-            col = layer.colormap.name
-            if col not in QColor.colorNames():
-                col = "gray"
-            # min and max of current slice
-            min_max_show = tuple(layer._calc_data_range(mode="slice"))
-            min_max_txt += f'<font color="{col}">{min_max_show}</font>'
-
-        self.minmax.max_min_val_label.setText(min_max_txt)
+    def _update_max_min(self, *_: Any) -> None:
+        visible = (x for x in self.viewer.layers.selection if x.visible)
+        self.minmax.update_from_layers(
+            (lr for lr in visible if isinstance(lr, napari.layers.Image))
+        )
 
     def _snap(self) -> None:
         # update in a thread so we don't freeze UI
