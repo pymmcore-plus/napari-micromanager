@@ -50,12 +50,10 @@ class MultiDWidget(MDAWidget):
             self._toggle_checkbox_save_pos
         )
 
-        self.channel_groupbox.channel_tableWidget.model().rowsRemoved.connect(
-            self._toggle_split_channel
-        )
+        self.channel_groupbox.valueChanged.connect(self._toggle_split_channel)
 
     def _toggle_split_channel(self) -> None:
-        if self.channel_groupbox.channel_tableWidget.rowCount() <= 1:
+        if not self.channel_groupbox.value():
             self.checkBox_split_channels.setChecked(False)
 
     def _toggle_checkbox_save_pos(self) -> None:

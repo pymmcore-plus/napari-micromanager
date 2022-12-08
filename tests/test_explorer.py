@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -30,7 +31,9 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     explorer.scan_size_spinBox_r.setValue(2)
     explorer.scan_size_spinBox_c.setValue(2)
     explorer.ovelap_spinBox.setValue(0)
-    explorer.channel_groupbox.add_ch_button.click()
+    # FIXME! napari-micromanager should be using things like `set_state` ...
+    # not accessing and cliking individual widgets
+    explorer.channel_groupbox._add_button.click()
     explorer.radiobtn_grid.setChecked(True)
 
     assert not main_window.viewer.layers
@@ -113,9 +116,7 @@ def test_saving_explorer(
     _exp.ovelap_spinBox.setValue(0)
 
     _exp.time_groupbox.setChecked(bool(T))
-    _exp.time_groupbox.time_comboBox.setCurrentText("ms")
-    _exp.time_groupbox.timepoints_spinBox.setValue(3)
-    _exp.time_groupbox.interval_spinBox.setValue(250)
+    _exp.time_groupbox.set_state({"loops": 3, "interval": timedelta(seconds=0.25)})
 
     _exp.stack_groupbox.setChecked(bool(Z))
     _exp.stack_groupbox._zmode_tabs.setCurrentIndex(1)
@@ -124,13 +125,10 @@ def test_saving_explorer(
     _exp.stack_groupbox._zstep_spinbox.setValue(1)
 
     # 2 Channels
-    _exp.channel_groupbox.add_ch_button.click()
-    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    state = [{"config": "DAPI", "exposure": 5.0}]
     if C:
-        _exp.channel_groupbox.add_ch_button.click()
-        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 0).setCurrentText("Cy5")
-        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 1).setValue(5)
+        state.append({"config": "Cy5", "exposure": 5.0})
+    _exp.channel_groupbox.set_state(state)
 
     if Tr:
         _exp.radiobtn_grid.setChecked(True)
