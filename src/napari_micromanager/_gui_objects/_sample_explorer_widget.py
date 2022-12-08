@@ -1,15 +1,12 @@
-from pathlib import Path
-from typing import List, Optional, Tuple, cast
+from __future__ import annotations
+
+from typing import cast
 
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import SampleExplorerWidget
 from qtpy.QtWidgets import (
-    QFileDialog,
     QGroupBox,
     QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
     QRadioButton,
     QSizePolicy,
     QSpacerItem,
@@ -19,75 +16,31 @@ from qtpy.QtWidgets import (
 from useq import MDASequence
 
 from .._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from ._save_widget import SaveWidget
 
 
 class SampleExplorer(SampleExplorerWidget):
     """napari-micromanager Explorer Widget GUI."""
 
     def __init__(
-        self, *, parent: Optional[QWidget] = None, mmcore: Optional[CMMCorePlus] = None
+        self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
         self.channel_groupbox.setMinimumHeight(175)
 
-        self.save_explorer_groupbox = self._create_save_group()
+        self._save_groupbox = SaveWidget("Save Scan")
+        self._save_groupbox._split_pos_checkbox.hide()
+        self._save_groupbox.setSizePolicy(
+            QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
+        )
+        self._save_groupbox.setChecked(False)
+
         v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
-        v_layout.insertWidget(0, self.save_explorer_groupbox)
+        v_layout.insertWidget(0, self._save_groupbox)
 
         self.checkbox = self._create_radiobtn()
         v_layout.insertWidget(4, self.checkbox)
-
-        self.browse_save_explorer_Button.clicked.connect(self._set_explorer_dir)
-
-    def _create_save_group(self) -> QGroupBox:
-
-        group = QGroupBox(title="Save Scan")
-        group.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        group.setCheckable(True)
-        group.setChecked(False)
-        group_layout = QVBoxLayout()
-        group_layout.setSpacing(10)
-        group_layout.setContentsMargins(10, 10, 10, 10)
-        group.setLayout(group_layout)
-
-        # directory
-        dir_group = QWidget()
-        dir_group_layout = QHBoxLayout()
-        dir_group_layout.setSpacing(5)
-        dir_group_layout.setContentsMargins(0, 10, 0, 5)
-        dir_group.setLayout(dir_group_layout)
-        lbl_sizepolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        min_lbl_size = 80
-        btn_sizepolicy = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        dir_lbl = QLabel(text="Directory:")
-        dir_lbl.setMinimumWidth(min_lbl_size)
-        dir_lbl.setSizePolicy(lbl_sizepolicy)
-        self.dir_explorer_lineEdit = QLineEdit()
-        self.browse_save_explorer_Button = QPushButton(text="...")
-        self.browse_save_explorer_Button.setSizePolicy(btn_sizepolicy)
-        dir_group_layout.addWidget(dir_lbl)
-        dir_group_layout.addWidget(self.dir_explorer_lineEdit)
-        dir_group_layout.addWidget(self.browse_save_explorer_Button)
-
-        # filename
-        fname_group = QWidget()
-        fname_group_layout = QHBoxLayout()
-        fname_group_layout.setSpacing(5)
-        fname_group_layout.setContentsMargins(0, 5, 0, 10)
-        fname_group.setLayout(fname_group_layout)
-        fname_lbl = QLabel(text="File Name:")
-        fname_lbl.setMinimumWidth(min_lbl_size)
-        fname_lbl.setSizePolicy(lbl_sizepolicy)
-        self.fname_explorer_lineEdit = QLineEdit()
-        self.fname_explorer_lineEdit.setText("Experiment")
-        fname_group_layout.addWidget(fname_lbl)
-        fname_group_layout.addWidget(self.fname_explorer_lineEdit)
-
-        group_layout.addWidget(dir_group)
-        group_layout.addWidget(fname_group)
-
-        return group
 
     def _create_radiobtn(self) -> QGroupBox:
 
@@ -120,17 +73,9 @@ class SampleExplorer(SampleExplorerWidget):
 
         return group
 
-    def _set_explorer_dir(self) -> None:
-        # set the directory
-        self.dir = QFileDialog(self)
-        self.dir.setFileMode(QFileDialog.FileMode.DirectoryOnly)
-        self.save_dir = QFileDialog.getExistingDirectory(self.dir)
-        self.dir_explorer_lineEdit.setText(self.save_dir)
-        self.parent_path = Path(self.save_dir)
-
     def _create_translation_points(
         self, rows: int, cols: int
-    ) -> List[Tuple[float, float, int, int]]:
+    ) -> list[tuple[float, float, int, int]]:
 
         cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
@@ -160,7 +105,7 @@ class SampleExplorer(SampleExplorerWidget):
                         x += move_x
         return points
 
-    def _set_translate_point_list(self) -> List[Tuple[float, float, int, int]]:
+    def _set_translate_point_list(self) -> list[tuple[float, float, int, int]]:
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
         if self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0:
@@ -169,12 +114,11 @@ class SampleExplorer(SampleExplorerWidget):
 
     def get_state(self) -> MDASequence:
         sequence = cast(MDASequence, super().get_state())
+        # override save_pos from SaveWidget
+        save_state: dict = {**self._save_groupbox.get_state(), "save_pos": False}
         sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="explorer",
-            should_save=self.save_explorer_groupbox.isChecked(),
-            file_name=self.fname_explorer_lineEdit.text(),
-            save_dir=self.dir_explorer_lineEdit.text()
-            or str(Path(__file__).parent.parent.parent),
+            **save_state,
             translate_explorer=self.radiobtn_grid.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
             scan_size_c=self.scan_size_c,

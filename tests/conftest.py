@@ -5,7 +5,9 @@ import pytest
 import useq
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
-from pymmcore_plus import CMMCorePlus
+from pymmcore_plus import CMMCorePlus, _logger
+
+_logger.set_log_level("CRITICAL")
 
 # to create a new CMMCorePlus() for every test
 @pytest.fixture

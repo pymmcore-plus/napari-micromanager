@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from napari_micromanager._gui_objects._sample_explorer_widget import SampleExplorer
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from pymmcore_plus.mda import MDAEngine
-from pymmcore_widgets._zstack_widget import ZRangeAroundSelect
 
 if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
@@ -103,11 +102,11 @@ def test_saving_explorer(
 
     NAME = "test_explorer"
     main_window._show_dock_widget("Explorer")
-    _exp = main_window._dock_widgets["Explorer"].widget()
+    _exp = cast(SampleExplorer, main_window._dock_widgets["Explorer"].widget())
     assert isinstance(_exp, SampleExplorer)
-    _exp.save_explorer_groupbox.setChecked(True)
-    _exp.dir_explorer_lineEdit.setText(str(tmp_path))
-    _exp.fname_explorer_lineEdit.setText(NAME)
+    _exp._save_groupbox.setChecked(True)
+    _exp._save_groupbox._directory.setText(str(tmp_path))
+    _exp._save_groupbox._fname.setText(NAME)
 
     _exp.scan_size_spinBox_r.setValue(2)
     _exp.scan_size_spinBox_c.setValue(1)
@@ -121,7 +120,6 @@ def test_saving_explorer(
     _exp.stack_groupbox.setChecked(bool(Z))
     _exp.stack_groupbox._zmode_tabs.setCurrentIndex(1)
     z_range_wdg = _exp.stack_groupbox._zmode_tabs.widget(1)
-    assert isinstance(z_range_wdg, ZRangeAroundSelect)
     z_range_wdg._zrange_spinbox.setValue(3)
     _exp.stack_groupbox._zstep_spinbox.setValue(1)
 

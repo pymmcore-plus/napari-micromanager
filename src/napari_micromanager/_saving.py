@@ -37,7 +37,7 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta) 
         return
     if not meta.should_save:
         return
-    if meta.mode == "mda":
+    if meta.mode in ("mda", ""):
         return _save_mda_sequence(sequence, layers, meta)
     if meta.mode == "explorer":
         return _save_explorer_scan(sequence, layers, meta)
@@ -63,7 +63,7 @@ def _save_mda_sequence(
         else:
             # save each channel layer.
             for lay in mda_layers:
-                fname = f'{folder_name.stem}{lay.metadata.get("ch_id")}.tif'
+                fname = f'{folder_name.stem}_{lay.metadata.get("ch_id")}.tif'
                 # TODO: smarter behavior w.r.t type of lay.data
                 # currently this will force the data into memory which may cause a crash
                 # long term solution is to remove this code and rely on an
@@ -107,7 +107,7 @@ def _save_pos_separately(
         for i in layers:
             if "ch_id" not in i.metadata or i.metadata.get("uid") != sequence.uid:
                 continue
-            filename = f"{fname}{i.metadata['ch_id']}_p{p:03}"
+            filename = f"{fname}_{i.metadata['ch_id']}_p{p:03}"
             ax = sequence.axis_order.index("p") if len(sequence.time_plan) > 0 else 0
             _imsave(folder_path / f"{filename}.tif", np.take(i.data, p, axis=ax))
 
