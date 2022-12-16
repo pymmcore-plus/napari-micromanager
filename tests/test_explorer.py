@@ -27,15 +27,15 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     main_window._show_dock_widget("Explorer")
     explorer = main_window._dock_widgets["Explorer"].widget()
     assert isinstance(explorer, SampleExplorer)
-    explorer.scan_size_spinBox_r.setValue(2)
-    explorer.scan_size_spinBox_c.setValue(2)
-    explorer.ovelap_spinBox.setValue(0)
-    explorer.channel_groupbox.add_ch_button.click()
+    explorer.grid_params.scan_size_spinBox_r.setValue(2)
+    explorer.grid_params.scan_size_spinBox_c.setValue(2)
+    explorer.grid_params.overlap_spinBox.setValue(0)
+    explorer.channel_groupbox._add_button.click()
     explorer.radiobtn_grid.setChecked(True)
 
     assert not main_window.viewer.layers
 
-    assert explorer._set_grid() == [
+    assert explorer._create_grid_coords() == [
         ("Grid_001_Pos000", -256.0, 256.0, 0.0),
         ("Grid_001_Pos001", 256.0, 256.0, 0.0),
         ("Grid_001_Pos002", 256.0, -256.0, 0.0),
@@ -108,14 +108,14 @@ def test_saving_explorer(
     _exp._save_groupbox._directory.setText(str(tmp_path))
     _exp._save_groupbox._fname.setText(NAME)
 
-    _exp.scan_size_spinBox_r.setValue(2)
-    _exp.scan_size_spinBox_c.setValue(1)
-    _exp.ovelap_spinBox.setValue(0)
+    _exp.grid_params.scan_size_spinBox_r.setValue(2)
+    _exp.grid_params.scan_size_spinBox_c.setValue(1)
+    _exp.grid_params.overlap_spinBox.setValue(0)
 
     _exp.time_groupbox.setChecked(bool(T))
-    _exp.time_groupbox.time_comboBox.setCurrentText("ms")
-    _exp.time_groupbox.timepoints_spinBox.setValue(3)
-    _exp.time_groupbox.interval_spinBox.setValue(250)
+    _exp.time_groupbox._units_combo.setCurrentText("ms")
+    _exp.time_groupbox._timepoints_spinbox.setValue(3)
+    _exp.time_groupbox._interval_spinbox.setValue(250)
 
     _exp.stack_groupbox.setChecked(bool(Z))
     _exp.stack_groupbox._zmode_tabs.setCurrentIndex(1)
@@ -124,13 +124,13 @@ def test_saving_explorer(
     _exp.stack_groupbox._zstep_spinbox.setValue(1)
 
     # 2 Channels
-    _exp.channel_groupbox.add_ch_button.click()
-    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 0).setCurrentText("DAPI")
-    _exp.channel_groupbox.channel_tableWidget.cellWidget(0, 1).setValue(5)
+    _exp.channel_groupbox._add_button.click()
+    _exp.channel_groupbox._table.cellWidget(0, 0).setCurrentText("DAPI")
+    _exp.channel_groupbox._table.cellWidget(0, 1).setValue(5)
     if C:
-        _exp.channel_groupbox.add_ch_button.click()
-        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 0).setCurrentText("Cy5")
-        _exp.channel_groupbox.channel_tableWidget.cellWidget(1, 1).setValue(5)
+        _exp.channel_groupbox._add_button.click()
+        _exp.channel_groupbox._table.cellWidget(1, 0).setCurrentText("Cy5")
+        _exp.channel_groupbox._table.cellWidget(1, 1).setValue(5)
 
     if Tr:
         _exp.radiobtn_grid.setChecked(True)
