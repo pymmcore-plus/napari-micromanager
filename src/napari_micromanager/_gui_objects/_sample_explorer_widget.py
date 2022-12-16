@@ -29,14 +29,13 @@ class SampleExplorer(SampleExplorerWidget):
 
         self.channel_groupbox.setMinimumHeight(175)
 
+        v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
         self._save_groupbox = SaveWidget("Save Scan")
         self._save_groupbox._split_pos_checkbox.hide()
         self._save_groupbox.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
         self._save_groupbox.setChecked(False)
-
-        v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
         v_layout.insertWidget(0, self._save_groupbox)
 
         self.checkbox = self._create_radiobtn()
@@ -108,8 +107,8 @@ class SampleExplorer(SampleExplorerWidget):
     def _set_translate_point_list(self) -> list[tuple[float, float, int, int]]:
 
         t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
-        if self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0:
-            t_list = t_list * self.stage_pos_groupbox.stage_tableWidget.rowCount()
+        if self.position_groupbox.stage_tableWidget.rowCount() > 0:
+            t_list = t_list * self.position_groupbox.stage_tableWidget.rowCount()
         return t_list
 
     def get_state(self) -> MDASequence:
