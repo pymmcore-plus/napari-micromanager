@@ -29,7 +29,7 @@ class SampleExplorer(SampleExplorerWidget):
 
         self.channel_groupbox.setMinimumHeight(175)
 
-        v_layout = cast(QVBoxLayout, self.explorer_wdg.layout())
+        v_layout = cast(QVBoxLayout, self._central_widget.layout())
         self._save_groupbox = SaveWidget("Save Scan")
         self._save_groupbox._split_pos_checkbox.hide()
         self._save_groupbox.setSizePolicy(
