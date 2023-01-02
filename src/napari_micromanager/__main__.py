@@ -1,5 +1,6 @@
 def main() -> None:
     import napari
+
     from napari_micromanager.main_window import MainWindow
 
     viewer = napari.Viewer()
