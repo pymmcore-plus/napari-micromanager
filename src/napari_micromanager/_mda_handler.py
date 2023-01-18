@@ -167,11 +167,12 @@ class _NapariMDAHandler:
         meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
 
         # add Z to layer scale
-        scale = [1.0] * (arr.ndim - 2) + [self._mmc.getPixelSizeUm()] * 2
-        if (index := sequence.used_axes.find("z")) > -1:
-            if meta.split_channels and sequence.used_axes.find("c") < index:
-                index -= 1
-            scale[index] = getattr(sequence.z_plan, "step", 1)
+        if (pix_size := self._mmc.getPixelSizeUm()) != 0:
+            scale = [1.0] * (arr.ndim - 2) + [pix_size] * 2
+            if (index := sequence.used_axes.find("z")) > -1:
+                if meta.split_channels and sequence.used_axes.find("c") < index:
+                    index -= 1
+                scale[index] = getattr(sequence.z_plan, "step", 1)
 
         return self.viewer.add_image(
             arr,
