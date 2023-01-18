@@ -111,6 +111,7 @@ filterwarnings = [
     "ignore:distutils Version classes are deprecated",
     "ignore::DeprecationWarning:ipykernel",
     "ignore:<tifffile.TiffWriter.write> data with shape:DeprecationWarning:", # for napari
+    "ignore:.*bool8.*is a deprecated alias for.*bool_.*:DeprecationWarning:", # for skimage
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
