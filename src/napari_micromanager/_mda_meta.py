@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from dataclasses import replace as _replace
 from typing import Any
 
-
 __all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
 
 
@@ -25,7 +24,10 @@ class SequenceMeta:
     save_dir: str = ""
     save_pos: bool = False
     translate_explorer: bool = False
-    explorer_translation_points: list = field(default_factory=list)
+    # [(x, y, r, c), ...] for each row in the scan
+    explorer_translation_points: list[tuple[float, float, int, int]] = field(
+        default_factory=list
+    )
     scan_size_r: int = 0
     scan_size_c: int = 0
 

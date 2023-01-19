@@ -27,7 +27,7 @@ class MultiDWidget(MDAWidget):
         )
         self._save_groupbox.setChecked(False)
 
-        v_layout = cast(QVBoxLayout, self._wdg.layout())
+        v_layout = cast(QVBoxLayout, self.layout())
         v_layout.insertWidget(0, self._save_groupbox)
 
         self.channel_groupbox.setMinimumHeight(230)
@@ -39,29 +39,17 @@ class MultiDWidget(MDAWidget):
         # TODO: stage_pos_groupbox should have a valueChanged signal
         # and that should be connected to _toggle_checkbox_save_pos
         self._save_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
-        self.stage_pos_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
-        self.stage_pos_groupbox.add_pos_button.clicked.connect(
-            self._toggle_checkbox_save_pos
-        )
-        self.stage_pos_groupbox.remove_pos_button.clicked.connect(
-            self._toggle_checkbox_save_pos
-        )
-        self.stage_pos_groupbox.clear_pos_button.clicked.connect(
-            self._toggle_checkbox_save_pos
-        )
-
-        self.channel_groupbox.channel_tableWidget.model().rowsRemoved.connect(
-            self._toggle_split_channel
-        )
+        self.position_groupbox.valueChanged.connect(self._toggle_checkbox_save_pos)
+        self.channel_groupbox.valueChanged.connect(self._toggle_split_channel)
 
     def _toggle_split_channel(self) -> None:
-        if self.channel_groupbox.channel_tableWidget.rowCount() <= 1:
+        if not self.channel_groupbox.value():
             self.checkBox_split_channels.setChecked(False)
 
     def _toggle_checkbox_save_pos(self) -> None:
         if (
-            self.stage_pos_groupbox.isChecked()
-            and self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0
+            self.position_groupbox.isChecked()
+            and len(self.position_groupbox.value()) > 0
         ):
             self._save_groupbox._split_pos_checkbox.setEnabled(True)
 
