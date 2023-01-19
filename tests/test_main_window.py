@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-def test_main_window(qtbot: QtBot) -> None:
+def test_main_window(qtbot: QtBot, core) -> None:
     """Basic test to check that the main window can be created.
 
     This test should remain fast.
