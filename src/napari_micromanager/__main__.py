@@ -1,5 +1,7 @@
 def main() -> None:
+    """Run napari-micromanager."""
     import napari
+
     from napari_micromanager.main_window import MainWindow
 
     viewer = napari.Viewer()
