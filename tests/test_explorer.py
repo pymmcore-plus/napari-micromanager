@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from useq import MDASequence
 
 
-@pytest.mark.skip(reason="test needs to be updated for new widgets.")
 def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     mmc = main_window._mmc
@@ -39,11 +38,35 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     assert not main_window.viewer.layers
 
-    assert explorer._set_grid() == [
-        ("Grid_001_Pos000", -256.0, 256.0, 0.0),
-        ("Grid_001_Pos001", 256.0, 256.0, 0.0),
-        ("Grid_001_Pos002", 256.0, -256.0, 0.0),
-        ("Grid_001_Pos003", -256.0, -256.0, 0.0),
+    assert explorer._create_grid_coords() == [
+        {
+            "x": -256.0,
+            "y": 256.0,
+            "z": 0.0,
+            "name": "Grid001_Pos000",
+            "z_plan": {"go_up": True},
+        },
+        {
+            "x": 256.0,
+            "y": 256.0,
+            "z": 0.0,
+            "name": "Grid001_Pos001",
+            "z_plan": {"go_up": True},
+        },
+        {
+            "x": 256.0,
+            "y": -256.0,
+            "z": 0.0,
+            "name": "Grid001_Pos002",
+            "z_plan": {"go_up": True},
+        },
+        {
+            "x": -256.0,
+            "y": -256.0,
+            "z": 0.0,
+            "name": "Grid001_Pos003",
+            "z_plan": {"go_up": True},
+        },
     ]
 
     uid = None
@@ -82,7 +105,7 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 
     _layer = main_window.viewer.layers[-1]
     assert _layer.metadata["uid"] == uid
-    assert _layer.metadata["grid"] == "001"
+    assert _layer.metadata["grid"] == "Grid001"
     assert _layer.metadata["grid_pos"] == "Pos003"
     assert _layer.metadata["translate"]
 
@@ -96,7 +119,6 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert not layer_1.visible
 
 
-@pytest.mark.skip(reason="test needs to be updated for new widgets.")
 @pytest.mark.parametrize("Z", ["", "withZ"])
 @pytest.mark.parametrize("C", ["", "withC"])
 @pytest.mark.parametrize("T", ["", "withT"])

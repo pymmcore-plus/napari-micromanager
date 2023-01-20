@@ -79,8 +79,12 @@ class SampleExplorer(SampleExplorerWidget):
 
         cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
-        move_x = cam_size_x - (self.ovelap_spinBox.value() * cam_size_x) / 100
-        move_y = cam_size_y - (self.ovelap_spinBox.value() * cam_size_y) / 100
+        move_x = (
+            cam_size_x - (self.grid_params.overlap_spinBox.value() * cam_size_x) / 100
+        )
+        move_y = (
+            cam_size_y - (self.grid_params.overlap_spinBox.value() * cam_size_y) / 100
+        )
         x = -((cols - 1) * (cam_size_x / 2))
         y = (rows - 1) * (cam_size_y / 2)
 
@@ -107,9 +111,12 @@ class SampleExplorer(SampleExplorerWidget):
 
     def _set_translate_point_list(self) -> list[tuple[float, float, int, int]]:
 
-        t_list = self._create_translation_points(self.scan_size_r, self.scan_size_c)
-        if self.stage_pos_groupbox.stage_tableWidget.rowCount() > 0:
-            t_list = t_list * self.stage_pos_groupbox.stage_tableWidget.rowCount()
+        t_list = self._create_translation_points(
+            self.grid_params.scan_size_spinBox_r.value(),
+            self.grid_params.scan_size_spinBox_c.value(),
+        )
+        if self.position_groupbox._table.rowCount() > 0:
+            t_list = t_list * self.position_groupbox._table.rowCount()
         return t_list
 
     def get_state(self) -> MDASequence:
@@ -121,7 +128,7 @@ class SampleExplorer(SampleExplorerWidget):
             **save_state,
             translate_explorer=self.radiobtn_grid.isChecked(),
             explorer_translation_points=self._set_translate_point_list(),
-            scan_size_c=self.scan_size_c,
-            scan_size_r=self.scan_size_r,
+            scan_size_c=self.grid_params.scan_size_spinBox_c.value(),
+            scan_size_r=self.grid_params.scan_size_spinBox_r.value(),
         )
         return sequence
