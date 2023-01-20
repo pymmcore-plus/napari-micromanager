@@ -36,7 +36,7 @@ class SampleExplorer(SampleExplorerWidget):
         )
         self._save_groupbox.setChecked(False)
 
-        v_layout = cast(QVBoxLayout, self._central_widget.layout())
+        v_layout = cast(QVBoxLayout, self.layout())
         v_layout.insertWidget(0, self._save_groupbox)
 
         self.checkbox = self._create_radiobtn()
