@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import tempfile
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, cast
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Sequence, cast
 
 import napari
 import numpy as np
@@ -19,15 +19,25 @@ from ._saving import save_sequence
 if TYPE_CHECKING:
     from uuid import UUID
 
-    import napari.layers
     import napari.viewer
+    from napari.layers import Image
     from pymmcore_plus.core.events._protocol import PSignalInstance
     from typing_extensions import NotRequired, TypedDict
+
+    class SequenceMetaDict(TypedDict):
+        """Dict containing the SequenceMeta object that we add when starting MDAs."""
+
+        napari_mm_sequence_meta: SequenceMeta
+
+    class ActiveMDASequence(MDASequence):
+        """MDASequence that whose metadata dict contains our special SequenceMeta."""
+
+        metadata: SequenceMetaDict  # type: ignore [assignment]
 
     class ActiveMDAEvent(MDAEvent):
         """Event that has been assigned a sequence."""
 
-        sequence: MDASequence
+        sequence: ActiveMDASequence
 
     # TODO: the keys are accurate, but currently this is at the top level layer.metadata
     # we should nest it under a napari_micromanager key
@@ -89,8 +99,9 @@ class _NapariMDAHandler:
         meta: SequenceMeta | None = sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             # this is not an MDA we started
-            # TODO: should we handle this with some sane defaults?
+            # TODO: should we still handle this with some sane defaults?
             return
+        sequence = cast("ActiveMDASequence", sequence)
 
         # pause acquisition until zarr layer(s) are added
         self._mmc.mda.toggle_pause()
@@ -124,23 +135,40 @@ class _NapariMDAHandler:
                 return
 
     @ensure_main_thread  # type: ignore [misc]
-    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+    def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
         """Called on the `frameReady` event from the core."""
-        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
-        if meta is None:
+        seq_meta = getattr(event.sequence, "metadata", None)
+        if not (seq_meta and seq_meta.get(SEQUENCE_META_KEY)):
+            # this is not an MDA we started
             return
+        event = cast("ActiveMDAEvent", event)
 
-        if meta.mode in ("mda", ""):
-            self._add_frame_to_mda_layer(image, event, meta)
-        elif meta.mode == "explorer":
-            if meta.translate_explorer:
-                self._add_frame_to_explorer_translate_layer(image, event, meta)
-            else:
-                self._add_frame_to_explorer_layer(image, event, meta)
+        # get info about the layer we need to update
+        _id, im_idx, layer_name = _id_idx_layer(event)
+        # update the zarr array backing the layer
+        self._tmp_arrays[_id][0][im_idx] = image
+
+        # move the viewer step to the most recently added image
+        # this seems to work better than self.viewer.dims.set_point(a, v)
+        cs = list(self.viewer.dims.current_step)
+        for a, v in enumerate(im_idx):
+            cs[a] = v
+        self.viewer.dims.current_step = tuple(cs)
+
+        meta = event.sequence.metadata["napari_mm_sequence_meta"]
+        if meta.mode == "explorer" and meta.translate_explorer:
+            self._translate_explorer_layer(layer_name, event)
+        else:
+            # update display
+            layer: Image = self.viewer.layers[layer_name]
+            if not layer.visible:
+                layer.visible = True
+            # layer.reset_contrast_limits()
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         # Save layer and add increment to save name.
         if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
+            sequence = cast("ActiveMDASequence", sequence)
             save_sequence(sequence, self.viewer.layers, meta)
 
     def _create_empty_image_layer(
@@ -149,7 +177,7 @@ class _NapariMDAHandler:
         name: str,
         sequence: MDASequence,
         **kwargs: Any,  # extra kwargs to add to layer metadata
-    ) -> napari.layers.Image:
+    ) -> Image:
         """Create new napari layer for zarr array about to be acquired.
 
         Parameters
@@ -164,14 +192,15 @@ class _NapariMDAHandler:
             Extra kwargs will be added to `layer.metadata`.
         """
         # we won't have reached this point if meta is None
-        meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
+        meta = cast("SequenceMeta", sequence.metadata.get(SEQUENCE_META_KEY))
 
         # add Z to layer scale
-        scale = [1.0] * (arr.ndim - 2) + [self._mmc.getPixelSizeUm()] * 2
-        if (index := sequence.used_axes.find("z")) > -1:
-            if meta.split_channels and sequence.used_axes.find("c") < index:
-                index -= 1
-            scale[index] = getattr(sequence.z_plan, "step", 1)
+        if (pix_size := self._mmc.getPixelSizeUm()) != 0:
+            scale = [1.0] * (arr.ndim - 2) + [pix_size] * 2
+            if (index := sequence.used_axes.find("z")) > -1:
+                if meta.split_channels and sequence.used_axes.find("c") < index:
+                    index -= 1
+                scale[index] = getattr(sequence.z_plan, "step", 1)
 
         return self.viewer.add_image(
             arr,
@@ -187,117 +216,30 @@ class _NapariMDAHandler:
             },
         )
 
-    def _get_defaultdict_layers(self, event: ActiveMDAEvent) -> defaultdict[Any, set]:
-        layergroups = defaultdict(set)
-        for lay in self.viewer.layers:
-            if lay.metadata.get("uid") == event.sequence.uid:
-                key = lay.metadata.get("grid")[:8]
-                layergroups[key].add(lay)
-        return layergroups
+    def _translate_explorer_layer(self, layer_name: str, event: ActiveMDAEvent) -> None:
+        """Translate `layer_name` according to the event."""
+        meta = event.sequence.metadata["napari_mm_sequence_meta"]
 
-    def _add_frame_to_mda_layer(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
-    ) -> None:
-        """Method called on every frame in `mda` mode."""
-        axis_order = list(event.sequence.used_axes)
-        # Remove 'c' from idxs if we are splitting channels
-        # also prepare the channel suffix that we use for keeping track of arrays
-        channel = ""
-        if meta.split_channels and event.channel:
-            channel = f"_{event.channel.config}_{event.index['c']:03d}"
-
-            # split channels checked but no channels added
-            with contextlib.suppress(ValueError):
-                axis_order.remove("c")
-
-        # get the actual index of this image into the array and
-        # add it to the zarr store
-        im_idx = tuple(event.index[k] for k in axis_order)
-
-        z_arr = self._tmp_arrays[str(event.sequence.uid) + channel][0]
-        z_arr[im_idx] = image
-
-        # move the viewer step to the most recently added image
-        # this seems to work better than self.viewer.dims.set_point(a, v)
-        cs = list(self.viewer.dims.current_step)
-        for a, v in enumerate(im_idx):
-            cs[a] = v
-        self.viewer.dims.current_step = tuple(cs)
-
-        # display
-        fname = meta.file_name if meta.should_save else "Exp"
-        layer_name = f"{fname}_{event.sequence.uid}{channel}"
-        layer = self.viewer.layers[layer_name]
-        if not layer.visible:
-            layer.visible = True
-        # layer.reset_contrast_limits()
-
-    def _add_frame_to_explorer_layer(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
-    ) -> None:
-
-        im_idx = tuple(event.index[k] for k in event.sequence.used_axes)
-        z_arr = self._tmp_arrays[str(event.sequence.uid)][0]
-        z_arr[im_idx] = image
-
-        cs = list(self.viewer.dims.current_step)
-        for a, v in enumerate(im_idx):
-            cs[a] = v
-        self.viewer.dims.current_step = tuple(cs)
-
-        fname = meta.file_name if meta.should_save else "Exp"
-        layer = self.viewer.layers[f"{fname}_{event.sequence.uid}"]
-        if not layer.visible:
-            layer.visible = True
-        layer.reset_contrast_limits()
-
-    def _add_frame_to_explorer_translate_layer(
-        self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
-    ) -> None:
-        im_idx = tuple(event.index[k] for k in event.sequence.used_axes if k != "p")
-        layer_name = f"{event.pos_name}_{event.sequence.uid}"
-        z_arr = self._tmp_arrays[layer_name][0]
-        z_arr[im_idx] = image
-
-        x = meta.explorer_translation_points[event.index["p"]][0]
-        y = -meta.explorer_translation_points[event.index["p"]][1]
-
-        layergroups = self._get_defaultdict_layers(event)
-        # unlink layers to translate
-        for group in layergroups.values():
-            unlink_layers(group)
-
-        # translate only once
-        fname = meta.file_name if meta.should_save else "Exp"
-        layer = self.viewer.layers[f"{fname}_{layer_name}"]
-        if (layer.translate[-2], layer.translate[-1]) != (y, x):
-            layer.translate = (y, x)
-        layer.metadata["translate"] = True
-
-        # link layers after translation
-        for group in layergroups.values():
-            link_layers(group)
-
-        cs = list(self.viewer.dims.current_step)
-        for a, v in enumerate(im_idx):
-            cs[a] = v
-        self.viewer.dims.current_step = tuple(cs)
+        grid_groups = _get_grid_layer_groups(self.viewer.layers, event.sequence.uid)
+        with _layers_temporarily_unlinked(tuple(grid_groups.values())):
+            x, y, *_ = meta.explorer_translation_points[event.index["p"]]
+            layer: Image = self.viewer.layers[layer_name]
+            if tuple(layer.translate) != (-y, x):
+                layer.translate = (-y, x)
+            layer.metadata["translate"] = True
 
         # to fix a bug in display (e.g. 3x3 grid)
         layer.visible = False
         layer.visible = True
 
-        zoom_out_factor = (
-            meta.scan_size_r
-            if meta.scan_size_r >= meta.scan_size_c
-            else meta.scan_size_c
-        )
+        size_r, size_c = meta.scan_size_r, meta.scan_size_c
+        zoom_out_factor = size_r if size_r >= size_c else size_c
         self.viewer.camera.zoom = 1 / zoom_out_factor
         self.viewer.reset_view()
 
 
 def _determine_sequence_layers(
-    sequence: MDASequence,
+    sequence: ActiveMDASequence,
 ) -> tuple[list[str], list[tuple[str, list[int], dict[str, Any]]]]:
     """Return (axis_labels, (id, shape, and metadata)) for each layer to add for seq.
 
@@ -327,7 +269,7 @@ def _determine_sequence_layers(
     # sourcery skip: extract-duplicate-method
 
     # if we got to this point, sequence.metadata[SEQUENCE_META_KEY] should exist
-    meta = cast(SequenceMeta, sequence.metadata.get(SEQUENCE_META_KEY))
+    meta = sequence.metadata["napari_mm_sequence_meta"]
 
     axis_labels = list(sequence.used_axes)
     layer_shape = [sequence.sizes[k] for k in axis_labels]
@@ -372,3 +314,78 @@ def _determine_sequence_layers(
 
     axis_labels += ["y", "x"]
     return axis_labels, _layer_info
+
+
+def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
+    """Get the tmp_path id, index, and layer name for a given event.
+
+    Parameters
+    ----------
+    event : ActiveMDAEvent
+        An event for which to retrieve the id, index, and layer name.
+
+
+    Returns
+    -------
+    tuple[str, tuple[int, ...], str]
+        A 3-tuple of (id, index, layer_name) where:
+            - `id` is the id of the tmp_path for the event (to get the zarr array).
+            - `index` is the index in the underlying zarr array where the event image
+              should be saved.
+            - `layer_name` is the name of the corresponding layer in the viewer.
+    """
+    meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
+    axis_order = list(event.sequence.used_axes)
+
+    suffix = ""
+    prefix = meta.file_name if meta.should_save else "Exp"
+    if meta.split_channels and event.channel:
+        # Remove 'c' from idxs if we are splitting channels
+        # also prepare the channel suffix that we use for keeping track of arrays
+        suffix = f"_{event.channel.config}_{event.index['c']:03d}"
+        axis_order.remove("c")
+
+    if meta.mode == "explorer" and meta.translate_explorer:
+        axis_order.remove("p")
+        prefix += f"_{event.pos_name}"
+        _id = f"{event.pos_name}_{event.sequence.uid}"  # TODO: unify logic for tmp_keys
+    else:
+        _id = f"{event.sequence.uid}{suffix}"
+
+    # the index of this event in the full zarr array
+    im_idx = tuple(event.index[k] for k in axis_order)
+    # the name of this layer in the napari viewer
+    layer_name = f"{prefix}_{event.sequence.uid}{suffix}"
+    return _id, im_idx, layer_name
+
+
+@contextlib.contextmanager
+def _layers_temporarily_unlinked(layergroups: Sequence[set[Image]]) -> Iterator[None]:
+    """Context in which layer groups are temporarily linked and relinked."""
+    for group in layergroups:
+        unlink_layers(group)
+    try:
+        yield
+    finally:
+        for group in layergroups:
+            link_layers(group)
+
+
+def _get_grid_layer_groups(layers: Iterable[Image], uid: UUID) -> dict[str, set[Image]]:
+    """Returns a dict of layers grouped by their grid id.
+
+    dict keys are the the first 8 characters of the grid id and the values
+    are the layers that have that grid id.
+
+    Parameters
+    ----------
+    layers : Iterable[Image]
+        A list of layers to search for grid layers.
+    uid : str
+        The uid of the sequence that the layers belong to.
+    """
+    layergroups: defaultdict[str, set[Image]] = defaultdict(set)
+    for lay in layers:
+        if lay.metadata.get("uid") == uid and (grid := lay.metadata.get("grid")):
+            layergroups[grid[:8]].add(lay)
+    return layergroups

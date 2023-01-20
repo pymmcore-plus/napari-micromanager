@@ -87,7 +87,12 @@ class MainWindow(MicroManagerToolbar):
             preview_layer = self.viewer.add_image(data, name="preview")
 
         preview_layer.metadata["mode"] = "preview"
-        preview_layer.scale = (self._mmc.getPixelSizeUm(), self._mmc.getPixelSizeUm())
+
+        if (pix_size := self._mmc.getPixelSizeUm()) != 0:
+            preview_layer.scale = (pix_size, pix_size)
+        else:
+            # return to default
+            preview_layer.scale = [1.0, 1.0]
 
         self._update_max_min()
 

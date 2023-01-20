@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
+from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
 from useq import MDASequence
 
@@ -33,3 +34,27 @@ def test_layer_scale(
 
     # cleanup zarr resources
     handler._cleanup()
+
+
+def test_preview_scale(core: CMMCorePlus, main_window: MainWindow):
+    """Basic test to check that the main window can be created.
+
+    This test should remain fast.
+    """
+    img = core.snap()
+    main_window._update_viewer(img)
+
+    pix_size = core.getPixelSizeUm()
+    assert tuple(main_window.viewer.layers["preview"].scale) == (pix_size, pix_size)
+
+    # now pretend that the user never provided a pixel size config
+    # we need to not crash in this case
+
+    core.setPixelSizeUm("Res20x", 0)
+
+    try:
+        main_window._update_viewer(img)
+    except Exception as e:
+        # return to orig value for future tests and re-raise
+        core.setPixelSizeUm(pix_size)
+        raise e
