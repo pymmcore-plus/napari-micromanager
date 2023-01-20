@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from napari_micromanager._mda_meta import SequenceMeta
 from qtpy.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -11,6 +10,8 @@ from qtpy.QtWidgets import (
     QPushButton,
     QWidget,
 )
+
+from napari_micromanager._mda_meta import SequenceMeta
 
 
 class SaveWidget(QGroupBox):
