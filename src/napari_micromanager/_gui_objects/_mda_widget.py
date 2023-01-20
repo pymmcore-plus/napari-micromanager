@@ -22,7 +22,6 @@ class MultiDWidget(MDAWidget):
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
-        v_layout = cast(QVBoxLayout, self._central_widget.layout())
         self._save_groupbox = SaveWidget()
         self._save_groupbox.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
