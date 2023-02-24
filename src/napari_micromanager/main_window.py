@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 import napari
@@ -23,7 +24,9 @@ if TYPE_CHECKING:
 class MainWindow(MicroManagerToolbar):
     """The main napari-micromanager widget that gets added to napari."""
 
-    def __init__(self, viewer: napari.viewer.Viewer) -> None:
+    def __init__(
+        self, viewer: napari.viewer.Viewer, config: str | Path | None = None
+    ) -> None:
         adapter_path = find_micromanager()
         if not adapter_path:
             raise RuntimeError(
@@ -61,6 +64,13 @@ class MainWindow(MicroManagerToolbar):
         # queue cleanup
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
+
+        if config is not None:
+            try:
+                self._mmc.loadSystemConfiguration(config)
+            except FileNotFoundError:
+                # don't crash if the user passed an invalid config
+                pass
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
