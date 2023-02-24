@@ -195,7 +195,6 @@ class _NapariMDAHandler:
             layer: Image = self.viewer.layers[layer_name]
             if not layer.visible:
                 layer.visible = True
-            layer.reset_contrast_limits()
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         # Save layer and add increment to save name.
