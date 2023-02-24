@@ -142,7 +142,6 @@ class _NapariMDAHandler:
         self._io_t = create_worker(self._watch_mda, _start_thread=True)
 
     def _watch_mda(self) -> None:
-        print("starting to watch")
         while self._mda_running:
             try:
                 self._process_frame(*self._deck.pop())
