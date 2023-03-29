@@ -35,6 +35,23 @@ def test_layer_scale(
     # cleanup zarr resources
     handler._cleanup()
 
+    # now pretend that the user never provided a pixel size config
+    # we need to not crash in this case
+
+    pix_size = mmc.getPixelSizeUm()
+    mmc.setPixelSizeUm("Res20x", 0)
+
+    try:
+        handler._on_mda_started(sequence)
+    except Exception as e:
+        # return to orig value for future tests and re-raise
+        mmc.setPixelSizeUm(pix_size)
+        # cleanup zarr resources
+        handler._cleanup()
+        raise e
+    # cleanup zarr resources
+    handler._cleanup()
+
 
 def test_preview_scale(core: CMMCorePlus, main_window: MainWindow):
     """Basic test to check that the main window can be created.
