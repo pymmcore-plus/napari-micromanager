@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
     from pytestqt.qtbot import QtBot
     from useq import MDASequence
+from useq import Position
 
 
 def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
-
     mmc = main_window._mmc
     mmc.setXYPosition(0.0, 0.0)
     mmc.setPosition(0.0)
@@ -39,34 +39,33 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
     assert not main_window.viewer.layers
 
     assert explorer._create_grid_coords() == [
-        {
-            "x": -256.0,
-            "y": 256.0,
-            "z": 0.0,
-            "name": "Grid001_Pos000",
-            "z_plan": {"go_up": True},
-        },
-        {
-            "x": 256.0,
-            "y": 256.0,
-            "z": 0.0,
-            "name": "Grid001_Pos001",
-            "z_plan": {"go_up": True},
-        },
-        {
-            "x": 256.0,
-            "y": -256.0,
-            "z": 0.0,
-            "name": "Grid001_Pos002",
-            "z_plan": {"go_up": True},
-        },
-        {
-            "x": -256.0,
-            "y": -256.0,
-            "z": 0.0,
-            "name": "Grid001_Pos003",
-            "z_plan": {"go_up": True},
-        },
+        Position(**pos)
+        for pos in [
+            {
+                "x": -256.0,
+                "y": 256.0,
+                "z": 0.0,
+                "name": "Grid001_Pos000",
+            },
+            {
+                "x": 256.0,
+                "y": 256.0,
+                "z": 0.0,
+                "name": "Grid001_Pos001",
+            },
+            {
+                "x": 256.0,
+                "y": -256.0,
+                "z": 0.0,
+                "name": "Grid001_Pos002",
+            },
+            {
+                "x": -256.0,
+                "y": -256.0,
+                "z": 0.0,
+                "name": "Grid001_Pos003",
+            },
+        ]
     ]
 
     uid = None
