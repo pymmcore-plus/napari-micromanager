@@ -97,7 +97,7 @@ class MainWindow(MicroManagerToolbar):
     def _update_max_min(self, *_: Any) -> None:
         visible = (x for x in self.viewer.layers.selection if x.visible)
         self.minmax.update_from_layers(
-            (lr for lr in visible if isinstance(lr, napari.layers.Image))
+            lr for lr in visible if isinstance(lr, napari.layers.Image)
         )
 
     def _snap(self) -> None:

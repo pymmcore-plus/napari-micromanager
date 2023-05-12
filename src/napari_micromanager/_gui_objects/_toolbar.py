@@ -40,7 +40,6 @@ from ._shutters_widget import MMShuttersWidget
 from ._stages_widget import MMStagesWidget
 
 if TYPE_CHECKING:
-
     import napari.viewer
 
 TOOLBAR_SIZE = 45

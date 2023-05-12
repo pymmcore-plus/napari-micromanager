@@ -79,8 +79,7 @@ extend-select = [
     "F",    # flakes
     "D",    # pydocstyle
     "I001", # isort
-    "U",    # pyupgrade
-    # "N",  # pep8-naming
+    "UP",   # pyupgrade
     "S",    # bandit
     "C",    # flake8-comprehensions
     "B",    # flake8-bugbear
@@ -123,16 +122,19 @@ show_error_codes = true
 pretty = true
 
 [[tool.mypy.overrides]]
-module = ["qtpy.*", "pymmcore_widgets.*", "superqt.*", "napari.*", "zarr.*", "tifffile.*"]
+module = [
+    "qtpy.*",
+    "pymmcore_widgets.*",
+    "superqt.*",
+    "napari.*",
+    "zarr.*",
+    "tifffile.*",
+]
 ignore_missing_imports = true
 
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]
-ignore = [
-    ".pre-commit-config.yaml",
-    "launch-dev.py",
-    "codecov.yml",
-]
+ignore = [".pre-commit-config.yaml", "launch-dev.py", "codecov.yml"]
 
 # https://coverage.readthedocs.io/en/6.4/config.html
 [tool.coverage.report]
@@ -144,7 +146,7 @@ exclude_lines = [
     "raise AssertionError",
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
-    "\\.\\.\\."
+    "\\.\\.\\.",
 ]
 
 [tool.coverage.run]

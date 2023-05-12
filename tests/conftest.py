@@ -9,6 +9,7 @@ from pymmcore_plus import CMMCorePlus, _logger
 
 _logger.set_log_level("CRITICAL")
 
+
 # to create a new CMMCorePlus() for every test
 @pytest.fixture
 def core(monkeypatch):

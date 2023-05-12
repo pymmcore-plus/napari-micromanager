@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
-
     mmc = main_window._mmc
     mmc.setXYPosition(0.0, 0.0)
     mmc.setPosition(0.0)
@@ -100,7 +99,6 @@ def test_explorer_main(main_window: MainWindow, qtbot: QtBot):
 def test_saving_explorer(
     qtbot: QtBot, main_window: MainWindow, T, C, Z, Tr, tmp_path: Path
 ):
-
     NAME = "test_explorer"
     main_window._show_dock_widget("Explorer")
     _exp = cast(SampleExplorer, main_window._dock_widgets["Explorer"].widget())
@@ -164,7 +162,7 @@ def test_saving_explorer(
 
     assert exp_seq is not None
     data_shape = main_window.viewer.layers[-1].data.shape
-    expected_shape = list(exp_seq.shape) + [500, 512]
+    expected_shape = [*list(exp_seq.shape), 500, 512]
 
     if Tr:
         expected_shape.pop(list(exp_seq.used_axes).index("p"))

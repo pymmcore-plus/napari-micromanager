@@ -11,8 +11,9 @@ from ._util import ensure_unique
 
 if TYPE_CHECKING:
     from napari.components import LayerList
-    from napari_micromanager._mda_meta import SequenceMeta
     from useq import MDASequence
+
+    from napari_micromanager._mda_meta import SequenceMeta
 
 
 def _imsave(file: Path, data: np.ndarray, dtype: str = "uint16") -> None:
@@ -98,9 +99,7 @@ def _save_mda_sequence(
 def _save_pos_separately(
     sequence: MDASequence, folder_name: Path, fname: str, layers: LayerList
 ) -> None:
-
     for p in range(len(sequence.stage_positions)):
-
         folder_path = folder_name / f"{fname}_Pos{p:03d}"
         folder_path.mkdir(parents=True, exist_ok=True)
 

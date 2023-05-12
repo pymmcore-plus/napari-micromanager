@@ -101,7 +101,7 @@ class _NapariMDAHandler:
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
         # now create a zarr array in a temporary directory for each layer
-        for (id_, shape, kwargs) in layers_to_create:
+        for id_, shape, kwargs in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
             dtype = f"uint{self._mmc.getImageBitDepth()}"
 
@@ -125,7 +125,7 @@ class _NapariMDAHandler:
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
-        """Called on the `frameReady` event from the core."""
+        """Process on the `frameReady` event from the core."""
         meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
@@ -198,7 +198,7 @@ class _NapariMDAHandler:
     def _add_frame_to_mda_layer(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-        """Method called on every frame in `mda` mode."""
+        """Add `image` to the appropriate zarr array for the given `event`."""
         axis_order = list(event.sequence.used_axes)
         # Remove 'c' from idxs if we are splitting channels
         # also prepare the channel suffix that we use for keeping track of arrays
@@ -235,7 +235,6 @@ class _NapariMDAHandler:
     def _add_frame_to_explorer_layer(
         self, image: np.ndarray, event: ActiveMDAEvent, meta: SequenceMeta
     ) -> None:
-
         im_idx = tuple(event.index[k] for k in event.sequence.used_axes)
         z_arr = self._tmp_arrays[str(event.sequence.uid)][0]
         z_arr[im_idx] = image

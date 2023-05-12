@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 
 def test_main_window_mda(main_window: MainWindow):
-
     assert not main_window.viewer.layers
 
     mda = MDASequence(
@@ -67,7 +66,7 @@ def test_saving_mda(
         mda_widget.buttons_wdg.run_button.click()
 
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
-    expected_shape = [x for x in mda.shape + (500, 512) if x > 1]
+    expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
 
     multiC = len(mda.channels) > 1
     splitC = mda.metadata[SEQUENCE_META_KEY].split_channels

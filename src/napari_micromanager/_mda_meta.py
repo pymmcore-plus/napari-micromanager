@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from dataclasses import replace as _replace
 from typing import Any
 
-
 __all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
 
 
