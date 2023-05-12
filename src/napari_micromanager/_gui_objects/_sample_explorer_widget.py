@@ -108,7 +108,6 @@ class SampleExplorer(SampleExplorerWidget):
         return points
 
     def _set_translate_point_list(self) -> list[tuple[float, float, int, int]]:
-
         t_list = self._create_translation_points(
             self.grid_params.scan_size_spinBox_r.value(),
             self.grid_params.scan_size_spinBox_c.value(),
