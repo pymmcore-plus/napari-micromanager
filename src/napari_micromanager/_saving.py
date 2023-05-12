@@ -53,7 +53,6 @@ def _save_mda_sequence(
     folder_name = ensure_unique(path / file_name, extension="", ndigits=3)
 
     mda_layers = [i for i in layers if i.metadata.get("uid") == sequence.uid]
-
     # if split_channels, then create a new layer for each channel
     if meta.split_channels:
         folder_name.mkdir(parents=True, exist_ok=True)

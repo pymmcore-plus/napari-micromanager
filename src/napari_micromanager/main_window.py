@@ -36,7 +36,6 @@ class MainWindow(MicroManagerToolbar):
 
         # get global CMMCorePlus instance
         self._mmc = CMMCorePlus.instance()
-        self.viewer = viewer
 
         self._mda_handler = _NapariMDAHandler(self._mmc, viewer)
         self.streaming_timer: QTimer | None = None
@@ -87,7 +86,12 @@ class MainWindow(MicroManagerToolbar):
             preview_layer = self.viewer.add_image(data, name="preview")
 
         preview_layer.metadata["mode"] = "preview"
-        preview_layer.scale = (self._mmc.getPixelSizeUm(), self._mmc.getPixelSizeUm())
+
+        if (pix_size := self._mmc.getPixelSizeUm()) != 0:
+            preview_layer.scale = (pix_size, pix_size)
+        else:
+            # return to default
+            preview_layer.scale = [1.0, 1.0]
 
         self._update_max_min()
 

@@ -37,7 +37,7 @@ dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
     "pymmcore-plus >=0.6.3",
-    "pymmcore-widgets >=0.2.1",
+    "pymmcore-widgets >=0.3.0",
     "superqt >=0.3.1",
     "tifffile",
     "useq-schema >=0.1.0",
@@ -78,7 +78,7 @@ extend-select = [
     "E",    # style errors
     "F",    # flakes
     "D",    # pydocstyle
-    "I001", # isort
+    "I",    # isort
     "UP",   # pyupgrade
     "S",    # bandit
     "C",    # flake8-comprehensions
@@ -110,6 +110,7 @@ filterwarnings = [
     "ignore:distutils Version classes are deprecated",
     "ignore::DeprecationWarning:ipykernel",
     "ignore:<tifffile.TiffWriter.write> data with shape:DeprecationWarning:", # for napari
+    "ignore:`np.bool8` is a deprecated alias::skimage",
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
