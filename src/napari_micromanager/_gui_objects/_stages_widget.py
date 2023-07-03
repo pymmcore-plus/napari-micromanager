@@ -69,7 +69,6 @@ class MMStagesWidget(QWidget):
             zones.append((wdg.x(), wdg.x() + wdg.width()))
 
         for idx, w, _, _ in wdgs:
-
             if not w.start_pos:
                 continue
 

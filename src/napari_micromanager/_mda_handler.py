@@ -112,7 +112,7 @@ class _NapariMDAHandler:
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
         # now create a zarr array in a temporary directory for each layer
-        for (id_, shape, kwargs) in layers_to_create:
+        for id_, shape, kwargs in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
             dtype = f"uint{self._mmc.getImageBitDepth()}"
 
