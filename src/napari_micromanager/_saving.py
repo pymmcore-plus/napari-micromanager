@@ -98,9 +98,7 @@ def _save_mda_sequence(
 def _save_pos_separately(
     sequence: MDASequence, folder_name: Path, fname: str, layers: LayerList
 ) -> None:
-
     for p in range(len(sequence.stage_positions)):
-
         folder_path = folder_name / f"{fname}_Pos{p:03d}"
         folder_path.mkdir(parents=True, exist_ok=True)
 

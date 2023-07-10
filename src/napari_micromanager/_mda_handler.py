@@ -112,7 +112,7 @@ class _NapariMDAHandler:
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
         # now create a zarr array in a temporary directory for each layer
-        for (id_, shape, kwargs) in layers_to_create:
+        for id_, shape, kwargs in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
             dtype = f"uint{self._mmc.getImageBitDepth()}"
 
@@ -135,13 +135,11 @@ class _NapariMDAHandler:
                 return
 
     @ensure_main_thread  # type: ignore [misc]
-    def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
-        """Called on the `frameReady` event from the core."""
-        seq_meta = getattr(event.sequence, "metadata", None)
-        if not (seq_meta and seq_meta.get(SEQUENCE_META_KEY)):
-            # this is not an MDA we started
+    def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
+        """Process on the `frameReady` event from the core."""
+        meta = event.sequence.metadata.get(SEQUENCE_META_KEY)
+        if meta is None:
             return
-        event = cast("ActiveMDAEvent", event)
 
         # get info about the layer we need to update
         _id, im_idx, layer_name = _id_idx_layer(event)
@@ -375,7 +373,7 @@ def _layers_temporarily_unlinked(layergroups: Sequence[set[Image]]) -> Iterator[
 
 
 def _get_grid_layer_groups(layers: Iterable[Image], uid: UUID) -> dict[str, set[Image]]:
-    """Returns a dict of layers grouped by their grid id.
+    """Return a dict of layers grouped by their grid id.
 
     dict keys are the the first 8 characters of the grid id and the values
     are the layers that have that grid id.

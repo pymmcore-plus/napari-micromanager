@@ -24,7 +24,6 @@ class MMShuttersWidget(QWidget):
         self._on_cfg_loaded()
 
     def _on_cfg_loaded(self) -> None:
-
         self._clear()
 
         if not self._mmc.getLoadedDevicesOfType(DeviceType.ShutterDevice):
@@ -45,7 +44,6 @@ class MMShuttersWidget(QWidget):
                 shutters_devs.insert(0, d)
 
         for idx, shutter in enumerate(shutters_devs):
-
             if idx == len(shutters_devs) - 1:
                 s = ShuttersWidget(shutter)
             else:

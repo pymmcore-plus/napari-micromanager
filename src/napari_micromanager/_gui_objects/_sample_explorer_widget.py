@@ -43,7 +43,6 @@ class SampleExplorer(SampleExplorerWidget):
         v_layout.insertWidget(4, self.checkbox)
 
     def _create_radiobtn(self) -> QGroupBox:
-
         group = QGroupBox(title="Display as:")
         group.setChecked(False)
         group_layout = QHBoxLayout()
@@ -76,7 +75,6 @@ class SampleExplorer(SampleExplorerWidget):
     def _create_translation_points(
         self, rows: int, cols: int
     ) -> list[tuple[float, float, int, int]]:
-
         cam_size_x = self._mmc.getROI(self._mmc.getCameraDevice())[2]
         cam_size_y = self._mmc.getROI(self._mmc.getCameraDevice())[3]
         move_x = (
@@ -110,7 +108,6 @@ class SampleExplorer(SampleExplorerWidget):
         return points
 
     def _set_translate_point_list(self) -> list[tuple[float, float, int, int]]:
-
         t_list = self._create_translation_points(
             self.grid_params.scan_size_spinBox_r.value(),
             self.grid_params.scan_size_spinBox_c.value(),

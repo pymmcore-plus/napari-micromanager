@@ -1,5 +1,8 @@
+"""Run napari-micromanager as a script with ``python -m napari_micromanager``."""
+
+
 def main() -> None:
-    """Run napari-micromanager."""
+    """Create a napari viewer and add the MicroManager plugin to it."""
     import napari
 
     from napari_micromanager.main_window import MainWindow
