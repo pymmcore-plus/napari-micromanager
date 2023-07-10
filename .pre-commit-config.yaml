@@ -6,7 +6,7 @@ ci:
 
 repos:
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
@@ -19,7 +19,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.266
+    rev: v0.0.277
     hooks:
       - id: ruff
         args: [--fix]
@@ -30,12 +30,12 @@ repos:
       - id: black
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.12.2
+    rev: v0.13
     hooks:
       - id: validate-pyproject
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.4.1
     hooks:
       - id: mypy
         files: "^src/"

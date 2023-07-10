@@ -137,10 +137,9 @@ class _NapariMDAHandler:
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_frame(self, image: np.ndarray, event: ActiveMDAEvent) -> None:
         """Process on the `frameReady` event from the core."""
-        meta: SequenceMeta | None = event.sequence.metadata.get(SEQUENCE_META_KEY)
+        meta = event.sequence.metadata.get(SEQUENCE_META_KEY)
         if meta is None:
             return
-        event = cast("ActiveMDAEvent", event)
 
         # get info about the layer we need to update
         _id, im_idx, layer_name = _id_idx_layer(event)
@@ -374,7 +373,7 @@ def _layers_temporarily_unlinked(layergroups: Sequence[set[Image]]) -> Iterator[
 
 
 def _get_grid_layer_groups(layers: Iterable[Image], uid: UUID) -> dict[str, set[Image]]:
-    """Returns a dict of layers grouped by their grid id.
+    """Return a dict of layers grouped by their grid id.
 
     dict keys are the the first 8 characters of the grid id and the values
     are the layers that have that grid id.
