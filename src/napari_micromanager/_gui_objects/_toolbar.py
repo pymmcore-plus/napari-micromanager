@@ -35,7 +35,6 @@ from superqt.fonticon import icon
 from ._illumination_widget import IlluminationWidget
 from ._mda_widget import MultiDWidget
 from ._min_max_widget import MinMax
-from ._sample_explorer_widget import SampleExplorer
 from ._shutters_widget import MMShuttersWidget
 from ._stages_widget import MMStagesWidget
 
@@ -57,7 +56,6 @@ DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
     "Camera ROI": (CameraRoiWidget, MDI6.crop),
     "Pixel Size Table": (PixelSizeWidget, MDI6.ruler),
     "MDA": (MultiDWidget, None),
-    "Explorer": (SampleExplorer, None),
 }
 
 
@@ -321,11 +319,7 @@ class MicroManagerToolbar(QMainWindow):
         wdg.setStyleSheet("border: 0px;")
 
         mda = self._make_plugin_button("MDA", "MultiDimensional Acquisition")
-        explorer = self._make_plugin_button(
-            "Explorer", "MultiDimensional Grid Acquisition"
-        )
         wdg.layout().addWidget(mda)
-        wdg.layout().addWidget(explorer)
 
         plgs_toolbar.addWidget(wdg)
 

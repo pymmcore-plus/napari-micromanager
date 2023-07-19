@@ -33,15 +33,6 @@ sequence = MDASequence(
 
 main_window.mda.set_state(sequence)
 
-# manually set state of explorer
-explorer = main_window.explorer
-explorer.scan_size_spinBox_r.setValue(2)
-explorer.scan_size_spinBox_c.setValue(2)
-explorer.add_ch_explorer_Button.click()
-explorer.channel_explorer_comboBox.setCurrentText("Cy5")
-explorer.add_ch_explorer_Button.click()
-explorer.channel_explorer_comboBox.setCurrentText("FITC")
-
 # fill napari-console with useful variables
 v.window._qt_viewer.console.push(
     {"main_window": main_window, "mmc": core, "sequence": sequence, "np": np}
