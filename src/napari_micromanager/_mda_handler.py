@@ -14,6 +14,7 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from ._saving import save_sequence
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -138,10 +139,9 @@ class _NapariMDAHandler:
         self._io_t = create_worker(
             self._watch_mda,
             _start_thread=True,
-            _connect={
-                "yielded": self._update_viewer_dims,
-                "finished": self._process_remaining_frames,
-            },
+            _connect={"yielded": self._update_viewer_dims}
+            # NOTE: once we have a proper writer, we can add here:
+            # "finished": self._process_remaining_frames
         )
 
         self._time_while_running: list = []
@@ -165,11 +165,6 @@ class _NapariMDAHandler:
                 yield layer_name, im_idx
             else:
                 time.sleep(0.1)
-
-    def _process_remaining_frames(self) -> None:
-        """Process any remaining frames after the MDA has finished."""
-        while self._deck:
-            self._process_frame(*self._deck.pop())
 
     def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
         """Called on the `frameReady` event from the core."""
@@ -220,8 +215,27 @@ class _NapariMDAHandler:
         self.viewer.dims.current_step = cs
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
-        self.t = time.perf_counter()
         self._mda_running = False
+
+        # NOTE: this will be REMOVED when using proper WRITER (e.g.
+        # https://github.com/pymmcore-plus/pymmcore-MDA-writers or
+        # https://github.com/fdrgsp/pymmcore-MDA-writers/tree/update_writer). See the
+        # comment in _process_remaining_frames for more details.
+        self._process_remaining_frames(sequence)
+
+    def _process_remaining_frames(self, sequence: MDASequence) -> None:
+        """Process any remaining frames after the MDA has finished."""
+        # NOTE: when switching to a proper wtiter to save files, this method will not
+        # have the sequence argument, it will not be called by `_on_mda_finished` but we
+        # can link it to the self._io_t.finished signal ("finished": self._process_
+        # remaining_frames) and the saving code belw will be removed.
+        while self._deck:
+            self._process_frame(*self._deck.pop())
+
+        # to remove whne using proper writer
+        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
+            sequence = cast("ActiveMDASequence", sequence)
+            save_sequence(sequence, self.viewer.layers, meta)
 
     def _create_empty_image_layer(
         self,
