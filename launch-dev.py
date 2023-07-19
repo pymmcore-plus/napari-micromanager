@@ -31,7 +31,9 @@ sequence = MDASequence(
     stage_positions=[(222, 1, 1), (111, 0, 0)],
 )
 
-main_window.mda.set_state(sequence)
+main_window._show_dock_widget("MDA")
+mda = v.window._dock_widgets.get("MDA").widget()
+mda.set_state(sequence)
 
 # fill napari-console with useful variables
 v.window._qt_viewer.console.push(
