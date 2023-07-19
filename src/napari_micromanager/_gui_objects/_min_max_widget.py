@@ -30,6 +30,6 @@ class MinMax(QScrollArea):
                 minmax = tuple(layer._calc_data_range(mode="slice"))
                 min_max_txt += f' <font color="{col}">{minmax}</font>'
             except Exception:
-                warnings.warn("cannot update minmax. napari api changed?")
+                warnings.warn("cannot update minmax. napari api changed?", stacklevel=2)
 
         self._label.setText(min_max_txt)
