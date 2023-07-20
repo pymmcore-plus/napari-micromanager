@@ -4,9 +4,9 @@ import warnings
 from pathlib import Path
 from typing import cast
 
+from pymmcore_mda_writers import MiltiTiffWriter, ZarrWriter
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import MDAWidget
-from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QCheckBox, QGridLayout, QSizePolicy, QVBoxLayout, QWidget
 from useq import MDASequence
 
@@ -22,6 +22,9 @@ class MultiDWidget(MDAWidget):
         self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
+
+        self._tiff_writer = MiltiTiffWriter(core=self._mmc)
+        self._zarr_writer = ZarrWriter(core=self._mmc)
 
         v_layout = cast(QVBoxLayout, self._central_widget.layout())
         self._save_groupbox = SaveWidget()
@@ -55,14 +58,16 @@ class MultiDWidget(MDAWidget):
             self.checkBox_split_channels.setChecked(False)
 
     def _on_save_toggled(self, checked: bool) -> None:
-        if self.position_widget.value():
-            self._save_groupbox._split_pos_checkbox.setEnabled(True)
-
-        else:
-            self._save_groupbox._split_pos_checkbox.setCheckState(
-                Qt.CheckState.Unchecked
-            )
-            self._save_groupbox._split_pos_checkbox.setEnabled(False)
+        writer = (
+            self._tiff_writer
+            if self._save_groupbox.tiff_radiobutton.isChecked()
+            else self._zarr_writer
+        )
+        writer.enabled = checked
+        folder_path = self._save_groupbox._directory.text()
+        file_name = self._save_groupbox._fname.text()
+        writer.folder_path = folder_path
+        writer.file_name = file_name
 
     def get_state(self) -> MDASequence:
         sequence = cast(MDASequence, super().get_state())

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from qtpy.QtWidgets import (
-    QCheckBox,
     QFileDialog,
     QGridLayout,
     QGroupBox,
     QLabel,
     QLineEdit,
     QPushButton,
+    QRadioButton,
     QWidget,
 )
 
@@ -28,11 +28,12 @@ class SaveWidget(QGroupBox):
         self._browse_save_btn = QPushButton(text="...")
         self._browse_save_btn.clicked.connect(self._request_save_path)
         # filename
-        self._fname = QLineEdit("Experiment")
-        # checkbox for splitting files by position
-        self._split_pos_checkbox = QCheckBox(
-            text="Save XY Positions in separate files (ImageJ compatibility)"
-        )
+        self._fname = QLineEdit()
+        self._fname.setPlaceholderText("Experiment")
+
+        self.zarr_radiobutton = QRadioButton(text="Save as zarr")
+        self.tiff_radiobutton = QRadioButton(text="Save as single tiff")
+        self.tiff_radiobutton.setChecked(True)
 
         grid = QGridLayout()
         self.setLayout(grid)
@@ -43,11 +44,11 @@ class SaveWidget(QGroupBox):
         grid.addWidget(self._browse_save_btn, 0, 2)
         grid.addWidget(QLabel("File Name:"), 1, 0)
         grid.addWidget(self._fname, 1, 1)
-        grid.addWidget(self._split_pos_checkbox, 2, 0, 1, 3)
+        grid.addWidget(self.zarr_radiobutton, 2, 0)
+        grid.addWidget(self.tiff_radiobutton, 2, 1, 1, 2)
 
     def _request_save_path(self) -> None:
-        save_dir = QFileDialog.getExistingDirectory(self, "Select Save Directory")
-        if save_dir:
+        if save_dir := QFileDialog.getExistingDirectory(self, "Select Save Directory"):
             self._directory.setText(save_dir)
 
     def get_state(self) -> dict:
@@ -58,7 +59,6 @@ class SaveWidget(QGroupBox):
         return {
             "file_name": self._fname.text(),
             "save_dir": self._directory.text(),
-            "save_pos": self._split_pos_checkbox.isChecked(),
             "should_save": self.isChecked(),
         }
 
@@ -66,4 +66,3 @@ class SaveWidget(QGroupBox):
         self.setChecked(meta.should_save)
         self._fname.setText(meta.file_name)
         self._directory.setText(meta.save_dir)
-        self._split_pos_checkbox.setChecked(meta.save_pos)
