@@ -159,7 +159,7 @@ class _NapariMDAHandler:
                 time.sleep(0.1)
 
     def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
-        """Called on the `frameReady` event from the core."""
+        """Called on the `frameReady` event from the core."""  # noqa: D401
         self._deck.append((image, event))
 
     def _process_frame(
