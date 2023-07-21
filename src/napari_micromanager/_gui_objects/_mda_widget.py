@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import cast
 
@@ -22,36 +23,39 @@ class MultiDWidget(MDAWidget):
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
+        v_layout = cast(QVBoxLayout, self._central_widget.layout())
         self._save_groupbox = SaveWidget()
         self._save_groupbox.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
         self._save_groupbox.setChecked(False)
-
-        v_layout = cast(QVBoxLayout, self.layout())
         v_layout.insertWidget(0, self._save_groupbox)
 
-        self.channel_groupbox.setMinimumHeight(230)
+        self.channel_widget.setMinimumHeight(230)
         self.checkBox_split_channels = QCheckBox(text="Split Channels")
         self.checkBox_split_channels.toggled.connect(self._toggle_split_channel)
-        g_layout = cast(QGridLayout, self.channel_groupbox.layout())
+        g_layout = cast(QGridLayout, self.channel_widget.layout())
         g_layout.addWidget(self.checkBox_split_channels, 1, 0)
 
-        # TODO: stage_pos_groupbox should have a valueChanged signal
-        # and that should be connected to _toggle_checkbox_save_pos
-        self._save_groupbox.toggled.connect(self._toggle_checkbox_save_pos)
-        self.position_groupbox.valueChanged.connect(self._toggle_checkbox_save_pos)
-        self.channel_groupbox.valueChanged.connect(self._toggle_split_channel)
+        self._save_groupbox.toggled.connect(self._on_save_toggled)
+        self._save_groupbox._directory.textChanged.connect(
+            lambda x: self._on_save_toggled(True)
+        )
+        self._save_groupbox._fname.textChanged.connect(
+            lambda x: self._on_save_toggled(True)
+        )
+
+        self.channel_widget.valueChanged.connect(self._toggle_split_channel)
 
     def _toggle_split_channel(self) -> None:
-        if not self.channel_groupbox.value():
+        if (
+            not self.channel_widget.value()
+            or self.channel_widget._table.rowCount() == 1
+        ):
             self.checkBox_split_channels.setChecked(False)
 
-    def _toggle_checkbox_save_pos(self) -> None:
-        if (
-            self.position_groupbox.isChecked()
-            and len(self.position_groupbox.value()) > 0
-        ):
+    def _on_save_toggled(self, checked: bool) -> None:
+        if self.position_widget.value():
             self._save_groupbox._split_pos_checkbox.setEnabled(True)
 
         else:
@@ -62,10 +66,22 @@ class MultiDWidget(MDAWidget):
 
     def get_state(self) -> MDASequence:
         sequence = cast(MDASequence, super().get_state())
+
+        try:
+            _split_channels = self.checkBox_split_channels.isChecked()
+            _save_info = self._save_groupbox.get_state()
+        except AttributeError:
+            _split_channels = False
+            _save_info = {
+                "file_name": "",
+                "save_dir": "",
+                "should_save": False,
+            }
+
         sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="mda",
-            split_channels=self.checkBox_split_channels.isChecked(),
-            **self._save_groupbox.get_state(),
+            split_channels=_split_channels,
+            **_save_info,
         )
         return sequence
 
@@ -86,3 +102,18 @@ class MultiDWidget(MDAWidget):
 
         self.checkBox_split_channels.setChecked(meta.split_channels)
         self._save_groupbox.set_state(meta)
+
+    def _on_run_clicked(self) -> None:
+        if (
+            self._save_groupbox.isChecked()
+            and not self._save_groupbox._directory.text()
+        ):
+            warnings.warn("Select a directory to save the data.", stacklevel=2)
+            return
+
+        if not Path(self._save_groupbox._directory.text()).exists():
+            # TODO: ask to create the directory if it does not exist
+            warnings.warn("The selected directory does not exist.", stacklevel=2)
+            return
+
+        super()._on_run_clicked()

@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pymmcore_plus import CMMCorePlus, PropertyType
 from pymmcore_widgets import PropertiesWidget
+from qtpy.QtWidgets import QSizePolicy
 
 if TYPE_CHECKING:
     from qtpy.QtWidgets import QWidget
@@ -24,3 +25,5 @@ class IlluminationWidget(PropertiesWidget):
             parent=parent,
             mmcore=mmcore,
         )
+
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
