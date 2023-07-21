@@ -144,16 +144,8 @@ class _NapariMDAHandler:
             # "finished": self._process_remaining_frames
         )
 
-        self._time_while_running: list = []
-        self._time_after_running: list = []
-        self.t = 0.0
-
         # resume acquisition after zarr layer(s) is(are) added
-        # FIXME: this isn't in an event loop... so shouldn't we just call toggle_pause?
-        for i in self.viewer.layers:
-            if i.metadata.get("uid") == sequence.uid:
-                self._mmc.mda.toggle_pause()
-                break
+        self._mmc.mda.toggle_pause()
 
     def _watch_mda(
         self,
@@ -184,14 +176,8 @@ class _NapariMDAHandler:
         # get info about the layer we need to update
         _id, im_idx, layer_name = _id_idx_layer(event)
 
-        t = time.perf_counter()
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
-
-        if self._mda_running:
-            self._time_while_running.append(time.perf_counter() - t)
-        else:
-            self._time_after_running.append(time.perf_counter() - t)
 
         return layer_name, im_idx
 
