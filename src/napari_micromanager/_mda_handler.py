@@ -14,6 +14,7 @@ from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from ._saving import save_sequence
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -102,7 +103,6 @@ class _NapariMDAHandler:
             # this is not an MDA we started
             # TODO: should we still handle this with some sane defaults?
             return
-
         sequence = cast("ActiveMDASequence", sequence)
 
         # pause acquisition until zarr layer(s) are added
@@ -139,14 +139,21 @@ class _NapariMDAHandler:
         self._io_t = create_worker(
             self._watch_mda,
             _start_thread=True,
-            _connect={
-                "yielded": self._update_viewer_dims,
-                "finished": self._process_remaining_frames,
-            },
+            _connect={"yielded": self._update_viewer_dims}
+            # NOTE: once we have a proper writer, we can add here:
+            # "finished": self._process_remaining_frames
         )
 
+        self._time_while_running: list = []
+        self._time_after_running: list = []
+        self.t = 0.0
+
         # resume acquisition after zarr layer(s) is(are) added
-        self._mmc.mda.toggle_pause()
+        # FIXME: this isn't in an event loop... so shouldn't we just call toggle_pause?
+        for i in self.viewer.layers:
+            if i.metadata.get("uid") == sequence.uid:
+                self._mmc.mda.toggle_pause()
+                break
 
     def _watch_mda(
         self,
@@ -177,8 +184,14 @@ class _NapariMDAHandler:
         # get info about the layer we need to update
         _id, im_idx, layer_name = _id_idx_layer(event)
 
+        t = time.perf_counter()
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
+
+        if self._mda_running:
+            self._time_while_running.append(time.perf_counter() - t)
+        else:
+            self._time_after_running.append(time.perf_counter() - t)
 
         return layer_name, im_idx
 
@@ -204,10 +217,25 @@ class _NapariMDAHandler:
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         self._mda_running = False
 
-    def _process_remaining_frames(self) -> None:
+        # NOTE: this will be REMOVED when using proper WRITER (e.g.
+        # https://github.com/pymmcore-plus/pymmcore-MDA-writers or
+        # https://github.com/fdrgsp/pymmcore-MDA-writers/tree/update_writer). See the
+        # comment in _process_remaining_frames for more details.
+        self._process_remaining_frames(sequence)
+
+    def _process_remaining_frames(self, sequence: MDASequence) -> None:
         """Process any remaining frames after the MDA has finished."""
+        # NOTE: when switching to a proper wtiter to save files, this method will not
+        # have the sequence argument, it will not be called by `_on_mda_finished` but we
+        # can link it to the self._io_t.finished signal ("finished": self._process_
+        # remaining_frames) and the saving code belw will be removed.
         while self._deck:
             self._process_frame(*self._deck.pop())
+
+        # to remove whne using proper writer
+        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
+            sequence = cast("ActiveMDASequence", sequence)
+            save_sequence(sequence, self.viewer.layers, meta)
 
     def _create_empty_image_layer(
         self,
