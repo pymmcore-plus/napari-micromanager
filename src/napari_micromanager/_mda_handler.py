@@ -214,7 +214,7 @@ class _NapariMDAHandler:
         # NOTE: when switching to a proper wtiter to save files, this method will not
         # have the sequence argument, it will not be called by `_on_mda_finished` but we
         # can link it to the self._io_t.finished signal ("finished": self._process_
-        # remaining_frames) and the saving code belw will be removed.
+        # remaining_frames) and the saving code below will be removed.
         while self._deck:
             self._process_frame(*self._deck.pop())
 
