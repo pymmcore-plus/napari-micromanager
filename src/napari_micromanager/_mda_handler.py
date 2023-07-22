@@ -202,6 +202,8 @@ class _NapariMDAHandler:
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         self._mda_running = False
+        # set stack to first frame/image
+        self.viewer.dims.current_step = [0] * len(self.viewer.dims.current_step)
 
         # NOTE: this will be REMOVED when using proper WRITER (e.g.
         # https://github.com/pymmcore-plus/pymmcore-MDA-writers or
