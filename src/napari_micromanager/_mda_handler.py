@@ -224,7 +224,7 @@ class _NapariMDAHandler:
         while self._deck:
             self._process_frame(*self._deck.pop())
 
-        # to remove whne using proper writer
+        # to remove when using proper writer
         if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
             sequence = cast("ActiveMDASequence", sequence)
             save_sequence(sequence, self.viewer.layers, meta)
