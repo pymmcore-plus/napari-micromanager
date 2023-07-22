@@ -200,10 +200,13 @@ class _NapariMDAHandler:
             cs[a] = v
         self.viewer.dims.current_step = cs
 
+    @ensure_main_thread  # type: ignore [misc]
+    def _reset_viewer_dims(self) -> None:
+        """Reset the viewer dims to the first image."""
+        self.viewer.dims.current_step = [0] * len(self.viewer.dims.current_step)
+
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         self._mda_running = False
-        # set stack to first frame/image
-        self.viewer.dims.current_step = [0] * len(self.viewer.dims.current_step)
 
         # NOTE: this will be REMOVED when using proper WRITER (e.g.
         # https://github.com/pymmcore-plus/pymmcore-MDA-writers or
@@ -217,6 +220,7 @@ class _NapariMDAHandler:
         # have the sequence argument, it will not be called by `_on_mda_finished` but we
         # can link it to the self._io_t.finished signal ("finished": self._process_
         # remaining_frames) and the saving code below will be removed.
+        self._reset_viewer_dims()
         while self._deck:
             self._process_frame(*self._deck.pop())
 
