@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
@@ -23,16 +22,10 @@ def test_main_window_mda(main_window: MainWindow):
         channels=["DAPI", "FITC"],
         metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
-
     mmc = main_window._mmc
-
     mmc.mda.events.sequenceStarted.emit(mda)
-
-    img_shape = (mmc.getImageWidth(), mmc.getImageHeight())
-    for event in mda:
-        frame = np.random.rand(*img_shape)
-        mmc.mda.events.frameReady.emit(frame, event)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
+    mmc.mda.events.sequenceFinished.emit(mda)
 
 
 def test_saving_mda(
