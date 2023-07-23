@@ -10,6 +10,7 @@ import napari
 import numpy as np
 import zarr
 from pymmcore_plus import CMMCorePlus
+from pymmcore_plus.core._sequencing import SequencedEvent
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
 
@@ -158,9 +159,30 @@ class _NapariMDAHandler:
             else:
                 time.sleep(0.1)
 
-    def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
+    # def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
+    def _on_mda_frame(self, event: MDAEvent | SequencedEvent) -> None:
         """Called on the `frameReady` event from the core."""  # noqa: D401
-        self._deck.append((image, event))
+        # self._deck.append((image, event))
+        if isinstance(event, MDAEvent):
+            self._deck.append((self._mmc.getImage(), event))
+        elif isinstance(event, SequencedEvent):
+            # thread to add the frames from a SequencedEvent in the deck
+            create_worker(self._sequenced_thread, event, _start_thread=True)
+
+    def _sequenced_thread(self, event: SequencedEvent) -> None:
+        """Thread to add the frames from a SequencedEvent in the deck."""
+        # add frames while the sequence is running
+        while self._mmc.isSequenceRunning():
+            with contextlib.suppress(IndexError):
+                image, md = self._mmc.popNextImageAndMD()
+                # print(md["ImageNumber"], md["ElapsedTime-ms"], self._mda_running)
+                self._deck.append((image, event.events[int(md["ImageNumber"])]))
+
+        # add any remaining frames after the sequence has finished
+        for n in reversed(range(len(event.events) - (int(md["ImageNumber"]) + 1))):
+            image_, md_ = self._mmc.getNBeforeLastImageAndMD(n)
+            # print(md_["ImageNumber"], md_["ElapsedTime-ms"])
+            self._deck.append((image_, event.events[int(md_["ImageNumber"])]))
 
     def _process_frame(
         self, image: np.ndarray, event: MDAEvent
