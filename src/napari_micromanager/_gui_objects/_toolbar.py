@@ -7,6 +7,7 @@ from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import (
     CameraRoiWidget,
+    ChannelGroupWidget,
     ChannelWidget,
     ConfigurationWidget,
     DefaultCameraExposureWidget,
@@ -212,10 +213,12 @@ class MicroManagerToolbar(QMainWindow):
         ch_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
+        wdg.layout().setSpacing(5)
         wdg.setStyleSheet(GROUPBOX_STYLE)
 
         ch_lbl = QLabel(text="Channel:")
         wdg.layout().addWidget(ch_lbl)
+        wdg.layout().addWidget(ChannelGroupWidget())
         wdg.layout().addWidget(ChannelWidget())
 
         ch_toolbar.addWidget(wdg)
@@ -301,7 +304,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_plugins_toolbar(self) -> QToolBar:
         """Add a QToolBar containing plugins QPushButtons.
 
-        e.g. MDA, Explore, ...
+        e.g. MDA, ...
 
         QPushButtons are connected to the `_show_dock_widget` method.
 
