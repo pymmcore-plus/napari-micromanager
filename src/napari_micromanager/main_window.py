@@ -5,7 +5,8 @@ import contextlib
 from typing import TYPE_CHECKING, Any, Callable
 
 import napari
-import numpy as np
+import napari.layers
+import napari.viewer
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from qtpy.QtCore import QTimer
@@ -15,8 +16,7 @@ from ._gui_objects._toolbar import MicroManagerToolbar
 from ._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
-    import napari.layers
-    import napari.viewer
+    import numpy as np
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
 

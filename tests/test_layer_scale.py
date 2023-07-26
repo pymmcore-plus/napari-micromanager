@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
-from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
-from useq import MDASequence
+
+if TYPE_CHECKING:
+    from napari_micromanager.main_window import MainWindow
+    from useq import MDASequence
 
 
 @pytest.mark.parametrize("axis_order", ["tpcz", "tpzc"])
