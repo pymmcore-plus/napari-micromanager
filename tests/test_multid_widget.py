@@ -74,12 +74,7 @@ def test_saving_mda(
         expected_shape.pop(mda.used_axes.find("c"))
         nfiles = len(list((tmp_path / f"{meta.file_name}_000").iterdir()))
         assert nfiles == 2 if multiC else 1
-    elif splitC:
-        # FIXME: from tlambert03: just doing this to make the test pass
-        # but this should be tested more thoroughly
-        assert [x.name for x in tmp_path.rglob("*.tif")] == [
-            f"{meta.file_name}_000_DAPI_000.tif"
-        ]
+    # splitC with one channel is the same as not split
     else:
         assert [p.name for p in tmp_path.iterdir()] == [f"{meta.file_name}_000.tif"]
     assert data_shape == expected_shape
