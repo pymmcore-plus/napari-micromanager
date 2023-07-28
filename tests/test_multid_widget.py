@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from napari_micromanager.main_window import MainWindow
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
+    from napari_micromanager.main_window import MainWindow
     from pytestqt.qtbot import QtBot
 
 
