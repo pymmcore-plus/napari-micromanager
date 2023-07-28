@@ -7,7 +7,6 @@ from collections import deque
 from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
-import numpy as np
 import zarr
 from pymmcore_plus import CMMCorePlus
 from superqt.utils import create_worker, ensure_main_thread
@@ -20,9 +19,12 @@ if TYPE_CHECKING:
     from uuid import UUID
 
     import napari.viewer
+    import numpy as np
     from napari.layers import Image
+    from pymmcore_plus import CMMCorePlus
     from pymmcore_plus.core.events._protocol import PSignalInstance
     from typing_extensions import NotRequired, TypedDict
+    from useq import MDAEvent, MDASequence
 
     class SequenceMetaDict(TypedDict):
         """Dict containing the SequenceMeta object that we add when starting MDAs."""

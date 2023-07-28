@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import MDAWidget
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -20,6 +19,9 @@ from useq import MDASequence
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 from ._save_widget import SaveWidget
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
 
 
 class MultiDWidget(MDAWidget):
