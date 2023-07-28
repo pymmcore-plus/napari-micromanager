@@ -38,6 +38,7 @@ def test_layer_scale(
 
     # cleanup zarr resources
     handler._cleanup()
+    handler._on_mda_finished(sequence)
 
     # now pretend that the user never provided a pixel size config
     # we need to not crash in this case
@@ -52,9 +53,11 @@ def test_layer_scale(
         mmc.setPixelSizeUm(pix_size)
         # cleanup zarr resources
         handler._cleanup()
+        handler._on_mda_finished(sequence)
         raise e
     # cleanup zarr resources
     handler._cleanup()
+    handler._on_mda_finished(sequence)
 
 
 def test_preview_scale(core: CMMCorePlus, main_window: MainWindow):
