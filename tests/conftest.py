@@ -5,9 +5,9 @@ import pytest
 import useq
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
-from pymmcore_plus import CMMCorePlus, _logger
+from pymmcore_plus import CMMCorePlus, configure_logging
 
-_logger.set_log_level("CRITICAL")
+configure_logging(strerr_level="CRITICAL")
 
 
 # to create a new CMMCorePlus() for every test
@@ -45,13 +45,9 @@ MDA_IDS = [
 
 
 @pytest.fixture(params=MDAS, ids=MDA_IDS)
-def mda_sequence(request) -> useq.MDASequence:
-    meta = {
-        SEQUENCE_META_KEY: SequenceMeta(
-            mode="mda", file_name="test_mda", should_save=True
-        )
-    }
-    return useq.MDASequence(**request.param, metadata=meta)
+def mda_sequence(request: pytest.FixtureRequest) -> useq.MDASequence:
+    seq_meta = SequenceMeta(mode="mda", file_name="test_mda", should_save=True)
+    return useq.MDASequence(**request.param, metadata={SEQUENCE_META_KEY: seq_meta})
 
 
 @pytest.fixture(params=[True, False], ids=["splitC", "no_splitC"])
