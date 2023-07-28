@@ -172,7 +172,7 @@ class _NapariMDAHandler:
             return
 
         # get info about the layer we need to update
-        _id, im_idx, layer_name = _id_idx_layer(event)
+        _id, im_idx, layer_name = _id_idx_layer(event)  # type: ignore
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
 
@@ -316,7 +316,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
 
     Parameters
     ----------
-    event : ActiveMDAEvent
+    event : MDAEvent
         An event for which to retrieve the id, index, and layer name.
 
 
