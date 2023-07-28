@@ -74,15 +74,10 @@ def _save_mda_sequence(
     if meta.save_pos:
         # save each position in a separate file
         folder_name.mkdir(parents=True, exist_ok=True)
-        # pos_axis = sequence.axis_order.index("p")
-        # for p, data in enumerate(np.rollaxis(active_layer.data, pos_axis)):
         for p in range(len(sequence.stage_positions)):
             dest = folder_name / f"{folder_name.stem}_p{p:03d}.tif"
-            pos_data = (
-                active_layer.data[0, :]
-                if len(sequence.time_plan) == 0
-                else active_layer.data[:, 0, :]
-            )
+            ax = 1 if sequence.sizes.get("t", 0) > 0 else 0
+            pos_data = np.take(active_layer.data, 0, axis=ax)
             _imsave(dest, np.squeeze(pos_data))
 
     else:
@@ -103,5 +98,5 @@ def _save_pos_separately(
             if "ch_id" not in i.metadata or i.metadata.get("uid") != sequence.uid:
                 continue
             filename = f"{fname}_{i.metadata['ch_id']}_p{p:03}"
-            ax = sequence.axis_order.index("p") if len(sequence.time_plan) > 0 else 0
+            ax = sequence.axis_order.index("p") if sequence.sizes.get("t", 0) > 0 else 0
             _imsave(folder_path / f"{filename}.tif", np.take(i.data, p, axis=ax))

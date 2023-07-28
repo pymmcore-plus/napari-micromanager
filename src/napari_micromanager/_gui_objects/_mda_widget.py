@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import MDAWidget
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QCheckBox, QGridLayout, QSizePolicy, QVBoxLayout, QWidget
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QGridLayout,
+    QMessageBox,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 from useq import MDASequence
 
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 from ._save_widget import SaveWidget
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
 
 
 class MultiDWidget(MDAWidget):
@@ -23,28 +32,24 @@ class MultiDWidget(MDAWidget):
     ) -> None:
         super().__init__(include_run_button=True, parent=parent, mmcore=mmcore)
 
+        # add save widget
         v_layout = cast(QVBoxLayout, self._central_widget.layout())
         self._save_groupbox = SaveWidget()
         self._save_groupbox.setSizePolicy(
             QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed
         )
         self._save_groupbox.setChecked(False)
+        self._save_groupbox.toggled.connect(self._on_save_toggled)
+        self._save_groupbox._directory.textChanged.connect(self._on_save_toggled)
+        self._save_groupbox._fname.textChanged.connect(self._on_save_toggled)
         v_layout.insertWidget(0, self._save_groupbox)
 
+        # add split channel checkbox
         self.channel_widget.setMinimumHeight(230)
         self.checkBox_split_channels = QCheckBox(text="Split Channels")
         self.checkBox_split_channels.toggled.connect(self._toggle_split_channel)
         g_layout = cast(QGridLayout, self.channel_widget.layout())
         g_layout.addWidget(self.checkBox_split_channels, 1, 0)
-
-        self._save_groupbox.toggled.connect(self._on_save_toggled)
-        self._save_groupbox._directory.textChanged.connect(
-            lambda x: self._on_save_toggled(True)
-        )
-        self._save_groupbox._fname.textChanged.connect(
-            lambda x: self._on_save_toggled(True)
-        )
-
         self.channel_widget.valueChanged.connect(self._toggle_split_channel)
 
     def _toggle_split_channel(self) -> None:
@@ -54,7 +59,7 @@ class MultiDWidget(MDAWidget):
         ):
             self.checkBox_split_channels.setChecked(False)
 
-    def _on_save_toggled(self, checked: bool) -> None:
+    def _on_save_toggled(self) -> None:
         if self.position_widget.value():
             self._save_groupbox._split_pos_checkbox.setEnabled(True)
 
@@ -112,8 +117,23 @@ class MultiDWidget(MDAWidget):
             return
 
         if not Path(self._save_groupbox._directory.text()).exists():
-            # TODO: ask to create the directory if it does not exist
-            warnings.warn("The selected directory does not exist.", stacklevel=2)
-            return
+            if self._create_new_folder():
+                Path(self._save_groupbox._directory.text()).mkdir(parents=True)
+            else:
+                return
 
         super()._on_run_clicked()
+
+    def _create_new_folder(self) -> bool:
+        """Create a QMessageBox to ask to create directory if it doesn't exist."""
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Create Directory")
+        msgBox.setIcon(QMessageBox.Icon.Question)
+        msgBox.setText(
+            f"Directory {self._save_groupbox._directory.text()} "
+            "does not exist. Create it?"
+        )
+        msgBox.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+        )
+        return bool(msgBox.exec() == QMessageBox.StandardButton.Ok)

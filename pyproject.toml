@@ -36,8 +36,8 @@ dynamic = ["version"]
 dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
-    "pymmcore-plus >=0.6.3",
-    "pymmcore-widgets >=0.3.0",
+    "pymmcore-plus >=0.7.1",
+    "pymmcore-widgets >=0.4.0",
     "superqt >=0.3.1",
     "tifffile",
     "useq-schema >=0.1.0",
@@ -70,11 +70,11 @@ source = "vcs"
 [tool.hatch.build.targets.sdist]
 include = ["/src", "/tests"]
 
-# https://github.com/charliermarsh/ruff
+# https://beta.ruff.rs/docs/rules/
 [tool.ruff]
 line-length = 88
 target-version = "py38"
-extend-select = [
+select = [
     "E",    # style errors
     "F",    # flakes
     "D",    # pydocstyle
@@ -85,8 +85,9 @@ extend-select = [
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
+    "TCH",  # flake8-type-checking
 ]
-extend-ignore = [
+ignore = [
     "D100", # Missing docstring in public module
     "D107", # Missing docstring in __init__
     "D203", # 1 blank line required before class docstring
