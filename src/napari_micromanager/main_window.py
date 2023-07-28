@@ -3,11 +3,11 @@ from __future__ import annotations
 import atexit
 import contextlib
 from typing import TYPE_CHECKING, Any, Callable
+from warnings import warn
 
 import napari
 import napari.layers
 import napari.viewer
-from napari.utils.notifications import show_warning
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from qtpy.QtCore import QTimer
@@ -72,7 +72,7 @@ class MainWindow(MicroManagerToolbar):
                 self._mmc.loadSystemConfiguration(config)
             except FileNotFoundError:
                 # don't crash if the user passed an invalid config
-                show_warning(f"Config file {config} not found. Nothing loaded.")
+                warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
