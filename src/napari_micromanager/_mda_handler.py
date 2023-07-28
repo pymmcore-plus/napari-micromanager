@@ -198,9 +198,9 @@ class _NapariMDAHandler:
         # Save layer and add increment to save name.
         self._mda_running = False
         if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
-            # TODO: make sure io thread finishes before saving
-            # thread workers don't seem to have .join method?
-            # self._io_t.join()
+            # this should be ok because we fully empty the deck before this
+            # saving. Also in the future below will be removed in favor of
+            # proper writer infrastructure.
             sequence = cast("ActiveMDASequence", sequence)
             save_sequence(sequence, self.viewer.layers, meta)
 
