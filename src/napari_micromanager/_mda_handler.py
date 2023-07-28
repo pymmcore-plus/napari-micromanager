@@ -11,7 +11,6 @@ import zarr
 from pymmcore_plus import CMMCorePlus
 from superqt.utils import create_worker, ensure_main_thread
 from useq import MDAEvent, MDASequence
-from superqt.utils import ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
