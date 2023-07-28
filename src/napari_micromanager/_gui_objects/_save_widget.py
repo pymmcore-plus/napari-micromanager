@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from qtpy.QtWidgets import (
     QCheckBox,
     QFileDialog,
@@ -11,7 +13,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from napari_micromanager._mda_meta import SequenceMeta
+if TYPE_CHECKING:
+    from napari_micromanager._mda_meta import SequenceMeta
 
 
 class SaveWidget(QGroupBox):

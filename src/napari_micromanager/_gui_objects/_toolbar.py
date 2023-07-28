@@ -160,7 +160,7 @@ class MicroManagerToolbar(QMainWindow):
 
         wdg = self._create_groupbox()
         wdg.setStyleSheet(GROUPBOX_STYLE)
-        # TODO: add this directrly to ObjectivesWidget
+        # TODO: add this directly to ObjectivesWidget
         self.obj_wdg = ObjectivesWidget()
         self.obj_wdg.setMinimumWidth(0)
         self.obj_wdg._mmc.events.systemConfigurationLoaded.connect(self._resize_obj)
@@ -172,7 +172,7 @@ class MicroManagerToolbar(QMainWindow):
 
         return obj_toolbar
 
-    # TODO: add this directrly to ObjectivesWidget
+    # TODO: add this directly to ObjectivesWidget
     def _resize_obj(self) -> None:
         self.obj_wdg._combo.setSizePolicy(
             QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
