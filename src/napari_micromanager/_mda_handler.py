@@ -252,27 +252,6 @@ class _NapariMDAHandler:
             },
         )
 
-    def _translate_explorer_layer(self, layer_name: str, event: ActiveMDAEvent) -> None:
-        """Translate `layer_name` according to the event."""
-        meta = event.sequence.metadata["napari_mm_sequence_meta"]
-
-        grid_groups = _get_grid_layer_groups(self.viewer.layers, event.sequence.uid)
-        with _layers_temporarily_unlinked(tuple(grid_groups.values())):
-            x, y, *_ = meta.explorer_translation_points[event.index["p"]]
-            layer: Image = self.viewer.layers[layer_name]
-            if tuple(layer.translate) != (-y, x):
-                layer.translate = (-y, x)
-            layer.metadata["translate"] = True
-
-        # to fix a bug in display (e.g. 3x3 grid)
-        layer.visible = False
-        layer.visible = True
-
-        size_r, size_c = meta.scan_size_r, meta.scan_size_c
-        zoom_out_factor = size_r if size_r >= size_c else size_c
-        self.viewer.camera.zoom = 1 / zoom_out_factor
-        self.viewer.reset_view()
-
 
 def _determine_sequence_layers(
     sequence: ActiveMDASequence,
@@ -314,28 +293,8 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    # in explorer/translate mode, we need to create a layer for each position
-    if meta.mode == "explorer" and meta.translate_explorer:
-        p_idx = axis_labels.index("p")
-        axis_labels.pop(p_idx)
-        layer_shape.pop(p_idx)
-        for p in sequence.stage_positions:
-            # TODO: modify id_ to try and divide the grids when saving
-            # see also line 378 (layer.metadata["grid"])
-            if not p.name or "_" not in p.name:
-                raise ValueError(
-                    f"Invalid stage position name: {p.name!r}. "
-                    "Expected something like 'Grid_001_Pos000'"
-                )
-            # FIXME: the location of a stage position within a grid should not
-            # be stored in the position name, but rather in the metadata.
-            # e.g. sequence.metata["grid"] = {(x,y,z): (grid, grid_pos)}
-            *_, grid, grid_pos = p.name.split("_")
-            id_ = f"{p.name}_{sequence.uid}"
-            _layer_info.append((id_, layer_shape, {"grid": grid, "grid_pos": grid_pos}))
-
     # in split channels mode, we need to create a layer for each channel
-    elif meta.split_channels:
+    if meta.split_channels:
         c_idx = axis_labels.index("c")
         axis_labels.pop(c_idx)
         layer_shape.pop(c_idx)
@@ -381,12 +340,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"
         axis_order.remove("c")
 
-    if meta.mode == "explorer" and meta.translate_explorer:
-        axis_order.remove("p")
-        prefix += f"_{event.pos_name}"
-        _id = f"{event.pos_name}_{event.sequence.uid}"  # TODO: unify logic for tmp_keys
-    else:
-        _id = f"{event.sequence.uid}{suffix}"
+    _id = f"{event.sequence.uid}{suffix}"
 
     # the index of this event in the full zarr array
     im_idx = tuple(event.index[k] for k in axis_order)
