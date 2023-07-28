@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:

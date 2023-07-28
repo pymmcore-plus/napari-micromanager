@@ -8,9 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
-from pymmcore_plus import CMMCorePlus
 from superqt.utils import create_worker, ensure_main_thread
-from useq import MDAEvent, MDASequence
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
