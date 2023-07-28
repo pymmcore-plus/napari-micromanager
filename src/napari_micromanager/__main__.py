@@ -1,4 +1,6 @@
 """Run napari-micromanager as a script with ``python -m napari_micromanager``."""
+from __future__ import annotations
+
 import argparse
 import sys
 

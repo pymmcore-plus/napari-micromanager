@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import atexit
 import contextlib
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 import napari
 import napari.layers
 import napari.viewer
+from napari.utils.notifications import show_warning
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus._util import find_micromanager
 from qtpy.QtCore import QTimer
@@ -17,6 +17,8 @@ from ._gui_objects._toolbar import MicroManagerToolbar
 from ._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     import numpy as np
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
@@ -70,7 +72,7 @@ class MainWindow(MicroManagerToolbar):
                 self._mmc.loadSystemConfiguration(config)
             except FileNotFoundError:
                 # don't crash if the user passed an invalid config
-                pass
+                show_warning(f"Config file {config} not found. Nothing loaded.")
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
