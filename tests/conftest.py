@@ -39,7 +39,7 @@ MDAS = [
     for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
 ]
 MDA_IDS = [
-    f"nT={t and len(t)}-nZ={z and len(z)}-nC={len(c)}"
+    f"nT={t and t.num_timepoints()}-nZ={z and z.num_positions()}-nC={len(c)}"
     for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
 ]
 

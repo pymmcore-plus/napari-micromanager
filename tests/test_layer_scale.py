@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
+from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
@@ -23,7 +24,11 @@ def test_layer_scale(
     handler = _NapariMDAHandler(mmc, viewer)
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
-    sequence = mda_sequence_splits.replace(axis_order=axis_order)
+
+    sequence = mda_sequence_splits.replace(
+        axis_order=axis_order,
+        metadata={SEQUENCE_META_KEY: SequenceMeta(should_save=False)},
+    )
     z_step = sequence.z_plan and sequence.z_plan.step
 
     # create zarr layer
@@ -31,7 +36,10 @@ def test_layer_scale(
 
     layer = viewer.layers[0]
     if sequence.z_plan:
-        assert layer.scale[layer.data.shape.index(len(sequence.z_plan))] == z_step
+        assert (
+            layer.scale[layer.data.shape.index(sequence.z_plan.num_positions())]
+            == z_step
+        )
     else:
         expect = [1] * (layer.data.ndim - 2) + [mmc.getPixelSizeUm()] * 2
         assert tuple(layer.scale) == tuple(expect)
