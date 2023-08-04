@@ -36,10 +36,8 @@ def test_layer_scale(
 
     layer = viewer.layers[0]
     if sequence.z_plan:
-        assert (
-            layer.scale[layer.data.shape.index(sequence.z_plan.num_positions())]
-            == z_step
-        )
+        num_z = len(list(sequence.z_plan))
+        assert layer.scale[layer.data.shape.index(num_z)] == z_step
     else:
         expect = [1] * (layer.data.ndim - 2) + [mmc.getPixelSizeUm()] * 2
         assert tuple(layer.scale) == tuple(expect)
