@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import tempfile
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Sequence, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import napari
 import zarr
-from napari.experimental import link_layers, unlink_layers
 from superqt.utils import ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -309,35 +307,3 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     # the name of this layer in the napari viewer
     layer_name = f"{prefix}_{event.sequence.uid}{suffix}"
     return _id, im_idx, layer_name
-
-
-@contextlib.contextmanager
-def _layers_temporarily_unlinked(layergroups: Sequence[set[Image]]) -> Iterator[None]:
-    """Context in which layer groups are temporarily linked and relinked."""
-    for group in layergroups:
-        unlink_layers(group)
-    try:
-        yield
-    finally:
-        for group in layergroups:
-            link_layers(group)
-
-
-def _get_grid_layer_groups(layers: Iterable[Image], uid: UUID) -> dict[str, set[Image]]:
-    """Return a dict of layers grouped by their grid id.
-
-    dict keys are the the first 8 characters of the grid id and the values
-    are the layers that have that grid id.
-
-    Parameters
-    ----------
-    layers : Iterable[Image]
-        A list of layers to search for grid layers.
-    uid : str
-        The uid of the sequence that the layers belong to.
-    """
-    layergroups: defaultdict[str, set[Image]] = defaultdict(set)
-    for lay in layers:
-        if lay.metadata.get("uid") == uid and (grid := lay.metadata.get("grid")):
-            layergroups[grid[:8]].add(lay)
-    return layergroups
