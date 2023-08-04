@@ -1,7 +1,7 @@
 """Metadata class for managing MDAs."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from dataclasses import replace as _replace
 from typing import Any
 
@@ -23,13 +23,6 @@ class SequenceMeta:
     file_name: str = ""
     save_dir: str = ""
     save_pos: bool = False
-    translate_explorer: bool = False
-    # [(x, y, r, c), ...] for each row in the scan
-    explorer_translation_points: list[tuple[float, float, int, int]] = field(
-        default_factory=list
-    )
-    scan_size_r: int = 0
-    scan_size_c: int = 0
 
     def replace(self, **kwargs: Any) -> SequenceMeta:
         """Return a new SequenceMeta with the given kwargs replaced."""
