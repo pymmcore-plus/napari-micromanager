@@ -343,6 +343,7 @@ def _determine_sequence_layers(
             index = axis_labels.index("g")
             layer_shape[index] = max(layer_shape[index], pos_g_shape)
 
+    # in split channels mode, we need to create a layer for each channel
     if meta.split_channels:
         c_idx = axis_labels.index("c")
         axis_labels.pop(c_idx)
