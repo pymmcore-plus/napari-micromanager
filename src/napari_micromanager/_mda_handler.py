@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import tempfile
-from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator, Sequence, cast
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import napari
 import zarr
-from napari.experimental import link_layers, unlink_layers
 from superqt.utils import ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -154,14 +152,11 @@ class _NapariMDAHandler:
         self.viewer.dims.current_step = tuple(cs)
 
         meta = event.sequence.metadata["napari_mm_sequence_meta"]
-        if meta.mode == "explorer" and meta.translate_explorer:
-            self._translate_explorer_layer(layer_name, event)
-        else:
-            # update display
-            layer: Image = self.viewer.layers[layer_name]
-            if not layer.visible:
-                layer.visible = True
-            # layer.reset_contrast_limits()
+        # update display
+        layer: Image = self.viewer.layers[layer_name]
+        if not layer.visible:
+            layer.visible = True
+        # layer.reset_contrast_limits()
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         # Save layer and add increment to save name.
@@ -217,27 +212,6 @@ class _NapariMDAHandler:
             },
         )
 
-    def _translate_explorer_layer(self, layer_name: str, event: ActiveMDAEvent) -> None:
-        """Translate `layer_name` according to the event."""
-        meta = event.sequence.metadata["napari_mm_sequence_meta"]
-
-        grid_groups = _get_grid_layer_groups(self.viewer.layers, event.sequence.uid)
-        with _layers_temporarily_unlinked(tuple(grid_groups.values())):
-            x, y, *_ = meta.explorer_translation_points[event.index["p"]]
-            layer: Image = self.viewer.layers[layer_name]
-            if tuple(layer.translate) != (-y, x):
-                layer.translate = (-y, x)
-            layer.metadata["translate"] = True
-
-        # to fix a bug in display (e.g. 3x3 grid)
-        layer.visible = False
-        layer.visible = True
-
-        size_r, size_c = meta.scan_size_r, meta.scan_size_c
-        zoom_out_factor = size_r if size_r >= size_c else size_c
-        self.viewer.camera.zoom = 1 / zoom_out_factor
-        self.viewer.reset_view()
-
 
 def _determine_sequence_layers(
     sequence: ActiveMDASequence,
@@ -279,28 +253,8 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    # in explorer/translate mode, we need to create a layer for each position
-    if meta.mode == "explorer" and meta.translate_explorer:
-        p_idx = axis_labels.index("p")
-        axis_labels.pop(p_idx)
-        layer_shape.pop(p_idx)
-        for p in sequence.stage_positions:
-            # TODO: modify id_ to try and divide the grids when saving
-            # see also line 378 (layer.metadata["grid"])
-            if not p.name or "_" not in p.name:
-                raise ValueError(
-                    f"Invalid stage position name: {p.name!r}. "
-                    "Expected something like 'Grid_001_Pos000'"
-                )
-            # FIXME: the location of a stage position within a grid should not
-            # be stored in the position name, but rather in the metadata.
-            # e.g. sequence.metata["grid"] = {(x,y,z): (grid, grid_pos)}
-            *_, grid, grid_pos = p.name.split("_")
-            id_ = f"{p.name}_{sequence.uid}"
-            _layer_info.append((id_, layer_shape, {"grid": grid, "grid_pos": grid_pos}))
-
     # in split channels mode, we need to create a layer for each channel
-    elif meta.split_channels:
+    if meta.split_channels:
         c_idx = axis_labels.index("c")
         axis_labels.pop(c_idx)
         layer_shape.pop(c_idx)
@@ -346,47 +300,10 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"
         axis_order.remove("c")
 
-    if meta.mode == "explorer" and meta.translate_explorer:
-        axis_order.remove("p")
-        prefix += f"_{event.pos_name}"
-        _id = f"{event.pos_name}_{event.sequence.uid}"  # TODO: unify logic for tmp_keys
-    else:
-        _id = f"{event.sequence.uid}{suffix}"
+    _id = f"{event.sequence.uid}{suffix}"
 
     # the index of this event in the full zarr array
     im_idx = tuple(event.index[k] for k in axis_order)
     # the name of this layer in the napari viewer
     layer_name = f"{prefix}_{event.sequence.uid}{suffix}"
     return _id, im_idx, layer_name
-
-
-@contextlib.contextmanager
-def _layers_temporarily_unlinked(layergroups: Sequence[set[Image]]) -> Iterator[None]:
-    """Context in which layer groups are temporarily linked and relinked."""
-    for group in layergroups:
-        unlink_layers(group)
-    try:
-        yield
-    finally:
-        for group in layergroups:
-            link_layers(group)
-
-
-def _get_grid_layer_groups(layers: Iterable[Image], uid: UUID) -> dict[str, set[Image]]:
-    """Return a dict of layers grouped by their grid id.
-
-    dict keys are the the first 8 characters of the grid id and the values
-    are the layers that have that grid id.
-
-    Parameters
-    ----------
-    layers : Iterable[Image]
-        A list of layers to search for grid layers.
-    uid : str
-        The uid of the sequence that the layers belong to.
-    """
-    layergroups: defaultdict[str, set[Image]] = defaultdict(set)
-    for lay in layers:
-        if lay.metadata.get("uid") == uid and (grid := lay.metadata.get("grid")):
-            layergroups[grid[:8]].add(lay)
-    return layergroups
