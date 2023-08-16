@@ -289,12 +289,12 @@ class _NapariMDAHandler:
         )
 
 
-def _get_axis_labels(sequence: MDASequence) -> tuple[list[str], bool]:
+def _get_axis_labels(sequence: MDASequence) -> list[str]:
     """Get the axis labels using only axes that are present in events."""
     # axis main sequence
     main_seq_axis = list(sequence.used_axes)
     if not sequence.stage_positions:
-        return main_seq_axis, False
+        return main_seq_axis
     # axes from sub sequences
     sub_seq_axis: list = []
     for p in sequence.stage_positions:
@@ -302,7 +302,12 @@ def _get_axis_labels(sequence: MDASequence) -> tuple[list[str], bool]:
             sub_seq_axis.extend(
                 [ax for ax in p.sequence.used_axes if ax not in main_seq_axis]
             )
-    return main_seq_axis + sub_seq_axis, bool(sub_seq_axis)
+    return main_seq_axis + sub_seq_axis
+
+
+def _has_sub_sequences(sequence: MDASequence) -> bool:
+    """Return True if any stage positions have a sub sequence."""
+    return any(p.sequence is not None for p in sequence.stage_positions)
 
 
 def _determine_sequence_layers(
@@ -342,11 +347,11 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    axis_labels, pos_sequence = _get_axis_labels(sequence)
+    axis_labels = _get_axis_labels(sequence)
 
     layer_shape = [sequence.sizes[k] or 1 for k in axis_labels]
 
-    if pos_sequence:
+    if _has_sub_sequences(sequence):
         for p in sequence.stage_positions:
             if not p.sequence:
                 continue
@@ -392,7 +397,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     """
     meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
 
-    axis_order, pos_sequence = _get_axis_labels(event.sequence)
+    axis_order = _get_axis_labels(event.sequence)
 
     suffix = ""
     prefix = meta.file_name if meta.should_save else "Exp"
