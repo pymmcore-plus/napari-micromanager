@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import napari
 import numpy as np
 import tifffile
 
@@ -40,8 +39,6 @@ def save_sequence(sequence: MDASequence, layers: LayerList, meta: SequenceMeta) 
         return
     if meta.mode in ("mda", ""):
         return _save_mda_sequence(sequence, layers, meta)
-    if meta.mode == "explorer":
-        return _save_explorer_scan(sequence, layers, meta)
     raise NotImplementedError(f"cannot save experiment with mode: {meta.mode}")
 
 
@@ -103,19 +100,3 @@ def _save_pos_separately(
             filename = f"{fname}_{i.metadata['ch_id']}_p{p:03}"
             ax = sequence.axis_order.index("p") if sequence.sizes.get("t", 0) > 0 else 0
             _imsave(folder_path / f"{filename}.tif", np.take(i.data, p, axis=ax))
-
-
-# TODO: to be fixed
-def _save_explorer_scan(
-    sequence: MDASequence, layers: LayerList, meta: SequenceMeta
-) -> None:
-    if not meta.translate_explorer:
-        _save_mda_sequence(sequence, layers, meta)
-    else:
-        path = Path(meta.save_dir)
-        folder = ensure_unique(path / "explorer_scan", extension="", ndigits=3)
-        folder.mkdir(parents=True, exist_ok=True)
-
-        mda_layers = [i for i in layers if i.metadata.get("uid") == sequence.uid]
-        napari.save_layers(folder, mda_layers)
-        return
