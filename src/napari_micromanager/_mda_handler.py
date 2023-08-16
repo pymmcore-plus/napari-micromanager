@@ -134,6 +134,9 @@ class _NapariMDAHandler:
         # set axis_labels after adding the images to ensure that the dims exist
         self.viewer.dims.axis_labels = axis_labels
 
+        # init index will always be less than any event index
+        self._largest_idx: tuple[int, ...] = (-1,)
+
         self._deck = deque()
         self._mda_running = True
         self._io_t = create_worker(
@@ -143,6 +146,9 @@ class _NapariMDAHandler:
             # NOTE: once we have a proper writer, we can add here:
             # "finished": self._process_remaining_frames
         )
+
+        # Set the viewer slider on the first layer frame
+        self._reset_viewer_dims()
 
         # resume acquisition after zarr layer(s) is(are) added
         self._mmc.mda.toggle_pause()
@@ -179,7 +185,12 @@ class _NapariMDAHandler:
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
 
-        return layer_name, im_idx
+        # move the viewer step to the most recently added image
+        if im_idx > self._largest_idx:
+            self._largest_idx = im_idx
+            return layer_name, im_idx
+
+        return None, None
 
     @ensure_main_thread  # type: ignore [misc]
     def _update_viewer_dims(
