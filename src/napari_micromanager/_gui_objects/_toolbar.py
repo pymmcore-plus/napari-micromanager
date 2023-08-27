@@ -59,7 +59,7 @@ DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
 }
 
 
-class MicroManagerToolbar(QMainWindow):
+class MicroManagerToolbar(QWidget):
     """Create a QToolBar for the Main Window."""
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
@@ -86,25 +86,32 @@ class MicroManagerToolbar(QMainWindow):
 
         self._dock_widgets: dict[str, QDockWidget] = {}
 
+        self._is_initialized = False
+        self.installEventFilter(self)
+
+    def _initialize_main_window(self, main_win: QMainWindow) -> None:
+        if self._is_initialized:
+            return
+
         # add toolbar items
         toolbar_items = [
-            self._add_cfg(),
-            self._add_objective(),
-            self._add_channels(),
-            self._add_exposure(),
-            self._add_snap_live_toolbar(),
-            self._add_tools_toolsbar(),
-            self._add_plugins_toolbar(),
-            "",
-            self._add_shutter_toolbar(),
+            ConfigToolBar(self),
+            ObjectivesToolBar(self),
+            ChannelsToolBar(self),
+            ExposureToolBar(self),
+            SnapLiveToolBar(self),
+            ToolsToolBar(self),
+            PluginsToolBar(self),
+            None,
+            ShuttersToolBar(self),
         ]
         for item in toolbar_items:
-            if not item:
-                self.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
-                continue
-            self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
+            if item is None:
+                main_win.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
+            else:
+                main_win.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
 
-        self.installEventFilter(self)
+        self._is_initialized = True
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Event filter that ensures that this widget is shown at the top.
@@ -115,226 +122,16 @@ class MicroManagerToolbar(QMainWindow):
         """
         # the move event is one of the first events that is fired when the widget is
         # docked, so we use it to re-dock this widget at the top
-        if event.type() == QEvent.Type.Move and obj is self:
-            dw = self.parent()
+        if (
+            event.type() == QEvent.Type.Move
+            and obj is self
+            and not self._is_initialized
+        ):
             if not (win := getattr(self.viewer.window, "_qt_window", None)):
                 return False
-            win = cast(QMainWindow, win)
-            if (
-                isinstance(dw, QDockWidget)
-                and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
-            ):
-                was_visible = dw.isVisible()
-                win.removeDockWidget(dw)
-                dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
-                win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
-                dw.setVisible(was_visible)  # necessary after using removeDockWidget
+            self._initialize_main_window(cast(QMainWindow, win))
+
         return False
-
-    def _add_cfg(self) -> QToolBar:
-        """Create a QToolBar with the `ConfigurationWidget`."""
-        cfg_toolbar = QToolBar("Configuration", self)
-        cfg_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-        cfg_toolbar.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
-        cfg_wdg = ConfigurationWidget()
-        cfg_wdg.setStyleSheet(GROUPBOX_STYLE)
-        cfg_wdg.setTitle("")
-        cfg_wdg.layout().setContentsMargins(5, 0, 5, 0)
-        cfg_toolbar.addWidget(cfg_wdg)
-
-        return cfg_toolbar
-
-    def _create_groupbox(self) -> QGroupBox:
-        wdg = QGroupBox()
-        wdg.setLayout(QHBoxLayout())
-        wdg.layout().setContentsMargins(5, 0, 5, 0)
-        wdg.layout().setSpacing(0)
-        return wdg
-
-    def _add_objective(self) -> QToolBar:
-        """Create a QToolBar with the `ObjectivesWidget`."""
-        obj_toolbar = QToolBar("Objectives", self)
-        obj_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.setStyleSheet(GROUPBOX_STYLE)
-        # TODO: add this directly to ObjectivesWidget
-        self.obj_wdg = ObjectivesWidget()
-        self.obj_wdg.setMinimumWidth(0)
-        self.obj_wdg._mmc.events.systemConfigurationLoaded.connect(self._resize_obj)
-        self.obj_wdg._combo.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
-        wdg.layout().addWidget(self.obj_wdg)
-        obj_toolbar.addWidget(wdg)
-
-        return obj_toolbar
-
-    # TODO: add this directly to ObjectivesWidget
-    def _resize_obj(self) -> None:
-        self.obj_wdg._combo.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
-        self.obj_wdg.setMinimumWidth(0)
-        self.obj_wdg._combo.adjustSize()
-
-    def _add_snap_live_toolbar(self) -> QToolBar:
-        """Create a QToolBar with the `SnapButton` and `LiveButton`."""
-        snap_live_toolbar = QToolBar("Snap Live", self)
-        snap_live_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.layout().setSpacing(3)
-        wdg.setStyleSheet("border: 0px;")
-
-        snap_btn = SnapButton()
-        snap_btn.setText("")
-        snap_btn.setToolTip("Snap")
-        snap_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
-        wdg.layout().addWidget(snap_btn)
-
-        live_btn = LiveButton()
-        live_btn.setText("")
-        live_btn.setToolTip("Live Mode")
-        live_btn.button_text_off = ""
-        live_btn.button_text_on = ""
-        live_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
-        wdg.layout().addWidget(live_btn)
-
-        snap_live_toolbar.addWidget(wdg)
-
-        return snap_live_toolbar
-
-    def _add_channels(self) -> QToolBar:
-        """Create a QToolBar with the `ChannelWidget`."""
-        ch_toolbar = QToolBar("Channels", self)
-        ch_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.layout().setSpacing(5)
-        wdg.setStyleSheet(GROUPBOX_STYLE)
-
-        ch_lbl = QLabel(text="Channel:")
-        wdg.layout().addWidget(ch_lbl)
-        wdg.layout().addWidget(ChannelGroupWidget())
-        wdg.layout().addWidget(ChannelWidget())
-
-        ch_toolbar.addWidget(wdg)
-
-        return ch_toolbar
-
-    def _add_exposure(self) -> QToolBar:
-        """Create a QToolBar with the `DefaultCameraExposureWidget`."""
-        exp_toolbar = QToolBar("Exposure", self)
-        exp_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.setStyleSheet(GROUPBOX_STYLE)
-
-        exposure_wdg = DefaultCameraExposureWidget()
-        exp_lbl = QLabel(text="Exposure:")
-        exp_layout = cast(QHBoxLayout, exposure_wdg.layout())
-        exp_layout.setContentsMargins(0, 0, 0, 0)
-        exp_layout.setSpacing(3)
-        exp_layout.insertWidget(0, exp_lbl)
-        wdg.layout().addWidget(exposure_wdg)
-
-        exp_toolbar.addWidget(wdg)
-
-        return exp_toolbar
-
-    def _add_shutter_toolbar(self) -> QToolBar:
-        """Create a QToolBar with the `MMShuttersWidget`."""
-        shutters_toolbar = QToolBar("Shutters", self)
-        shutters_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.layout().setSpacing(3)
-        wdg.setStyleSheet("border: 0px;")
-
-        shutter_wdg = MMShuttersWidget()
-        shutter_wdg.setMinimumHeight(TOOL_SIZE)
-        wdg.layout().addWidget(shutter_wdg)
-
-        shutters_toolbar.addWidget(wdg)
-
-        return shutters_toolbar
-
-    def _add_tools_toolsbar(self) -> QToolBar:
-        """Add a QToolBar containing QPushButtons for pymmcore-widgets.
-
-        e.g. Property Browser, GroupPresetTableWidget, ...
-
-        QPushButtons are connected to the `_show_dock_widget` method.
-
-        The QPushButton.whatsThis() property is used to store the key that
-        will be used by the `_show_dock_widget` method.
-        """
-        tools_toolbar = QToolBar("Tools", self)
-        tools_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = self._create_groupbox()
-        wdg.layout().setSpacing(3)
-        wdg.setStyleSheet("border: 0px;")
-
-        for key in DOCK_WIDGETS:
-            btn_icon = DOCK_WIDGETS[key][1]
-            if btn_icon is None:
-                continue
-            btn = self._make_tool_button(key, btn_icon)
-            btn.setWhatsThis(key)
-            btn.clicked.connect(self._show_dock_widget)
-            wdg.layout().addWidget(btn)
-
-        tools_toolbar.addWidget(wdg)
-
-        return tools_toolbar
-
-    def _make_tool_button(self, tooltip: str, btn_icon: str) -> QPushButton:
-        """Create the QPushbutton for the tools QToolBar."""
-        btn = QPushButton()
-        btn.setToolTip(tooltip)
-        btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
-        btn.setIcon(icon(btn_icon, color=(0, 255, 0)))
-        btn.setIconSize(QSize(30, 30))
-        return btn
-
-    def _add_plugins_toolbar(self) -> QToolBar:
-        """Add a QToolBar containing plugins QPushButtons.
-
-        e.g. MDA, ...
-
-        QPushButtons are connected to the `_show_dock_widget` method.
-
-        The QPushButton.whatsThis() property is used to store the key that
-        will be used by the `_show_dock_widget` method.
-        """
-        plgs_toolbar = QToolBar("Plugins")
-        plgs_toolbar.setMinimumHeight(TOOLBAR_SIZE)
-
-        wdg = QGroupBox()
-        wdg.setLayout(QHBoxLayout())
-        wdg.layout().setContentsMargins(5, 0, 5, 0)
-        wdg.layout().setSpacing(3)
-        wdg.setStyleSheet("border: 0px;")
-
-        mda = self._make_plugin_button("MDA", "MultiDimensional Acquisition")
-        wdg.layout().addWidget(mda)
-
-        plgs_toolbar.addWidget(wdg)
-
-        return plgs_toolbar
-
-    def _make_plugin_button(self, btn_text: str, tooltip: str) -> QPushButton:
-        """Create the QPushButton for the plugins QToolBar."""
-        btn = QPushButton(text=btn_text)
-        btn.setToolTip(tooltip)
-        btn.setMinimumHeight(TOOL_SIZE)
-        btn.setWhatsThis(btn_text)
-        btn.clicked.connect(self._show_dock_widget)
-        return btn
 
     def _show_dock_widget(self, key: str = "") -> None:
         """Look up widget class in DOCK_WIDGETS and add/create or show/raise.
@@ -394,3 +191,151 @@ class MicroManagerToolbar(QMainWindow):
             dock_wdg._close_btn = False
         dock_wdg.setFloating(floating)
         return dock_wdg
+
+
+# -------------- Toolbars --------------------
+
+
+class MMToolBar(QToolBar):
+    def __init__(
+        self, title: str, parent: QWidget = None, gb: QGroupBox | None = None
+    ) -> None:
+        super().__init__(title, parent)
+        self.setMinimumHeight(TOOLBAR_SIZE)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setObjectName(f"MM-{title}")
+
+        if isinstance(gb, QGroupBox):
+            self.groupbox = gb
+            gb.setTitle("")
+        else:
+            self.groupbox = QGroupBox()
+            gb_layout = QHBoxLayout(self.groupbox)
+            gb_layout.setContentsMargins(0, 0, 0, 0)
+            gb_layout.setSpacing(2)
+
+        self.groupbox.setStyleSheet(GROUPBOX_STYLE)
+        self.addWidget(self.groupbox)
+
+    def addSubWidget(self, wdg: QWidget) -> None:
+        self.groupbox.layout().addWidget(wdg)
+
+
+class ConfigToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Configuration", parent, ConfigurationWidget())
+
+
+class ObjectivesToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Objectives", parent=parent)
+        self._wdg = ObjectivesWidget()
+        self._wdg._mmc.events.systemConfigurationLoaded.connect(self._resize_obj)
+        self.addSubWidget(self._wdg)
+        self._resize_obj()
+
+    def _resize_obj(self) -> None:
+        self._wdg._combo.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
+        self._wdg.setMinimumWidth(0)
+        self._wdg._combo.adjustSize()
+
+
+class ChannelsToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Channels", parent)
+        self.addSubWidget(QLabel(text="Channel:"))
+        self.addSubWidget(ChannelGroupWidget())
+        self.addSubWidget(ChannelWidget())
+
+
+class ExposureToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Exposure", parent)
+        self.addSubWidget(QLabel(text="Exposure:"))
+        self.addSubWidget(DefaultCameraExposureWidget())
+
+
+class SnapLiveToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Snap Live", parent)
+        snap_btn = SnapButton()
+        snap_btn.setText("")
+        snap_btn.setToolTip("Snap")
+        snap_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
+        self.addSubWidget(snap_btn)
+
+        live_btn = LiveButton()
+        live_btn.setText("")
+        live_btn.setToolTip("Live Mode")
+        live_btn.button_text_off = ""
+        live_btn.button_text_on = ""
+        live_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
+        self.addSubWidget(live_btn)
+
+
+class ToolsToolBar(MMToolBar):
+    """A QToolBar containing QPushButtons for pymmcore-widgets.
+
+    e.g. Property Browser, GroupPresetTableWidget, ...
+
+    QPushButtons are connected to the `_show_dock_widget` method.
+
+    The QPushButton.whatsThis() property is used to store the key that
+    will be used by the `_show_dock_widget` method.
+    """
+
+    def __init__(self, parent: MicroManagerToolbar) -> None:
+        super().__init__("Tools", parent)
+        self.groupbox.setStyleSheet("border: 0px;")
+
+        if not isinstance(parent, MicroManagerToolbar):
+            raise TypeError("parent must be a MicroManagerToolbar instance.")
+
+        for key in DOCK_WIDGETS:
+            btn_icon = DOCK_WIDGETS[key][1]
+            if btn_icon is None:
+                continue
+
+            btn = QPushButton()
+            btn.setToolTip(key)
+            btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
+            btn.setIcon(icon(btn_icon, color=(0, 255, 0)))
+            btn.setIconSize(QSize(30, 30))
+            btn.setWhatsThis(key)
+            btn.clicked.connect(parent._show_dock_widget)
+            self.addSubWidget(btn)
+
+
+class ShuttersToolBar(MMToolBar):
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__("Shutters", parent)
+        self.addSubWidget(MMShuttersWidget())
+        self.groupbox.setStyleSheet("border: 0px;")
+
+
+class PluginsToolBar(MMToolBar):
+    """A QToolBar containing plugins QPushButtons.
+
+    e.g. MDA, ...
+
+    QPushButtons are connected to the `_show_dock_widget` method.
+
+    The QPushButton.whatsThis() property is used to store the key that
+    will be used by the `_show_dock_widget` method.
+    """
+
+    def __init__(self, parent: MicroManagerToolbar) -> None:
+        super().__init__("Plugins", parent)
+        self.addSubWidget(MMShuttersWidget())
+        self.groupbox.setStyleSheet("border: 0px;")
+
+        if not isinstance(parent, MicroManagerToolbar):
+            raise TypeError("parent must be a MicroManagerToolbar instance.")
+
+        btn = QPushButton("MDA")
+        btn.setToolTip("MultiDimensional Acquisition")
+        btn.setMinimumHeight(TOOL_SIZE)
+        btn.setWhatsThis("MDA")
+        btn.clicked.connect(parent._show_dock_widget)
