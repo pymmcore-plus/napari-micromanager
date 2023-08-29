@@ -59,7 +59,7 @@ DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
 }
 
 
-class MicroManagerToolbar(QWidget):
+class MicroManagerToolbar(QMainWindow):
     """Create a QToolBar for the Main Window."""
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
@@ -85,14 +85,6 @@ class MicroManagerToolbar(QWidget):
                 )
 
         self._dock_widgets: dict[str, QDockWidget] = {}
-
-        self._is_initialized = False
-        self.installEventFilter(self)
-
-    def _initialize_main_window(self, main_win: QMainWindow) -> None:
-        if self._is_initialized:
-            return
-
         # add toolbar items
         toolbar_items = [
             ConfigToolBar(self),
@@ -106,12 +98,32 @@ class MicroManagerToolbar(QWidget):
             ShuttersToolBar(self),
         ]
         for item in toolbar_items:
-            if item is None:
-                main_win.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
+            if item:
+                self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
             else:
-                main_win.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
+                self.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
 
-        self._is_initialized = True
+        self._is_initialized = False
+        self.installEventFilter(self)
+
+    def _initialize(self) -> None:
+        if self._is_initialized or not (
+            win := getattr(self.viewer.window, "_qt_window", None)
+        ):
+            return
+
+        win = cast(QMainWindow, win)
+        if (
+            isinstance(dw := self.parent(), QDockWidget)
+            and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
+        ):
+            self._is_initialized = True
+            was_visible = dw.isVisible()
+            win.removeDockWidget(dw)
+            dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
+            win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
+            dw.setVisible(was_visible)  # necessary after using removeDockWidget
+            self.removeEventFilter(self)
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Event filter that ensures that this widget is shown at the top.
