@@ -350,3 +350,4 @@ class PluginsToolBar(MMToolBar):
         btn.setMinimumHeight(TOOL_SIZE)
         btn.setWhatsThis("MDA")
         btn.clicked.connect(parent._show_dock_widget)
+        self.addSubWidget(btn)
