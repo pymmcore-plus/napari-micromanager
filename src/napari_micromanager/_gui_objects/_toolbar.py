@@ -85,7 +85,6 @@ class MicroManagerToolbar(QMainWindow):
                 )
 
         self._dock_widgets: dict[str, QDockWidget] = {}
-
         # add toolbar items
         toolbar_items = [
             self._add_cfg(),
@@ -99,12 +98,32 @@ class MicroManagerToolbar(QMainWindow):
             self._add_shutter_toolbar(),
         ]
         for item in toolbar_items:
-            if not item:
+            if item:
+                self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
+            else:
                 self.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
-                continue
-            self.addToolBar(Qt.ToolBarArea.TopToolBarArea, item)
 
+        self._is_initialized = False
         self.installEventFilter(self)
+
+    def _initialize(self) -> None:
+        if self._is_initialized or not (
+            win := getattr(self.viewer.window, "_qt_window", None)
+        ):
+            return
+
+        win = cast(QMainWindow, win)
+        if (
+            isinstance(dw := self.parent(), QDockWidget)
+            and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
+        ):
+            self._is_initialized = True
+            was_visible = dw.isVisible()
+            win.removeDockWidget(dw)
+            dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
+            win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
+            dw.setVisible(was_visible)  # necessary after using removeDockWidget
+            self.removeEventFilter(self)
 
     def eventFilter(self, obj: QObject, event: QEvent) -> bool:
         """Event filter that ensures that this widget is shown at the top.
@@ -115,25 +134,19 @@ class MicroManagerToolbar(QMainWindow):
         """
         # the move event is one of the first events that is fired when the widget is
         # docked, so we use it to re-dock this widget at the top
-        if event.type() == QEvent.Type.Move and obj is self:
-            dw = self.parent()
-            if not (win := getattr(self.viewer.window, "_qt_window", None)):
-                return False
-            win = cast(QMainWindow, win)
-            if (
-                isinstance(dw, QDockWidget)
-                and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
-            ):
-                was_visible = dw.isVisible()
-                win.removeDockWidget(dw)
-                dw.setAllowedAreas(Qt.DockWidgetArea.TopDockWidgetArea)
-                win.addDockWidget(Qt.DockWidgetArea.TopDockWidgetArea, dw)
-                dw.setVisible(was_visible)  # necessary after using removeDockWidget
+        if (
+            event.type() == QEvent.Type.Move
+            and obj is self
+            and not self._is_initialized
+        ):
+            self._initialize()
+
         return False
 
     def _add_cfg(self) -> QToolBar:
         """Create a QToolBar with the `ConfigurationWidget`."""
         cfg_toolbar = QToolBar("Configuration", self)
+        cfg_toolbar.setObjectName("MM-Configuration")
         cfg_toolbar.setMinimumHeight(TOOLBAR_SIZE)
         cfg_toolbar.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
@@ -156,6 +169,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_objective(self) -> QToolBar:
         """Create a QToolBar with the `ObjectivesWidget`."""
         obj_toolbar = QToolBar("Objectives", self)
+        obj_toolbar.setObjectName("MM-Objectives")
         obj_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -183,6 +197,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_snap_live_toolbar(self) -> QToolBar:
         """Create a QToolBar with the `SnapButton` and `LiveButton`."""
         snap_live_toolbar = QToolBar("Snap Live", self)
+        snap_live_toolbar.setObjectName("MM-Snap")
         snap_live_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -210,6 +225,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_channels(self) -> QToolBar:
         """Create a QToolBar with the `ChannelWidget`."""
         ch_toolbar = QToolBar("Channels", self)
+        ch_toolbar.setObjectName("MM-Channels")
         ch_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -228,6 +244,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_exposure(self) -> QToolBar:
         """Create a QToolBar with the `DefaultCameraExposureWidget`."""
         exp_toolbar = QToolBar("Exposure", self)
+        exp_toolbar.setObjectName("MM-Exposure")
         exp_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -248,6 +265,7 @@ class MicroManagerToolbar(QMainWindow):
     def _add_shutter_toolbar(self) -> QToolBar:
         """Create a QToolBar with the `MMShuttersWidget`."""
         shutters_toolbar = QToolBar("Shutters", self)
+        shutters_toolbar.setObjectName("MM-Shutters")
         shutters_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -273,6 +291,7 @@ class MicroManagerToolbar(QMainWindow):
         will be used by the `_show_dock_widget` method.
         """
         tools_toolbar = QToolBar("Tools", self)
+        tools_toolbar.setObjectName("MM-Tools")
         tools_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = self._create_groupbox()
@@ -312,6 +331,7 @@ class MicroManagerToolbar(QMainWindow):
         will be used by the `_show_dock_widget` method.
         """
         plgs_toolbar = QToolBar("Plugins")
+        plgs_toolbar.setObjectName("MM-Plugins")
         plgs_toolbar.setMinimumHeight(TOOLBAR_SIZE)
 
         wdg = QGroupBox()
