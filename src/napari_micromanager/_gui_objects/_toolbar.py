@@ -340,7 +340,6 @@ class PluginsToolBar(MMToolBar):
 
     def __init__(self, parent: MicroManagerToolbar) -> None:
         super().__init__("Plugins", parent)
-        self.addSubWidget(MMShuttersWidget())
         self.groupbox.setStyleSheet("border: 0px;")
 
         if not isinstance(parent, MicroManagerToolbar):
