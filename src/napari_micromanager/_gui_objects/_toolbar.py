@@ -125,7 +125,7 @@ class MicroManagerToolbar(QMainWindow):
             dw.setVisible(was_visible)  # necessary after using removeDockWidget
             self.removeEventFilter(self)
 
-    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
         """Event filter that ensures that this widget is shown at the top.
 
         npe2 plugins don't have a way to specify where they should be added, so this
@@ -135,13 +135,12 @@ class MicroManagerToolbar(QMainWindow):
         # the move event is one of the first events that is fired when the widget is
         # docked, so we use it to re-dock this widget at the top
         if (
-            event.type() == QEvent.Type.Move
+            event
+            and event.type() == QEvent.Type.Move
             and obj is self
             and not self._is_initialized
         ):
-            if not (win := getattr(self.viewer.window, "_qt_window", None)):
-                return False
-            self._initialize_main_window(cast(QMainWindow, win))
+            self._initialize()
 
         return False
 
@@ -209,33 +208,28 @@ class MicroManagerToolbar(QMainWindow):
 
 
 class MMToolBar(QToolBar):
-    def __init__(
-        self, title: str, parent: QWidget = None, gb: QGroupBox | None = None
-    ) -> None:
+    def __init__(self, title: str, parent: QWidget = None) -> None:
         super().__init__(title, parent)
         self.setMinimumHeight(TOOLBAR_SIZE)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setObjectName(f"MM-{title}")
 
-        if isinstance(gb, QGroupBox):
-            self.groupbox = gb
-            gb.setTitle("")
-        else:
-            self.groupbox = QGroupBox()
-            gb_layout = QHBoxLayout(self.groupbox)
-            gb_layout.setContentsMargins(0, 0, 0, 0)
-            gb_layout.setSpacing(2)
+        self.groupbox = QGroupBox()
+        gb_layout = QHBoxLayout(self.groupbox)
+        gb_layout.setContentsMargins(0, 0, 0, 0)
+        gb_layout.setSpacing(2)
 
         self.groupbox.setStyleSheet(GROUPBOX_STYLE)
         self.addWidget(self.groupbox)
 
     def addSubWidget(self, wdg: QWidget) -> None:
-        self.groupbox.layout().addWidget(wdg)
+        cast("QHBoxLayout", self.groupbox.layout()).addWidget(wdg)
 
 
 class ConfigToolBar(MMToolBar):
     def __init__(self, parent: QWidget) -> None:
-        super().__init__("Configuration", parent, ConfigurationWidget())
+        super().__init__("Configuration", parent)
+        self.addSubWidget(ConfigurationWidget())
 
 
 class ObjectivesToolBar(MMToolBar):
