@@ -24,8 +24,18 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-latest]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         backend: [pyside2, pyqt5]
+        include:
+          - python-version: "3.8"
+            platform: windows-latest
+            backend: pyqt5
+          - python-version: "3.11"
+            platform: macos-latest
+            backend: pyqt6
+          - python-version: "3.11"
+            platform: windows-latest
+            backend: pyside6
 
     steps:
       - uses: actions/checkout@v3
