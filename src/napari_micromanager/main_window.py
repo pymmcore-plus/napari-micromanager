@@ -56,7 +56,8 @@ class MainWindow(MicroManagerToolbar):
             signal.connect(slot)
 
         # add minmax dockwidget
-        self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
+        if "MinMax" not in getattr(self.viewer.window, "_dock_widgets", []):
+            self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
         # queue cleanup
         self.destroyed.connect(self._cleanup)
