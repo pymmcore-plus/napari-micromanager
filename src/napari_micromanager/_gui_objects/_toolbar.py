@@ -21,7 +21,7 @@ from pymmcore_widgets import (
 from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
-    QGroupBox,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -42,9 +42,7 @@ from ._stages_widget import MMStagesWidget
 if TYPE_CHECKING:
     import napari.viewer
 
-TOOLBAR_SIZE = 45
 TOOL_SIZE = 35
-GROUPBOX_STYLE = "QGroupBox { border-radius: 3px; }"
 
 
 # Dict for QObject and its QPushButton icon
@@ -88,14 +86,13 @@ class MicroManagerToolbar(QMainWindow):
         # add toolbar items
         toolbar_items = [
             ConfigToolBar(self),
-            ObjectivesToolBar(self),
             ChannelsToolBar(self),
-            ExposureToolBar(self),
-            SnapLiveToolBar(self),
-            ToolsToolBar(self),
-            PluginsToolBar(self),
+            ObjectivesToolBar(self),
             None,
             ShuttersToolBar(self),
+            SnapLiveToolBar(self),
+            ExposureToolBar(self),
+            ToolsToolBar(self),
         ]
         for item in toolbar_items:
             if item:
@@ -105,6 +102,9 @@ class MicroManagerToolbar(QMainWindow):
 
         self._is_initialized = False
         self.installEventFilter(self)
+
+    def sizeHint(self) -> QSize:
+        return super().sizeHint().boundedTo(QSize(800, 300))
 
     def _initialize(self) -> None:
         if self._is_initialized or not (
@@ -210,26 +210,24 @@ class MicroManagerToolbar(QMainWindow):
 class MMToolBar(QToolBar):
     def __init__(self, title: str, parent: QWidget = None) -> None:
         super().__init__(title, parent)
-        self.setMinimumHeight(TOOLBAR_SIZE)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setMinimumHeight(48)
         self.setObjectName(f"MM-{title}")
 
-        self.groupbox = QGroupBox()
-        gb_layout = QHBoxLayout(self.groupbox)
+        self.frame = QFrame()
+        gb_layout = QHBoxLayout(self.frame)
         gb_layout.setContentsMargins(0, 0, 0, 0)
         gb_layout.setSpacing(2)
-
-        self.groupbox.setStyleSheet(GROUPBOX_STYLE)
-        self.addWidget(self.groupbox)
+        self.addWidget(self.frame)
 
     def addSubWidget(self, wdg: QWidget) -> None:
-        cast("QHBoxLayout", self.groupbox.layout()).addWidget(wdg)
+        cast("QHBoxLayout", self.frame.layout()).addWidget(wdg)
 
 
 class ConfigToolBar(MMToolBar):
     def __init__(self, parent: QWidget) -> None:
         super().__init__("Configuration", parent)
         self.addSubWidget(ConfigurationWidget())
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
 class ObjectivesToolBar(MMToolBar):
@@ -294,7 +292,6 @@ class ToolsToolBar(MMToolBar):
 
     def __init__(self, parent: MicroManagerToolbar) -> None:
         super().__init__("Tools", parent)
-        self.groupbox.setStyleSheet("border: 0px;")
 
         if not isinstance(parent, MicroManagerToolbar):
             raise TypeError("parent must be a MicroManagerToolbar instance.")
@@ -313,35 +310,15 @@ class ToolsToolBar(MMToolBar):
             btn.clicked.connect(parent._show_dock_widget)
             self.addSubWidget(btn)
 
+        btn = QPushButton("MDA")
+        btn.setToolTip("MultiDimensional Acquisition")
+        btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
+        btn.setWhatsThis("MDA")
+        btn.clicked.connect(parent._show_dock_widget)
+        self.addSubWidget(btn)
+
 
 class ShuttersToolBar(MMToolBar):
     def __init__(self, parent: QWidget) -> None:
         super().__init__("Shutters", parent)
         self.addSubWidget(MMShuttersWidget())
-        self.groupbox.setStyleSheet("border: 0px;")
-
-
-class PluginsToolBar(MMToolBar):
-    """A QToolBar containing plugins QPushButtons.
-
-    e.g. MDA, ...
-
-    QPushButtons are connected to the `_show_dock_widget` method.
-
-    The QPushButton.whatsThis() property is used to store the key that
-    will be used by the `_show_dock_widget` method.
-    """
-
-    def __init__(self, parent: MicroManagerToolbar) -> None:
-        super().__init__("Plugins", parent)
-        self.groupbox.setStyleSheet("border: 0px;")
-
-        if not isinstance(parent, MicroManagerToolbar):
-            raise TypeError("parent must be a MicroManagerToolbar instance.")
-
-        btn = QPushButton("MDA")
-        btn.setToolTip("MultiDimensional Acquisition")
-        btn.setMinimumHeight(TOOL_SIZE)
-        btn.setWhatsThis("MDA")
-        btn.clicked.connect(parent._show_dock_widget)
-        self.addSubWidget(btn)
