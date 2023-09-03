@@ -36,6 +36,10 @@ jobs:
           - python-version: "3.11"
             platform: windows-latest
             backend: pyside6
+        exclude:
+          - python-version: "3.11"
+            platform: windows-latest
+            backend: pyside2
 
     steps:
       - uses: actions/checkout@v3
