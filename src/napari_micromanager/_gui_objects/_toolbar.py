@@ -103,15 +103,11 @@ class MicroManagerToolbar(QMainWindow):
         self._is_initialized = False
         self.installEventFilter(self)
 
-    def sizeHint(self) -> QSize:
-        return super().sizeHint().boundedTo(QSize(800, 300))
-
     def _initialize(self) -> None:
         if self._is_initialized or not (
             win := getattr(self.viewer.window, "_qt_window", None)
         ):
             return
-
         win = cast(QMainWindow, win)
         if (
             isinstance(dw := self.parent(), QDockWidget)
@@ -184,7 +180,6 @@ class MicroManagerToolbar(QMainWindow):
                 )
                 floating = True
                 tabify = False
-
             dock_wdg = self._add_dock_widget(wdg, key, floating=floating, tabify=tabify)
             self._dock_widgets[key] = dock_wdg
 
@@ -198,6 +193,11 @@ class MicroManagerToolbar(QMainWindow):
             area="right",
             tabify=tabify,
         )
+        # fix napari bug that makes dock widgets too large
+        with contextlib.suppress(AttributeError):
+            self.viewer.window._qt_window.resizeDocks(
+                [dock_wdg], [widget.sizeHint().width() + 20], Qt.Orientation.Horizontal
+            )
         with contextlib.suppress(AttributeError):
             dock_wdg._close_btn = False
         dock_wdg.setFloating(floating)
