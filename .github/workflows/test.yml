@@ -10,7 +10,11 @@ on:
     branches:
       - main
   schedule:
-     - cron: "0 16 * * 1" # monday at noon est
+    - cron: "0 16 * * 1" # monday at noon est
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
