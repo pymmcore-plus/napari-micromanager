@@ -10,7 +10,11 @@ on:
     branches:
       - main
   schedule:
-     - cron: "0 16 * * 1" # monday at noon est
+    - cron: "0 16 * * 1" # monday at noon est
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -20,8 +24,22 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-latest]
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         backend: [pyside2, pyqt5]
+        include:
+          - python-version: "3.8"
+            platform: windows-latest
+            backend: pyqt5
+          - python-version: "3.11"
+            platform: macos-latest
+            backend: pyqt6
+          # still issues in napari
+          # - python-version: "3.11"
+          #   platform: windows-latest
+          #   backend: pyside6
+        exclude:
+          - python-version: "3.11"
+            backend: pyside2
 
     steps:
       - uses: actions/checkout@v3

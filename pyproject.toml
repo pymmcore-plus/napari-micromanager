@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: System :: Hardware",
     "Topic :: System :: Hardware :: Hardware Drivers",
     "Topic :: Utilities",
@@ -37,7 +38,7 @@ dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
     "pymmcore-plus >=0.8.0",
-    "pymmcore-widgets >=0.4.1",
+    "pymmcore-widgets >=0.4.2",
     "superqt >=0.5.1",
     "tifffile",
     "useq-schema >=0.4.1",
@@ -49,7 +50,9 @@ dependencies = [
 [project.optional-dependencies]
 testing = ["pytest", "pytest-cov", "pytest-qt"]
 pyqt5 = ["PyQt5"]
+pyqt6 = ["PyQt6"]
 pyside2 = ["PySide2"]
+pyside6 = ["PySide6"]
 dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
 
 [project.urls]
