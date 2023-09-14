@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from useq import MDASequence
+
 
 def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path:
     """Get next suitable filepath (extension = ".tif") or folderpath (extension = "").
@@ -36,3 +38,19 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
+
+
+def get_axis_labels(sequence: MDASequence) -> list[str]:
+    """Get the MDASequence axis labels using only axes that are present in events."""
+    # axis main sequence
+    main_seq_axis = list(sequence.used_axes)
+    if not sequence.stage_positions:
+        return main_seq_axis
+    # axes from sub sequences
+    sub_seq_axis: list = []
+    for p in sequence.stage_positions:
+        if p.sequence is not None:
+            sub_seq_axis.extend(
+                [ax for ax in p.sequence.used_axes if ax not in main_seq_axis]
+            )
+    return main_seq_axis + sub_seq_axis

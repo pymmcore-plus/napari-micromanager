@@ -12,6 +12,7 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
+from ._util import get_axis_labels
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -289,22 +290,6 @@ class _NapariMDAHandler:
         )
 
 
-def _get_axis_labels(sequence: MDASequence) -> list[str]:
-    """Get the axis labels using only axes that are present in events."""
-    # axis main sequence
-    main_seq_axis = list(sequence.used_axes)
-    if not sequence.stage_positions:
-        return main_seq_axis
-    # axes from sub sequences
-    sub_seq_axis: list = []
-    for p in sequence.stage_positions:
-        if p.sequence is not None:
-            sub_seq_axis.extend(
-                [ax for ax in p.sequence.used_axes if ax not in main_seq_axis]
-            )
-    return main_seq_axis + sub_seq_axis
-
-
 def _has_sub_sequences(sequence: MDASequence) -> bool:
     """Return True if any stage positions have a sub sequence."""
     return any(p.sequence is not None for p in sequence.stage_positions)
@@ -347,7 +332,7 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    axis_labels = _get_axis_labels(sequence)
+    axis_labels = get_axis_labels(sequence)
 
     layer_shape = [sequence.sizes[k] or 1 for k in axis_labels]
 
@@ -397,7 +382,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     """
     meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
 
-    axis_order = _get_axis_labels(event.sequence)
+    axis_order = get_axis_labels(event.sequence)
 
     suffix = ""
     prefix = meta.file_name if meta.should_save else "Exp"
