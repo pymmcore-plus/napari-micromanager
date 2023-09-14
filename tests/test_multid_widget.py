@@ -26,6 +26,7 @@ def test_main_window_mda(main_window: MainWindow):
 
     main_window._mmc.mda.run(mda)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
+    assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
 
 def test_saving_mda(
