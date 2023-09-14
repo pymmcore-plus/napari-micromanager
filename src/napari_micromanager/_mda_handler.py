@@ -399,7 +399,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
         try:
             im_idx += (event.index[k],)
         # if axis not in event.index
-        # e.g. if we have bot a position sequence grid and a single position
+        # e.g. if we have both a position sequence grid and a single position
         except KeyError:
             im_idx += (0,)
 
