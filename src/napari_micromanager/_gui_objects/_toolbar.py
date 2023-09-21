@@ -234,16 +234,7 @@ class ObjectivesToolBar(MMToolBar):
     def __init__(self, parent: QWidget) -> None:
         super().__init__("Objectives", parent=parent)
         self._wdg = ObjectivesWidget()
-        self._wdg._mmc.events.systemConfigurationLoaded.connect(self._resize_obj)
         self.addSubWidget(self._wdg)
-        self._resize_obj()
-
-    def _resize_obj(self) -> None:
-        self._wdg._combo.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
-        self._wdg.setMinimumWidth(0)
-        self._wdg._combo.adjustSize()
 
 
 class ChannelsToolBar(MMToolBar):
