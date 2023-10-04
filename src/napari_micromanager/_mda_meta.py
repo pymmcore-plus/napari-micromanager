@@ -19,10 +19,10 @@ class SequenceMeta:
 
     mode: str = ""
     split_channels: bool = False
-    should_save: bool = False
     file_name: str = ""
     save_dir: str = ""
-    save_pos: bool = False
+    should_save: bool = False  # to remove when using pymmcore-plus writers
+    save_pos: bool = False  # to remove when using pymmcore-plus writers
 
     def replace(self, **kwargs: Any) -> SequenceMeta:
         """Return a new SequenceMeta with the given kwargs replaced."""
