@@ -334,7 +334,12 @@ def _determine_sequence_layers(
 
     axis_labels = get_axis_labels(sequence)
 
-    layer_shape = [sequence.sizes[k] or 1 for k in axis_labels]
+    layer_shape = []
+    for k in axis_labels:
+        try:
+            layer_shape.append(sequence.sizes[k])
+        except KeyError:
+            layer_shape.append(1)
 
     if _has_sub_sequences(sequence):
         for p in sequence.stage_positions:
