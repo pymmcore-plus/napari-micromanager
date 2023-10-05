@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
-from pymmcore_plus.mda.handlers._util import get_full_sequence_axes
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -52,6 +51,24 @@ if TYPE_CHECKING:
         grid_pos: NotRequired[str]
         ch_id: NotRequired[str]
         translate: NotRequired[bool]
+
+
+# NOTE: import from pymmcore-plus when new version will be released:
+# from pymmcore_plus.mda.handlers._util import get_full_sequence_axes
+def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
+    """Get the combined axes from sequence and sub-sequences."""
+    # axes main sequence
+    main_seq_axes = list(sequence.used_axes)
+    if not sequence.stage_positions:
+        return tuple(main_seq_axes)
+    # axes from sub sequences
+    sub_seq_axes: list = []
+    for p in sequence.stage_positions:
+        if p.sequence is not None:
+            sub_seq_axes.extend(
+                [ax for ax in p.sequence.used_axes if ax not in main_seq_axes]
+            )
+    return tuple(main_seq_axes + sub_seq_axes)
 
 
 class _NapariMDAHandler:
