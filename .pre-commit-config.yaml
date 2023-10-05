@@ -33,7 +33,7 @@ repos:
       - id: mypy
         files: "^src/"
         additional_dependencies:
-          - useq-schema >=0.3.0
+          - useq-schema >=0.4.7
           - pymmcore_plus >=0.6.7
           # # unfortunately... bringing these in brings in qtpy
           # # which has too many attr-defined errors ...
