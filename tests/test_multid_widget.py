@@ -44,6 +44,7 @@ def test_saving_mda(
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
     mda_widget.setValue(mda)
+    mda = mda.replace(axis_order=mda_widget.value().axis_order)
 
     mmc = main_window._mmc
 

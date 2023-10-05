@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
+from pymmcore_plus.mda.handlers._util import get_full_sequence_axes
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
-from ._util import get_axis_labels
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -332,10 +332,12 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    axis_labels = get_axis_labels(sequence)
+    axis_labels = list(get_full_sequence_axes(sequence))
 
     layer_shape = []
     for k in axis_labels:
+        # if k is from a sub-sequence and so it is not in all positions, we need to
+        # add shape=1 for the missing axes.
         try:
             layer_shape.append(sequence.sizes[k])
         except KeyError:
@@ -346,20 +348,15 @@ def _determine_sequence_layers(
             if not p.sequence:
                 continue
 
-            # continue if sub-sequence has only autofocus
-            # TODO: fins a better way to check for this
-            if (
-                p.sequence.autofocus_plan
-                and not p.sequence.channels
-                and not p.sequence.grid_plan
-                and not p.sequence.z_plan
-                and not p.sequence.time_plan
-            ):
-                continue
-
-            pos_g_shape = p.sequence.sizes["g"]
-            index = axis_labels.index("g")
-            layer_shape[index] = max(layer_shape[index], pos_g_shape)
+            # update the layer shape for the c, g, z and t axis depending on the shape
+            # of the sub sequence (sub-sequence can only have c, g, z and t).
+            for key in "cgzt":
+                try:
+                    pos_shape = p.sequence.sizes[key]
+                    index = axis_labels.index(key)
+                    layer_shape[index] = max(layer_shape[index], pos_shape)
+                except (KeyError, ValueError):
+                    continue
 
     # in split channels mode, we need to create a layer for each channel
     if meta.split_channels:
@@ -399,7 +396,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     """
     meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
 
-    axis_order = get_axis_labels(event.sequence)
+    axis_order = list(get_full_sequence_axes(event.sequence))
 
     suffix = ""
     prefix = meta.file_name if meta.should_save else "Exp"
