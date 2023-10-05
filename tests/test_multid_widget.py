@@ -43,7 +43,7 @@ def test_saving_mda(
     main_window._show_dock_widget("MDA")
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
-    mda_widget.set_state(mda)
+    mda_widget.setValue(mda)
 
     mmc = main_window._mmc
 
@@ -57,7 +57,7 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
-        mda_widget.buttons_wdg.run_button.click()
+        mda_widget.control_btns.run_btn.click()
 
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
