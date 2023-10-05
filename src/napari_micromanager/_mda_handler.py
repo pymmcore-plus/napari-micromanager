@@ -345,6 +345,18 @@ def _determine_sequence_layers(
         for p in sequence.stage_positions:
             if not p.sequence:
                 continue
+
+            # continue if sub-sequence has only autofocus
+            # TODO: fins a better way to check for this
+            if (
+                p.sequence.autofocus_plan
+                and not p.sequence.channels
+                and not p.sequence.grid_plan
+                and not p.sequence.z_plan
+                and not p.sequence.time_plan
+            ):
+                continue
+
             pos_g_shape = p.sequence.sizes["g"]
             index = axis_labels.index("g")
             layer_shape[index] = max(layer_shape[index], pos_g_shape)
