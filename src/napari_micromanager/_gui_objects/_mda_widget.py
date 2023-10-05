@@ -15,6 +15,8 @@ from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
 
+MMCORE_WIDGETS_META = "pymmcore_widgets"
+
 
 class MultiDWidget(MDAWidget):
     """Main napari-micromanager GUI."""
@@ -65,7 +67,27 @@ class MultiDWidget(MDAWidget):
 
     def setValue(self, value: MDASequence) -> None:
         """Set the current value of the widget."""
-        meta = value.metadata.get(SEQUENCE_META_KEY)
-        if meta and not isinstance(meta, SequenceMeta):
-            raise TypeError(f"Expected {SequenceMeta}, got {type(meta)}")
+        nmm_meta = value.metadata.get(SEQUENCE_META_KEY)
+        if nmm_meta and not isinstance(nmm_meta, SequenceMeta):
+            raise TypeError(f"Expected {SequenceMeta}, got {type(nmm_meta)}")
+
+        # update metadata if SequenceMeta are provided
+        if nmm_meta:
+            # MDAWidget should have a default metadata dict with a "pymmcore_widgets"
+            # key. If it doesn't, we add it. This is necessary to update the
+            # save_info widget.
+            pmmcw_meta = value.metadata.get(
+                MMCORE_WIDGETS_META, {MMCORE_WIDGETS_META: {}}
+            )
+            pmmcw_meta["save_dir"] = nmm_meta.save_dir
+            pmmcw_meta["save_name"] = nmm_meta.file_name
+            value = value.replace(
+                metadata={MMCORE_WIDGETS_META: pmmcw_meta, SEQUENCE_META_KEY: nmm_meta}
+            )
+
+        # set split_channels checkbox
+        self.checkBox_split_channels.setChecked(
+            bool(nmm_meta and nmm_meta.split_channels)
+        )
+
         super().setValue(value)
