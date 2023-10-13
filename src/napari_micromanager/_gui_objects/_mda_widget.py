@@ -77,5 +77,5 @@ class MultiDWidget(MDAWidget):
             widgets_meta["save_name"] = nmm_meta.file_name
 
             # set split_channels checkbox
-            self.checkBox_split_channels.setChecked(nmm_meta.split_channels)
+            self.checkBox_split_channels.setChecked(bool(nmm_meta.split_channels))
         super().setValue(value)
