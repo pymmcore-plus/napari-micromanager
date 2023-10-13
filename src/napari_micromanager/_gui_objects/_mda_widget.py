@@ -73,8 +73,8 @@ class MultiDWidget(MDAWidget):
 
             # update pymmcore_widgets metadata if SequenceMeta are provided
             widgets_meta = value.metadata.setdefault(MMCORE_WIDGETS_META, {})
-            widgets_meta["save_dir"] = nmm_meta.save_dir
-            widgets_meta["save_name"] = nmm_meta.file_name
+            widgets_meta.setdefault("save_dir", nmm_meta.save_dir)
+            widgets_meta.setdefault("save_name", nmm_meta.file_name)
 
             # set split_channels checkbox
             self.checkBox_split_channels.setChecked(bool(nmm_meta.split_channels))
