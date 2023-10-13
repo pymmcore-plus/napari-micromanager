@@ -67,27 +67,15 @@ class MultiDWidget(MDAWidget):
 
     def setValue(self, value: MDASequence) -> None:
         """Set the current value of the widget."""
-        nmm_meta = value.metadata.get(SEQUENCE_META_KEY)
-        if nmm_meta and not isinstance(nmm_meta, SequenceMeta):
-            raise TypeError(f"Expected {SequenceMeta}, got {type(nmm_meta)}")
+        if nmm_meta := value.metadata.get(SEQUENCE_META_KEY):
+            if not isinstance(nmm_meta, SequenceMeta):  # pragma: no cover
+                raise TypeError(f"Expected {SequenceMeta}, got {type(nmm_meta)}")
 
-        # update metadata if SequenceMeta are provided
-        if nmm_meta:
-            # MDAWidget should have a default metadata dict with a "pymmcore_widgets"
-            # key. If it doesn't, we add it. This is necessary to update the
-            # save_info widget.
-            pmmcw_meta = value.metadata.get(
-                MMCORE_WIDGETS_META, {MMCORE_WIDGETS_META: {}}
-            )
-            pmmcw_meta["save_dir"] = nmm_meta.save_dir
-            pmmcw_meta["save_name"] = nmm_meta.file_name
-            value = value.replace(
-                metadata={MMCORE_WIDGETS_META: pmmcw_meta, SEQUENCE_META_KEY: nmm_meta}
-            )
+            # update pymmcore_widgets metadata if SequenceMeta are provided
+            widgets_meta = value.metadata.setdefault(MMCORE_WIDGETS_META, {})
+            widgets_meta["save_dir"] = nmm_meta.save_dir
+            widgets_meta["save_name"] = nmm_meta.file_name
 
-        # set split_channels checkbox
-        self.checkBox_split_channels.setChecked(
-            bool(nmm_meta and nmm_meta.split_channels)
-        )
-
+            # set split_channels checkbox
+            self.checkBox_split_channels.setChecked(nmm_meta.split_channels)
         super().setValue(value)
