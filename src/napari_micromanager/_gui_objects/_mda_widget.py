@@ -51,7 +51,7 @@ class MultiDWidget(MDAWidget):
             file_name=widget_meta.get("save_name", ""),
             should_save=bool("save_dir" in widget_meta),
         )
-        return sequence
+        return sequence  # type: ignore[no-any-return]
 
     def setValue(self, value: MDASequence) -> None:
         """Set the current value of the widget."""
