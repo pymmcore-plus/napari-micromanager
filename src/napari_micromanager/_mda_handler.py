@@ -350,15 +350,7 @@ def _determine_sequence_layers(
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
     axis_labels = list(get_full_sequence_axes(sequence))
-
-    layer_shape = []
-    for k in axis_labels:
-        # if k is from a sub-sequence and so it is not in all positions, we need to
-        # add shape=1 for the missing axes.
-        try:
-            layer_shape.append(sequence.sizes[k])
-        except KeyError:
-            layer_shape.append(1)
+    layer_shape = [sequence.sizes.get(k) or 1 for k in axis_labels]
 
     if _has_sub_sequences(sequence):
         for p in sequence.stage_positions:
@@ -368,12 +360,10 @@ def _determine_sequence_layers(
             # update the layer shape for the c, g, z and t axis depending on the shape
             # of the sub sequence (sub-sequence can only have c, g, z and t).
             for key in "cgzt":
-                try:
+                with contextlib.suppress(KeyError, ValueError):
                     pos_shape = p.sequence.sizes[key]
                     index = axis_labels.index(key)
                     layer_shape[index] = max(layer_shape[index], pos_shape)
-                except (KeyError, ValueError):
-                    continue
 
     # in split channels mode, we need to create a layer for each channel
     if meta.split_channels:
