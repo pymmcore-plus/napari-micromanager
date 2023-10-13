@@ -8,12 +8,12 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from useq import MDASequence
 
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
+    from useq import MDASequence
 
 MMCORE_WIDGETS_META = "pymmcore_widgets"
 
@@ -24,6 +24,8 @@ class MultiDWidget(MDAWidget):
     def __init__(
         self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
     ) -> None:
+        # add split channel checkbox
+        self.checkBox_split_channels = QCheckBox(text="Split Channels")
         super().__init__(parent=parent, mmcore=mmcore)
 
         # setContentsMargins
@@ -33,35 +35,21 @@ class MultiDWidget(MDAWidget):
         time_layout.setContentsMargins(10, 10, 10, 10)
         ch_layout = cast("QVBoxLayout", self.channels.layout())
         ch_layout.setContentsMargins(10, 10, 10, 10)
-
-        # add split channel checkbox
-        self.checkBox_split_channels = QCheckBox(text="Split Channels")
         ch_layout.addWidget(self.checkBox_split_channels)
 
     def value(self) -> MDASequence:
         """Return the current value of the widget."""
         # Overriding the value method to add the metadata necessary for the handler.
-        sequence = cast(MDASequence, super().value())
-        save_info = self.save_info.value()
-
-        # this is to avoid the AttributeError the first time the MDAWidget is called
-        try:
-            split_channels = bool(
-                self.checkBox_split_channels.isChecked() and len(sequence.channels) > 1
-            )
-        except AttributeError:
-            split_channels = False
+        sequence = super().value()
+        widget_meta = sequence.metadata.get(MMCORE_WIDGETS_META, {})
+        split = self.checkBox_split_channels.isChecked() and len(sequence.channels) > 1
 
         sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
             mode="mda",
-            split_channels=split_channels,
-            save_dir=save_info.get("save_dir", ""),
-            file_name=save_info.get("save_name", ""),
-            # this will be removed in the next PR where we will use the pymmcore-plus
-            # writers
-            should_save=bool(
-                save_info.get("save_dir", "") and save_info.get("save_name", "")
-            ),
+            split_channels=bool(split),
+            save_dir=widget_meta.get("save_dir", ""),
+            file_name=widget_meta.get("save_name", ""),
+            should_save=bool("save_dir" in widget_meta),
         )
         return sequence
 
