@@ -12,7 +12,6 @@ from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from ._saving import save_sequence
-from ._util import get_axis_labels
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -52,6 +51,24 @@ if TYPE_CHECKING:
         grid_pos: NotRequired[str]
         ch_id: NotRequired[str]
         translate: NotRequired[bool]
+
+
+# NOTE: import from pymmcore-plus when new version will be released:
+# from pymmcore_plus.mda.handlers._util import get_full_sequence_axes
+def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
+    """Get the combined axes from sequence and sub-sequences."""
+    # axes main sequence
+    main_seq_axes = list(sequence.used_axes)
+    if not sequence.stage_positions:
+        return tuple(main_seq_axes)
+    # axes from sub sequences
+    sub_seq_axes: list = []
+    for p in sequence.stage_positions:
+        if p.sequence is not None:
+            sub_seq_axes.extend(
+                [ax for ax in p.sequence.used_axes if ax not in main_seq_axes]
+            )
+    return tuple(main_seq_axes + sub_seq_axes)
 
 
 class _NapariMDAHandler:
@@ -332,17 +349,21 @@ def _determine_sequence_layers(
     # each item is a tuple of (id, shape, layer_metadata)
     _layer_info: list[tuple[str, list[int], dict[str, Any]]] = []
 
-    axis_labels = get_axis_labels(sequence)
-
-    layer_shape = [sequence.sizes[k] or 1 for k in axis_labels]
+    axis_labels = list(get_full_sequence_axes(sequence))
+    layer_shape = [sequence.sizes.get(k) or 1 for k in axis_labels]
 
     if _has_sub_sequences(sequence):
         for p in sequence.stage_positions:
             if not p.sequence:
                 continue
-            pos_g_shape = p.sequence.sizes["g"]
-            index = axis_labels.index("g")
-            layer_shape[index] = max(layer_shape[index], pos_g_shape)
+
+            # update the layer shape for the c, g, z and t axis depending on the shape
+            # of the sub sequence (sub-sequence can only have c, g, z and t).
+            for key in "cgzt":
+                with contextlib.suppress(KeyError, ValueError):
+                    pos_shape = p.sequence.sizes[key]
+                    index = axis_labels.index(key)
+                    layer_shape[index] = max(layer_shape[index], pos_shape)
 
     # in split channels mode, we need to create a layer for each channel
     if meta.split_channels:
@@ -382,7 +403,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     """
     meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
 
-    axis_order = get_axis_labels(event.sequence)
+    axis_order = list(get_full_sequence_axes(event.sequence))
 
     suffix = ""
     prefix = meta.file_name if meta.should_save else "Exp"

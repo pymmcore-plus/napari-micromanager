@@ -36,14 +36,24 @@ def test_saving_mda(
     tmp_path: Path,
 ) -> None:
     mda = mda_sequence_splits
-    meta: SequenceMeta = mda.metadata[SEQUENCE_META_KEY]
-    meta = meta.replace(save_dir=str(tmp_path))
-    mda.metadata[SEQUENCE_META_KEY] = meta
-
     main_window._show_dock_widget("MDA")
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
-    mda_widget.set_state(mda)
+
+    # FIXME:
+    # we have a bit of a battle here now for file-saving metadata between
+    # pymmcore_widgets and napari_micromanager's SequenceMetadata
+    # should standardize, possibly by adding to useq-schema
+    # this test uses the pymmcore-widgets metadata for now
+    widget_meta = mda.metadata.setdefault("pymmcore_widgets", {})
+    widget_meta["save_dir"] = str(tmp_path)
+    widget_meta["should_save"] = True
+
+    mda_widget.setValue(mda)
+    assert mda_widget.save_info.isChecked()
+    meta = mda_widget.value().metadata[SEQUENCE_META_KEY]
+    assert meta.save_dir == str(tmp_path)
+    mda = mda.replace(axis_order=mda_widget.value().axis_order)
 
     mmc = main_window._mmc
 
@@ -57,7 +67,7 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
-        mda_widget.buttons_wdg.run_button.click()
+        mda_widget.control_btns.run_btn.click()
 
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
