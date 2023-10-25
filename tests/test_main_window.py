@@ -20,12 +20,12 @@ def test_main_window(qtbot: QtBot, core: CMMCorePlus) -> None:
     qtbot.addWidget(wdg)
 
     viewer.layers.events.connect.assert_called_once_with(wdg._update_max_min)
-    wdg._snap()
+    core.snap()
 
-    wdg._update_viewer()
+    wdg._core_link._update_viewer()
     wdg._mmc.startContinuousSequenceAcquisition()
     wdg._mmc.stopSequenceAcquisition()
-    wdg._update_viewer()
+    wdg._core_link._update_viewer()
 
     wdg._cleanup()
     viewer.layers.events.disconnect.assert_called_once_with(wdg._update_max_min)
