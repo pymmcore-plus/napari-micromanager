@@ -51,7 +51,7 @@ class CoreViewerLink(QObject):
         # Clean up temporary files we opened.
         self._mda_handler._cleanup()
 
-    @ensure_main_thread
+    @ensure_main_thread  # type: ignore [misc]
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the circular buffer."""
         if data is None:
