@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
+    from pymmcore_plus import CMMCorePlus
     from useq import MDASequence
 
 
@@ -17,10 +17,10 @@ def test_layer_scale(
     make_napari_viewer,
     mda_sequence_splits: MDASequence,
     axis_order: str,
+    core: CMMCorePlus,
 ) -> None:
-    mmc = CMMCorePlus.instance()
-    mmc.loadSystemConfiguration()
     viewer = make_napari_viewer()
+    mmc = core
     handler = _NapariMDAHandler(mmc, viewer)
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
