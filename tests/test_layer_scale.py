@@ -17,10 +17,10 @@ def test_layer_scale(
     make_napari_viewer,
     mda_sequence_splits: MDASequence,
     axis_order: str,
+    core: CMMCorePlus,
 ) -> None:
-    mmc = CMMCorePlus()
-    mmc.loadSystemConfiguration()
     viewer = make_napari_viewer()
+    mmc = core
     handler = _NapariMDAHandler(mmc, viewer)
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
