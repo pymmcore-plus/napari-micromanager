@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import logging
 from typing import TYPE_CHECKING, Any, Callable
 
 import napari
 import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
-from pymmcore_plus._util import find_micromanager
 
 from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
@@ -17,26 +17,22 @@ if TYPE_CHECKING:
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
 
+# this is very verbose
+logging.getLogger("napari.loader").setLevel(logging.WARNING)
+
+
 class MainWindow(MicroManagerToolbar):
     """The main napari-micromanager widget that gets added to napari."""
 
     def __init__(self, viewer: napari.viewer.Viewer) -> None:
-        adapter_path = find_micromanager()
-        if not adapter_path:
-            raise RuntimeError(
-                "Could not find micromanager adapters. Please run "
-                "`mmcore install` or install manually and set "
-                "MICROMANAGER_PATH."
-            )
-
         super().__init__(viewer)
 
         # get global CMMCorePlus instance
         self._mmc = CMMCorePlus.instance()
+        # this object mediates the connection between the viewer and core events
         self._core_link = CoreViewerLink(viewer, self._mmc, self)
 
-        # Add all core connections to this list.  This makes it easy to disconnect
-        # from core when this widget is closed.
+        # some remaining connections related to widgets ... TODO: unify with superclass
         self._connections: list[tuple[PSignalInstance, Callable]] = [
             (self.viewer.layers.events, self._update_max_min),
             (self.viewer.layers.selection.events, self._update_max_min),

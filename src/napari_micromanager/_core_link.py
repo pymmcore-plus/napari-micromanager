@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable
 import napari
 import napari.layers
 from pymmcore_plus import CMMCorePlus
-from qtpy.QtCore import QObject, Qt
+from qtpy.QtCore import QObject, QTimerEvent, Qt
 from superqt.utils import ensure_main_thread
 
 from ._mda_handler import _NapariMDAHandler
@@ -35,11 +35,11 @@ class CoreViewerLink(QObject):
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
         self._connections: list[tuple[PSignalInstance, Callable]] = [
-            (self._mmc.events.exposureChanged, self._update_live_exp),
             (self._mmc.events.imageSnapped, self._update_viewer),
             (self._mmc.events.imageSnapped, self._stop_live),
             (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
+            (self._mmc.events.exposureChanged, self._restart_live),
         ]
         for signal, slot in self._connections:
             signal.connect(slot)
@@ -50,6 +50,23 @@ class CoreViewerLink(QObject):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         self._mda_handler._cleanup()
+
+    def timerEvent(self, a0: QTimerEvent | None) -> None:
+        self._update_viewer()
+
+    def _start_live(self) -> None:
+        interval = int(self._mmc.getExposure())
+        self._live_timer_id = self.startTimer(interval, Qt.TimerType.PreciseTimer)
+
+    def _stop_live(self) -> None:
+        if self._live_timer_id is not None:
+            self.killTimer(self._live_timer_id)
+            self._live_timer_id = None
+
+    def _restart_live(self, camera: str, exposure: float) -> None:
+        if self._live_timer_id:
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition()
 
     @ensure_main_thread  # type: ignore [misc]
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
@@ -76,19 +93,3 @@ class CoreViewerLink(QObject):
 
         if self._live_timer_id is None:
             self.viewer.reset_view()
-
-    def _start_live(self) -> None:
-        interval = int(self._mmc.getExposure())
-        self._live_timer_id = self.startTimer(interval, Qt.TimerType.PreciseTimer)
-
-    def _stop_live(self) -> None:
-        if self._live_timer_id is not None:
-            self.killTimer(self._live_timer_id)
-            self._live_timer_id = None
-
-    def _update_live_exp(self, camera: str, exposure: float) -> None:
-        # necessary?
-        if self._live_timer_id:
-            self._stop_live()
-            self._mmc.stopSequenceAcquisition()
-            self._mmc.startContinuousSequenceAcquisition()
