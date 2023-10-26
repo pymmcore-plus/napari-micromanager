@@ -18,7 +18,7 @@ def test_layer_scale(
     mda_sequence_splits: MDASequence,
     axis_order: str,
 ) -> None:
-    mmc = CMMCorePlus.instance()
+    mmc = CMMCorePlus()
     mmc.loadSystemConfiguration()
     viewer = make_napari_viewer()
     handler = _NapariMDAHandler(mmc, viewer)
