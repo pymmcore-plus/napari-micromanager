@@ -14,10 +14,16 @@ from pymmcore_widgets import (
     GroupPresetTableWidget,
     LiveButton,
     ObjectivesWidget,
-    PixelSizeWidget,
     PropertyBrowser,
     SnapButton,
 )
+
+try:
+    # this was renamed
+    from pymmcore_widgets import ObjectivesPixelConfigurationWidget
+except ImportError:
+    from pymmcore_widgets import PixelSizeWidget as ObjectivesPixelConfigurationWidget
+
 from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
@@ -52,7 +58,7 @@ DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
     "Illumination Control": (IlluminationWidget, MDI6.lightbulb_on),
     "Stages Control": (MMStagesWidget, MDI6.arrow_all),
     "Camera ROI": (CameraRoiWidget, MDI6.crop),
-    "Pixel Size Table": (PixelSizeWidget, MDI6.ruler),
+    "Pixel Size Table": (ObjectivesPixelConfigurationWidget, MDI6.ruler),
     "MDA": (MultiDWidget, None),
 }
 
