@@ -135,7 +135,7 @@ class _NapariMDAHandler:
         # now create a zarr array in a temporary directory for each layer
         for id_, shape, kwargs in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
-            dtype = f"uint{self._mmc.getImageBitDepth()}"
+            dtype = f"u{self._mmc.getBytesPerPixel()}"
             # create the zarr array and add it to the viewer
             z = zarr.open(
                 str(tmp.name),
