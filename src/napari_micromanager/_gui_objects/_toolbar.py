@@ -66,6 +66,18 @@ class MicroManagerToolbar(QMainWindow):
         self._mmc = CMMCorePlus.instance()
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
 
+        # add variables to the napari console
+        if console := getattr(self.viewer.window._qt_viewer, "console", None):
+            from useq import MDAEvent, MDASequence
+
+            console.push(
+                {
+                    "MDAEvent": MDAEvent,
+                    "MDASequence": MDASequence,
+                    "mmcore": self._mmc,
+                }
+            )
+
         # min max widget
         self.minmax = MinMax(parent=self)
 
