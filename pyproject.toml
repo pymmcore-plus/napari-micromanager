@@ -115,6 +115,8 @@ filterwarnings = [
     "ignore::DeprecationWarning:ipykernel",
     "ignore:<tifffile.TiffWriter.write> data with shape:DeprecationWarning:", # for napari
     "ignore:`np.bool8` is a deprecated alias::skimage",
+    "ignore:Jupyter is migrating its paths to use standard platformdirs:",
+    "ignore:\\nPyarrow will become a required dependency"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
