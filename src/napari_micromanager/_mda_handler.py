@@ -119,8 +119,8 @@ class _NapariMDAHandler:
 
         if meta is None:
             # this is not an MDA we started
-            # TODO: should we still handle this with some sane defaults?
-            return
+            # so just use the default napari_mm metadata
+            meta = sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta()
         sequence = cast("ActiveMDASequence", sequence)
 
         # pause acquisition until zarr layer(s) are added
