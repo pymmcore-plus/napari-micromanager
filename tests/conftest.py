@@ -5,9 +5,7 @@ import pytest
 import useq
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from napari_micromanager.main_window import MainWindow
-from pymmcore_plus import CMMCorePlus, configure_logging
-
-configure_logging(strerr_level="CRITICAL")
+from pymmcore_plus import CMMCorePlus
 
 
 # to create a new CMMCorePlus() for every test
@@ -39,8 +37,8 @@ MDAS = [
     for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
 ]
 MDA_IDS = [
-    f"nT={t and len(t)}-nZ={z and len(z)}-nC={len(c)}"
-    for t, z, c in itertools.product(TIME_PLANS, Z_PLANS, CHANNEL_PLANS)
+    f"nT={t}-nZ={z}-nC={len(c)}"
+    for t, z, c in itertools.product((0, 3), (0, 7), CHANNEL_PLANS)
 ]
 
 

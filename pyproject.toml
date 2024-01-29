@@ -27,6 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Topic :: System :: Hardware",
     "Topic :: System :: Hardware :: Hardware Drivers",
     "Topic :: Utilities",
@@ -36,11 +37,11 @@ dynamic = ["version"]
 dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
-    "pymmcore-plus >=0.7.1",
-    "pymmcore-widgets >=0.4.0",
-    "superqt >=0.3.1",
+    "pymmcore-plus >=0.8.0",
+    "pymmcore-widgets >=0.5.3",
+    "superqt >=0.5.1",
     "tifffile",
-    "useq-schema >=0.1.0",
+    "useq-schema >=0.4.1",
     "zarr",
 ]
 
@@ -49,7 +50,9 @@ dependencies = [
 [project.optional-dependencies]
 testing = ["pytest", "pytest-cov", "pytest-qt"]
 pyqt5 = ["PyQt5"]
+pyqt6 = ["PyQt6"]
 pyside2 = ["PySide2"]
+pyside6 = ["PySide6"]
 dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
 
 [project.urls]
@@ -112,6 +115,8 @@ filterwarnings = [
     "ignore::DeprecationWarning:ipykernel",
     "ignore:<tifffile.TiffWriter.write> data with shape:DeprecationWarning:", # for napari
     "ignore:`np.bool8` is a deprecated alias::skimage",
+    "ignore:Jupyter is migrating its paths to use standard platformdirs:",
+    "ignore:\\nPyarrow will become a required dependency"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
