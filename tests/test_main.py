@@ -8,7 +8,11 @@ from pymmcore_plus import CMMCorePlus
 
 @pytest.mark.parametrize(
     "argv",
-    [[""], ["", str(Path(__file__).parent / "test_config.cfg")], ["", "nonexistant"]],
+    [
+        [],
+        ["--config", str(Path(__file__).parent / "test_config.cfg")],
+        ["-c", "nonexistant"],
+    ],
 )
 def test_cli_main(argv: list) -> None:
     import napari
@@ -16,7 +20,7 @@ def test_cli_main(argv: list) -> None:
 
     with patch("napari.run") as mock_run:
         with patch("qtpy.QtWidgets.QMainWindow.show") as mock_show:
-            if "nonexistant" in argv[-1]:
+            if "nonexistant" in argv:
                 with pytest.warns():
                     main(argv)
             else:
@@ -24,7 +28,8 @@ def test_cli_main(argv: list) -> None:
 
     mock_run.assert_called_once()
     mock_show.assert_called_once()
-    if "test_config" in argv[-1]:
+
+    if argv and "test_config" in argv[-1]:
         assert len(CMMCorePlus.instance().getLoadedDevices()) > 1
 
     # this is to prevent a leaked widget error in the NEXT test
