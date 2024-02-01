@@ -119,8 +119,8 @@ class _NapariMDAHandler:
 
         if meta is None:
             # this is not an MDA we started
-            # TODO: should we still handle this with some sane defaults?
-            return
+            # so just use the default napari_mm metadata
+            meta = sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta()
         sequence = cast("ActiveMDASequence", sequence)
 
         # pause acquisition until zarr layer(s) are added
@@ -135,7 +135,7 @@ class _NapariMDAHandler:
         # now create a zarr array in a temporary directory for each layer
         for id_, shape, kwargs in layers_to_create:
             tmp = tempfile.TemporaryDirectory()
-            dtype = f"uint{self._mmc.getImageBitDepth()}"
+            dtype = f"u{self._mmc.getBytesPerPixel()}"
             # create the zarr array and add it to the viewer
             z = zarr.open(
                 str(tmp.name),
