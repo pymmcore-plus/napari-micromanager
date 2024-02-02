@@ -49,7 +49,7 @@ class MultiDWidget(MDAWidget):
             split_channels=bool(split),
             save_dir=widget_meta.get("save_dir", ""),
             file_name=widget_meta.get("save_name", ""),
-            should_save="save_dir" in widget_meta,
+            should_save=bool("save_dir" in widget_meta),
         )
         return sequence  # type: ignore[no-any-return]
 
@@ -58,11 +58,14 @@ class MultiDWidget(MDAWidget):
         if nmm_meta := value.metadata.get(SEQUENCE_META_KEY):
             if isinstance(nmm_meta, dict):
                 nmm_meta = SequenceMeta(**nmm_meta)
+            if not isinstance(nmm_meta, SequenceMeta):  # pragma: no cover
+                raise TypeError(f"Expected {SequenceMeta}, got {type(nmm_meta)}")
 
             # update pymmcore_widgets metadata if SequenceMeta are provided
             widgets_meta = value.metadata.setdefault(MMCORE_WIDGETS_META, {})
             widgets_meta.setdefault("save_dir", nmm_meta.save_dir)
             widgets_meta.setdefault("save_name", nmm_meta.file_name)
+
             # set split_channels checkbox
             self.checkBox_split_channels.setChecked(bool(nmm_meta.split_channels))
         super().setValue(value)
