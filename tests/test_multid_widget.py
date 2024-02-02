@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from pymmcore_plus.mda import MDAEngine
@@ -73,7 +74,12 @@ def test_saving_mda(
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
 
     multiC = len(mda.channels) > 1
-    splitC = mda.metadata[SEQUENCE_META_KEY].split_channels
+
+    meta = mda.metadata[SEQUENCE_META_KEY]
+    if isinstance(meta, dict):
+        meta = SequenceMeta(**meta)
+
+    splitC = meta.split_channels
     if multiC and splitC:
         expected_shape.pop(mda.used_axes.find("c"))
         nfiles = len(list((tmp_path / f"{meta.file_name}_000").iterdir()))
@@ -104,3 +110,26 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     viewer_layer_names = [layer.name for layer in viewer.layers]
     assert layer_name in viewer_layer_names
     assert sequence.shape == viewer.layers[layer_name].data.shape[:-2]
+
+
+meta = [
+    {SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
+    {SEQUENCE_META_KEY: {"mode": "mda"}},
+]
+
+
+@pytest.mark.parametrize("meta", meta)
+def test_mda_set_value(qtbot: QtBot, meta: dict[str, str]):
+    wdg = MultiDWidget()
+    qtbot.addWidget(wdg)
+
+    sequence = MDASequence(
+        channels=[{"config": "Cy5", "exposure": 1}],
+        time_plan={"interval": 0.1, "loops": 2},
+        axis_order="pcz",
+        stage_positions=[(222, 1, 1)],
+        metadata=meta,
+    )
+    wdg.setValue(sequence)
+
+    assert wdg.value().metadata[SEQUENCE_META_KEY].mode == "mda"
