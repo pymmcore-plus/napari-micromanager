@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable
 import napari
 import napari.layers
 from pymmcore_plus import CMMCorePlus
-from qtpy.QtCore import QObject, Qt, QTimer
+from qtpy.QtCore import QObject, Qt, QTimerEvent
 from superqt.utils import ensure_main_thread
 
 from ._mda_handler import _NapariMDAHandler
@@ -15,9 +15,6 @@ if TYPE_CHECKING:
     import napari.viewer
     import numpy as np
     from pymmcore_plus.core.events._protocol import PSignalInstance
-
-
-_DEFAULT_WAIT = 100  # ms
 
 
 class CoreViewerLink(QObject):
@@ -35,38 +32,17 @@ class CoreViewerLink(QObject):
         self._mda_handler = _NapariMDAHandler(self._mmc, viewer)
         self._live_timer_id: int | None = None
 
-        self.streaming_timer = QTimer(parent=self)
-        self.streaming_timer.setTimerType(Qt.TimerType.PreciseTimer)
-        self.streaming_timer.setInterval(int(self._mmc.getExposure()) or _DEFAULT_WAIT)
-        self.streaming_timer.timeout.connect(self._on_streaming_timeout)
-
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
         self._connections: list[tuple[PSignalInstance, Callable]] = [
-            (self._mmc.events.imageSnapped, self._on_image_snapped),
+            (self._mmc.events.imageSnapped, self._image_snapped),
             (self._mmc.events.imageSnapped, self._stop_live),
             (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
-            (self._mmc.events.exposureChanged, self._on_exposure_changed),
+            (self._mmc.events.exposureChanged, self._restart_live),
         ]
         for signal, slot in self._connections:
             signal.connect(slot)
-
-    def _on_streaming_timeout(self) -> None:
-        with contextlib.suppress(RuntimeError, IndexError):
-            self._update_viewer(self._mmc.getLastImage())
-
-    def _start_live(self) -> None:
-        self.streaming_timer.start()
-
-    def _stop_live(self) -> None:
-        self.streaming_timer.stop()
-
-    def _on_exposure_changed(self, device: str, value: str) -> None:
-        self.streaming_timer.setInterval(int(value))
-
-    def _on_image_snapped(self) -> None:
-        self._update_viewer(self._mmc.getImage())
 
     def cleanup(self) -> None:
         for signal, slot in self._connections:
@@ -74,6 +50,26 @@ class CoreViewerLink(QObject):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         self._mda_handler._cleanup()
+
+    def timerEvent(self, a0: QTimerEvent | None) -> None:
+        self._update_viewer()
+
+    def _image_snapped(self) -> None:
+        self._update_viewer(self._mmc.getImage())
+
+    def _start_live(self) -> None:
+        interval = int(self._mmc.getExposure())
+        self._live_timer_id = self.startTimer(interval, Qt.TimerType.PreciseTimer)
+
+    def _stop_live(self) -> None:
+        if self._live_timer_id is not None:
+            self.killTimer(self._live_timer_id)
+            self._live_timer_id = None
+
+    def _restart_live(self, camera: str, exposure: float) -> None:
+        if self._live_timer_id:
+            self._mmc.stopSequenceAcquisition()
+            self._mmc.startContinuousSequenceAcquisition()
 
     @ensure_main_thread  # type: ignore [misc]
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
@@ -98,6 +94,5 @@ class CoreViewerLink(QObject):
             # return to default
             preview_layer.scale = [1.0, 1.0]
 
-        # if self._live_timer_id is None:
-        if not self._mmc.isSequenceRunning():
+        if self._live_timer_id is None:
             self.viewer.reset_view()
