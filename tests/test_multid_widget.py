@@ -53,8 +53,10 @@ def test_saving_mda(
     assert mda_widget.save_info.isChecked()
     meta = mda_widget.value().metadata[SEQUENCE_META_KEY]
     assert meta.save_dir == str(tmp_path)
-    mda = mda.replace(axis_order=mda_widget.value().axis_order)
-
+    # using `metadata=mda.metadata` here to keep the SequenceMeta object
+    # rather than a serialized dict... this is a hack to get around a broader issue
+    # with the .replace method
+    mda = mda.replace(axis_order=mda_widget.value().axis_order, metadata=mda.metadata)
     mmc = main_window._mmc
 
     # re-register twice to fully exercise the logic of the update

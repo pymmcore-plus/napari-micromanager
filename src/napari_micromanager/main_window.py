@@ -4,6 +4,7 @@ import atexit
 import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Callable
+from warnings import warn
 
 import napari
 import napari.layers
@@ -14,6 +15,8 @@ from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
 
@@ -24,7 +27,9 @@ logging.getLogger("napari.loader").setLevel(logging.WARNING)
 class MainWindow(MicroManagerToolbar):
     """The main napari-micromanager widget that gets added to napari."""
 
-    def __init__(self, viewer: napari.viewer.Viewer) -> None:
+    def __init__(
+        self, viewer: napari.viewer.Viewer, config: str | Path | None = None
+    ) -> None:
         super().__init__(viewer)
 
         # get global CMMCorePlus instance
@@ -48,6 +53,13 @@ class MainWindow(MicroManagerToolbar):
         # queue cleanup
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
+
+        if config is not None:
+            try:
+                self._mmc.loadSystemConfiguration(config)
+            except FileNotFoundError:
+                # don't crash if the user passed an invalid config
+                warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:

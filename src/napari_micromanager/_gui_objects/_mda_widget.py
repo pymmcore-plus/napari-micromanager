@@ -56,6 +56,8 @@ class MultiDWidget(MDAWidget):
     def setValue(self, value: MDASequence) -> None:
         """Set the current value of the widget."""
         if nmm_meta := value.metadata.get(SEQUENCE_META_KEY):
+            if isinstance(nmm_meta, dict):
+                nmm_meta = SequenceMeta(**nmm_meta)
             if not isinstance(nmm_meta, SequenceMeta):  # pragma: no cover
                 raise TypeError(f"Expected {SequenceMeta}, got {type(nmm_meta)}")
 
