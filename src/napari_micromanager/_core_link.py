@@ -58,7 +58,6 @@ class CoreViewerLink(QObject):
         # If we are in the middle of an MDA, don't update the preview viewer.
         if self._mmc.mda.is_running():
             return
-
         self._update_viewer(self._mmc.getImage())
 
     def _start_live(self) -> None:
