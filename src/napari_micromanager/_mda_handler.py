@@ -87,6 +87,7 @@ class _NapariMDAHandler:
     def __init__(self, mmcore: CMMCorePlus, viewer: napari.viewer.Viewer) -> None:
         self._mmc = mmcore
         self.viewer = viewer
+        self._mda_running: bool = False
 
         # mapping of id -> (zarr.Array, temporary directory) for each layer created
         self._tmp_arrays: dict[str, tuple[zarr.Array, tempfile.TemporaryDirectory]] = {}
