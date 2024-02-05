@@ -91,6 +91,7 @@ class _NapariMDAHandler:
         # mapping of id -> (zarr.Array, temporary directory) for each layer created
         self._tmp_arrays: dict[str, tuple[zarr.Array, tempfile.TemporaryDirectory]] = {}
         self._deck: deque[tuple[np.ndarray, MDAEvent]] = deque()
+        self._mda_running: bool = False
 
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
