@@ -56,7 +56,7 @@ class CoreViewerLink(QObject):
 
     def _image_snapped(self) -> None:
         # If we are in the middle of an MDA, don't update the preview viewer.
-        if self._mmc.mda.is_running():
+        if self._mda_handler._mda_running:
             return
         self._update_viewer(self._mmc.getImage())
 
@@ -77,10 +77,6 @@ class CoreViewerLink(QObject):
     @ensure_main_thread  # type: ignore [misc]
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the circular buffer."""
-        # If we are in the middle of an MDA, don't update the preview viewer.
-        if self._mmc.mda.is_running():
-            return
-
         if data is None:
             try:
                 data = self._mmc.getLastImage()
