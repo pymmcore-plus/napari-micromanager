@@ -1,4 +1,5 @@
 """Napari-based GUI for MicroManager."""
+
 from importlib.metadata import PackageNotFoundError, version
 
 try:

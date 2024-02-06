@@ -161,7 +161,7 @@ class _NapariMDAHandler:
         self._io_t = create_worker(
             self._watch_mda,
             _start_thread=True,
-            _connect={"yielded": self._update_viewer_dims}
+            _connect={"yielded": self._update_viewer_dims},
             # NOTE: once we have a proper writer, we can add here:
             # "finished": self._process_remaining_frames
         )
