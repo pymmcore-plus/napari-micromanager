@@ -1,4 +1,5 @@
 """Metadata class for managing MDAs."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

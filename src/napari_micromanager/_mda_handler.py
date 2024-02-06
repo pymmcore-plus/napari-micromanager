@@ -87,6 +87,7 @@ class _NapariMDAHandler:
     def __init__(self, mmcore: CMMCorePlus, viewer: napari.viewer.Viewer) -> None:
         self._mmc = mmcore
         self.viewer = viewer
+        self._mda_running: bool = False
 
         # mapping of id -> (zarr.Array, temporary directory) for each layer created
         self._tmp_arrays: dict[str, tuple[zarr.Array, tempfile.TemporaryDirectory]] = {}
@@ -161,7 +162,7 @@ class _NapariMDAHandler:
         self._io_t = create_worker(
             self._watch_mda,
             _start_thread=True,
-            _connect={"yielded": self._update_viewer_dims}
+            _connect={"yielded": self._update_viewer_dims},
             # NOTE: once we have a proper writer, we can add here:
             # "finished": self._process_remaining_frames
         )
