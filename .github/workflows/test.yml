@@ -68,6 +68,8 @@ jobs:
 
       - name: Coverage
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   test_linux:
     name: py3.9 pyqt5 ubuntu
