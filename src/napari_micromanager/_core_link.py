@@ -35,7 +35,7 @@ class CoreViewerLink(QObject):
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
         self._connections: list[tuple[PSignalInstance, Callable]] = [
-            (self._mmc.events.imageSnapped, self._update_viewer),
+            (self._mmc.events.imageSnapped, self._image_snapped),
             (self._mmc.events.imageSnapped, self._stop_live),
             (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
@@ -53,6 +53,11 @@ class CoreViewerLink(QObject):
 
     def timerEvent(self, a0: QTimerEvent | None) -> None:
         self._update_viewer()
+
+    def _image_snapped(self) -> None:
+        # If we are in the middle of an MDA, don't update the preview viewer.
+        if not self._mda_handler._mda_running:
+            self._update_viewer(self._mmc.getImage())
 
     def _start_live(self) -> None:
         interval = int(self._mmc.getExposure())
