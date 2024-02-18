@@ -11,7 +11,6 @@ import zarr
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
-from ._saving import save_sequence
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -51,6 +50,9 @@ if TYPE_CHECKING:
         grid_pos: NotRequired[str]
         ch_id: NotRequired[str]
         translate: NotRequired[bool]
+
+
+EXP = "Exp"
 
 
 # NOTE: import from pymmcore-plus when new version will be released:
@@ -144,7 +146,7 @@ class _NapariMDAHandler:
                 dtype=dtype,
                 chunks=tuple([1] * len(shape) + yx_shape),  # VERY IMPORTANT FOR SPEED!
             )
-            fname = meta.file_name if meta.should_save else "Exp"
+            fname = meta.file_name or EXP
             self._create_empty_image_layer(z, f"{fname}_{id_}", sequence, **kwargs)
 
             # store the zarr array and temporary directory for later cleanup
@@ -162,8 +164,6 @@ class _NapariMDAHandler:
             self._watch_mda,
             _start_thread=True,
             _connect={"yielded": self._update_viewer_dims},
-            # NOTE: once we have a proper writer, we can add here:
-            # "finished": self._process_remaining_frames
         )
 
         # Set the viewer slider on the first layer frame
@@ -237,27 +237,13 @@ class _NapariMDAHandler:
 
     def _on_mda_finished(self, sequence: MDASequence) -> None:
         self._mda_running = False
+        self._process_remaining_frames()
 
-        # NOTE: this will be REMOVED when using proper WRITER (e.g.
-        # https://github.com/pymmcore-plus/pymmcore-MDA-writers or
-        # https://github.com/fdrgsp/pymmcore-MDA-writers/tree/update_writer). See the
-        # comment in _process_remaining_frames for more details.
-        self._process_remaining_frames(sequence)
-
-    def _process_remaining_frames(self, sequence: MDASequence) -> None:
+    def _process_remaining_frames(self) -> None:
         """Process any remaining frames after the MDA has finished."""
-        # NOTE: when switching to a proper wtiter to save files, this method will not
-        # have the sequence argument, it will not be called by `_on_mda_finished` but we
-        # can link it to the self._io_t.finished signal ("finished": self._process_
-        # remaining_frames) and the saving code below will be removed.
         self._reset_viewer_dims()
         while self._deck:
             self._process_frame(*self._deck.pop())
-
-        # to remove when using proper writer
-        if (meta := sequence.metadata.get(SEQUENCE_META_KEY)) is not None:
-            sequence = cast("ActiveMDASequence", sequence)
-            save_sequence(sequence, self.viewer.layers, meta)
 
     def _create_empty_image_layer(
         self,
@@ -344,7 +330,7 @@ def _determine_sequence_layers(
               `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
     """
     # if we got to this point, sequence.metadata[SEQUENCE_META_KEY] should exist
-    meta = sequence.metadata["napari_mm_sequence_meta"]
+    meta = sequence.metadata[SEQUENCE_META_KEY]  # type: ignore
 
     # these are all the layers we're going to create
     # each item is a tuple of (id, shape, layer_metadata)
@@ -407,7 +393,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     axis_order = list(get_full_sequence_axes(event.sequence))
 
     suffix = ""
-    prefix = meta.file_name if meta.should_save else "Exp"
+    prefix = meta.file_name or EXP
 
     if meta.split_channels and event.channel:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"

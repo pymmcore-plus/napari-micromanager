@@ -27,9 +27,13 @@ def test_layer_scale(
 
     sequence = mda_sequence_splits.replace(
         axis_order=axis_order,
-        metadata={SEQUENCE_META_KEY: SequenceMeta(should_save=False)},
     )
     z_step = sequence.z_plan and sequence.z_plan.step
+
+    # the MDASequence 'replace' switchesp the metadata to a dict, here we switch it back
+    meta = sequence.metadata[SEQUENCE_META_KEY]
+    meta = SequenceMeta(**meta)
+    sequence = sequence.replace(metadata={SEQUENCE_META_KEY: meta})
 
     # create zarr layer
     handler._on_mda_started(sequence)
