@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
+from pymmcore_widgets.mda._core_mda import SAVE_AS, SaveAs
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
 
 
 EXP = "Exp"
+MMCORE_WIDGETS_META = "pymmcore_widgets"
 
 
 # NOTE: import from pymmcore-plus when new version will be released:
@@ -71,6 +73,18 @@ def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
                 [ax for ax in p.sequence.used_axes if ax not in main_seq_axes]
             )
     return tuple(main_seq_axes + sub_seq_axes)
+
+
+def _get_file_name(sequence: MDASequence) -> str:
+    """Get the file name from the MDASequence metadata."""
+    save_as_meta = sequence.metadata.get(SAVE_AS)
+    if save_as_meta is None:
+        return ""
+    elif isinstance(save_as_meta, dict):
+        return cast(str, save_as_meta["save_name"])
+    else:
+        save_as_meta = cast(SaveAs, save_as_meta)
+        return cast(str, save_as_meta.save_name)
 
 
 class _NapariMDAHandler:
@@ -146,7 +160,8 @@ class _NapariMDAHandler:
                 dtype=dtype,
                 chunks=tuple([1] * len(shape) + yx_shape),  # VERY IMPORTANT FOR SPEED!
             )
-            fname = meta.file_name or EXP
+            # get filename from MDASequence metadata
+            fname = _get_file_name(sequence) or EXP
             self._create_empty_image_layer(z, f"{fname}_{id_}", sequence, **kwargs)
 
             # store the zarr array and temporary directory for later cleanup
@@ -393,7 +408,8 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     axis_order = list(get_full_sequence_axes(event.sequence))
 
     suffix = ""
-    prefix = meta.file_name or EXP
+    # get filename from MDASequence metadata
+    prefix = _get_file_name(event.sequence) or EXP
 
     if meta.split_channels and event.channel:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
     from useq import MDASequence
 
+
 MMCORE_WIDGETS_META = "pymmcore_widgets"
 
 
@@ -41,12 +42,9 @@ class MultiDWidget(MDAWidget):
         """Return the current value of the widget."""
         # Overriding the value method to add the metadata necessary for the handler.
         sequence = super().value()
-        widget_meta = sequence.metadata.get(MMCORE_WIDGETS_META, {})
         split = self.checkBox_split_channels.isChecked() and len(sequence.channels) > 1
         sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta(
-            mode="mda",
-            split_channels=bool(split),
-            file_name=widget_meta.get("save_name", ""),
+            mode="mda", split_channels=bool(split)
         )
         return sequence  # type: ignore[no-any-return]
 

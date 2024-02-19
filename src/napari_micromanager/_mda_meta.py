@@ -20,7 +20,6 @@ class SequenceMeta:
 
     mode: str = ""
     split_channels: bool = False
-    file_name: str = ""
 
     def replace(self, **kwargs: Any) -> SequenceMeta:
         """Return a new SequenceMeta with the given kwargs replaced."""
