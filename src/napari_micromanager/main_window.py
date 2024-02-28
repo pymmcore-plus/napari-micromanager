@@ -93,11 +93,15 @@ class MainWindow(MicroManagerToolbar):
     def _save_layout(self) -> None:
         """Save the napa-micromanager layout to a json file.
 
-        The json file has two keys, "layout_state", where the state of the napari
-        main window is stored using the saveState() method, and "pymmcore_widgets",
-        where the names of the docked pymmcore_widgets are stored. "pymmcore_widgets"
-        is necessary because we need to create the widgets before restoring the layout
-        state or they will not be added to the layout.
+        The json file has two keys:
+        - "layout_state" where the state of napari main window is stored using the
+          saveState() method. The state is base64 encoded to be able to save it to the
+          json file.
+        - "pymmcore_widgets" where the names of the docked pymmcore_widgets are stored.
+
+        IMPORTANT: The "pymmcore_widgets" key is necessary because we need to create the
+        pymmcore_widgets before restoring the state or they will not be added to the
+        layout.
         """
         # get the names of the pymmcore_widgets that are part of the layout
         pymmcore_wdgs: list[str] = []
