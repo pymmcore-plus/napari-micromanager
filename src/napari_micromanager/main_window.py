@@ -101,9 +101,10 @@ class MainWindow(MicroManagerToolbar):
           json file.
         - "pymmcore_widgets" where the names of the docked pymmcore_widgets are stored.
 
-        IMPORTANT: The "pymmcore_widgets" key is necessary because we need to create the
-        pymmcore_widgets before restoring the state or they will not be added to the
-        layout.
+        IMPORTANT: The "pymmcore_widgets" key is crucial in our layout saving process.
+        It stores the names of all active pymmcore_widgets at the time of saving. Before
+        restoring the layout, we must recreate these widgets. If not, they won't be
+        included in the restored layout.
         """
         # get the names of the pymmcore_widgets that are part of the layout
         pymmcore_wdgs: list[str] = []
