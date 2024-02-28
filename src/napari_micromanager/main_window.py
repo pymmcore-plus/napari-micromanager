@@ -23,7 +23,7 @@ from ._gui_objects._toolbar import DOCK_WIDGETS, MicroManagerToolbar
 if TYPE_CHECKING:
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
-    from PyQt5.QtGui import QCloseEvent
+    from qtpy.QtGui import QCloseEvent
 
 # Path to the user data directory to store the layout
 USER_DATA_DIR = Path(appdirs.user_data_dir(appname="napari_micromanager"))
