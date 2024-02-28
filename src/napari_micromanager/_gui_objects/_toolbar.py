@@ -32,6 +32,7 @@ from qtpy.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QTabWidget,
     QToolBar,
@@ -198,6 +199,8 @@ class MicroManagerToolbar(QMainWindow):
                 )
                 floating = True
                 tabify = False
+
+            wdg = ScrollableWidget(self, title=key, widget=wdg)
             dock_wdg = self._add_dock_widget(wdg, key, floating=floating, tabify=tabify)
             self._dock_widgets[key] = dock_wdg
 
@@ -220,6 +223,26 @@ class MicroManagerToolbar(QMainWindow):
             dock_wdg._close_btn = False
         dock_wdg.setFloating(floating)
         return dock_wdg
+
+
+class ScrollableWidget(QWidget):
+    """A QWidget with a QScrollArea.
+
+    We use it to add a croll alre to the pymmcore_widgets.
+    """
+
+    def __init__(self, parent: QWidget | None = None, *, title: str, widget: QWidget):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        # create the scroll area and add the widget to it
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        layout = QHBoxLayout(self)
+        layout.addWidget(self.scroll_area)
+        # set the widget to the scroll area
+        self.scroll_area.setWidget(widget)
+        # resize the dock widget to the size hint of the widget
+        self.resize(widget.minimumSizeHint())
 
 
 # -------------- Toolbars --------------------
