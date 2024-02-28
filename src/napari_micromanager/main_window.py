@@ -10,15 +10,19 @@ import napari
 import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
+from qtpy.QtCore import QByteArray
 
 from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
+
     from pathlib import Path
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
+    from PyQt5.QtGui import QCloseEvent
 
+PATH = "/Users/fdrgsp/Desktop/layout/layout.state"
 
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
@@ -31,6 +35,10 @@ class MainWindow(MicroManagerToolbar):
         self, viewer: napari.viewer.Viewer, config: str | Path | None = None
     ) -> None:
         super().__init__(viewer)
+
+        # override the napari close event to save the layout
+        self._napari_close_event = self.viewer.window._qt_window.closeEvent
+        viewer.window._qt_window.closeEvent = self._close_event
 
         # get global CMMCorePlus instance
         self._mmc = CMMCorePlus.instance()
@@ -61,6 +69,9 @@ class MainWindow(MicroManagerToolbar):
                 # don't crash if the user passed an invalid config
                 warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
+        # load layout
+        self._load_layout()
+
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):
@@ -74,3 +85,23 @@ class MainWindow(MicroManagerToolbar):
         self.minmax.update_from_layers(
             lr for lr in visible if isinstance(lr, napari.layers.Image)
         )
+
+    def _save_layout(self) -> None:
+        """Save the napa-micromanager layout to a file."""
+        # Save the current state of the QMainWindow
+        with open(PATH, "wb") as f:
+            f.write(self.viewer.window._qt_window.saveState())
+
+    def _load_layout(self) -> None:
+        """Load the napari-micromanager layout from a file."""
+        try:
+            with open(PATH, "rb") as f:
+                state = QByteArray(f.read())
+                self.viewer.window._qt_window.restoreState(state)
+        except FileNotFoundError:
+            print("No saved state found.")
+
+    def _close_event(self, event: QCloseEvent | None) -> None:
+        """Close the napari-micromanager plugin and save the layout."""
+        self._save_layout()
+        self._napari_close_event(event)
