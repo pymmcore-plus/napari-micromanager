@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import atexit
+import base64
 import contextlib
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Callable
 from warnings import warn
@@ -11,9 +13,10 @@ import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import QByteArray
+from qtpy.QtWidgets import QDockWidget
 
 from ._core_link import CoreViewerLink
-from ._gui_objects._toolbar import MicroManagerToolbar
+from ._gui_objects._toolbar import DOCK_WIDGETS, MicroManagerToolbar
 
 if TYPE_CHECKING:
 
@@ -22,7 +25,7 @@ if TYPE_CHECKING:
     from pymmcore_plus.core.events._protocol import PSignalInstance
     from PyQt5.QtGui import QCloseEvent
 
-PATH = "/Users/fdrgsp/Desktop/layout/layout.state"
+PATH = "/Users/fdrgsp/Desktop/layout/layout.json"
 
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
@@ -87,19 +90,67 @@ class MainWindow(MicroManagerToolbar):
         )
 
     def _save_layout(self) -> None:
-        """Save the napa-micromanager layout to a file."""
-        # Save the current state of the QMainWindow
-        with open(PATH, "wb") as f:
-            f.write(self.viewer.window._qt_window.saveState())
+        """Save the napa-micromanager layout to a json file.
+
+        The json file has two keys, "layout_state", where the state of the napari
+        main window is stored using the saveState() method, and "pymmcore_widgets",
+        where the names of the docked pymmcore_widgets are stored. "pymmcore_widgets"
+        is necessary because we need to create the widgets before restoring the layout
+        state or they will not be added to the layout.
+        """
+        # get the names of the pymmcore_widgets that are part of the layout
+        pymmcore_wdgs: list[str] = []
+        main_win = self.viewer.window._qt_window
+        for dock_wdg in main_win.findChildren(QDockWidget):
+            wdg_name = dock_wdg.objectName()
+            if wdg_name in DOCK_WIDGETS:
+                pymmcore_wdgs.append(wdg_name)
+
+        # get the state bytes data of the napari main window
+        state_bytes = self.viewer.window._qt_window.saveState().data()
+
+        # Create dictionary with widget names and layout state. The layout state is
+        # base64 encoded to be able to save it to a json file.
+        data = {
+            "pymmcore_widgets": pymmcore_wdgs,
+            "layout_state": base64.b64encode(state_bytes).decode(),
+        }
+
+        # Serialize data to JSON and save to file
+        # TODO: chech that the file path exists, if not create it
+        try:
+            with open(PATH, "w") as json_file:
+                json.dump(data, json_file)
+        except Exception as e:
+            print(f"Was not able to save layout to file. Error: {e}")
 
     def _load_layout(self) -> None:
-        """Load the napari-micromanager layout from a file."""
+        """Load the napari-micromanager layout from a json file."""
+        # TODO: chech that the file path exists, if not, return
         try:
-            with open(PATH, "rb") as f:
-                state = QByteArray(f.read())
-                self.viewer.window._qt_window.restoreState(state)
-        except FileNotFoundError:
-            print("No saved state found.")
+            with open(PATH) as f:
+                data = json.load(f)
+
+                # get the layout state bytes
+                state_bytes = data.get("layout_state")
+
+                if state_bytes is None:
+                    return
+
+                # add pymmcore_widgets to the main window
+                pymmcore_wdgs = data.get("pymmcore_widgets", [])
+                for wdg_name in pymmcore_wdgs:
+                    if wdg_name in DOCK_WIDGETS:
+                        self._show_dock_widget(wdg_name)
+
+                # Convert base64 encoded string back to bytes
+                state_bytes = base64.b64decode(state_bytes)
+
+                # restore the layout state
+                self.viewer.window._qt_window.restoreState(QByteArray(state_bytes))
+
+        except Exception as e:
+            print(f"Was not able to load layout from file. Error: {e}")
 
     def _close_event(self, event: QCloseEvent | None) -> None:
         """Close the napari-micromanager plugin and save the layout."""
