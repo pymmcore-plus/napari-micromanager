@@ -43,7 +43,7 @@ class MainWindow(MicroManagerToolbar):
 
         # override the napari close event to save the layout
         self._napari_close_event = self.viewer.window._qt_window.closeEvent
-        viewer.window._qt_window.closeEvent = self._close_event
+        self.viewer.window._qt_window.closeEvent = self._close_event
 
         # get global CMMCorePlus instance
         self._mmc = CMMCorePlus.instance()
