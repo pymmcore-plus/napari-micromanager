@@ -5,9 +5,11 @@ import base64
 import contextlib
 import json
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 from warnings import warn
 
+import appdirs
 import napari
 import napari.layers
 import napari.viewer
@@ -20,12 +22,12 @@ from ._gui_objects._toolbar import DOCK_WIDGETS, MicroManagerToolbar
 
 if TYPE_CHECKING:
 
-    from pathlib import Path
-
     from pymmcore_plus.core.events._protocol import PSignalInstance
     from PyQt5.QtGui import QCloseEvent
 
-PATH = "/Users/fdrgsp/Desktop/layout/layout.json"
+# Path to the user data directory to store the layout
+USER_DATA_DIR = Path(appdirs.user_data_dir(appname="napari_micromanager"))
+USER_LAYOUT_PATH = USER_DATA_DIR / "napari_micromanager_layout.json"
 
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
@@ -121,18 +123,23 @@ class MainWindow(MicroManagerToolbar):
             "layout_state": base64.b64encode(state_bytes).decode(),
         }
 
-        # TODO: check that the file path exists, if not create it
+        # if the user layout path does not exist, create it
+        if not USER_LAYOUT_PATH.exists():
+            USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
         try:
-            with open(PATH, "w") as json_file:
+            with open(USER_LAYOUT_PATH, "w") as json_file:
                 json.dump(data, json_file)
         except Exception as e:
             print(f"Was not able to save layout to file. Error: {e}")
 
     def _load_layout(self) -> None:
         """Load the napari-micromanager layout from a json file."""
-        # TODO: check that the file path exists, if not, return
+        if not USER_LAYOUT_PATH.exists():
+            return
+
         try:
-            with open(PATH) as f:
+            with open(USER_LAYOUT_PATH) as f:
                 data = json.load(f)
 
                 # get the layout state bytes
