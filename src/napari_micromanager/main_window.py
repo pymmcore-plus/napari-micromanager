@@ -111,7 +111,7 @@ class MainWindow(MicroManagerToolbar):
             if wdg_name in DOCK_WIDGETS:
                 pymmcore_wdgs.append(wdg_name)
 
-        # get the state bytes data of the napari main window
+        # get the state of the napari main window as bytes
         state_bytes = self.viewer.window._qt_window.saveState().data()
 
         # Create dictionary with widget names and layout state. The layout state is
@@ -121,8 +121,7 @@ class MainWindow(MicroManagerToolbar):
             "layout_state": base64.b64encode(state_bytes).decode(),
         }
 
-        # Serialize data to JSON and save to file
-        # TODO: chech that the file path exists, if not create it
+        # TODO: check that the file path exists, if not create it
         try:
             with open(PATH, "w") as json_file:
                 json.dump(data, json_file)
@@ -131,7 +130,7 @@ class MainWindow(MicroManagerToolbar):
 
     def _load_layout(self) -> None:
         """Load the napari-micromanager layout from a json file."""
-        # TODO: chech that the file path exists, if not, return
+        # TODO: check that the file path exists, if not, return
         try:
             with open(PATH) as f:
                 data = json.load(f)
