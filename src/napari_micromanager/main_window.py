@@ -3,11 +3,9 @@ from __future__ import annotations
 import atexit
 import contextlib
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 from warnings import warn
 
-import appdirs
 import napari
 import napari.layers
 import napari.viewer
@@ -18,11 +16,9 @@ from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
 
-    from pymmcore_plus.core.events._protocol import PSignalInstance
+    from pathlib import Path
 
-# Path to the user data directory to store the layout
-USER_DATA_DIR = Path(appdirs.user_data_dir(appname="napari_micromanager"))
-USER_LAYOUT_PATH = USER_DATA_DIR / "napari_micromanager_layout.json"
+    from pymmcore_plus.core.events._protocol import PSignalInstance
 
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
