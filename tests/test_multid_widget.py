@@ -37,7 +37,9 @@ def test_saving_mda(
 ) -> None:
     mda = mda_sequence_splits
     main_window._show_dock_widget("MDA")
-    mda_widget = main_window._dock_widgets["MDA"].widget()
+    scroll_wdg = main_window._dock_widgets["MDA"].widget()
+    scroll_area = scroll_wdg.children()[-1]
+    mda_widget = scroll_area.widget()
     assert isinstance(mda_widget, MultiDWidget)
 
     # FIXME:
