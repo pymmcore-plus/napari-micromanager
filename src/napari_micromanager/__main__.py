@@ -10,7 +10,7 @@ from typing import Sequence
 def main(args: Sequence[str] | None = None) -> None:
     """Create a napari viewer and add the MicroManager plugin to it."""
     if args is None:
-        args = sys.argv[1:]
+        args = sys.argv
 
     parser = argparse.ArgumentParser(description="Enter string")
     parser.add_argument(
