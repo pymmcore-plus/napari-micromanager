@@ -14,9 +14,13 @@ from pymmcore_plus import CMMCorePlus
         ["-c", "nonexistant"],
     ],
 )
-def test_cli_main(argv: list) -> None:
+def test_cli_main(argv: list, saved_layout: Path) -> None:
     import napari
     from napari.qt import QtViewer
+
+    # remover any saved layout file
+    if saved_layout.exists():
+        saved_layout.unlink()
 
     with patch("napari.run") as mock_run:
         with patch("qtpy.QtWidgets.QMainWindow.show") as mock_show:
