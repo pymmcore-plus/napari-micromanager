@@ -211,7 +211,6 @@ class MicroManagerToolbar(QMainWindow):
             wdg = ScrollableWidget(self, title=key, widget=wdg)
             dock_wdg = self._add_dock_widget(wdg, key, floating=floating, tabify=tabify)
             self._connect_dock_widget(dock_wdg)
-            dock_wdg.destroyed.connect(self._disconnect_dock_widget)
             self._dock_widgets[key] = dock_wdg
 
     def _add_dock_widget(
@@ -239,13 +238,6 @@ class MicroManagerToolbar(QMainWindow):
         dock_wdg.visibilityChanged.connect(self._save_layout)
         dock_wdg.topLevelChanged.connect(self._save_layout)
         dock_wdg.dockLocationChanged.connect(self._save_layout)
-
-    def _disconnect_dock_widget(self) -> None:
-        """Disconnect the dock widget from the main window."""
-        dock_wdg = cast(QDockWidget, self.sender())
-        dock_wdg.visibilityChanged.disconnect(self._save_layout)
-        dock_wdg.topLevelChanged.disconnect(self._save_layout)
-        dock_wdg.dockLocationChanged.disconnect(self._save_layout)
 
     def _on_dock_widget_changed(self) -> None:
         """Start a saving threrad to save the layout if the thread is not running."""
