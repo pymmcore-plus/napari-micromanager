@@ -27,7 +27,7 @@ try:
 except ImportError:
     from pymmcore_widgets import PixelSizeWidget as ObjectivesPixelConfigurationWidget
 
-import appdirs
+from platformdirs import user_data_dir
 from qtpy.QtCore import QByteArray, QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
@@ -56,7 +56,7 @@ if TYPE_CHECKING:
 TOOL_SIZE = 35
 
 # Path to the user data directory to store the layout
-USER_DATA_DIR = Path(appdirs.user_data_dir(appname="napari_micromanager"))
+USER_DATA_DIR = Path(user_data_dir(appname="napari_micromanager"))
 USER_LAYOUT_PATH = USER_DATA_DIR / "napari_micromanager_layout.json"
 
 
