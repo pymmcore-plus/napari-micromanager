@@ -2,16 +2,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from napari_micromanager._gui_objects._toolbar import DOCK_WIDGETS
+from napari_micromanager._gui_objects._toolbar import DOCK_WIDGETS, USER_LAYOUT_PATH
 
 if TYPE_CHECKING:
-    from pathlib import Path
 
     from napari_micromanager.main_window import MainWindow
 
 
-def test_dockwidgets(main_window: MainWindow, saved_layout: Path):
-    assert not saved_layout.exists()
+def test_dockwidgets(main_window: MainWindow):
+    assert not USER_LAYOUT_PATH.exists()
 
     for dw_name in DOCK_WIDGETS:
         assert dw_name not in main_window._dock_widgets
@@ -19,5 +18,5 @@ def test_dockwidgets(main_window: MainWindow, saved_layout: Path):
         main_window._dock_widgets[dw_name].close()
 
     # a layout file should have been saved
-    assert saved_layout.exists()
-    saved_layout.unlink()
+    assert USER_LAYOUT_PATH.exists()
+    USER_LAYOUT_PATH.unlink()

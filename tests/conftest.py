@@ -1,7 +1,6 @@
 import itertools
 from pathlib import Path
 
-import appdirs
 import pytest
 import useq
 from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -56,10 +55,3 @@ def mda_sequence_splits(mda_sequence: useq.MDASequence, request) -> useq.MDASequ
         meta = meta.replace(split_channels=True)
         mda_sequence.metadata[SEQUENCE_META_KEY] = meta
     return mda_sequence
-
-
-@pytest.fixture
-def saved_layout():
-    # Path to the user data directory to store the layout
-    USER_DATA_DIR = Path(appdirs.user_data_dir(appname="napari_micromanager"))
-    return USER_DATA_DIR / "napari_micromanager_layout.json"
