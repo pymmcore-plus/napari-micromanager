@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
-from pymmcore_widgets.mda._core_mda import SAVE_AS, SaveAs
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -75,16 +74,11 @@ def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
     return tuple(main_seq_axes + sub_seq_axes)
 
 
-def _get_file_name(sequence: MDASequence) -> str:
+def _get_file_name_from_metadata(sequence: MDASequence) -> str:
     """Get the file name from the MDASequence metadata."""
-    save_as_meta = sequence.metadata.get(SAVE_AS)
-    if save_as_meta is None:
-        return ""
-    elif isinstance(save_as_meta, dict):
-        return cast(str, save_as_meta["save_name"])
-    else:
-        save_as_meta = cast(SaveAs, save_as_meta)
-        return cast(str, save_as_meta.save_name)
+    meta = sequence.metadata.get("pymmcore_widgets")
+    fname = "" if meta is None else meta.get("save_name", "")
+    return fname or EXP
 
 
 class _NapariMDAHandler:
@@ -161,7 +155,7 @@ class _NapariMDAHandler:
                 chunks=tuple([1] * len(shape) + yx_shape),  # VERY IMPORTANT FOR SPEED!
             )
             # get filename from MDASequence metadata
-            fname = _get_file_name(sequence) or EXP
+            fname = _get_file_name_from_metadata(sequence)
             self._create_empty_image_layer(z, f"{fname}_{id_}", sequence, **kwargs)
 
             # store the zarr array and temporary directory for later cleanup
@@ -409,7 +403,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
 
     suffix = ""
     # get filename from MDASequence metadata
-    prefix = _get_file_name(event.sequence) or EXP
+    prefix = _get_file_name_from_metadata(event.sequence)
 
     if meta.split_channels and event.channel:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"
