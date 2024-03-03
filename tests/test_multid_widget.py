@@ -25,6 +25,11 @@ def test_main_window_mda(main_window: MainWindow):
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
+    # assert that the layer has the correct metadata
+    layer_meta = main_window.viewer.layers[0].metadata.get(SEQUENCE_META_KEY)
+    keys = ["mode", "useq_sequence", "uid"]
+    assert all(key in layer_meta for key in keys)
+
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
     # we should show the mda even if it came from outside

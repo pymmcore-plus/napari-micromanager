@@ -38,8 +38,6 @@ if TYPE_CHECKING:
 
         sequence: ActiveMDASequence
 
-    # TODO: the keys are accurate, but currently this is at the top level layer.metadata
-    # we should nest it under a napari_micromanager key
     class LayerMeta(TypedDict):
         """Metadata that we add to layer.metadata."""
 
@@ -53,7 +51,7 @@ if TYPE_CHECKING:
 
 
 EXP = "Exp"
-MMCORE_WIDGETS_META = "pymmcore_widgets"
+WIDGETS_META = "pymmcore_widgets"
 
 
 # NOTE: import from pymmcore-plus when new version will be released:
@@ -76,7 +74,7 @@ def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
 
 def _get_file_name_from_metadata(sequence: MDASequence) -> str:
     """Get the file name from the MDASequence metadata."""
-    meta = sequence.metadata.get("pymmcore_widgets")
+    meta = sequence.metadata.get(WIDGETS_META)
     fname = "" if meta is None else meta.get("save_name", "")
     return fname or EXP
 
@@ -288,18 +286,19 @@ class _NapariMDAHandler:
             # return to default
             scale = [1.0, 1.0]
 
+        layer_meta: LayerMeta = {
+            "mode": meta.mode,
+            "useq_sequence": sequence,
+            "uid": sequence.uid,
+        }
+
         return self.viewer.add_image(
             arr,
             name=name,
             blending="additive",
             visible=False,
             scale=scale,
-            metadata={
-                "mode": meta.mode,
-                "useq_sequence": sequence,
-                "uid": sequence.uid,
-                **kwargs,
-            },
+            metadata={SEQUENCE_META_KEY: layer_meta, **kwargs},
         )
 
 
@@ -417,7 +416,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
         try:
             im_idx += (event.index[k],)
         # if axis not in event.index
-        # e.g. if we have both a position sequence grid and a single position
+        # e.g. if we have both a position with and one without a sub-sequence grid
         except KeyError:
             im_idx += (0,)
 
