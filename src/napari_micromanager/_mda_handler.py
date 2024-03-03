@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
+from pymmcore_widgets.useq_widgets._mda_sequence import PYMMCW_METADATA_KEY
 from superqt.utils import create_worker, ensure_main_thread
 
 from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
@@ -51,7 +52,6 @@ if TYPE_CHECKING:
 
 
 EXP = "Exp"
-WIDGETS_META = "pymmcore_widgets"
 
 
 # NOTE: import from pymmcore-plus when new version will be released:
@@ -74,7 +74,7 @@ def get_full_sequence_axes(sequence: MDASequence) -> tuple[str, ...]:
 
 def _get_file_name_from_metadata(sequence: MDASequence) -> str:
     """Get the file name from the MDASequence metadata."""
-    meta = sequence.metadata.get(WIDGETS_META)
+    meta = sequence.metadata.get(PYMMCW_METADATA_KEY)
     fname = "" if meta is None else meta.get("save_name", "")
     return fname or EXP
 
