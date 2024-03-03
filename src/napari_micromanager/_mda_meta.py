@@ -14,6 +14,7 @@ __all__ = ["SequenceMeta", "SEQUENCE_META_KEY"]
 SEQUENCE_META_KEY = "napari_mm_sequence_meta"
 
 
+# Should we simply use a dict now that we onky have two keys in here?
 @dataclass(frozen=True)
 class SequenceMeta:
     """Metadata associated with an MDA sequence."""
