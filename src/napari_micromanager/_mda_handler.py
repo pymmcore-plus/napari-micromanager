@@ -11,7 +11,7 @@ import zarr
 from pymmcore_widgets.useq_widgets._mda_sequence import PYMMCW_METADATA_KEY
 from superqt.utils import create_worker, ensure_main_thread
 
-from ._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+NAPARI_MM_META = "napari_micromanager"
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -24,15 +24,8 @@ if TYPE_CHECKING:
     from typing_extensions import NotRequired, TypedDict
     from useq import MDAEvent, MDASequence
 
-    class SequenceMetaDict(TypedDict):
-        """Dict containing the SequenceMeta object that we add when starting MDAs."""
-
-        napari_mm_sequence_meta: SequenceMeta
-
     class ActiveMDASequence(MDASequence):
         """MDASequence that whose metadata dict contains our special SequenceMeta."""
-
-        metadata: SequenceMetaDict  # type: ignore [assignment]
 
     class ActiveMDAEvent(MDAEvent):
         """Event that has been assigned a sequence."""
@@ -42,7 +35,6 @@ if TYPE_CHECKING:
     class LayerMeta(TypedDict):
         """Metadata that we add to layer.metadata."""
 
-        mode: str
         useq_sequence: MDASequence
         uid: UUID
         grid: NotRequired[str]
@@ -124,14 +116,7 @@ class _NapariMDAHandler:
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
-        meta: SequenceMeta | None = sequence.metadata.get(SEQUENCE_META_KEY)
-
-        if meta is None:
-            # this is not an MDA we started
-            # so just use the default napari_mm metadata
-            meta = sequence.metadata[SEQUENCE_META_KEY] = SequenceMeta()
         sequence = cast("ActiveMDASequence", sequence)
-
         # pause acquisition until zarr layer(s) are added
         self._mmc.mda.toggle_pause()
 
@@ -197,12 +182,6 @@ class _NapariMDAHandler:
     def _process_frame(
         self, image: np.ndarray, event: MDAEvent
     ) -> tuple[str | None, tuple[int, ...] | None]:
-        seq_meta = getattr(event.sequence, "metadata", None)
-
-        if not (seq_meta and seq_meta.get(SEQUENCE_META_KEY)):
-            # this is not an MDA we started
-            return None, None
-
         event = cast("ActiveMDAEvent", event)
 
         # get info about the layer we need to update
@@ -273,13 +252,13 @@ class _NapariMDAHandler:
             Extra kwargs will be added to `layer.metadata`.
         """
         # we won't have reached this point if meta is None
-        meta = cast("SequenceMeta", sequence.metadata.get(SEQUENCE_META_KEY))
+        meta = sequence.metadata.get(NAPARI_MM_META, {})
 
         # add Z to layer scale
         if (pix_size := self._mmc.getPixelSizeUm()) != 0:
             scale = [1.0] * (arr.ndim - 2) + [pix_size] * 2
             if (index := sequence.used_axes.find("z")) > -1:
-                if meta.split_channels and sequence.used_axes.find("c") < index:
+                if meta.get("split_channels") and sequence.used_axes.find("c") < index:
                     index -= 1
                 scale[index] = getattr(sequence.z_plan, "step", 1)
         else:
@@ -287,7 +266,6 @@ class _NapariMDAHandler:
             scale = [1.0, 1.0]
 
         layer_meta: LayerMeta = {
-            "mode": meta.mode,
             "useq_sequence": sequence,
             "uid": sequence.uid,
         }
@@ -295,10 +273,10 @@ class _NapariMDAHandler:
         return self.viewer.add_image(
             arr,
             name=name,
-            blending="additive",
+            blending="opaque",
             visible=False,
             scale=scale,
-            metadata={SEQUENCE_META_KEY: layer_meta, **kwargs},
+            metadata={NAPARI_MM_META: layer_meta, **kwargs},
         )
 
 
@@ -337,8 +315,8 @@ def _determine_sequence_layers(
               layer, and `layer_meta` is metadata to add to `layer.metadata`. e.g.:
               `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
     """
-    # if we got to this point, sequence.metadata[SEQUENCE_META_KEY] should exist
-    meta = sequence.metadata[SEQUENCE_META_KEY]  # type: ignore
+    meta = cast(dict, sequence.metadata.get(NAPARI_MM_META, {}))
+    split = meta.get("split_channels", False)
 
     # these are all the layers we're going to create
     # each item is a tuple of (id, shape, layer_metadata)
@@ -361,7 +339,7 @@ def _determine_sequence_layers(
                     layer_shape[index] = max(layer_shape[index], pos_shape)
 
     # in split channels mode, we need to create a layer for each channel
-    if meta.split_channels:
+    if split:
         c_idx = axis_labels.index("c")
         axis_labels.pop(c_idx)
         layer_shape.pop(c_idx)
@@ -396,7 +374,8 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
               should be saved.
             - `layer_name` is the name of the corresponding layer in the viewer.
     """
-    meta = cast("SequenceMeta", event.sequence.metadata.get(SEQUENCE_META_KEY))
+    meta = cast(dict, event.sequence.metadata.get(NAPARI_MM_META, {}))
+    split = meta.get("split_channels", False)
 
     axis_order = list(get_full_sequence_axes(event.sequence))
 
@@ -404,7 +383,7 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
     # get filename from MDASequence metadata
     prefix = _get_file_name_from_metadata(event.sequence)
 
-    if meta.split_channels and event.channel:
+    if split and event.channel:
         suffix = f"_{event.channel.config}_{event.index['c']:03d}"
         axis_order.remove("c")
 
