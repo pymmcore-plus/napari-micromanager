@@ -195,7 +195,7 @@ class _NapariMDAHandler:
             self._largest_idx = im_idx
             return layer_name, im_idx
 
-        return None, None
+        return layer_name, None
 
     @ensure_main_thread  # type: ignore [misc]
     def _update_viewer_dims(
@@ -204,12 +204,12 @@ class _NapariMDAHandler:
         """Update the viewer dims to match the current image."""
         layer_name, im_idx = args
 
-        if layer_name is None or im_idx is None:
-            return
-
         layer: Image = self.viewer.layers[layer_name]
         if not layer.visible:
             layer.visible = True
+
+        if im_idx is None:
+            return
 
         cs = list(self.viewer.dims.current_step)
         for a, v in enumerate(im_idx):
@@ -345,7 +345,7 @@ def _determine_sequence_layers(
         layer_shape.pop(c_idx)
         for i, ch in enumerate(sequence.channels):
             channel_id = f"{ch.config}_{i:03d}"
-            id_ = f"{sequence.uid}_{channel_id}"
+            id_ = f"{channel_id}_{sequence.uid}"
             _layer_info.append((id_, layer_shape, {"ch_id": channel_id}))
 
     else:
@@ -379,15 +379,15 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
 
     axis_order = list(get_full_sequence_axes(event.sequence))
 
-    suffix = ""
+    ch_id = ""
     # get filename from MDASequence metadata
     prefix = _get_file_name_from_metadata(event.sequence)
 
     if split and event.channel:
-        suffix = f"_{event.channel.config}_{event.index['c']:03d}"
+        ch_id = f"{event.channel.config}_{event.index['c']:03d}_"
         axis_order.remove("c")
 
-    _id = f"{event.sequence.uid}{suffix}"
+    _id = f"{ch_id}{event.sequence.uid}"
 
     # the index of this event in the full zarr array
     im_idx: tuple[int, ...] = ()
@@ -400,6 +400,6 @@ def _id_idx_layer(event: ActiveMDAEvent) -> tuple[str, tuple[int, ...], str]:
             im_idx += (0,)
 
     # the name of this layer in the napari viewer
-    layer_name = f"{prefix}_{event.sequence.uid}{suffix}"
+    layer_name = f"{prefix}_{ch_id}{event.sequence.uid}"
 
     return _id, im_idx, layer_name
