@@ -6,7 +6,6 @@ from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 from useq import MDASequence
 
 if TYPE_CHECKING:
-
     from napari_micromanager.main_window import MainWindow
     from pytestqt.qtbot import QtBot
 
