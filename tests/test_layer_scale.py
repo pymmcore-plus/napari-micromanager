@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
@@ -29,11 +28,6 @@ def test_layer_scale(
         axis_order=axis_order,
     )
     z_step = sequence.z_plan and sequence.z_plan.step
-
-    # the MDASequence 'replace' switchesp the metadata to a dict, here we switch it back
-    meta = sequence.metadata[SEQUENCE_META_KEY]
-    meta = SequenceMeta(**meta)
-    sequence = sequence.replace(metadata={SEQUENCE_META_KEY: meta})
 
     # create zarr layer
     handler._on_mda_started(sequence)

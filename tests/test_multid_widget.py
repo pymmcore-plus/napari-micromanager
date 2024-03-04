@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from napari_micromanager._gui_objects._mda_widget import NAPARI_MM_META
 from useq import MDASequence
 
 if TYPE_CHECKING:
@@ -17,7 +17,6 @@ def test_main_window_mda(main_window: MainWindow):
         time_plan={"loops": 4, "interval": 0.1},
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
-        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
 
     main_window._mmc.mda.run(mda)
@@ -25,8 +24,8 @@ def test_main_window_mda(main_window: MainWindow):
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
     # assert that the layer has the correct metadata
-    layer_meta = main_window.viewer.layers[0].metadata.get(SEQUENCE_META_KEY)
-    keys = ["mode", "useq_sequence", "uid"]
+    layer_meta = main_window.viewer.layers[0].metadata.get(NAPARI_MM_META)
+    keys = ["useq_sequence", "uid"]
     assert all(key in layer_meta for key in keys)
 
 
@@ -39,7 +38,6 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
         z_plan={"range": 4, "step": 5},
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],
-        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
 
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
