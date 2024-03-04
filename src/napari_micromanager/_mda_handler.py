@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
-from pymmcore_widgets.useq_widgets._mda_sequence import PYMMCW_METADATA_KEY
 from superqt.utils import create_worker, ensure_main_thread
 
 NAPARI_MM_META = "napari_micromanager"
+PYMMCW_METADATA_KEY = "pymmcore_widgets"
 
 if TYPE_CHECKING:
     from uuid import UUID
