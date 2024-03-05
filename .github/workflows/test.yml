@@ -62,14 +62,16 @@ jobs:
 
       - name: Set cache path
         shell: bash
-        run: echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
+        run: |
+          echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
+          echo "CACHE_KEY=$(date +'%Y%m')" >> $GITHUB_ENV  # invalidate cache each month
 
       - name: Cache Drivers
         id: cache-mm-build
         uses: actions/cache@v4
         with:
           path: ${{ env.CACHE_PATH }}
-          key: ${{ runner.os }}-mmbuild-0001 # bump me to invalidate the cache
+          key: ${{ runner.os }}-mmbuild-${{ env.CACHE_KEY }}
 
       - name: Build Micro-Manager (Linux)
         if: runner.os == 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
