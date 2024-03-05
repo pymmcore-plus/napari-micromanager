@@ -6,7 +6,8 @@
 [![Tests](https://github.com/pymmcore-plus/napari-micromanager/actions/workflows/test.yml/badge.svg)](https://github.com/pymmcore-plus/napari-micromanager/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/pymmcore-plus/napari-micromanager/branch/main/graph/badge.svg?token=tf6lYDWV1s)](https://codecov.io/gh/pymmcore-plus/napari-micromanager)
 
-GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.readthedocs.io/) and [pymmcore-widgets](https://pymmcore-plus.github.io/pymmcore-widgets/)
+
+GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.github.io/pymmcore-plus/) and [pymmcore-widgets](https://pymmcore-plus.github.io/pymmcore-widgets/)
 
 🚧 Experimental!  Work in progress!  Here be 🐲 🚧
 
