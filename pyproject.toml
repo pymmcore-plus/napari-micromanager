@@ -38,7 +38,7 @@ dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
     "pymmcore-plus >=0.9.0",
-    "pymmcore-widgets >=0.7.0",
+    "pymmcore-widgets >=0.7.0rc1",
     "superqt >=0.5.1",
     "tifffile",
     "useq-schema >=0.4.1",
