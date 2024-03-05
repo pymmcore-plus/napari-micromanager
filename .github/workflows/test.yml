@@ -67,7 +67,9 @@ jobs:
         run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   test_linux:
     name: py3.9 pyqt5 ubuntu
