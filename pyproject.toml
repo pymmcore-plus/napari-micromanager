@@ -37,7 +37,7 @@ dynamic = ["version"]
 dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
-    "pymmcore-plus >=0.8.0",
+    "pymmcore-plus >=0.9.3",
     "pymmcore-widgets >=0.5.3",
     "superqt >=0.5.1",
     "tifffile",
@@ -48,7 +48,7 @@ dependencies = [
 # extras
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 [project.optional-dependencies]
-testing = ["pytest", "pytest-cov", "pytest-qt"]
+test = ["pytest", "pytest-cov", "pytest-qt"]
 pyqt5 = ["PyQt5"]
 pyqt6 = ["PyQt6"]
 pyside2 = ["PySide2"]
@@ -120,6 +120,7 @@ filterwarnings = [
     "ignore:`np.bool8` is a deprecated alias::skimage",
     "ignore:Jupyter is migrating its paths to use standard platformdirs:",
     "ignore:\\nPyarrow will become a required dependency",
+    "ignore::DeprecationWarning:docstring_parser",  # via magicgui, in py312
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
