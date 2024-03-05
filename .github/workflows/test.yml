@@ -2,13 +2,9 @@ name: Run Tests
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+    branches: [main]
+    tags: [v*]
   pull_request:
-    branches:
-      - main
   schedule:
     - cron: "0 16 * * 1" # monday at noon est
 
@@ -33,10 +29,12 @@ jobs:
           - python-version: "3.11"
             platform: macos-latest
             backend: pyqt6
-          # still issues in napari
-          # - python-version: "3.11"
-          #   platform: windows-latest
-          #   backend: pyside6
+          - python-version: "3.12"
+            platform: windows-latest
+            backend: pyqt6
+          - python-version: "3.10"
+            platform: ubuntu-latest
+            backend: pyside6
         exclude:
           - python-version: "3.11"
             backend: pyside2
@@ -49,6 +47,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - uses: tlambert03/setup-qt-libs@v1
+
       - name: Install Windows OpenGL
         if: runner.os == 'Windows'
         run: |
@@ -58,71 +58,36 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[testing,${{ matrix.backend }}]
+          python -m pip install -e .[test,${{ matrix.backend }}]
+
+      - name: Set cache path
+        shell: bash
+        run: echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
+
+      - name: Cache Drivers
+        id: cache-mm-build
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CACHE_PATH }}
+          key: ${{ runner.os }}-mmbuild-0001 # bump me to invalidate the cache
+
+      - name: Build Micro-Manager (Linux)
+        if: runner.os == 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
+        run: mmcore build-dev
 
       - name: Install Micro-Manager
+        if: runner.os != 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
         run: mmcore install
 
       - name: Test
-        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
+        uses: GabrielBB/xvfb-action@v1
+        with:
+          run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  test_linux:
-    name: py3.9 pyqt5 ubuntu
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-
-      - name: Install Linux Micro-Manager build tools and dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get -y install build-essential autoconf automake libtool autoconf-archive pkg-config
-          sudo apt-get -y install libboost-all-dev swig3.0
-
-      - uses: tlambert03/setup-qt-libs@v1
-
-      # - name: Cache micro-manager
-      #   id: cache-micro-manager
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: micro-manager
-      #     key: ${{ runner.os }}-micro-manager-cache-key
-
-      - name: Build micro-manager
-        # if: steps.cache-micro-manager.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/micro-manager/micro-manager.git
-          cd micro-manager
-          git submodule update --init --recursive
-          ./autogen.sh
-          ./configure --without-java
-          make -C mmCoreAndDevices/MMDevice -j$(nproc)
-          make -C mmCoreAndDevices/MMCore -j$(nproc)
-
-      - name: Install micro-manager
-        run: |
-          cd micro-manager
-          sudo make install
-          sudo cp bindist/any-platform/*cfg /usr/local/lib/micro-manager
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[testing,pyqt5]
-
-      - name: Run headless test
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: python -m pytest -v --color=yes
 
   deploy:
     name: Deploy
