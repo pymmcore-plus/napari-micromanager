@@ -120,6 +120,7 @@ filterwarnings = [
     "ignore:`np.bool8` is a deprecated alias::skimage",
     "ignore:Jupyter is migrating its paths to use standard platformdirs:",
     "ignore:\\nPyarrow will become a required dependency",
+    "ignore::DeprecationWarning:docstring_parser",  # via magicgui, in py312
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
