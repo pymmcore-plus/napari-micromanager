@@ -14,8 +14,7 @@ if TYPE_CHECKING:
     from useq import MDASequence
 
 
-MMCORE_WIDGETS_META = "pymmcore_widgets"
-NAPARI_MM_META = "napari_micromanager"
+from napari_micromanager._util import NMM_METADATA_KEY
 
 
 class MultiDWidget(MDAWidget):
@@ -25,7 +24,7 @@ class MultiDWidget(MDAWidget):
         self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
     ) -> None:
         # add split channel checkbox
-        self.checkBox_split_channels = QCheckBox(text="Split Channels")
+        self.checkBox_split_channels = QCheckBox(text="Split channels in viewer")
         super().__init__(parent=parent, mmcore=mmcore)
 
         # setContentsMargins
@@ -42,13 +41,13 @@ class MultiDWidget(MDAWidget):
         # Overriding the value method to add the metadata necessary for the handler.
         sequence = super().value()
         split = self.checkBox_split_channels.isChecked() and len(sequence.channels) > 1
-        sequence.metadata[NAPARI_MM_META] = {"split_channels": split}
+        sequence.metadata[NMM_METADATA_KEY] = {"split_channels": split}
         return sequence  # type: ignore[no-any-return]
 
     def setValue(self, value: MDASequence) -> None:
         """Set the current value of the widget."""
         # set split_channels checkbox
-        if nmm_meta := value.metadata.get(NAPARI_MM_META):
+        if nmm_meta := value.metadata.get(NMM_METADATA_KEY):
             self.checkBox_split_channels.setChecked(
                 nmm_meta.get("split_channels", False)
             )

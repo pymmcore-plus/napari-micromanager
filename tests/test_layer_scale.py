@@ -24,9 +24,7 @@ def test_layer_scale(
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
 
-    sequence = mda_sequence_splits.replace(
-        axis_order=axis_order,
-    )
+    sequence = mda_sequence_splits.replace(axis_order=axis_order)
     z_step = sequence.z_plan and sequence.z_plan.step
 
     # create zarr layer

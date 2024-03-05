@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 import useq
-from napari_micromanager._gui_objects._mda_widget import NAPARI_MM_META
+from napari_micromanager._util import NMM_METADATA_KEY
 from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
 
@@ -45,7 +45,7 @@ MDA_IDS = [
 @pytest.fixture(params=MDAS, ids=MDA_IDS)
 def mda_sequence(request: pytest.FixtureRequest) -> useq.MDASequence:
     return useq.MDASequence(
-        **request.param, metadata={NAPARI_MM_META: {"split_channels": False}}
+        **request.param, metadata={NMM_METADATA_KEY: {"split_channels": False}}
     )
 
 
@@ -53,5 +53,5 @@ def mda_sequence(request: pytest.FixtureRequest) -> useq.MDASequence:
 def mda_sequence_splits(mda_sequence: useq.MDASequence, request) -> useq.MDASequence:
     if request.param:
         meta = {"split_channels": True}
-        mda_sequence.metadata[NAPARI_MM_META] = meta
+        mda_sequence.metadata[NMM_METADATA_KEY] = meta
     return mda_sequence
