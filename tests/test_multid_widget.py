@@ -62,20 +62,21 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
-        mda_widget.control_btns.run_btn.click()
+        mda_widget.run_mda()
 
-    data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
+    data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
 
     multiC = len(mda.channels) > 1
     splitC = mda.metadata[NMM_METADATA_KEY].get("split_channels")
     if multiC and splitC:
         expected_shape.pop(mda.used_axes.find("c"))
+
     assert dest.exists()
     assert data_shape == expected_shape
 
 
-def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
+def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     # we should show the mda even if it came from outside
     mmc = main_window._mmc
     sequence = MDASequence(

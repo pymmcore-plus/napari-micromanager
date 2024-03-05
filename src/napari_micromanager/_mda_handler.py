@@ -29,7 +29,6 @@ if TYPE_CHECKING:
         useq_sequence: MDASequence
         uid: UUID
         ch_id: str
-        translate: bool
 
 
 DEFAULT_NAME = "Exp"
