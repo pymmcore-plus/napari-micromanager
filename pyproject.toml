@@ -37,8 +37,8 @@ dynamic = ["version"]
 dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
-    "pymmcore-plus >=0.8.0",
-    "pymmcore-widgets >=0.5.3",
+    "pymmcore-plus >=0.9.3",
+    "pymmcore-widgets >=0.7.0rc1",
     "superqt >=0.5.1",
     "tifffile",
     "useq-schema >=0.4.1",
@@ -48,12 +48,13 @@ dependencies = [
 # extras
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 [project.optional-dependencies]
-testing = ["pytest", "pytest-cov", "pytest-qt"]
+test = ["pytest", "pytest-cov", "pytest-qt"]
 pyqt5 = ["PyQt5"]
 pyqt6 = ["PyQt6"]
 pyside2 = ["PySide2"]
 pyside6 = ["PySide6"]
-dev = ["black", "isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
+dev = ["isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
+docs = ["mkdocs-material", "mkdocstrings-python"]
 
 [project.urls]
 Source = "https://github.com/pymmcore-plus/napari-micromanager"
@@ -77,33 +78,36 @@ include = ["/src", "/tests"]
 [tool.ruff]
 line-length = 88
 target-version = "py38"
+
+[tool.ruff.lint]
+pydocstyle = { convention = "numpy" }
 select = [
     "E",    # style errors
+    "W",    # warnings
     "F",    # flakes
     "D",    # pydocstyle
+    "D417", # Missing argument descriptions in Docstrings
     "I",    # isort
     "UP",   # pyupgrade
     "S",    # bandit
-    "C",    # flake8-comprehensions
+    "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
     "TCH",  # flake8-type-checking
+    "TID",  # flake8-tidy-imports
 ]
 ignore = [
     "D100", # Missing docstring in public module
-    "D107", # Missing docstring in __init__
-    "D203", # 1 blank line required before class docstring
-    "D212", # Multi-line docstring summary should start at the first line
-    "D213", # Multi-line docstring summary should start at the second line
-    "D400", # First line should end with a period
-    "D413", # Missing blank line after last section
-    "D416", # Section name should end with a colon
-    "C901", # Function is too complex
+    "D401", # First line should end with a period
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*.py" = ["D", "S"]
+
+# https://docs.astral.sh/ruff/formatter/
+[tool.ruff.format]
+docstring-code-format = true
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
@@ -116,7 +120,8 @@ filterwarnings = [
     "ignore:<tifffile.TiffWriter.write> data with shape:DeprecationWarning:", # for napari
     "ignore:`np.bool8` is a deprecated alias::skimage",
     "ignore:Jupyter is migrating its paths to use standard platformdirs:",
-    "ignore:\\nPyarrow will become a required dependency"
+    "ignore:\\nPyarrow will become a required dependency",
+    "ignore::DeprecationWarning:docstring_parser",                            # via magicgui, in py312
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

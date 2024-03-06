@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
 
 if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
@@ -25,10 +24,7 @@ def test_layer_scale(
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
 
-    sequence = mda_sequence_splits.replace(
-        axis_order=axis_order,
-        metadata={SEQUENCE_META_KEY: SequenceMeta(should_save=False)},
-    )
+    sequence = mda_sequence_splits.replace(axis_order=axis_order)
     z_step = sequence.z_plan and sequence.z_plan.step
 
     # create zarr layer

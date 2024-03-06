@@ -12,7 +12,7 @@ from pymmcore_plus import CMMCorePlus
     [
         [],
         ["--config", str(Path(__file__).parent / "test_config.cfg")],
-        ["-c", "nonexistant"],
+        ["-c", "nonexistent"],
     ],
 )
 def test_cli_main(argv: list) -> None:
@@ -25,7 +25,7 @@ def test_cli_main(argv: list) -> None:
 
     with patch("napari.run") as mock_run:
         with patch("qtpy.QtWidgets.QMainWindow.show") as mock_show:
-            if "nonexistant" in argv:
+            if "nonexistent" in argv:
                 with pytest.warns():
                     main(argv)
             else:

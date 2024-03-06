@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
+logging.getLogger("in_n_out").setLevel(logging.WARNING)
 
 
 class MainWindow(MicroManagerToolbar):
