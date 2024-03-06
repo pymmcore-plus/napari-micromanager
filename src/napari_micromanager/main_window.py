@@ -15,7 +15,6 @@ from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
-
     from pathlib import Path
 
     from pymmcore_plus.core.events._protocol import PSignalInstance

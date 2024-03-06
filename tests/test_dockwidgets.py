@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING
 from napari_micromanager._gui_objects._toolbar import DOCK_WIDGETS, USER_LAYOUT_PATH
 
 if TYPE_CHECKING:
-
     from napari_micromanager.main_window import MainWindow
 
 
