@@ -10,6 +10,7 @@ import napari
 import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
+from pymmcore_widgets import ConfigWizard
 
 from ._core_link import CoreViewerLink
 from ._gui_objects._startup_widget import NEW, StartupDialog
@@ -71,7 +72,10 @@ class MainWindow(MicroManagerToolbar):
             config = self._startup.value()
             # if the user selected NEW, show the config wizard
             if config == NEW:
-                ...  # TODO: CONFIG WIZARD
+                # TODO: subclass to load the new cfg if created and to add it to the
+                # json file. instead of show() should use exec_() and check the return
+                self._cfg_wizard = ConfigWizard(parent=self.viewer.window._qt_window)
+                self._cfg_wizard.show()
             else:
                 self._load_system_configuration(config)
 
