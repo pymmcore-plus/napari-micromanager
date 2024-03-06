@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
+    from qtpy.QtWidgets import QDialog
 
 
 # this is very verbose
@@ -71,7 +72,7 @@ class MainWindow(MicroManagerToolbar):
             return
 
         # if no config is passed, show the startup dialog
-        self._center_startup_dialog()
+        self._center_dialog_in_viewer(startup)
         if startup.exec_():
             config = startup.value()
             # if the user selected NEW, show the config wizard
@@ -91,15 +92,15 @@ class MainWindow(MicroManagerToolbar):
             # don't crash if the user passed an invalid config
             warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
-    def _center_startup_dialog(self) -> None:
-        """Center the startup dialog in the viewer window."""
-        self._startup.move(
+    def _center_dialog_in_viewer(self, startup: QDialog) -> None:
+        """Center the dialog in the viewer window."""
+        startup.move(
             self.viewer.window.qt_viewer.geometry().center()
-            - self._startup.geometry().center()
+            - startup.geometry().center()
         )
-        self._startup.resize(
+        startup.resize(
             int(self.viewer.window.qt_viewer.geometry().width() / 2),
-            self._startup.sizeHint().height(),
+            startup.sizeHint().height(),
         )
 
     def _cleanup(self) -> None:
