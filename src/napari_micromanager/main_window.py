@@ -12,6 +12,7 @@ import napari.viewer
 from pymmcore_plus import CMMCorePlus
 
 from ._core_link import CoreViewerLink
+from ._gui_objects._startup_widget import NEW, StartupDialog
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
@@ -55,12 +56,43 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
+        self._startup = StartupDialog(self.viewer.window._qt_window)
+
+        # if a config is passed, load it
         if config is not None:
-            try:
-                self._mmc.loadSystemConfiguration(config)
-            except FileNotFoundError:
-                # don't crash if the user passed an invalid config
-                warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
+            self._load_system_configuration(config)
+            # add the path to the json file
+            self._startup.add_path_to_json(config)
+            return
+
+        # if no config is passed, show the startup dialog
+        self._center_startup_dialog()
+        if self._startup.exec_():
+            config = self._startup.value()
+            # if the user selected NEW, show the config wizard
+            if config == NEW:
+                ...  # TODO: CONFIG WIZARD
+            else:
+                self._load_system_configuration(config)
+
+    def _load_system_configuration(self, config: str | Path) -> None:
+        """Load a Micro-Manager system configuration file."""
+        try:
+            self._mmc.loadSystemConfiguration(config)
+        except FileNotFoundError:
+            # don't crash if the user passed an invalid config
+            warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
+
+    def _center_startup_dialog(self) -> None:
+        """Center the startup dialog in the viewer window."""
+        self._startup.move(
+            self.viewer.window.qt_viewer.geometry().center()
+            - self._startup.geometry().center()
+        )
+        self._startup.resize(
+            int(self.viewer.window.qt_viewer.geometry().width() / 2),
+            self._startup.sizeHint().height(),
+        )
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
