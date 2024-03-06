@@ -57,19 +57,23 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        self._startup = StartupDialog(self.viewer.window._qt_window)
-
         # if a config is passed, load it
+        self._handle_system_configuration(config)
+
+    def _handle_system_configuration(self, config: str | Path | None) -> None:
+        """Handle the system configuration file. If None, show the startup dialog."""
+        startup = StartupDialog(self.viewer.window._qt_window)
+
         if config is not None:
             self._load_system_configuration(config)
             # add the path to the json file
-            self._startup.add_path_to_json(config)
+            startup.add_path_to_json(config)
             return
 
         # if no config is passed, show the startup dialog
         self._center_startup_dialog()
-        if self._startup.exec_():
-            config = self._startup.value()
+        if startup.exec_():
+            config = startup.value()
             # if the user selected NEW, show the config wizard
             if config == NEW:
                 # TODO: subclass to load the new cfg if created and to add it to the
