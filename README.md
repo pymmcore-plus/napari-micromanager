@@ -9,8 +9,6 @@
 
 GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.github.io/pymmcore-plus/) and [pymmcore-widgets](https://pymmcore-plus.github.io/pymmcore-widgets/)
 
-🚧 Experimental!  Work in progress!  Here be 🐲 🚧
-
 ----------------------------------
 <img width="1797" alt="mm" src="https://user-images.githubusercontent.com/1609449/138457506-787b7bec-7f30-4d92-b5cf-6e218c87225a.png">
 
