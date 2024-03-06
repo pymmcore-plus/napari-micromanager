@@ -83,7 +83,8 @@ class StartupDialog(QDialog):
 
         # Append the new path. using insert so we leave the empty string at the end
         paths = cast(list, data.get("paths", []))
-        paths.insert(0, path)
+        if path not in paths:
+            paths.insert(0, path)
 
         # Write the data back to the file
         with open(USER_CONFIGS_PATHS, "w") as f:
