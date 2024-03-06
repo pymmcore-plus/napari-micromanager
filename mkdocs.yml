@@ -1,0 +1,95 @@
+site_name: napari-micromanager
+site_url: https://pymmcore-plus.github.io/napari-micromanager
+site_description: Pure python extensions of the C++ micro-manager core
+# strict: true
+
+repo_name: pymmcore-plus/napari-micromanager
+repo_url: https://github.com/pymmcore-plus/napari-micromanager
+edit_uri: edit/main/docs/
+# use_directory_urls: false
+
+watch:
+  - src
+
+nav:
+  - pymmcore-plus: /pymmcore-plus/
+  - useq-schema: /useq-schema/
+  - pymmcore-widgets: /pymmcore-widgets/
+  - napari-micromanager:
+      - index.md
+      - getting_started.md
+
+theme:
+  name: "material"
+  features:
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - navigation.tabs
+    - navigation.footer # next/previous links in footer
+  icon:
+    logo: fontawesome/solid/microscope
+    repo: fontawesome/brands/github
+  favicon: images/favicon.ico
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: dark blue
+      accent: dark blue
+      toggle:
+        icon: material/lightbulb-outline
+        name: "Switch to dark mode"
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: light green
+      toggle:
+        icon: material/lightbulb
+        name: "Switch to light mode"
+
+markdown_extensions:
+  - tables
+  - pymdownx.snippets # lets you include code snippets from other files
+  - toc:
+      permalink: "#"
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.extra
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tilde
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tabbed:
+      alternate_style: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+            - https://docs.python.org/3/objects.inv
+            - https://numpy.org/doc/stable/objects.inv
+            - https://pymmcore-plus.github.io/useq-schema/objects.inv
+            - https://pymmcore-plus.github.io/pymmcore-widgets/objects.inv
+            - https://pymmcore-plus.github.io/pymmcore-plus/objects.inv
+          options:
+            ## Headings options:
+            show_root_heading: true # default is false
+            filters: ["^[^_]"] # list of filters to filter objects by name
+            docstring_style: "numpy"
+            line_length: 50 # default is 60
+            show_if_no_docstring: true # default is false
+
+            show_signature_annotations: true # default is false
+            annotations_path: "source" # default is 'brief'
+
+            show_bases: false # default is true
+            show_source: false # default is true
+
+extra_css:
+  - stylesheets/extra.css

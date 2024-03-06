@@ -54,6 +54,7 @@ pyqt6 = ["PyQt6"]
 pyside2 = ["PySide2"]
 pyside6 = ["PySide6"]
 dev = ["isort", "mda-simulator", "mypy", "pre-commit", "ruff"]
+docs = ["mkdocs-material", "mkdocstrings-python"]
 
 [project.urls]
 Source = "https://github.com/pymmcore-plus/napari-micromanager"
@@ -120,7 +121,7 @@ filterwarnings = [
     "ignore:`np.bool8` is a deprecated alias::skimage",
     "ignore:Jupyter is migrating its paths to use standard platformdirs:",
     "ignore:\\nPyarrow will become a required dependency",
-    "ignore::DeprecationWarning:docstring_parser",  # via magicgui, in py312
+    "ignore::DeprecationWarning:docstring_parser",                            # via magicgui, in py312
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
