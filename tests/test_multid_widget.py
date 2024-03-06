@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
-from napari_micromanager._mda_meta import SEQUENCE_META_KEY, SequenceMeta
+from napari_micromanager._util import NMM_METADATA_KEY
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
@@ -21,12 +21,16 @@ def test_main_window_mda(main_window: MainWindow):
         time_plan={"loops": 4, "interval": 0.1},
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
-        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
 
     main_window._mmc.mda.run(mda)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
+
+    # assert that the layer has the correct metadata
+    layer_meta = main_window.viewer.layers[0].metadata.get(NMM_METADATA_KEY)
+    keys = ["useq_sequence", "uid"]
+    assert all(key in layer_meta for key in keys)
 
 
 def test_saving_mda(
@@ -40,23 +44,12 @@ def test_saving_mda(
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
 
-    # FIXME:
-    # we have a bit of a battle here now for file-saving metadata between
-    # pymmcore_widgets and napari_micromanager's SequenceMetadata
-    # should standardize, possibly by adding to useq-schema
-    # this test uses the pymmcore-widgets metadata for now
-    widget_meta = mda.metadata.setdefault("pymmcore_widgets", {})
-    widget_meta["save_dir"] = str(tmp_path)
-    widget_meta["should_save"] = True
+    dest = tmp_path / "thing.ome.tif"
 
     mda_widget.setValue(mda)
+    mda_widget.save_info.setValue(dest)
     assert mda_widget.save_info.isChecked()
-    meta = mda_widget.value().metadata[SEQUENCE_META_KEY]
-    assert meta.save_dir == str(tmp_path)
-    # using `metadata=mda.metadata` here to keep the SequenceMeta object
-    # rather than a serialized dict... this is a hack to get around a broader issue
-    # with the .replace method
-    mda = mda.replace(axis_order=mda_widget.value().axis_order, metadata=mda.metadata)
+
     mmc = main_window._mmc
 
     # re-register twice to fully exercise the logic of the update
@@ -69,24 +62,21 @@ def test_saving_mda(
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
-        mda_widget.control_btns.run_btn.click()
+        mda_widget.run_mda()
 
-    data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
+    data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
 
     multiC = len(mda.channels) > 1
-    splitC = mda.metadata[SEQUENCE_META_KEY].split_channels
+    splitC = mda.metadata[NMM_METADATA_KEY].get("split_channels")
     if multiC and splitC:
         expected_shape.pop(mda.used_axes.find("c"))
-        nfiles = len(list((tmp_path / f"{meta.file_name}_000").iterdir()))
-        assert nfiles == 2 if multiC else 1
-    # splitC with one channel is the same as not split
-    else:
-        assert [p.name for p in tmp_path.iterdir()] == [f"{meta.file_name}_000.tif"]
+
+    assert dest.exists()
     assert data_shape == expected_shape
 
 
-def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
+def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     # we should show the mda even if it came from outside
     mmc = main_window._mmc
     sequence = MDASequence(
@@ -95,7 +85,6 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot):
         z_plan={"range": 4, "step": 5},
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],
-        metadata={SEQUENCE_META_KEY: SequenceMeta(mode="mda")},
     )
 
     with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):

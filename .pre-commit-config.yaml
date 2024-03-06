@@ -28,7 +28,7 @@ repos:
         files: "^src/"
         additional_dependencies:
           - useq-schema >=0.4.7
-          - pymmcore_plus >=0.6.7
+          - pymmcore_plus >=0.9.0
           # # unfortunately... bringing these in brings in qtpy
           # # which has too many attr-defined errors ...
           # # and selectively ignoring them isn't working
