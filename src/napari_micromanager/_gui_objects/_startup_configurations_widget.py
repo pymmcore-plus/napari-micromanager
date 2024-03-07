@@ -98,10 +98,10 @@ class StartupConfigurations(QDialog):
     def _initialize(self) -> None:
         """Initialize the dialog with the configuration files.
 
-        This method reads the stored paths in the USER_CONFIGS_PATHS jason file (or
-        create one if it doesn't exist) and adds them to the combo box. It also adds the
-        Micro-Manager configuration files form the Micro-Manager folder if they are not
-        already in the list.
+        This method reads the paths in the USER_CONFIGS_PATHS json file (it creates
+        one if it doesn't exist) and adds them to the combo box. It also adds the
+        Micro-Manager configuration files form all the Micro-Manager folder if they are
+        not already in the list.
         """
         # create USER_CONFIGS_PATHS if it doesn't exist
         if not USER_CONFIGS_PATHS.exists():
