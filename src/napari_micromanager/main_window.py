@@ -4,23 +4,20 @@ import atexit
 import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Callable
-from warnings import warn
 
 import napari
 import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
-from pymmcore_widgets import ConfigWizard
 
 from ._core_link import CoreViewerLink
-from ._gui_objects._startup_widget import NEW, ConfigurationsHandler
+from ._gui_objects._startup_configurations_widget import ConfigurationsHandler
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
-    from qtpy.QtWidgets import QDialog
 
 
 # this is very verbose
@@ -58,49 +55,9 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        self.configs_handler = ConfigurationsHandler(self.viewer.window._qt_window)
-
-        # if a config is passed, load it
-        self._handle_system_configuration(config)
-
-    def _handle_system_configuration(self, config: str | Path | None) -> None:
-        """Handle the system configuration file. If None, show the startup dialog."""
-        if config is not None:
-            self._load_system_configuration(config)
-            # add the path to the json file
-            self.configs_handler.add_path_to_json(config)
-            return
-
-        # if no config is passed, show the startup dialog
-        self._center_dialog_in_viewer(self.configs_handler)
-        if self.configs_handler.exec_():
-            config = self.configs_handler.value()
-            # if the user selected NEW, show the config wizard
-            if config == NEW:
-                # TODO: subclass to load the new cfg if created and to add it to the
-                # json file. instead of show() should use exec_() and check the return
-                self._cfg_wizard = ConfigWizard(parent=self.viewer.window._qt_window)
-                self._cfg_wizard.show()
-            else:
-                self._load_system_configuration(config)
-
-    def _load_system_configuration(self, config: str | Path) -> None:
-        """Load a Micro-Manager system configuration file."""
-        try:
-            self._mmc.loadSystemConfiguration(config)
-        except FileNotFoundError:
-            # don't crash if the user passed an invalid config
-            warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
-
-    def _center_dialog_in_viewer(self, startup: QDialog) -> None:
-        """Center the dialog in the viewer window."""
-        startup.move(
-            self.viewer.window.qt_viewer.geometry().center()
-            - startup.geometry().center()
-        )
-        startup.resize(
-            int(self.viewer.window.qt_viewer.geometry().width() / 2),
-            startup.sizeHint().height(),
+        # handle the system configurations at startup
+        self._configs_handler = ConfigurationsHandler(
+            self.viewer.window._qt_window, config=config, mmcore=self._mmc
         )
 
     def _cleanup(self) -> None:
