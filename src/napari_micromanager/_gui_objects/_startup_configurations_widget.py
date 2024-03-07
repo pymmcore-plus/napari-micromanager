@@ -96,15 +96,13 @@ class StartupConfigurations(QDialog):
             load_system_configuration(self._mmc, config)
 
     def _initialize(self) -> None:
-        """Initialize the dialog with the configuration files.
+        """Initialize the dialog with the Micro-Manager configuration files.
 
-        This method reads the paths in the USER_CONFIGS_PATHS json file (it creates
-        one if it doesn't exist) and adds them to the combo box. It also adds the
-        Micro-Manager configuration files form all the Micro-Manager folder if they are
-        not already in the list.
+        This method is called everytime the widget is created (and so when
+        napari-micromanage is loaded) and it updates (or create if does not yet exists)
+        the list of  Micro-Manager configurations paths saved in the USER_CONFIGS_PATHS
+        json file.
         """
-        # TODO: move this method to main_window.py and leave here only the combo update
-
         # create USER_CONFIGS_PATHS if it doesn't exist
         if not USER_CONFIGS_PATHS.exists():
             USER_DIR.mkdir(parents=True, exist_ok=True)
@@ -114,13 +112,14 @@ class StartupConfigurations(QDialog):
         # get the paths from the json file
         configs_paths = self._get_config_paths()
 
-        # add the paths to the combo box
-        self.cfg_combo.addItems([*configs_paths, NEW])
-
         # write the data back to the file
         with open(USER_CONFIGS_PATHS, "w") as f:
             json.dump({"paths": configs_paths}, f)
 
+        # add the paths to the combo box
+        self.cfg_combo.addItems([*configs_paths, NEW])
+
+        # resize the widget so its width is not too small
         self.resize(600, self.minimumSizeHint().height())
 
     def _get_config_paths(self) -> list[str]:
@@ -172,7 +171,11 @@ class StartupConfigurations(QDialog):
         return cfg_files
 
     def _on_browse_clicked(self) -> None:
-        """Open a file dialog to select a file."""
+        """Open a file dialog to select a file.
+
+        If a file path is provided, it is added to the USER_CONFIGS_PATHS json file and
+        to the combo box.
+        """
         path, _ = QFileDialog.getOpenFileName(
             self, "Open file", "", "MicroManager files (*.cfg)"
         )
@@ -180,6 +183,7 @@ class StartupConfigurations(QDialog):
             # using insert so we leave the empty string at the end
             self.cfg_combo.insertItem(0, path)
             self.cfg_combo.setCurrentText(path)
+            # add the path to the USER_CONFIGS_PATHS list
             add_path_to_config_json(path)
 
 
@@ -207,6 +211,7 @@ class HardwareConfigWizard(ConfigWizard):
         and to load it.
         """
         dest = self.field(DEST_CONFIG)
+        # add the path to the USER_CONFIGS_PATHS list
         add_path_to_config_json(dest)
         super().accept()
         load_system_configuration(self._core, dest)

@@ -55,7 +55,9 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        # handle the system configurations at startup
+        # handle the system configurations at startup. with this we also create/update
+        # the list of the Micro-Manager system configurations files path stored a s a
+        # json file in the user's configuration file directory (USER_CONFIGS_PATHS)
         self._startup_configs = StartupConfigurations(
             parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
         )
