@@ -92,12 +92,12 @@ def add_path_to_config_json(path: Path | str) -> None:
     # Read the existing data
     try:
         with open(USER_CONFIGS_PATHS) as f:
-            data = json.load(f)
+            configs_paths = json.load(f)
     except json.JSONDecodeError:
-        data = {"paths": []}
+        configs_paths = {"paths": []}
 
     # Append the new path. using insert so we leave the empty string at the end
-    paths = cast(list, data.get("paths", []))
+    paths = cast(list, configs_paths.get("paths", []))
     if path not in paths:
         paths.insert(0, path)
 

@@ -11,8 +11,8 @@ import napari.viewer
 from pymmcore_plus import CMMCorePlus
 
 from ._core_link import CoreViewerLink
-from ._gui_objects._startup_configurations_widget import StartupConfigurations
 from ._gui_objects._toolbar import MicroManagerToolbar
+from ._init_system_configs import InitializeSystemConfigurations
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -55,10 +55,12 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        # handle the system configurations at startup. with this we also create/update
-        # the list of the Micro-Manager system configurations files path stored a s a
-        # json file in the user's configuration file directory (USER_CONFIGS_PATHS)
-        self._startup_configs = StartupConfigurations(
+        # handle the system configurations at startup. with this we create/update the
+        # list of the Micro-Manager hardware system configurations files path stored as
+        # a json file in the user's configuration file directory (USER_CONFIGS_PATHS).
+        # a dialog will be also displayed if no system configuration file is provided
+        # to select one from the list of available ones or to create a new one
+        self._init_cfg = InitializeSystemConfigurations(
             parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
         )
 
