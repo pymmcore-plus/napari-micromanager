@@ -103,6 +103,8 @@ class StartupConfigurations(QDialog):
         Micro-Manager configuration files form all the Micro-Manager folder if they are
         not already in the list.
         """
+        # TODO: move this method to main_window.py and leave here only the combo update
+
         # create USER_CONFIGS_PATHS if it doesn't exist
         if not USER_CONFIGS_PATHS.exists():
             USER_DIR.mkdir(parents=True, exist_ok=True)
