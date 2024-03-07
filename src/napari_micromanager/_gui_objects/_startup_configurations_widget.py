@@ -241,7 +241,6 @@ class HardwareConfigWizard(ConfigWizard):
         and to load it.
         """
         dest = self.field(DEST_CONFIG)
-        dest_path = Path(dest)
-        _add_path_to_json(dest_path)
+        _add_path_to_json(dest)
         super().accept()
-        _load_system_configuration(self._core, dest_path)
+        _load_system_configuration(self._core, dest)
