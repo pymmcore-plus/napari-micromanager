@@ -113,8 +113,6 @@ class StartupConfigurations(QDialog):
 
         self._initialize()
 
-        self.resize(600, self.minimumSizeHint().height())
-
         # if a config was not passed, show the dialog
         if config is None:
             if self.exec_():
@@ -153,6 +151,8 @@ class StartupConfigurations(QDialog):
         # write the data back to the file
         with open(USER_CONFIGS_PATHS, "w") as f:
             json.dump({"paths": configs_paths}, f)
+
+        self.resize(600, self.minimumSizeHint().height())
 
     def _get_config_paths(self) -> list[str]:
         """Return the paths from the json file.
