@@ -194,14 +194,11 @@ class StartupConfigurations(QDialog):
         return paths
 
     def _get_micromanager_cfg_files(self) -> list[Path]:
-        """Return all the .cfg files in the MicroManager folders."""
-        mm_dir = find_micromanager()
-
-        if mm_dir is None:
-            return []
-
+        """Return all the .cfg files from all the MicroManager folders."""
+        mm: list = find_micromanager(False)
         cfg_files: list[Path] = []
-        cfg_files.extend(Path(mm_dir).glob("*.cfg"))
+        for mm_dir in mm:
+            cfg_files.extend(Path(mm_dir).glob("*.cfg"))
 
         return cfg_files
 
