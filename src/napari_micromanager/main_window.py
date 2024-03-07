@@ -59,7 +59,7 @@ class MainWindow(MicroManagerToolbar):
         # list of the Micro-Manager hardware system configurations files path stored as
         # a json file in the user's configuration file directory (USER_CONFIGS_PATHS).
         # a dialog will be also displayed if no system configuration file is provided
-        # to select one from the list of available ones or to create a new one
+        # to either select one from the list of available ones or to create a new one.
         self._init_cfg = InitializeSystemConfigurations(
             parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
         )
