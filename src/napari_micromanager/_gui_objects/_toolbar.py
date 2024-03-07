@@ -17,6 +17,11 @@ from pymmcore_widgets import (
     SnapButton,
 )
 
+from napari_micromanager._util import (
+    add_path_to_config_json,
+    load_system_configuration,
+)
+
 try:
     # this was renamed
     from pymmcore_widgets import ObjectivesPixelConfigurationWidget
@@ -26,6 +31,7 @@ except ImportError:
 from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
+    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -50,10 +56,41 @@ if TYPE_CHECKING:
 TOOL_SIZE = 35
 
 
+class GroupsAndPresets(GroupPresetTableWidget):
+    """Subclass of GroupPresetTableWidget.
+
+    Overwrite the save and load methods to store the saced or loaded configuration in
+    the USER_CONFIGS_PATHS json config file.
+    """
+
+    def __init__(
+        self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
+    ) -> None:
+        super().__init__(parent=parent, mmcore=mmcore)
+
+    def _save_cfg(self) -> None:
+        (filename, _) = QFileDialog.getSaveFileName(
+            self, "Save Micro-Manager Configuration."
+        )
+        if filename:
+            filename = filename if str(filename).endswith(".cfg") else f"{filename}.cfg"
+            self._mmc.saveSystemConfiguration(filename)
+            add_path_to_config_json(filename)
+
+    def _load_cfg(self) -> None:
+        """Open file dialog to select a config file."""
+        (filename, _) = QFileDialog.getOpenFileName(
+            self, "Select a Micro-Manager configuration file", "", "cfg(*.cfg)"
+        )
+        if filename:
+            add_path_to_config_json(filename)
+            load_system_configuration(mmcore=self._mmc, config=filename)
+
+
 # Dict for QObject and its QPushButton icon
 DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
     "Device Property Browser": (PropertyBrowser, MDI6.table_large),
-    "Groups and Presets Table": (GroupPresetTableWidget, MDI6.table_large_plus),
+    "Groups and Presets Table": (GroupsAndPresets, MDI6.table_large_plus),
     "Illumination Control": (IlluminationWidget, MDI6.lightbulb_on),
     "Stages Control": (MMStagesWidget, MDI6.arrow_all),
     "Camera ROI": (CameraRoiWidget, MDI6.crop),

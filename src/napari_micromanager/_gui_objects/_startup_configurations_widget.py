@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import cast
 from warnings import warn
 
-from platformdirs import user_config_dir
 from pymmcore_plus import CMMCorePlus, find_micromanager
 from pymmcore_widgets import ConfigWizard
 from pymmcore_widgets.hcwizard.finish_page import DEST_CONFIG
@@ -21,47 +20,15 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-USER_DIR = Path(user_config_dir("napari_micromanager"))
-USER_CONFIGS_PATHS = USER_DIR / "system_configurations.json"
+from napari_micromanager._util import (
+    USER_CONFIGS_PATHS,
+    USER_DIR,
+    add_path_to_config_json,
+    load_system_configuration,
+)
+
 FIXED = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 NEW = "New Hardware Configuration"
-
-
-def _add_path_to_json(path: Path | str) -> None:
-    """Uopdate the json file with the new path."""
-    if isinstance(path, Path):
-        path = str(path)
-
-    # create USER_CONFIGS_PATHS if it doesn't exist
-    if not USER_CONFIGS_PATHS.exists():
-        USER_DIR.mkdir(parents=True, exist_ok=True)
-        with open(USER_CONFIGS_PATHS, "w") as f:
-            json.dump({"paths": []}, f)
-
-    # Read the existing data
-    try:
-        with open(USER_CONFIGS_PATHS) as f:
-            data = json.load(f)
-    except json.JSONDecodeError:
-        data = {"paths": []}
-
-    # Append the new path. using insert so we leave the empty string at the end
-    paths = cast(list, data.get("paths", []))
-    if path not in paths:
-        paths.insert(0, path)
-
-    # Write the data back to the file
-    with open(USER_CONFIGS_PATHS, "w") as f:
-        json.dump({"paths": paths}, f)
-
-
-def _load_system_configuration(mmcore: CMMCorePlus, config: str | Path) -> None:
-    """Load a Micro-Manager system configuration file."""
-    try:
-        mmcore.loadSystemConfiguration(config)
-    except FileNotFoundError:
-        # don't crash if the user passed an invalid config
-        warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
 
 class StartupConfigurations(QDialog):
@@ -123,10 +90,10 @@ class StartupConfigurations(QDialog):
                     self._cfg_wizard.show()
                 # otherwise load the selected config
                 else:
-                    _load_system_configuration(self._mmc, config)
+                    load_system_configuration(self._mmc, config)
         # if a config was passed, load it
         else:
-            _load_system_configuration(self._mmc, config)
+            load_system_configuration(self._mmc, config)
 
     def _initialize(self) -> None:
         """Initialize the dialog with the configuration files.
@@ -211,7 +178,7 @@ class StartupConfigurations(QDialog):
             # using insert so we leave the empty string at the end
             self.cfg_combo.insertItem(0, path)
             self.cfg_combo.setCurrentText(path)
-            _add_path_to_json(path)
+            add_path_to_config_json(path)
 
 
 class HardwareConfigWizard(ConfigWizard):
@@ -238,6 +205,6 @@ class HardwareConfigWizard(ConfigWizard):
         and to load it.
         """
         dest = self.field(DEST_CONFIG)
-        _add_path_to_json(dest)
+        add_path_to_config_json(dest)
         super().accept()
-        _load_system_configuration(self._core, dest)
+        load_system_configuration(self._core, dest)

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, cast
+from warnings import warn
+
+from platformdirs import user_config_dir
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     import useq
+    from pymmcore_plus import CMMCorePlus
+
+USER_DIR = Path(user_config_dir("napari_micromanager"))
+USER_CONFIGS_PATHS = USER_DIR / "system_configurations.json"
 
 # key in MDASequence.metadata to store napari-micromanager metadata
 # note that this is also used in napari layer metadata
@@ -68,3 +74,43 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
     # build new path name
     number = f"_{current_max+1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
+
+
+def add_path_to_config_json(path: Path | str) -> None:
+    """Uopdate the st=ystem configurations json file with the new path."""
+    import json
+
+    if isinstance(path, Path):
+        path = str(path)
+
+    # create USER_CONFIGS_PATHS if it doesn't exist
+    if not USER_CONFIGS_PATHS.exists():
+        USER_DIR.mkdir(parents=True, exist_ok=True)
+        with open(USER_CONFIGS_PATHS, "w") as f:
+            json.dump({"paths": []}, f)
+
+    # Read the existing data
+    try:
+        with open(USER_CONFIGS_PATHS) as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        data = {"paths": []}
+
+    # Append the new path. using insert so we leave the empty string at the end
+    paths = cast(list, data.get("paths", []))
+    if path not in paths:
+        paths.insert(0, path)
+
+    # Write the data back to the file
+    with open(USER_CONFIGS_PATHS, "w") as f:
+        json.dump({"paths": paths}, f)
+
+
+def load_system_configuration(mmcore: CMMCorePlus, config: str | Path) -> None:
+    """Load a Micro-Manager system configuration file."""
+    try:
+        mmcore.unloadAllDevices()
+        mmcore.loadSystemConfiguration(config)
+    except FileNotFoundError:
+        # don't crash if the user passed an invalid config
+        warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
