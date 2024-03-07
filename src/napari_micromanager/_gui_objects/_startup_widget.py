@@ -25,7 +25,7 @@ FIXED = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 NEW = "New Configuration"
 
 
-class ConfigurationsDialog(QDialog):
+class ConfigurationsHandler(QDialog):
     """A dialog to select the MicroManager configuration files."""
 
     def __init__(self, parent: QWidget | None = None) -> None:

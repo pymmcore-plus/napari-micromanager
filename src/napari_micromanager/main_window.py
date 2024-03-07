@@ -13,7 +13,7 @@ from pymmcore_plus import CMMCorePlus
 from pymmcore_widgets import ConfigWizard
 
 from ._core_link import CoreViewerLink
-from ._gui_objects._startup_widget import NEW, ConfigurationsDialog
+from ._gui_objects._startup_widget import NEW, ConfigurationsHandler
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        self.config_dialog = ConfigurationsDialog(self.viewer.window._qt_window)
+        self.configs_handler = ConfigurationsHandler(self.viewer.window._qt_window)
 
         # if a config is passed, load it
         self._handle_system_configuration(config)
@@ -68,13 +68,13 @@ class MainWindow(MicroManagerToolbar):
         if config is not None:
             self._load_system_configuration(config)
             # add the path to the json file
-            self.config_dialog.add_path_to_json(config)
+            self.configs_handler.add_path_to_json(config)
             return
 
         # if no config is passed, show the startup dialog
-        self._center_dialog_in_viewer(self.config_dialog)
-        if self.config_dialog.exec_():
-            config = self.config_dialog.value()
+        self._center_dialog_in_viewer(self.configs_handler)
+        if self.configs_handler.exec_():
+            config = self.configs_handler.value()
             # if the user selected NEW, show the config wizard
             if config == NEW:
                 # TODO: subclass to load the new cfg if created and to add it to the
