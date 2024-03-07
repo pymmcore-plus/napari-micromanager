@@ -8,6 +8,7 @@ from warnings import warn
 from platformdirs import user_config_dir
 from pymmcore_plus import CMMCorePlus, find_micromanager
 from pymmcore_widgets import ConfigWizard
+from pymmcore_widgets.hcwizard.finish_page import DEST_CONFIG
 from qtpy.QtWidgets import (
     QComboBox,
     QDialog,
@@ -23,11 +24,48 @@ from qtpy.QtWidgets import (
 USER_DIR = Path(user_config_dir("napari_micromanager"))
 USER_CONFIGS_PATHS = USER_DIR / "system_configurations.json"
 FIXED = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-NEW = "New Configuration"
+NEW = "New Hardware Configuration"
+
+
+def _add_path_to_json(path: Path | str) -> None:
+    """Uopdate the json file with the new path."""
+    if isinstance(path, Path):
+        path = str(path)
+
+    # create USER_CONFIGS_PATHS if it doesn't exist
+    if not USER_CONFIGS_PATHS.exists():
+        USER_DIR.mkdir(parents=True, exist_ok=True)
+        with open(USER_CONFIGS_PATHS, "w") as f:
+            json.dump({"paths": []}, f)
+
+    # Read the existing data
+    try:
+        with open(USER_CONFIGS_PATHS) as f:
+            data = json.load(f)
+    except json.JSONDecodeError:
+        data = {"paths": []}
+
+    # Append the new path. using insert so we leave the empty string at the end
+    paths = cast(list, data.get("paths", []))
+    if path not in paths:
+        paths.insert(0, path)
+
+    # Write the data back to the file
+    with open(USER_CONFIGS_PATHS, "w") as f:
+        json.dump({"paths": paths}, f)
+
+
+def _load_system_configuration(mmcore: CMMCorePlus, config: str | Path) -> None:
+    """Load a Micro-Manager system configuration file."""
+    try:
+        mmcore.loadSystemConfiguration(config)
+    except FileNotFoundError:
+        # don't crash if the user passed an invalid config
+        warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
 
 
 class StartupConfigurations(QDialog):
-    """A dialog to select the MicroManager configuration files."""
+    """A dialog to select the Micro-Manager Hardware configuration files at startup."""
 
     def __init__(
         self,
@@ -37,7 +75,7 @@ class StartupConfigurations(QDialog):
         mmcore: CMMCorePlus | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Micro-Manager System Configurations")
+        self.setWindowTitle("Micro-Manager Hardware System Configurations")
 
         self._mmc = mmcore or CMMCorePlus.instance()
         self._config = config
@@ -75,7 +113,7 @@ class StartupConfigurations(QDialog):
 
         self._initialize()
 
-        self.resize(500, self.minimumSizeHint().height())
+        self.resize(600, self.minimumSizeHint().height())
 
         # if a config was not passed, show the dialog
         if config is None:
@@ -83,16 +121,14 @@ class StartupConfigurations(QDialog):
                 config = self.cfg_combo.currentText()
                 # if the user selected NEW, show the config wizard
                 if config == NEW:
-                    # TODO: subclass to load the new cfg if created and to add it to the
-                    # json file. use if exec_() instead of show() and check the return
-                    self._cfg_wizard = ConfigWizard(parent=self)
+                    self._cfg_wizard = HardwareConfigWizard(parent=self)
                     self._cfg_wizard.show()
                 # otherwise load the selected config
                 else:
-                    self._load_system_configuration(config)
+                    _load_system_configuration(self._mmc, config)
         # if a config was passed, load it
         else:
-            self._load_system_configuration(config)
+            _load_system_configuration(self._mmc, config)
 
     def _initialize(self) -> None:
         """Initialize the dialog with the configuration files.
@@ -169,14 +205,6 @@ class StartupConfigurations(QDialog):
 
         return cfg_files
 
-    def _load_system_configuration(self, config: str | Path) -> None:
-        """Load a Micro-Manager system configuration file."""
-        try:
-            self._mmc.loadSystemConfiguration(config)
-        except FileNotFoundError:
-            # don't crash if the user passed an invalid config
-            warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
-
     def _on_browse_clicked(self) -> None:
         """Open a file dialog to select a file."""
         path, _ = QFileDialog.getOpenFileName(
@@ -186,25 +214,34 @@ class StartupConfigurations(QDialog):
             # using insert so we leave the empty string at the end
             self.cfg_combo.insertItem(0, path)
             self.cfg_combo.setCurrentText(path)
-            self._add_path_to_json(path)
+            _add_path_to_json(path)
 
-    def _add_path_to_json(self, path: Path | str) -> None:
-        """Uopdate the json file with the new path."""
-        if isinstance(path, Path):
-            path = str(path)
 
-        # Read the existing data
-        try:
-            with open(USER_CONFIGS_PATHS) as f:
-                data = json.load(f)
-        except json.JSONDecodeError:
-            data = {"paths": []}
+class HardwareConfigWizard(ConfigWizard):
+    """A wizard to create a new Micro-Manager hardware configuration file.
 
-        # Append the new path. using insert so we leave the empty string at the end
-        paths = cast(list, data.get("paths", []))
-        if path not in paths:
-            paths.insert(0, path)
+    Subclassing to load the newly created configuration file and to add it to the
+    USER_CONFIGS_PATHS json file.
+    """
 
-        # Write the data back to the file
-        with open(USER_CONFIGS_PATHS, "w") as f:
-            json.dump({"paths": paths}, f)
+    def __init__(
+        self,
+        config_file: str = "",
+        core: CMMCorePlus | None = None,
+        parent: QWidget | None = None,
+    ):
+        super().__init__(config_file, core, parent)
+
+        self.setWindowTitle("Micro-Manager Hardware Configuration Wizard")
+
+    def accept(self) -> None:
+        """Accept the wizard and save the configuration to a file.
+
+        Overriding to add the new configuration file to the USER_CONFIGS_PATHS json file
+        and to load it.
+        """
+        dest = self.field(DEST_CONFIG)
+        dest_path = Path(dest)
+        _add_path_to_json(dest_path)
+        super().accept()
+        _load_system_configuration(self._core, dest_path)
