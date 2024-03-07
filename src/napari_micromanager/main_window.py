@@ -101,12 +101,15 @@ class MainWindow(MicroManagerToolbar):
 
         # Configurations Sub-Menu
         configurations_menu = mm_menu.addMenu("System Configurations")
+        # save cfg
         self.act_save_configuration = QAction("Save Configuration", self)
         self.act_save_configuration.triggered.connect(self._save_cfg)
         configurations_menu.addAction(self.act_save_configuration)
+        # load cfg
         self.act_load_configuration = QAction("Load Configuration", self)
         self.act_load_configuration.triggered.connect(self._load_cfg)
         configurations_menu.addAction(self.act_load_configuration)
+        # cfg wizard
         self.act_cfg_wizard = QAction("Hardware Configuration Wizard", self)
         self.act_cfg_wizard.triggered.connect(self._show_config_wizard)
         configurations_menu.addAction(self.act_cfg_wizard)

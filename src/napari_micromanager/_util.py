@@ -109,6 +109,11 @@ def add_path_to_config_json(path: Path | str) -> None:
 def save_sys_config_dialog(
     parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
 ) -> None:
+    """Open file dialog to save a config file.
+
+    The file will be also saved in the USER_CONFIGS_PATHS jason file if it doesn't
+    yet exist.
+    """
     (filename, _) = QFileDialog.getSaveFileName(
         parent, "Save Micro-Manager Configuration."
     )
@@ -122,7 +127,11 @@ def save_sys_config_dialog(
 def load_sys_config_dialog(
     parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
 ) -> None:
-    """Open file dialog to select a config file."""
+    """Open file dialog to select a config file.
+
+    The loaded file will be also saved in the USER_CONFIGS_PATHS jason file if it
+    doesn't yet exist.
+    """
     (filename, _) = QFileDialog.getOpenFileName(
         parent, "Select a Micro-Manager configuration file", "", "cfg(*.cfg)"
     )
