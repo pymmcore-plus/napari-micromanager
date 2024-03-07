@@ -3,16 +3,23 @@ from __future__ import annotations
 import atexit
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, cast
 
 import napari
 import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
+from pymmcore_widgets.hcwizard.intro_page import SRC_CONFIG
+from qtpy.QtWidgets import QAction, QMenuBar
+
+from napari_micromanager._util import (
+    load_sys_config_dialog,
+    save_sys_config_dialog,
+)
 
 from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
-from ._init_system_configs import InitializeSystemConfigurations
+from ._init_system_configs import HardwareConfigWizard, InitializeSystemConfigurations
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -32,6 +39,8 @@ class MainWindow(MicroManagerToolbar):
         self, viewer: napari.viewer.Viewer, config: str | Path | None = None
     ) -> None:
         super().__init__(viewer)
+
+        self._add_menu()
 
         # get global CMMCorePlus instance
         self._mmc = CMMCorePlus.instance()
@@ -55,6 +64,9 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
+        # Micro-Manager HArdware Configuration Wizard
+        self._wiz = HardwareConfigWizard(parent=self.viewer.window._qt_window)
+
         # handle the system configurations at startup. with this we create/update the
         # list of the Micro-Manager hardware system configurations files path stored as
         # a json file in the user's configuration file directory (USER_CONFIGS_PATHS).
@@ -77,3 +89,41 @@ class MainWindow(MicroManagerToolbar):
         self.minmax.update_from_layers(
             lr for lr in visible if isinstance(lr, napari.layers.Image)
         )
+
+    def _add_menu(self) -> None:
+        if (win := getattr(self.viewer.window, "_qt_window", None)) is None:
+            return
+
+        menubar = cast(QMenuBar, win.menuBar())
+
+        # main Micro-Manager menu
+        mm_menu = menubar.addMenu("Micro-Manager")
+
+        # Configurations Sub-Menu
+        configurations_menu = mm_menu.addMenu("System Configurations")
+        self.act_save_configuration = QAction("Save Configuration", self)
+        self.act_save_configuration.triggered.connect(self._save_cfg)
+        configurations_menu.addAction(self.act_save_configuration)
+        self.act_load_configuration = QAction("Load Configuration", self)
+        self.act_load_configuration.triggered.connect(self._load_cfg)
+        configurations_menu.addAction(self.act_load_configuration)
+        self.act_cfg_wizard = QAction("Hardware Configuration Wizard", self)
+        self.act_cfg_wizard.triggered.connect(self._show_config_wizard)
+        configurations_menu.addAction(self.act_cfg_wizard)
+
+    def _save_cfg(self) -> None:
+        """Save the current Micro-Manager system configuration."""
+        save_sys_config_dialog(parent=self.viewer.window._qt_window, mmcore=self._mmc)
+
+    def _load_cfg(self) -> None:
+        """Load a Micro-Manager system configuration."""
+        load_sys_config_dialog(parent=self.viewer.window._qt_window, mmcore=self._mmc)
+
+    def _show_config_wizard(self) -> None:
+        """Show the Micro-Manager Hardware Configuration Wizard."""
+        if self._wiz.isVisible():
+            self._wiz.raise_()
+        else:
+            current_cfg = self._mmc.systemConfigurationFile() or ""
+            self._wiz.setField(SRC_CONFIG, current_cfg)
+            self._wiz.show()

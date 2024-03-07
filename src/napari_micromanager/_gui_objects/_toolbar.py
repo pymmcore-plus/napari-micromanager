@@ -18,8 +18,8 @@ from pymmcore_widgets import (
 )
 
 from napari_micromanager._util import (
-    add_path_to_config_json,
-    load_system_configuration,
+    load_sys_config_dialog,
+    save_sys_config_dialog,
 )
 
 try:
@@ -31,7 +31,6 @@ except ImportError:
 from qtpy.QtCore import QEvent, QObject, QSize, Qt
 from qtpy.QtWidgets import (
     QDockWidget,
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -69,22 +68,12 @@ class GroupsAndPresets(GroupPresetTableWidget):
         super().__init__(parent=parent, mmcore=mmcore)
 
     def _save_cfg(self) -> None:
-        (filename, _) = QFileDialog.getSaveFileName(
-            self, "Save Micro-Manager Configuration."
-        )
-        if filename:
-            filename = filename if str(filename).endswith(".cfg") else f"{filename}.cfg"
-            self._mmc.saveSystemConfiguration(filename)
-            add_path_to_config_json(filename)
+        """Open file dialog to save the current configuration."""
+        save_sys_config_dialog(parent=self, mmcore=self._mmc)
 
     def _load_cfg(self) -> None:
         """Open file dialog to select a config file."""
-        (filename, _) = QFileDialog.getOpenFileName(
-            self, "Select a Micro-Manager configuration file", "", "cfg(*.cfg)"
-        )
-        if filename:
-            add_path_to_config_json(filename)
-            load_system_configuration(mmcore=self._mmc, config=filename)
+        load_sys_config_dialog(parent=self, mmcore=self._mmc)
 
 
 # Dict for QObject and its QPushButton icon

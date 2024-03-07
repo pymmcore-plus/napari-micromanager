@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
-from warnings import warn
 
 from platformdirs import user_config_dir
+from pymmcore_plus import CMMCorePlus
+from qtpy.QtWidgets import QFileDialog, QWidget
 
 if TYPE_CHECKING:
     import useq
-    from pymmcore_plus import CMMCorePlus
 
 USER_DIR = Path(user_config_dir("napari_micromanager"))
 USER_CONFIGS_PATHS = USER_DIR / "system_configurations.json"
@@ -77,7 +77,7 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
 
 
 def add_path_to_config_json(path: Path | str) -> None:
-    """Uopdate the st=ystem configurations json file with the new path."""
+    """Update the stystem configurations json file with the new path."""
     import json
 
     if isinstance(path, Path):
@@ -92,12 +92,12 @@ def add_path_to_config_json(path: Path | str) -> None:
     # Read the existing data
     try:
         with open(USER_CONFIGS_PATHS) as f:
-            configs_paths = json.load(f)
+            data = json.load(f)
     except json.JSONDecodeError:
-        configs_paths = {"paths": []}
+        data = {"paths": []}
 
     # Append the new path. using insert so we leave the empty string at the end
-    paths = cast(list, configs_paths.get("paths", []))
+    paths = cast(list, data.get("paths", []))
     if path not in paths:
         paths.insert(0, path)
 
@@ -106,11 +106,27 @@ def add_path_to_config_json(path: Path | str) -> None:
         json.dump({"paths": paths}, f)
 
 
-def load_system_configuration(mmcore: CMMCorePlus, config: str | Path) -> None:
-    """Load a Micro-Manager system configuration file."""
-    try:
-        mmcore.unloadAllDevices()
-        mmcore.loadSystemConfiguration(config)
-    except FileNotFoundError:
-        # don't crash if the user passed an invalid config
-        warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)
+def save_sys_config_dialog(
+    parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
+) -> None:
+    (filename, _) = QFileDialog.getSaveFileName(
+        parent, "Save Micro-Manager Configuration."
+    )
+    if filename:
+        filename = filename if str(filename).endswith(".cfg") else f"{filename}.cfg"
+        mmcore = mmcore or CMMCorePlus.instance()
+        mmcore.saveSystemConfiguration(filename)
+        add_path_to_config_json(filename)
+
+
+def load_sys_config_dialog(
+    parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
+) -> None:
+    """Open file dialog to select a config file."""
+    (filename, _) = QFileDialog.getOpenFileName(
+        parent, "Select a Micro-Manager configuration file", "", "cfg(*.cfg)"
+    )
+    if filename:
+        add_path_to_config_json(filename)
+        mmcore = mmcore or CMMCorePlus.instance()
+        mmcore.loadSystemConfiguration(filename)

@@ -25,7 +25,6 @@ from napari_micromanager._util import (
     USER_CONFIGS_PATHS,
     USER_DIR,
     add_path_to_config_json,
-    load_system_configuration,
 )
 
 FIXED = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -46,8 +45,10 @@ class InitializeSystemConfigurations(QObject):
         self._initialize()
 
         if config is not None:
+            # add the config to the system configurations json and set it as the
+            # current configuration path.
             add_path_to_config_json(config)
-            load_system_configuration(self._mmc, config)
+            self._mmc.loadSystemConfiguration(config)
         else:
             self._startup_dialog = StartupConfigurationsDialog(
                 parent=self.parent(), config=config, mmcore=self._mmc
@@ -58,7 +59,7 @@ class InitializeSystemConfigurations(QObject):
         """Create or update the list of Micro-Manager hardware configurations paths.
 
         This method is called everytime napari-micromanager is loaded and it updates (or
-        create if does not yet exists) the list of  Micro-Manager configurations paths
+        create if does not yet exists) the list of Micro-Manager configurations paths
         saved in the USER_CONFIGS_PATHS as a json file.
         """
         # create USER_CONFIGS_PATHS if it doesn't exist
@@ -176,7 +177,7 @@ class StartupConfigurationsDialog(QDialog):
             self._cfg_wizard = HardwareConfigWizard(parent=self)
             self._cfg_wizard.show()
         else:
-            load_system_configuration(self._mmc, config)
+            self._mmc.loadSystemConfiguration(config)
 
     def _initialize(self) -> None:
         """Initialize the dialog with the Micro-Manager configuration files."""
@@ -211,7 +212,8 @@ class StartupConfigurationsDialog(QDialog):
             # using insert so we leave the empty string at the end
             self.cfg_combo.insertItem(0, path)
             self.cfg_combo.setCurrentText(path)
-            # add the path to the USER_CONFIGS_PATHS list
+            # add the config to the system configurations json and set it as the
+            # current configuration path.
             add_path_to_config_json(path)
 
 
@@ -238,8 +240,8 @@ class HardwareConfigWizard(ConfigWizard):
         Overriding to add the new configuration file to the USER_CONFIGS_PATHS json file
         and to load it.
         """
+        super().accept()
         dest = self.field(DEST_CONFIG)
         # add the path to the USER_CONFIGS_PATHS list
         add_path_to_config_json(dest)
-        super().accept()
-        load_system_configuration(self._core, dest)
+        self._core.loadSystemConfiguration(dest)
