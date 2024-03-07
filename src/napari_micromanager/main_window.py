@@ -11,7 +11,7 @@ import napari.viewer
 from pymmcore_plus import CMMCorePlus
 
 from ._core_link import CoreViewerLink
-from ._gui_objects._startup_configurations_widget import ConfigurationsHandler
+from ._gui_objects._startup_configurations_widget import StartupConfigurations
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
@@ -56,8 +56,8 @@ class MainWindow(MicroManagerToolbar):
         atexit.register(self._cleanup)
 
         # handle the system configurations at startup
-        self._configs_handler = ConfigurationsHandler(
-            self.viewer.window._qt_window, config=config, mmcore=self._mmc
+        self._startup_configs = StartupConfigurations(
+            parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
         )
 
     def _cleanup(self) -> None:
