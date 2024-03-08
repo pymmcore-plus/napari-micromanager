@@ -44,11 +44,13 @@ class InitializeSystemConfigurations(QObject):
 
         self._initialize()
 
+        # if a config is provided, load it
         if config is not None:
             # add the config to the system configurations json and set it as the
             # current configuration path.
             add_path_to_config_json(config)
             self._mmc.loadSystemConfiguration(config)
+        # if no config is provided, show a dialog to select one or to create a new one
         else:
             self._startup_dialog = StartupConfigurationsDialog(
                 parent=self.parent(), config=config, mmcore=self._mmc
