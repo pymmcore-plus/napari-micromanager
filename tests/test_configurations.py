@@ -62,3 +62,6 @@ def test_config_init(qtbot: QtBot, core: CMMCorePlus, config: Path | None, wiz: 
             assert core.systemConfigurationFile() == str(current_cfg)
 
     USER_CONFIGS_PATHS.unlink()
+
+
+# TODO: test the config wizard and the menu actions
