@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from napari_micromanager._init_system_configs import (
     InitializeSystemConfigurations,
 )
 from napari_micromanager._util import USER_CONFIGS_PATHS
-from pymmcore_plus import CMMCorePlus
-from pytestqt.qtbot import QtBot
+
+if TYPE_CHECKING:
+    from pymmcore_plus import CMMCorePlus
+    from pytestqt.qtbot import QtBot
 
 DEMO = "MMConfig_demo.cfg"
 NEW = "New Hardware Configuration"
