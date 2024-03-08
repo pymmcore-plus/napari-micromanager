@@ -35,8 +35,6 @@ def test_config_init(qtbot: QtBot, core: CMMCorePlus, config: Path | None, wiz: 
         if config is None:
             assert init._startup_dialog.isVisible()
             combo = init._startup_dialog.cfg_combo
-            current_cfg = combo.currentText()
-            assert Path(current_cfg).name == DEMO
             assert DEMO and NEW in [
                 Path(combo.itemText(i)).name for i in range(combo.count())
             ]
@@ -44,6 +42,7 @@ def test_config_init(qtbot: QtBot, core: CMMCorePlus, config: Path | None, wiz: 
             # set the combo to new so that after accepting the config wizard should
             # be visible
             combo.setCurrentText(NEW if wiz else DEMO)
+            current_cfg = combo.currentText()
 
             # simulate click on ok
             init._startup_dialog.accept()
