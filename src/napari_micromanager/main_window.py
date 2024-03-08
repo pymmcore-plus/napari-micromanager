@@ -13,6 +13,7 @@ from pymmcore_widgets.hcwizard.intro_page import SRC_CONFIG
 from qtpy.QtWidgets import QAction, QMenuBar
 
 from napari_micromanager._util import (
+    load_sys_config,
     load_sys_config_dialog,
     save_sys_config_dialog,
 )
@@ -68,10 +69,10 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        if init_configs:
-            # Micro-Manager HArdware Configuration Wizard
-            self._wiz = HardwareConfigWizard(parent=self.viewer.window._qt_window)
+        # Micro-Manager Hardware Configuration Wizard
+        self._wiz: HardwareConfigWizard | None = None
 
+        if init_configs:
             # handle the system configurations at startup. with this we create/update
             # the list of the Micro-Manager hardware system configurations files path
             # stored as a json file in the user's configuration file directory
@@ -82,6 +83,10 @@ class MainWindow(MicroManagerToolbar):
             self._init_cfg = InitializeSystemConfigurations(
                 parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
             )
+            return
+
+        if config:
+            load_sys_config(config)
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:
@@ -131,6 +136,9 @@ class MainWindow(MicroManagerToolbar):
 
     def _show_config_wizard(self) -> None:
         """Show the Micro-Manager Hardware Configuration Wizard."""
+        if self._wiz is None:
+            self._wiz = HardwareConfigWizard(parent=self.viewer.window._qt_window)
+
         if self._wiz.isVisible():
             self._wiz.raise_()
         else:

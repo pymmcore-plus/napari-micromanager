@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
+from warnings import warn
 
 from platformdirs import user_config_dir
 from pymmcore_plus import CMMCorePlus
@@ -136,3 +137,13 @@ def load_sys_config_dialog(
         add_path_to_config_json(filename)
         mmcore = mmcore or CMMCorePlus.instance()
         mmcore.loadSystemConfiguration(filename)
+
+
+def load_sys_config(config: Path | str, mmcore: CMMCorePlus | None = None) -> None:
+    """Load a system configuration with a warning if the file is not found."""
+    mmcore = mmcore or CMMCorePlus.instance()
+    try:
+        mmcore.loadSystemConfiguration(config)
+    except FileNotFoundError:
+        # don't crash if the user passed an invalid config
+        warn(f"Config file {config} not found. Nothing loaded.", stacklevel=2)

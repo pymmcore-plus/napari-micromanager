@@ -25,6 +25,7 @@ from napari_micromanager._util import (
     USER_CONFIGS_PATHS,
     USER_DIR,
     add_path_to_config_json,
+    load_sys_config,
 )
 
 FIXED = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -49,7 +50,7 @@ class InitializeSystemConfigurations(QObject):
             # add the config to the system configurations json and set it as the
             # current configuration path.
             add_path_to_config_json(config)
-            self._mmc.loadSystemConfiguration(config)
+            load_sys_config(config)
         # if no config is provided, show a dialog to select one or to create a new one
         else:
             self._startup_dialog = StartupConfigurationsDialog(
@@ -179,7 +180,7 @@ class StartupConfigurationsDialog(QDialog):
             self._cfg_wizard = HardwareConfigWizard(parent=self)
             self._cfg_wizard.show()
         else:
-            self._mmc.loadSystemConfiguration(config)
+            load_sys_config(config)
 
     def _initialize(self) -> None:
         """Initialize the dialog with the Micro-Manager configuration files."""
@@ -246,4 +247,4 @@ class HardwareConfigWizard(ConfigWizard):
         dest = self.field(DEST_CONFIG)
         # add the path to the USER_CONFIGS_PATHS list
         add_path_to_config_json(dest)
-        self._core.loadSystemConfiguration(dest)
+        load_sys_config(dest)
