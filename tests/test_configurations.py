@@ -17,6 +17,8 @@ configs = [None, Path(__file__).parent / "test_config.cfg"]
 
 @pytest.mark.parametrize("config", configs)
 def test_config_init(qtbot: QtBot, core: CMMCorePlus, config: Path | None):
+    assert not USER_CONFIGS_PATHS.exists()
+
     init = InitializeSystemConfigurations(mmcore=core, config=config)
 
     with open(USER_CONFIGS_PATHS) as f:
