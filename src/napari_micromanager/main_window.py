@@ -36,7 +36,11 @@ class MainWindow(MicroManagerToolbar):
     """The main napari-micromanager widget that gets added to napari."""
 
     def __init__(
-        self, viewer: napari.viewer.Viewer, config: str | Path | None = None
+        self,
+        viewer: napari.viewer.Viewer,
+        config: str | Path | None = None,
+        *,
+        init_configs: bool = True,
     ) -> None:
         super().__init__(viewer)
 
@@ -64,17 +68,20 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
-        # Micro-Manager HArdware Configuration Wizard
-        self._wiz = HardwareConfigWizard(parent=self.viewer.window._qt_window)
+        if init_configs:
+            # Micro-Manager HArdware Configuration Wizard
+            self._wiz = HardwareConfigWizard(parent=self.viewer.window._qt_window)
 
-        # handle the system configurations at startup. with this we create/update the
-        # list of the Micro-Manager hardware system configurations files path stored as
-        # a json file in the user's configuration file directory (USER_CONFIGS_PATHS).
-        # a dialog will be also displayed if no system configuration file is provided
-        # to either select one from the list of available ones or to create a new one.
-        self._init_cfg = InitializeSystemConfigurations(
-            parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
-        )
+            # handle the system configurations at startup. with this we create/update
+            # the list of the Micro-Manager hardware system configurations files path
+            # stored as a json file in the user's configuration file directory
+            # (USER_CONFIGS_PATHS).
+            # a dialog will be also displayed if no system configuration file is
+            # provided to either select one from the list of available ones or to create
+            # a new one.
+            self._init_cfg = InitializeSystemConfigurations(
+                parent=self.viewer.window._qt_window, config=config, mmcore=self._mmc
+            )
 
     def _cleanup(self) -> None:
         for signal, slot in self._connections:

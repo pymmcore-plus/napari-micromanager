@@ -80,14 +80,11 @@ def add_path_to_config_json(path: Path | str) -> None:
     """Update the stystem configurations json file with the new path."""
     import json
 
+    if not USER_CONFIGS_PATHS.exists():
+        return
+
     if isinstance(path, Path):
         path = str(path)
-
-    # create USER_CONFIGS_PATHS if it doesn't exist
-    if not USER_CONFIGS_PATHS.exists():
-        USER_DIR.mkdir(parents=True, exist_ok=True)
-        with open(USER_CONFIGS_PATHS, "w") as f:
-            json.dump({"paths": []}, f)
 
     # Read the existing data
     try:
