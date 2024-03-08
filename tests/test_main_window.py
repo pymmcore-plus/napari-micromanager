@@ -17,7 +17,7 @@ def test_main_window(qtbot: QtBot, core: CMMCorePlus) -> None:
     This test should remain fast.
     """
     viewer = MagicMock()
-    wdg = MainWindow(viewer)
+    wdg = MainWindow(viewer, init_configs=False)
     qtbot.addWidget(wdg)
 
     viewer.layers.events.connect.assert_called_once_with(wdg._update_max_min)
