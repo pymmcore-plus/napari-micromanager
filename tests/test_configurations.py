@@ -10,7 +10,7 @@ from pymmcore_plus import CMMCorePlus
 from pytestqt.qtbot import QtBot
 
 DEMO = "MMConfig_demo.cfg"
-
+NEW = "New Hardware Configuration"
 
 configs = [None, Path(__file__).parent / "test_config.cfg"]
 
@@ -30,9 +30,8 @@ def test_config_init(qtbot: QtBot, core: CMMCorePlus, config: Path | None):
             combo = init._startup_dialog.cfg_combo
             current_cfg = combo.currentText()
             assert Path(current_cfg).name == DEMO
-            assert [Path(combo.itemText(i)).name for i in range(combo.count())] == [
-                DEMO,
-                "New Hardware Configuration",
+            assert [DEMO, NEW] == [
+                Path(combo.itemText(i)).name for i in range(combo.count())
             ]
             # simulate click on ok
             init._startup_dialog.accept()
