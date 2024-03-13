@@ -14,7 +14,6 @@ from qtpy.QtWidgets import QAction, QMenuBar
 
 from napari_micromanager._util import (
     load_sys_config,
-    load_sys_config_dialog,
     save_sys_config_dialog,
 )
 
@@ -132,7 +131,10 @@ class MainWindow(MicroManagerToolbar):
 
     def _load_cfg(self) -> None:
         """Load a Micro-Manager system configuration."""
-        load_sys_config_dialog(parent=self.viewer.window._qt_window, mmcore=self._mmc)
+        # load_sys_config_dialog(parent=self.viewer.window._qt_window, mmcore=self._mmc)
+        InitializeSystemConfigurations(
+            parent=self.viewer.window._qt_window, mmcore=self._mmc
+        )
 
     def _show_config_wizard(self) -> None:
         """Show the Micro-Manager Hardware Configuration Wizard."""
