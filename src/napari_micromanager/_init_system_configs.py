@@ -175,6 +175,12 @@ class StartupConfigurationsDialog(QDialog):
     def accept(self) -> None:
         super().accept()
         config = self.cfg_combo.currentText()
+        # if current text is not at index 0, update the json file and insert it at the
+        # first position so it will be shown as the fort option in the combo box next
+        # time the dialog is shown.
+        if config != self.cfg_combo.itemText(0):
+            add_path_to_config_json(config)
+
         # if the user selected NEW, show the config wizard
         if config == NEW:
             self._cfg_wizard = HardwareConfigWizard(parent=self)
