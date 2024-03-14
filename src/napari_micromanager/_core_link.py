@@ -77,6 +77,8 @@ class CoreViewerLink(QObject):
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the circular buffer."""
         if data is None:
+            if self._mmc.getRemainingImageCount() == 0:
+                return
             try:
                 data = self._mmc.getLastImage()
             except (RuntimeError, IndexError):
