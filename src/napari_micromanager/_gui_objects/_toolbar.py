@@ -58,7 +58,7 @@ TOOL_SIZE = 35
 class GroupsAndPresets(GroupPresetTableWidget):
     """Subclass of GroupPresetTableWidget.
 
-    Overwrite the save and load methods to store the saced or loaded configuration in
+    Overwrite the save and load methods to store the saved or loaded configuration in
     the USER_CONFIGS_PATHS json config file.
     """
 
