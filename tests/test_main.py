@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from napari_micromanager.__main__ import main
+from napari_micromanager._util import USER_CONFIGS_PATHS
 from pymmcore_plus import CMMCorePlus
 
 
@@ -35,3 +36,6 @@ def test_cli_main(argv: list) -> None:
     # this is to prevent a leaked widget error in the NEXT test
     napari.current_viewer().close()
     QtViewer._instances.clear()
+
+    if USER_CONFIGS_PATHS.exists():
+        USER_CONFIGS_PATHS.unlink()

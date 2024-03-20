@@ -21,7 +21,7 @@ def core(monkeypatch):
 @pytest.fixture
 def main_window(core: CMMCorePlus, make_napari_viewer):
     viewer = make_napari_viewer()
-    win = MainWindow(viewer=viewer)
+    win = MainWindow(viewer=viewer, init_configs=False)
     assert core == win._mmc
     return win
 
