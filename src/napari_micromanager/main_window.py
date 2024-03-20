@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
-
 # this is very verbose
 logging.getLogger("napari.loader").setLevel(logging.WARNING)
 logging.getLogger("in_n_out").setLevel(logging.WARNING)
@@ -55,6 +54,10 @@ class MainWindow(MicroManagerToolbar):
         self.destroyed.connect(self._cleanup)
         atexit.register(self._cleanup)
 
+        # load layout
+        self._load_layout()
+
+        # load config file
         if config is not None:
             try:
                 self._mmc.loadSystemConfiguration(config)
