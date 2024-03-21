@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Callable
 
 import napari
 import napari.layers
-from pymmcore_plus import CMMCorePlus
+from pymmcore_plus import CMMCorePlus, Metadata
 from qtpy.QtCore import QObject, Qt, QTimerEvent
 from superqt.utils import ensure_main_thread
 
@@ -57,7 +57,9 @@ class CoreViewerLink(QObject):
     def _image_snapped(self) -> None:
         # If we are in the middle of an MDA, don't update the preview viewer.
         if not self._mda_handler._mda_running:
-            self._update_viewer(self._mmc.getImage())
+            # update the viewer with the image from all the cameras
+            for cam in range(self._mmc.getNumberOfCameraChannels()):
+                self._update_viewer(*self._mmc.getTaggedImage(cam))
 
     def _start_live(self) -> None:
         interval = int(self._mmc.getExposure())
@@ -74,21 +76,34 @@ class CoreViewerLink(QObject):
             self._mmc.startContinuousSequenceAcquisition()
 
     @ensure_main_thread  # type: ignore [misc]
-    def _update_viewer(self, data: np.ndarray | None = None) -> None:
+    def _update_viewer(
+        self, data: np.ndarray | None = None, metadata: dict | Metadata | None = None
+    ) -> None:
         """Update viewer with the latest image from the circular buffer."""
         if data is None:
             if self._mmc.getRemainingImageCount() == 0:
                 return
             try:
-                data = self._mmc.getLastImage()
+                # get the last image from the circular buffer with metadata
+                data, metadata = self._mmc.getLastImageAndMD()
             except (RuntimeError, IndexError):
                 # circular buffer empty
                 return
+
+        if metadata is None:
+            return
+
+        # get the camera from the metadata
+        cam = metadata.get("Camera", self._mmc.getCameraDevice())
+        layer_name = f"preview ({cam})"
+
         try:
-            preview_layer = self.viewer.layers["preview"]
+            preview_layer = self.viewer.layers[layer_name]
             preview_layer.data = data
         except KeyError:
-            preview_layer = self.viewer.add_image(data, name="preview")
+            preview_layer = self.viewer.add_image(
+                data, name=layer_name, blending="additive"
+            )
 
         preview_layer.metadata["mode"] = "preview"
 
