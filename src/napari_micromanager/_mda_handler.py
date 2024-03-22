@@ -4,7 +4,7 @@ import contextlib
 import tempfile
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Generator, cast
+from typing import TYPE_CHECKING, Any, Callable, Generator, cast
 
 import napari
 import zarr
@@ -60,7 +60,7 @@ class _NapariMDAHandler:
 
         # mapping of id -> (zarr.Array, temporary directory) for each layer created
         self._tmp_arrays: dict[str, tuple[zarr.Array, tempfile.TemporaryDirectory]] = {}
-        self._deck: deque[tuple[np.ndarray, MDAEvent]] = deque()
+        self._deck: deque[tuple[np.ndarray, MDAEvent, dict[str, Any]]] = deque()
 
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
@@ -91,6 +91,15 @@ class _NapariMDAHandler:
         # determine the new layers that need to be created for this experiment
         # (based on the sequence mode, and whether we're splitting C/P, etc.)
         axis_labels, layers_to_create = _determine_sequence_layers(sequence)
+
+        # TODO: maybe move it _determine_sequence_layers
+        cameras = self._mmc.getCameraChannelNames()
+        if len(cameras) > 1:
+            layers_to_create = [
+                (f"{_id}_{camera}", *items)  # type: ignore
+                for camera in cameras
+                for _id, *items in layers_to_create
+            ]
 
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
@@ -143,15 +152,23 @@ class _NapariMDAHandler:
             else:
                 time.sleep(0.1)
 
-    def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
+    def _on_mda_frame(
+        self, image: np.ndarray, event: MDAEvent, meta: dict[str, Any]
+    ) -> None:
         """Called on the `frameReady` event from the core."""
-        self._deck.append((image, event))
+        self._deck.append((image, event, meta))
 
     def _process_frame(
-        self, image: np.ndarray, event: MDAEvent
+        self, image: np.ndarray, event: MDAEvent, meta: dict[str, Any]
     ) -> tuple[str | None, tuple[int, ...] | None]:
         # get info about the layer we need to update
         _id, im_idx, layer_name = _id_idx_layer(event)
+
+        # TODO: maybe move it _id_idx_layer
+        # "Camera" is only present in case there are multiple cameras
+        if camera := meta.get("Camera"):
+            _id = f"{_id}_{camera}"
+            layer_name = f"{layer_name}_{camera}"
 
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
