@@ -59,6 +59,7 @@ class CoreViewerLink(QObject):
         if not self._mda_handler._mda_running:
             # update the viewer with the image from all the cameras
             for cam in range(self._mmc.getNumberOfCameraChannels()):
+                # using tagged image to then get the camera name from the metadata
                 self._update_viewer(*self._mmc.getTaggedImage(cam))
 
     def _start_live(self) -> None:

@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from pymmcore_plus import CMMCorePlus
     from useq import MDASequence
 
+import warnings
+
 
 @pytest.mark.parametrize("axis_order", ["tpcz", "tpzc"])
 def test_layer_scale(
@@ -62,11 +64,15 @@ def test_layer_scale(
 
 
 def test_preview_scale(core: CMMCorePlus, main_window: MainWindow):
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     img = core.snap()
     main_window._core_link._update_viewer(img)
 
     pix_size = core.getPixelSizeUm()
-    assert tuple(main_window.viewer.layers["preview"].scale) == (pix_size, pix_size)
+    assert tuple(main_window.viewer.layers["preview (Camera)"].scale) == (
+        pix_size,
+        pix_size,
+    )
 
     # now pretend that the user never provided a pixel size config
     # we need to not crash in this case
