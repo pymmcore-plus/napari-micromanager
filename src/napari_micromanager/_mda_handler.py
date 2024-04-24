@@ -261,6 +261,8 @@ def _determine_sequence_layers(
         The YX shape of a single image in the sequence.
         (this argument might not need to be passed here, perhaps could be handled
         be the caller of this function)
+    mmcore : CMMCorePlus
+        The Micro-Manager core instance.
 
     Returns
     -------
@@ -331,7 +333,8 @@ def _id_idx_layer(
     ----------
     event : MDAEvent
         An event for which to retrieve the id, index, and layer name.
-
+    meta : dict[str, Any]
+        Metadata for the sequence.
 
     Returns
     -------
