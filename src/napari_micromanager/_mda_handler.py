@@ -90,16 +90,7 @@ class _NapariMDAHandler:
 
         # determine the new layers that need to be created for this experiment
         # (based on the sequence mode, and whether we're splitting C/P, etc.)
-        axis_labels, layers_to_create = _determine_sequence_layers(sequence)
-
-        # TODO: maybe move it _determine_sequence_layers
-        cameras = self._mmc.getCameraChannelNames()
-        if len(cameras) > 1:
-            layers_to_create = [
-                (f"{_id}_{camera}", *items)  # type: ignore
-                for camera in cameras
-                for _id, *items in layers_to_create
-            ]
+        axis_labels, layers_to_create = _determine_sequence_layers(sequence, self._mmc)
 
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
 
@@ -162,13 +153,7 @@ class _NapariMDAHandler:
         self, image: np.ndarray, event: MDAEvent, meta: dict[str, Any]
     ) -> tuple[str | None, tuple[int, ...] | None]:
         # get info about the layer we need to update
-        _id, im_idx, layer_name = _id_idx_layer(event)
-
-        # TODO: maybe move it _id_idx_layer
-        # "Camera" is only present in case there are multiple cameras
-        if camera := meta.get("Camera"):
-            _id = f"{_id}_{camera}"
-            layer_name = f"{layer_name}_{camera}"
+        _id, im_idx, layer_name = _id_idx_layer(event, meta)
 
         # update the zarr array backing the layer
         self._tmp_arrays[_id][0][im_idx] = image
@@ -259,7 +244,7 @@ def _has_sub_sequences(sequence: MDASequence) -> bool:
 
 
 def _determine_sequence_layers(
-    sequence: MDASequence,
+    sequence: MDASequence, mmcore: CMMCorePlus
 ) -> tuple[list[str], list[tuple[str, list[int], LayerMeta]]]:
     # sourcery skip: extract-duplicate-method
     """Return (axis_labels, (id, shape, and metadata)) for each layer to add for seq.
@@ -325,10 +310,19 @@ def _determine_sequence_layers(
 
     axis_labels += ["y", "x"]
 
+    # add camera name to id if more than one camera
+    cameras = mmcore.getCameraChannelNames()
+    if len(cameras) > 1:
+        _layer_info = [
+            (f"{_id}_{camera}", *items)  # type: ignore
+            for camera in cameras
+            for _id, *items in _layer_info
+        ]
+
     return axis_labels, _layer_info
 
 
-def _id_idx_layer(event: MDAEvent) -> tuple[str, tuple[int, ...], str]:
+def _id_idx_layer(event: MDAEvent, meta: dict[str, Any]) -> tuple[str, tuple[int, ...], str]:
     """Get the tmp_path id, index, and layer name for a given event.
 
     Parameters
@@ -347,14 +341,14 @@ def _id_idx_layer(event: MDAEvent) -> tuple[str, tuple[int, ...], str]:
             - `layer_name` is the name of the corresponding layer in the viewer.
     """
     seq = cast("MDASequence", event.sequence)
-    meta = cast(dict, seq.metadata.get(NMM_METADATA_KEY, {}))
+    nmm_meta = cast(dict, seq.metadata.get(NMM_METADATA_KEY, {}))
     axis_order = list(get_full_sequence_axes(seq))
 
     ch_id = ""
     # get filename from MDASequence metadata
     prefix = _get_file_name_from_metadata(seq)
 
-    if meta.get("split_channels", False) and event.channel:
+    if nmm_meta.get("split_channels", False) and event.channel:
         ch_id = f"{event.channel.config}_{event.index['c']:03d}_"
         axis_order.remove("c")
 
@@ -372,5 +366,10 @@ def _id_idx_layer(event: MDAEvent) -> tuple[str, tuple[int, ...], str]:
 
     # the name of this layer in the napari viewer
     layer_name = f"{prefix}_{ch_id}{seq.uid}"
+
+    # "Camera" is present in meta only in case there are multiple cameras
+    if camera := meta.get("Camera"):
+        _id = f"{_id}_{camera}"
+        layer_name = f"{layer_name}_{camera}"
 
     return _id, im_idx, layer_name
