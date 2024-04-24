@@ -322,7 +322,9 @@ def _determine_sequence_layers(
     return axis_labels, _layer_info
 
 
-def _id_idx_layer(event: MDAEvent, meta: dict[str, Any]) -> tuple[str, tuple[int, ...], str]:
+def _id_idx_layer(
+    event: MDAEvent, meta: dict[str, Any]
+) -> tuple[str, tuple[int, ...], str]:
     """Get the tmp_path id, index, and layer name for a given event.
 
     Parameters
