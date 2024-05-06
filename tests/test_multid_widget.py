@@ -44,7 +44,7 @@ def test_saving_mda(
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
 
-    dest = tmp_path / "thing.ome.tif"
+    dest = tmp_path / "thing.some.tif"
 
     mda_widget.setValue(mda)
     mda_widget.save_info.setValue(dest)
