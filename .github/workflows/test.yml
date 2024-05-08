@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-13,]
+        platform: [windows-latest, macos-13]
         python-version: ["3.9", "3.10", "3.11"]
         backend: [pyside2, pyqt5]
         include:
