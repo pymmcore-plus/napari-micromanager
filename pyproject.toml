@@ -163,3 +163,6 @@ exclude_lines = [
 
 [tool.coverage.run]
 source = ["src/napari_micromanager"]
+
+[tool.typos.default]
+extend-ignore-identifiers-re = ["(?i)ome"]
