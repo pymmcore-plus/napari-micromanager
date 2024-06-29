@@ -32,6 +32,8 @@ jobs:
         exclude:
           - python-version: "3.11"
             backend: pyside2
+          - python-version: "3.12"
+            backend: pyside2
 
     steps:
       - uses: actions/checkout@v4
@@ -41,13 +43,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: tlambert03/setup-qt-libs@v1
-
-      - name: Install Windows OpenGL
-        if: runner.os == 'Windows'
-        run: |
-          git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-          powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
 
       - name: Install dependencies
         run: |
@@ -76,9 +74,7 @@ jobs:
         run: mmcore install
 
       - name: Test
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
+        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v4
@@ -112,4 +108,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: './dist/*'
+          files: "./dist/*"
