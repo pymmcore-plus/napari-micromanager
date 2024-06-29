@@ -20,20 +20,17 @@ jobs:
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-13]
-        python-version: ["3.9", "3.10", "3.11"]
-        backend: [pyside2, pyqt5]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        backend: [pyqt5]
         include:
-          - python-version: "3.8"
-            platform: windows-latest
-            backend: pyqt5
           - python-version: "3.11"
             platform: macos-13
             backend: pyqt6
           - python-version: "3.11"
             platform: ubuntu-latest
             backend: pyqt5
-        exclude:
-          - python-version: "3.11"
+          - python-version: "3.10"
+            platform: windows-latest
             backend: pyside2
 
     steps:
@@ -44,13 +41,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: tlambert03/setup-qt-libs@v1
-
-      - name: Install Windows OpenGL
-        if: runner.os == 'Windows'
-        run: |
-          git clone --depth 1 https://github.com/pyvista/gl-ci-helpers.git
-          powershell gl-ci-helpers/appveyor/install_opengl.ps1
+      - uses: pyvista/setup-headless-display-action@main
+        with:
+          qt: true
 
       - name: Install dependencies
         run: |
@@ -79,9 +72,7 @@ jobs:
         run: mmcore install
 
       - name: Test
-        uses: GabrielBB/xvfb-action@v1
-        with:
-          run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
+        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v4
@@ -93,34 +84,26 @@ jobs:
     needs: test
     if: "success() && startsWith(github.ref, 'refs/tags/')"
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
-      - name: install
+      - name: 👷 Build
         run: |
-          git tag
-          pip install --upgrade pip
-          pip install -U build twine check-manifest
+          python -m pip install build check-manifest
           check-manifest
           python -m build
-
-      - name: twine check
-        run: |
-          twine check dist/*
-          ls -lh dist
-
-      - name: Build and publish
-        run: twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
+      - name: 🚢 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: "./dist/*"

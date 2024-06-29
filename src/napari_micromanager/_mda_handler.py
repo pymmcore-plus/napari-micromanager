@@ -4,7 +4,7 @@ import contextlib
 import tempfile
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Generator, cast
+from typing import TYPE_CHECKING, Callable, cast
 
 import napari
 import zarr
@@ -13,6 +13,7 @@ from superqt.utils import create_worker, ensure_main_thread
 from ._util import NMM_METADATA_KEY, PYMMCW_METADATA_KEY, get_full_sequence_axes
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from uuid import UUID
 
     import napari.viewer

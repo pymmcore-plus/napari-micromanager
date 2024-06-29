@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, cast
+from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import StageWidget
@@ -61,8 +61,8 @@ class MMStagesWidget(QWidget):
     def dropEvent(self, event: QDropEvent) -> None:
         pos = event.pos()
 
-        wdgs: List[Tuple[int, _DragGroupBox, int, int]] = []
-        zones: List[Tuple[int, int]] = []
+        wdgs: list[tuple[int, _DragGroupBox, int, int]] = []
+        zones: list[tuple[int, int]] = []
         for i in range(self.layout().count()):
             wdg = cast(_DragGroupBox, self.layout().itemAt(i).widget())
             wdgs.append((i, wdg, wdg.x(), wdg.x() + wdg.width()))

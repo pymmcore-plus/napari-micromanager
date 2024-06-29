@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QLabel, QScrollArea, QWidget
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from napari.layers import Image
 
 QCOLORS = set(QColor.colorNames())
