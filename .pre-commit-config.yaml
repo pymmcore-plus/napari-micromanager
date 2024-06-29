@@ -13,7 +13,7 @@ repos:
     rev: v0.4.7
     hooks:
       - id: ruff
-        args: [--fix, --unsafe-fixes]
+        args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject
