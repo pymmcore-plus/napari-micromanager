@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from napari_micromanager.__main__ import main
+from napari_micromanager._gui_objects._toolbar import USER_LAYOUT_PATH
 from pymmcore_plus import CMMCorePlus
 
 
@@ -17,6 +18,10 @@ from pymmcore_plus import CMMCorePlus
 def test_cli_main(argv: list) -> None:
     import napari
     from napari.qt import QtViewer
+
+    # remover any saved layout file
+    if USER_LAYOUT_PATH.exists():
+        USER_LAYOUT_PATH.unlink()
 
     with patch("napari.run") as mock_run:
         with patch("qtpy.QtWidgets.QMainWindow.show") as mock_show:
