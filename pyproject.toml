@@ -9,7 +9,7 @@ name = "napari-micromanager"
 description = "Micro-Manager GUI interface in napari."
 keywords = ["microscope", "micro-manager", "remote", "multi-processing"]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { text = "BSD 3-Clause License" }
 authors = [
     { name = "Federico Gasparoli", email = "federico.gasparoli@gmail.com" },
@@ -24,10 +24,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: System :: Hardware",
     "Topic :: System :: Hardware :: Hardware Drivers",
     "Topic :: Utilities",
@@ -77,7 +77,7 @@ include = ["/src", "/tests"]
 # https://beta.ruff.rs/docs/rules/
 [tool.ruff]
 line-length = 88
-target-version = "py38"
+target-version = "py39"
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }
