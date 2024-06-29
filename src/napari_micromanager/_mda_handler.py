@@ -4,7 +4,8 @@ import contextlib
 import tempfile
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Generator, cast
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Callable, cast
 
 import napari
 import zarr
