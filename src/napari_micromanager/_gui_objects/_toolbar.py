@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Dict, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 from fonticon_mdi6 import MDI6
 from pymmcore_plus import CMMCorePlus
@@ -52,7 +52,7 @@ TOOL_SIZE = 35
 
 
 # Dict for QObject and its QPushButton icon
-DOCK_WIDGETS: Dict[str, Tuple[type[QWidget], str | None]] = {  # noqa: U006
+DOCK_WIDGETS: dict[str, tuple[type[QWidget], str | None]] = {
     "Device Property Browser": (PropertyBrowser, MDI6.table_large),
     "Groups and Presets Table": (GroupPresetTableWidget, MDI6.table_large_plus),
     "Illumination Control": (IlluminationWidget, MDI6.lightbulb_on),
