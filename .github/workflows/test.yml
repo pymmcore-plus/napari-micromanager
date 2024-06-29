@@ -90,34 +90,26 @@ jobs:
     needs: test
     if: "success() && startsWith(github.ref, 'refs/tags/')"
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
-      - name: install
+      - name: 👷 Build
         run: |
-          git tag
-          pip install --upgrade pip
-          pip install -U build twine check-manifest
+          python -m pip install build check-manifest
           check-manifest
           python -m build
-
-      - name: twine check
-        run: |
-          twine check dist/*
-          ls -lh dist
-
-      - name: Build and publish
-        run: twine upload dist/*
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
+      - name: 🚢 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          files: './dist/*'
