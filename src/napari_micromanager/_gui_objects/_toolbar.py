@@ -9,13 +9,17 @@ from pymmcore_widgets import (
     CameraRoiWidget,
     ChannelGroupWidget,
     ChannelWidget,
-    ConfigurationWidget,
     DefaultCameraExposureWidget,
     GroupPresetTableWidget,
     LiveButton,
     ObjectivesWidget,
     PropertyBrowser,
     SnapButton,
+)
+
+from napari_micromanager._util import (
+    load_sys_config_dialog,
+    save_sys_config_dialog,
 )
 
 try:
@@ -51,10 +55,31 @@ if TYPE_CHECKING:
 TOOL_SIZE = 35
 
 
+class GroupsAndPresets(GroupPresetTableWidget):
+    """Subclass of GroupPresetTableWidget.
+
+    Overwrite the save and load methods to store the saved or loaded configuration in
+    the USER_CONFIGS_PATHS json config file.
+    """
+
+    def __init__(
+        self, *, parent: QWidget | None = None, mmcore: CMMCorePlus | None = None
+    ) -> None:
+        super().__init__(parent=parent, mmcore=mmcore)
+
+    def _save_cfg(self) -> None:
+        """Open file dialog to save the current configuration."""
+        save_sys_config_dialog(parent=self, mmcore=self._mmc)
+
+    def _load_cfg(self) -> None:
+        """Open file dialog to select a config file."""
+        load_sys_config_dialog(parent=self, mmcore=self._mmc)
+
+
 # Dict for QObject and its QPushButton icon
 DOCK_WIDGETS: dict[str, tuple[type[QWidget], str | None]] = {
     "Device Property Browser": (PropertyBrowser, MDI6.table_large),
-    "Groups and Presets Table": (GroupPresetTableWidget, MDI6.table_large_plus),
+    "Groups and Presets Table": (GroupsAndPresets, MDI6.table_large_plus),
     "Illumination Control": (IlluminationWidget, MDI6.lightbulb_on),
     "Stages Control": (MMStagesWidget, MDI6.arrow_all),
     "Camera ROI": (CameraRoiWidget, MDI6.crop),
@@ -103,14 +128,13 @@ class MicroManagerToolbar(QMainWindow):
         self._dock_widgets: dict[str, QDockWidget] = {}
         # add toolbar items
         toolbar_items = [
-            ConfigToolBar(self),
-            ChannelsToolBar(self),
             ObjectivesToolBar(self),
+            ChannelsToolBar(self),
+            ExposureToolBar(self),
+            SnapLiveToolBar(self),
+            ToolsToolBar(self),
             None,
             ShuttersToolBar(self),
-            SnapLiveToolBar(self),
-            ExposureToolBar(self),
-            ToolsToolBar(self),
         ]
         for item in toolbar_items:
             if item:
@@ -239,13 +263,6 @@ class MMToolBar(QToolBar):
 
     def addSubWidget(self, wdg: QWidget) -> None:
         cast("QHBoxLayout", self.frame.layout()).addWidget(wdg)
-
-
-class ConfigToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__("Configuration", parent)
-        self.addSubWidget(ConfigurationWidget())
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
 
 class ObjectivesToolBar(MMToolBar):
