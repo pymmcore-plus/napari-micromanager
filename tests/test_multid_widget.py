@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from napari_micromanager._gui_objects._mda_widget import MultiDWidget
 from napari_micromanager._util import NMM_METADATA_KEY
 from pymmcore_plus.mda import MDAEngine
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
+@pytest.mark.enable_console
 def test_main_window_mda(main_window: MainWindow):
     assert not main_window.viewer.layers
 
@@ -33,6 +35,7 @@ def test_main_window_mda(main_window: MainWindow):
     assert all(key in layer_meta for key in keys)
 
 
+@pytest.mark.enable_console
 def test_saving_mda(
     qtbot: QtBot,
     main_window: MainWindow,
@@ -76,6 +79,7 @@ def test_saving_mda(
     assert data_shape == expected_shape
 
 
+@pytest.mark.enable_console
 def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     # we should show the mda even if it came from outside
     mmc = main_window._mmc

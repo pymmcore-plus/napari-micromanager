@@ -111,6 +111,7 @@ docstring-code-format = true
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
+markers = ["enable_console"]  # to enable the napari console in the test when using make_napari_viewer fixture
 minversion = "6.0"
 testpaths = ["tests"]
 filterwarnings = [

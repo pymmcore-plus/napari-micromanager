@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from useq import MDASequence
 
 
+@pytest.mark.enable_console
 @pytest.mark.parametrize("axis_order", ["tpcz", "tpzc"])
 def test_layer_scale(
     make_napari_viewer,
@@ -61,6 +62,7 @@ def test_layer_scale(
     handler._on_mda_finished(sequence)
 
 
+@pytest.mark.enable_console
 def test_preview_scale(core: CMMCorePlus, main_window: MainWindow):
     img = core.snap()
     main_window._core_link._update_viewer(img)
