@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Optional, cast
 
 from pymmcore_plus import CMMCorePlus, DeviceType
@@ -52,8 +53,9 @@ class MMStagesWidget(QWidget):
         for i in reversed(range(self.layout().count())):
             if item := self.layout().takeAt(i):
                 if wdg := item.widget():
-                    wdg.setParent(QWidget())
-                    wdg.deleteLater()
+                    with suppress(RuntimeError):
+                        wdg.setParent(QWidget())
+                        wdg.deleteLater()
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         event.accept()

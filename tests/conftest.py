@@ -1,16 +1,25 @@
+from __future__ import annotations
+
 import itertools
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+import napari
 import pytest
 import useq
 from napari_micromanager._util import NMM_METADATA_KEY
 from napari_micromanager.main_window import MainWindow
 from pymmcore_plus import CMMCorePlus
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from pytestqt.qtbot import QtBot
+
 
 # to create a new CMMCorePlus() for every test
 @pytest.fixture
-def core(monkeypatch):
+def core(monkeypatch: pytest.MonkeyPatch) -> CMMCorePlus:
     new_core = CMMCorePlus()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     new_core.loadSystemConfiguration(config_path)
@@ -19,9 +28,16 @@ def core(monkeypatch):
 
 
 @pytest.fixture
-def main_window(core: CMMCorePlus, make_napari_viewer):
-    viewer = make_napari_viewer()
-    win = MainWindow(viewer=viewer)
+def napari_viewer(qtbot: QtBot) -> Iterator[napari.Viewer]:
+    viewer = napari.Viewer(show=False)
+    qtbot.addWidget(viewer.window._qt_window)
+    yield viewer
+    viewer.close()
+
+
+@pytest.fixture
+def main_window(core: CMMCorePlus, napari_viewer: napari.Viewer) -> MainWindow:
+    win = MainWindow(viewer=napari_viewer)
     assert core == win._mmc
     return win
 
@@ -50,7 +66,9 @@ def mda_sequence(request: pytest.FixtureRequest) -> useq.MDASequence:
 
 
 @pytest.fixture(params=[True, False], ids=["splitC", "no_splitC"])
-def mda_sequence_splits(mda_sequence: useq.MDASequence, request) -> useq.MDASequence:
+def mda_sequence_splits(
+    mda_sequence: useq.MDASequence, request: pytest.FixtureRequest
+) -> useq.MDASequence:
     if request.param:
         meta = {"split_channels": True}
         mda_sequence.metadata[NMM_METADATA_KEY] = meta

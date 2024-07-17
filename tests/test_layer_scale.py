@@ -6,6 +6,7 @@ import pytest
 from napari_micromanager._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
+    import napari
     from napari_micromanager.main_window import MainWindow
     from pymmcore_plus import CMMCorePlus
     from useq import MDASequence
@@ -13,14 +14,13 @@ if TYPE_CHECKING:
 
 @pytest.mark.parametrize("axis_order", ["tpcz", "tpzc"])
 def test_layer_scale(
-    make_napari_viewer,
+    napari_viewer: napari.Viewer,
     mda_sequence_splits: MDASequence,
     axis_order: str,
     core: CMMCorePlus,
 ) -> None:
-    viewer = make_napari_viewer()
     mmc = core
-    handler = _NapariMDAHandler(mmc, viewer)
+    handler = _NapariMDAHandler(mmc, napari_viewer)
 
     mmc.setProperty("Objective", "Label", "Nikon 20X Plan Fluor ELWD")
 
@@ -30,7 +30,7 @@ def test_layer_scale(
     # create zarr layer
     handler._on_mda_started(sequence)
 
-    layer = viewer.layers[0]
+    layer = napari_viewer.layers[0]
     if sequence.z_plan:
         num_z = len(list(sequence.z_plan))
         assert layer.scale[layer.data.shape.index(num_z)] == z_step
