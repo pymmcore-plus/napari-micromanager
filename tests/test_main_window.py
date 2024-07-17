@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-import pytest
 import useq
 from napari_micromanager.main_window import MainWindow
 
@@ -12,7 +11,6 @@ if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot
 
 
-@pytest.mark.enable_console
 def test_main_window(qtbot: QtBot, core: CMMCorePlus) -> None:
     """Basic test to check that the main window can be created.
 
@@ -34,7 +32,6 @@ def test_main_window(qtbot: QtBot, core: CMMCorePlus) -> None:
     viewer.layers.events.disconnect.assert_called_once_with(wdg._update_max_min)
 
 
-@pytest.mark.enable_console
 def test_preview_while_mda(main_window: MainWindow, qtbot: QtBot):
     # we should show the mda even if it came from outside
     mmc = main_window._mmc

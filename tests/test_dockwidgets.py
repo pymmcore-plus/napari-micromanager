@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import pytest
 from napari_micromanager._gui_objects._toolbar import DOCK_WIDGETS
 
 if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
 
 
-@pytest.mark.enable_console
 def test_dockwidgets(main_window: MainWindow):
     for dw_name in DOCK_WIDGETS:
         assert dw_name not in main_window._dock_widgets
