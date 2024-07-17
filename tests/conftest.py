@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import itertools
+from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import napari
 import pytest
@@ -13,8 +14,6 @@ from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-    from pytestqt.qtbot import QtBot
 
 
 # to create a new CMMCorePlus() for every test
@@ -28,11 +27,11 @@ def core(monkeypatch: pytest.MonkeyPatch) -> CMMCorePlus:
 
 
 @pytest.fixture
-def napari_viewer(qtbot: QtBot) -> Iterator[napari.Viewer]:
+def napari_viewer(qapp: Any) -> Iterator[napari.Viewer]:
     viewer = napari.Viewer(show=False)
-    qtbot.addWidget(viewer.window._qt_window)
     yield viewer
-    viewer.close()
+    with suppress(RuntimeError):
+        viewer.close()
 
 
 @pytest.fixture
