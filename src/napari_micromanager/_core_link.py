@@ -40,7 +40,7 @@ class CoreViewerLink(QObject):
             (self._mmc.events.continuousSequenceAcquisitionStarted, self._start_live),
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
             (self._mmc.events.exposureChanged, self._restart_live),
-            (self._mmc.events.configSet, self._restart_live)
+            (self._mmc.events.configSet, self._restart_live),
         ]
         for signal, slot in self._connections:
             signal.connect(slot)
