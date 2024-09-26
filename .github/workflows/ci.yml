@@ -29,9 +29,9 @@ jobs:
           - python-version: "3.11"
             platform: ubuntu-latest
             backend: pyqt5
-          - python-version: "3.11"
+          - python-version: "3.10"
             platform: windows-latest
-            backend: pyside6
+            backend: pyside2
 
     steps:
       - uses: actions/checkout@v4
