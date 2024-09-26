@@ -31,7 +31,7 @@ jobs:
             backend: pyqt5
           - python-version: "3.11"
             platform: windows-latest
-            backend: pyside2
+            backend: pyside6
 
     steps:
       - uses: actions/checkout@v4
