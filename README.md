@@ -17,9 +17,11 @@ You can install `napari-micromanager` via [pip]:
 
     pip install napari-micromanager
 
-You will also need a Qt backend such as PySide2/6, or PyQt5/6.  If you've previously installed napari
-into this environment with `pip install napari[all]`, then you will likely already have it. If not,
-you will also need to install a Qt backend of your choice:
+You will also need a Qt backend such as PySide2/6, or PyQt5/6.  **PyQt is
+preferred and receives more testing**. If you've previously installed napari
+into this environment with `pip install napari[all]`, then you will likely
+already have it. If not, you will also need to install a Qt backend of your
+choice:
 
     pip install pyqt5  # or any of {pyqt5, pyqt6, pyside2, pyside6}
 
