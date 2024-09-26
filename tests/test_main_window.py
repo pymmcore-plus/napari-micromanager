@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import useq
+
 from napari_micromanager.main_window import MainWindow
 
 if TYPE_CHECKING:

@@ -8,9 +8,10 @@ from typing import TYPE_CHECKING, Any
 import napari
 import pytest
 import useq
+from pymmcore_plus import CMMCorePlus
+
 from napari_micromanager._util import NMM_METADATA_KEY
 from napari_micromanager.main_window import MainWindow
-from pymmcore_plus import CMMCorePlus
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

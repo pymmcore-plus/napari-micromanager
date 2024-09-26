@@ -2,8 +2,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from napari_micromanager.__main__ import main
 from pymmcore_plus import CMMCorePlus
+
+from napari_micromanager.__main__ import main
 
 
 @pytest.mark.parametrize(

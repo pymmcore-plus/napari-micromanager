@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from napari_micromanager._gui_objects._mda_widget import MultiDWidget
-from napari_micromanager._util import NMM_METADATA_KEY
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
+
+from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._util import NMM_METADATA_KEY
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from napari_micromanager.main_window import MainWindow
     from pytestqt.qtbot import QtBot
+
+    from napari_micromanager.main_window import MainWindow
 
 
 def test_main_window_mda(main_window: MainWindow):
