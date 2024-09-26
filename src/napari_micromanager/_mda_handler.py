@@ -94,6 +94,8 @@ class _NapariMDAHandler:
         axis_labels, layers_to_create = _determine_sequence_layers(sequence)
 
         yx_shape = [self._mmc.getImageHeight(), self._mmc.getImageWidth()]
+        if self._mmc.getNumberOfComponents() >= 3:
+            yx_shape = [*yx_shape, 3]
 
         # now create a zarr array in a temporary directory for each layer
         for id_, shape, kwargs in layers_to_create:
@@ -212,17 +214,16 @@ class _NapariMDAHandler:
         """
         # we won't have reached this point if meta is None
         meta = sequence.metadata.get(NMM_METADATA_KEY, {})
+        is_rgb = arr.shape[-1] == 3
+        scale = [1.0] * (arr.ndim - (1 if is_rgb else 0))
 
         # add Z to layer scale
         if (pix_size := self._mmc.getPixelSizeUm()) != 0:
-            scale = [1.0] * (arr.ndim - 2) + [pix_size] * 2
+            scale[-2:] = [pix_size, pix_size]
             if (index := sequence.used_axes.find("z")) > -1:
                 if meta.get("split_channels") and sequence.used_axes.find("c") < index:
                     index -= 1
                 scale[index] = getattr(sequence.z_plan, "step", 1)
-        else:
-            # return to default
-            scale = [1.0, 1.0]
 
         layer_meta["useq_sequence"] = sequence
         layer_meta["uid"] = sequence.uid
