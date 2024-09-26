@@ -13,6 +13,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pipx run check-manifest
+
   test:
     name: py${{ matrix.python-version }} ${{ matrix.backend }} ${{ matrix.platform }}
     runs-on: ${{ matrix.platform }}

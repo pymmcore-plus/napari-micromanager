@@ -147,7 +147,13 @@ ignore_missing_imports = true
 
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]
-ignore = [".pre-commit-config.yaml", "launch-dev.py", "codecov.yml"]
+ignore = [
+    ".pre-commit-config.yaml",
+    "launch-dev.py",
+    "codecov.yml",
+    "mkdocs.yml",
+    "docs/**",
+]
 
 # https://coverage.readthedocs.io/en/6.4/config.html
 [tool.coverage.report]
