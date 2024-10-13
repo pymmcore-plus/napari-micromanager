@@ -8,6 +8,11 @@
 
 GUI interface between napari and micromanager powered by [pymmcore-plus](https://pymmcore-plus.github.io/pymmcore-plus/) and [pymmcore-widgets](https://pymmcore-plus.github.io/pymmcore-widgets/)
 
+> [!NOTE]  
+> While this plugin will continue to be maintained, we are focusing current efforts on a napari-independent
+> gui (using [ndv](https://github.com/pyapp-kit/ndv)) for reasons of performance and minimizing dependencies.
+> Please follow [https://github.com/pymmcore-plus/pymmcore-gui](pymmcore-plus/pymmcore-gui) for details
+
 ----------------------------------
 <img width="1840" alt="napari-micromanager" src="https://github.com/pymmcore-plus/napari-micromanager/assets/1609449/e1f395cd-2d57-488e-89e2-b1923310fc2a">
 
