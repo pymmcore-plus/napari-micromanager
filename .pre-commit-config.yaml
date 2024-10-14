@@ -5,12 +5,12 @@ ci:
 
 repos:
   - repo: https://github.com/crate-ci/typos
-    rev: v1.24.6
+    rev: v1.26.0
     hooks:
       - id: typos
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8
+    rev: v0.6.9
     hooks:
       - id: ruff
         args: [--fix]
