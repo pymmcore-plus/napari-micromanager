@@ -81,7 +81,7 @@ jobs:
         run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
