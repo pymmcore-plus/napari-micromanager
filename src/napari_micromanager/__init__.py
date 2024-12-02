@@ -14,4 +14,4 @@ import pymmcore  # noqa: F401
 
 from .main_window import MainWindow
 
-__all__ = ["__version__", "MainWindow"]
+__all__ = ["MainWindow", "__version__"]
