@@ -38,7 +38,7 @@ DEFAULT_NAME = "Exp"
 def _get_file_name_from_metadata(sequence: MDASequence) -> str:
     """Get the file name from the MDASequence metadata."""
     meta = cast("dict", sequence.metadata.get(PYMMCW_METADATA_KEY, {}))
-    return cast(str, meta.get("save_name", DEFAULT_NAME))
+    return cast("str", meta.get("save_name", DEFAULT_NAME))
 
 
 class _NapariMDAHandler:
@@ -273,7 +273,7 @@ def _determine_sequence_layers(
               layer, and `layer_meta` is metadata to add to `layer.metadata`. e.g.:
               `[('3670fc63-c570-4920-949f-16601143f2e3', [4, 2, 4], {})]`
     """
-    meta = cast(dict, sequence.metadata.get(NMM_METADATA_KEY, {}))
+    meta = cast("dict", sequence.metadata.get(NMM_METADATA_KEY, {}))
 
     # these are all the layers we're going to create
     # each item is a tuple of (id, shape, layer_metadata)
@@ -332,7 +332,7 @@ def _id_idx_layer(event: MDAEvent) -> tuple[str, tuple[int, ...], str]:
             - `layer_name` is the name of the corresponding layer in the viewer.
     """
     seq = cast("MDASequence", event.sequence)
-    meta = cast(dict, seq.metadata.get(NMM_METADATA_KEY, {}))
+    meta = cast("dict", seq.metadata.get(NMM_METADATA_KEY, {}))
     axis_order = list(get_full_sequence_axes(seq))
 
     ch_id = ""
