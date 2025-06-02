@@ -66,7 +66,7 @@ class MMStagesWidget(QWidget):
         wdgs: list[tuple[int, _DragGroupBox, int, int]] = []
         zones: list[tuple[int, int]] = []
         for i in range(self.layout().count()):
-            wdg = cast(_DragGroupBox, self.layout().itemAt(i).widget())
+            wdg = cast("_DragGroupBox", self.layout().itemAt(i).widget())
             wdgs.append((i, wdg, wdg.x(), wdg.x() + wdg.width()))
             zones.append((wdg.x(), wdg.x() + wdg.width()))
 
@@ -88,7 +88,7 @@ class MMStagesWidget(QWidget):
             if curr_idx == idx:
                 w.start_pos = 0
                 break
-            cast(QHBoxLayout, self.layout()).insertWidget(curr_idx, w)
+            cast("QHBoxLayout", self.layout()).insertWidget(curr_idx, w)
             w.start_pos = 0
             break
         event.accept()
