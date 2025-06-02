@@ -66,5 +66,5 @@ def ensure_unique(path: Path, extension: str = ".tif", ndigits: int = 3) -> Path
             continue
 
     # build new path name
-    number = f"_{current_max+1:0{ndigits}d}"
+    number = f"_{current_max + 1:0{ndigits}d}"
     return path.parent / f"{stem}{number}{extension}"
