@@ -96,7 +96,7 @@ class MicroManagerToolbar(QMainWindow):
                 Qt.DockWidgetArea.BottomDockWidgetArea,
             ]
             for area in areas:
-                cast(QMainWindow, win).setTabPosition(
+                cast("QMainWindow", win).setTabPosition(
                     area, QTabWidget.TabPosition.North
                 )
 
@@ -126,7 +126,7 @@ class MicroManagerToolbar(QMainWindow):
             win := getattr(self.viewer.window, "_qt_window", None)
         ):
             return
-        win = cast(QMainWindow, win)
+        win = cast("QMainWindow", win)
         if (
             isinstance(dw := self.parent(), QDockWidget)
             and win.dockWidgetArea(dw) is not Qt.DockWidgetArea.TopDockWidgetArea
@@ -168,7 +168,7 @@ class MicroManagerToolbar(QMainWindow):
         tabify = True
         if not key:
             # using QPushButton.whatsThis() property to get the key.
-            btn = cast(QPushButton, self.sender())
+            btn = cast("QPushButton", self.sender())
             key = btn.whatsThis()
 
         if key in self._dock_widgets:
