@@ -14,17 +14,12 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: |
-          pip install -e .[docs]
+      - uses: astral-sh/setup-uv@v6
 
       - name: Test docs
         if: github.event_name == 'pull_request'
-        run: mkdocs build --strict
+        run: uv run --group docs mkdocs build --strict
 
       - name: Deploy docs
         if: github.ref == 'refs/heads/main'
-        run: mkdocs gh-deploy --force
+        run: uv run --group docs mkdocs gh-deploy --force
