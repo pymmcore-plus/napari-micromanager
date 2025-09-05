@@ -20,7 +20,7 @@ class IlluminationWidget(PropertiesWidget):
         mmcore: CMMCorePlus | None = None,
     ):
         super().__init__(
-            property_name_pattern="(Intensity|Power|test)s?",
+            property_name_pattern="(Intensity|Power|Level|test)s?",
             property_type={PropertyType.Integer, PropertyType.Float},
             parent=parent,
             mmcore=mmcore,
