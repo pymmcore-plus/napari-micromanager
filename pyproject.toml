@@ -160,6 +160,7 @@ ignore = [
     "codecov.yml",
     "mkdocs.yml",
     "docs/**",
+    "uv.lock"
 ]
 
 # https://coverage.readthedocs.io/en/6.4/config.html
