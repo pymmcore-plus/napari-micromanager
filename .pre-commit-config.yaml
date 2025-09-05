@@ -4,16 +4,16 @@ ci:
   autoupdate_commit_msg: "ci: [pre-commit.ci] autoupdate"
 
 repos:
-  - repo: https://github.com/crate-ci/typos
-    rev: v1
+  - repo: https://github.com/adhtruong/mirrors-typos
+    rev: v1.36.2
     hooks:
       - id: typos
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.12.12
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff-check
+        args: [--fix, --unsafe-fixes]
       - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject

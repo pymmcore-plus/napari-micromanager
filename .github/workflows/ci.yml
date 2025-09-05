@@ -25,25 +25,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-13]
+        platform: [windows-latest, macos-latest]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         backend: [pyqt5]
         include:
           - python-version: "3.11"
-            platform: macos-13
+            platform: macos-latest
             backend: pyqt6
           - python-version: "3.11"
             platform: ubuntu-latest
             backend: pyqt5
-          # - python-version: "3.10"
-          #   platform: windows-latest
-          #   backend: pyside2
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -52,33 +48,20 @@ jobs:
           qt: true
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[test,${{ matrix.backend }}]
+        run: uv sync --extra ${{ matrix.backend }}
 
-      - name: Set cache path
+      - name: Get pymmcore version
         shell: bash
         run: |
-          echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
-          echo "CACHE_KEY=$(date +'%Y%m')" >> $GITHUB_ENV  # invalidate cache each month
+          ver=$(uv run python -c 'from pymmcore_plus import _pymmcore;print(_pymmcore.version_info.device_interface)')
+          echo "PYMM_VERSION=$ver" >> $GITHUB_ENV
 
-      - name: Cache Drivers
-        id: cache-mm-build
-        uses: actions/cache@v4
+      - uses: pymmcore-plus/setup-mm-test-adapters@main
         with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ runner.os }}-mmbuild-${{ env.CACHE_KEY }}
-
-      - name: Build Micro-Manager (Linux)
-        if: runner.os == 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore build-dev
-
-      - name: Install Micro-Manager
-        if: runner.os != 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore install
+          version: ${{ env.PYMM_VERSION }}
 
       - name: Test
-        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
+        run: uv run pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
 
       - name: Coverage
         uses: codecov/codecov-action@v5
@@ -97,8 +80,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: 👷 Build
