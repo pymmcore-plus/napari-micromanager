@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 # Prevent ipykernel debug logs from causing formatting errors in pytest
-logging.getLogger('ipykernel.inprocess.ipkernel').setLevel(logging.ERROR)
+logging.getLogger("ipykernel.inprocess.ipkernel").setLevel(logging.ERROR)
 
 
 # to create a new CMMCorePlus() for every test
