@@ -88,7 +88,7 @@ class MicroManagerToolbar(QMainWindow):
         self.minmax = MinMax(parent=self)
 
         if (win := getattr(self.viewer.window, "_qt_window", None)) is not None:
-            # make the tabs of tabbed dockwidgets apprearing on top (North)
+            # make the tabs of tabbed dockwidgets appearing on top (North)
             areas = [
                 Qt.DockWidgetArea.RightDockWidgetArea,
                 Qt.DockWidgetArea.LeftDockWidgetArea,
