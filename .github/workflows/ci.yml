@@ -64,7 +64,7 @@ jobs:
 
       - name: Cache Drivers
         id: cache-mm-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHE_PATH }}
           key: ${{ runner.os }}-mmbuild-${{ env.CACHE_KEY }}
