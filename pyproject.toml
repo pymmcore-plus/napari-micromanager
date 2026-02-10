@@ -137,6 +137,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
+    "fonticon_mdi6.*",
     "qtpy.*",
     "pymmcore_widgets.*",
     "superqt.*",
