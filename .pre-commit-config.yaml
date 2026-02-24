@@ -2,6 +2,7 @@ ci:
   autoupdate_schedule: monthly
   autofix_commit_msg: "style: [pre-commit.ci] auto fixes [...]"
   autoupdate_commit_msg: "ci: [pre-commit.ci] autoupdate"
+  skip: [mypy]  # mypy env with pymmcore_plus exceeds 250MiB tier limit; runs in CI instead
 
 repos:
   - repo: https://github.com/crate-ci/typos

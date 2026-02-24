@@ -86,6 +86,15 @@ class _NapariMDAHandler:
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
+        from pymmcore_plus.mda._runner import GeneratorMDASequence
+
+        # Generator sequences have unknown shape — we can't pre-create layers.
+        # Just mark the MDA as running so _image_snapped skips preview updates.
+        if isinstance(sequence, GeneratorMDASequence):
+            self._mda_running = True
+            self._deck = deque()
+            return
+
         # pause acquisition until zarr layer(s) are added
         self._mmc.mda.toggle_pause()  # TODO: can we remove this somewhow?
 
@@ -148,7 +157,19 @@ class _NapariMDAHandler:
 
     def _on_mda_frame(self, image: np.ndarray, event: MDAEvent) -> None:
         """Called on the `frameReady` event from the core."""
+        # Generator-based events have no sequence; show them in the preview layer.
+        if event.sequence is None:
+            self._update_preview(image)
+            return
         self._deck.append((image, event))
+
+    @ensure_main_thread  # type: ignore [misc]
+    def _update_preview(self, data: np.ndarray) -> None:
+        """Show a single frame in the preview layer."""
+        try:
+            self.viewer.layers["preview"].data = data
+        except KeyError:
+            self.viewer.add_image(data, name="preview")
 
     def _process_frame(
         self, image: np.ndarray, event: MDAEvent

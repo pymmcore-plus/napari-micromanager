@@ -19,18 +19,28 @@ jobs:
       - uses: actions/checkout@v6
       - run: pipx run check-manifest
 
+  mypy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install "mypy==1.18.2" useq-schema pymmcore_plus
+      - run: mypy src
+
   test:
     name: py${{ matrix.python-version }} ${{ matrix.backend }} ${{ matrix.platform }}
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-13]
+        platform: [windows-latest, macos-15-intel]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
         backend: [pyqt5]
         include:
           - python-version: "3.11"
-            platform: macos-13
+            platform: macos-15-intel
             backend: pyqt6
           - python-version: "3.11"
             platform: ubuntu-latest

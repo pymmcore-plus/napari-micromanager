@@ -142,3 +142,4 @@ cython_debug/
 
 .cenv
 .qt_for_python
+uv.lock

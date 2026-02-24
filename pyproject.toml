@@ -123,6 +123,7 @@ filterwarnings = [
     "ignore:\\nPyarrow will become a required dependency",
     "ignore::DeprecationWarning:docstring_parser",                            # via magicgui, in py312
     "ignore:Pickle, copy, and deepcopy::copy",                                # via napari -> pydantic/v1
+    "ignore:PixelSizeWidget is deprecated.*:DeprecationWarning",
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
@@ -136,6 +137,7 @@ pretty = true
 
 [[tool.mypy.overrides]]
 module = [
+    "fonticon_mdi6.*",
     "qtpy.*",
     "pymmcore_widgets.*",
     "superqt.*",
