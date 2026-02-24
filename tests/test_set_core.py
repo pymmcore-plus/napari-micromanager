@@ -125,10 +125,6 @@ def test_set_core_snap_uses_new_core(
     # Image shape must reflect the new core's camera config
     assert new_data.shape == (128, 128), f"Expected (128, 128), got {new_data.shape}"
 
-    # Eagerly tear down the old core so its __del__ doesn't fire during
-    # viewer.close() layer teardown, which causes an access violation on Windows.
-    old_core.reset()
-
 
 def test_set_core_during_live_mode(
     qtbot: QtBot,
