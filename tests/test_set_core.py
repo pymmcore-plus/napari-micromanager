@@ -180,9 +180,7 @@ def test_set_core_refused_during_real_mda(
 
     # Set up listener for sequenceFinished BEFORE starting MDA to avoid a race
     # where the MDA completes before the waitSignal context manager is entered.
-    finished_blocker = qtbot.waitSignal(
-        mmc.mda.events.sequenceFinished, timeout=10000
-    )
+    finished_blocker = qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000)
 
     # Start the MDA and wait for sequenceStarted so _mda_running is True
     with qtbot.waitSignal(mmc.mda.events.sequenceStarted, timeout=5000):
