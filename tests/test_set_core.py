@@ -178,6 +178,12 @@ def test_set_core_refused_during_real_mda(
     new_core = CMMCorePlus()
     new_core.loadSystemConfiguration(CONFIG)
 
+    # Set up listener for sequenceFinished BEFORE starting MDA to avoid a race
+    # where the MDA completes before the waitSignal context manager is entered.
+    finished_blocker = qtbot.waitSignal(
+        mmc.mda.events.sequenceFinished, timeout=10000
+    )
+
     # Start the MDA and wait for sequenceStarted so _mda_running is True
     with qtbot.waitSignal(mmc.mda.events.sequenceStarted, timeout=5000):
         mmc.run_mda(seq)
@@ -189,8 +195,7 @@ def test_set_core_refused_during_real_mda(
         main_window.set_core(new_core)
 
     # Wait for MDA to finish
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
-        pass
+    finished_blocker.wait()
 
     # After MDA finishes, swap should succeed
     main_window.set_core(new_core)
