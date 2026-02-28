@@ -20,7 +20,7 @@ def test_main_window_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     assert not main_window.viewer.layers
 
     mda = MDASequence(
-        time_plan={"loops": 4, "interval": 0.1},
+        time_plan={"loops": 4, "interval": 0},
         z_plan={"range": 3, "step": 1},
         channels=["DAPI", "FITC"],
     )
@@ -45,7 +45,7 @@ def test_main_window_mda_rgb(main_window: MainWindow, qtbot: QtBot) -> None:
     main_window._mmc.setProperty("Camera", "Mode", "Color Test Pattern")
     assert not main_window.viewer.layers
 
-    mda = MDASequence(time_plan={"loops": 4, "interval": 0.01}, channels=["DAPI"])
+    mda = MDASequence(time_plan={"loops": 4, "interval": 0}, channels=["DAPI"])
     main_window._mmc.mda.run(mda)
     handler = main_window._core_link._mda_handler
     qtbot.waitUntil(
@@ -107,7 +107,7 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     mmc = main_window._mmc
     sequence = MDASequence(
         channels=[{"config": "Cy5", "exposure": 1}, {"config": "FITC", "exposure": 1}],
-        time_plan={"interval": 0.1, "loops": 2},
+        time_plan={"interval": 0, "loops": 2},
         z_plan={"range": 4, "step": 5},
         axis_order="tpcz",
         stage_positions=[(222, 1, 1), (111, 0, 0)],

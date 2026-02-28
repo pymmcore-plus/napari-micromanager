@@ -171,7 +171,7 @@ def test_set_core_refused_during_real_mda(
 
     mmc = main_window._mmc
     seq = useq.MDASequence(
-        time_plan={"loops": 3, "interval": 0.25},
+        time_plan={"loops": 3, "interval": 0},
         channels=["DAPI"],
     )
 
