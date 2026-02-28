@@ -30,6 +30,7 @@ def _smaller_default_buffer() -> Iterator[None]:
     with patch.object(_unicore, "_DEFAULT_BUFFER_SIZE_MB", 100):
         yield
 
+
 _CORE_PARAMS = [
     pytest.param(CMMCorePlus, id="CMMCorePlus"),
     pytest.param(UniMMCore, id="UniMMCore"),
