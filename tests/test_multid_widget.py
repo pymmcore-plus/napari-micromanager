@@ -28,7 +28,9 @@ def test_main_window_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     main_window._mmc.mda.run(mda)
     # wait for the async frame-processing worker to flush all chunks
     handler = main_window._core_link._mda_handler
-    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
+    qtbot.waitUntil(
+        lambda: not handler._mda_running and not handler._deck, timeout=5000
+    )
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
@@ -46,7 +48,9 @@ def test_main_window_mda_rgb(main_window: MainWindow, qtbot: QtBot) -> None:
     mda = MDASequence(time_plan={"loops": 4, "interval": 0.01}, channels=["DAPI"])
     main_window._mmc.mda.run(mda)
     handler = main_window._core_link._mda_handler
-    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
+    qtbot.waitUntil(
+        lambda: not handler._mda_running and not handler._deck, timeout=5000
+    )
     assert main_window.viewer.layers[-1].data.shape == (4, 1, 512, 512, 3)
 
 
@@ -82,7 +86,9 @@ def test_saving_mda(
         mda_widget.run_mda()
 
     handler = main_window._core_link._mda_handler
-    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
+    qtbot.waitUntil(
+        lambda: not handler._mda_running and not handler._deck, timeout=5000
+    )
 
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
@@ -111,7 +117,9 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
         mmc.run_mda(sequence)
 
     handler = main_window._core_link._mda_handler
-    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
+    qtbot.waitUntil(
+        lambda: not handler._mda_running and not handler._deck, timeout=5000
+    )
 
     layer_name = f"Exp_{sequence.uid}"
     viewer = main_window.viewer
