@@ -32,6 +32,11 @@ _CORE_PARAMS = [
 def core(
     monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> CMMCorePlus:
+    # Reduce UniMMCore's default 1GB sequence buffer to avoid OOM on Windows CI
+    monkeypatch.setattr(
+        "pymmcore_plus.experimental.unicore.core._unicore._DEFAULT_BUFFER_SIZE_MB",
+        100,
+    )
     new_core = request.param()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     new_core.loadSystemConfiguration(config_path)
