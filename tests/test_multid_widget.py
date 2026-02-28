@@ -98,7 +98,7 @@ def test_saving_mda(
     if multiC and splitC:
         expected_shape.pop(mda.used_axes.find("c"))
 
-    assert dest.exists()
+    qtbot.waitUntil(dest.exists, timeout=5000)
     assert data_shape == expected_shape
 
 
