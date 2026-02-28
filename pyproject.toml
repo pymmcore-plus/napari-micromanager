@@ -68,6 +68,9 @@ napari-micromanager = "napari_micromanager.__main__:main"
 "napari-micromanager" = "napari_micromanager:napari.yaml"
 
 # https://hatch.pypa.io/latest/config/metadata/
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.version]
 source = "vcs"
 
