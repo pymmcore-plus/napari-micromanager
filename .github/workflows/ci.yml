@@ -27,6 +27,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "mypy==1.18.2" useq-schema pymmcore_plus
+      # temporary: override pymmcore-plus with gc-fix until next release
+      - run: pip install --no-deps "pymmcore-plus @ git+https://github.com/tlambert03/pymmcore-plus.git@gc-fix"
       - run: mypy src
 
   test:
