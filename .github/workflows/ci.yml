@@ -72,20 +72,16 @@ jobs:
           echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
           echo "CACHE_KEY=$(date +'%Y%m')" >> $GITHUB_ENV  # invalidate cache each month
 
-      - name: Cache Drivers
-        id: cache-mm-build
-        uses: actions/cache@v5
+      - name: Get pymmcore version (env)
+        shell: bash
+        run: |
+          ver=$(python -c 'from pymmcore_plus import _pymmcore;print(_pymmcore.version_info.device_interface)')
+          echo "PYMM_VERSION=$ver" >> $GITHUB_ENV
+
+      - name: Setup MM test adapters
+        uses: pymmcore-plus/setup-mm-test-adapters@main
         with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ runner.os }}-mmbuild-${{ env.CACHE_KEY }}
-
-      - name: Build Micro-Manager (Linux)
-        if: runner.os == 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore build-dev
-
-      - name: Install Micro-Manager
-        if: runner.os != 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore install
+          version: ${{ env.PYMM_VERSION }}
 
       - name: Test
         run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
