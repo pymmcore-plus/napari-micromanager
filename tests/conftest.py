@@ -5,12 +5,14 @@ import logging
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
 
 import napari
 import pytest
 import useq
 from pymmcore_plus import CMMCorePlus
 from pymmcore_plus.experimental.unicore import UniMMCore
+from pymmcore_plus.experimental.unicore.core import _unicore
 
 from napari_micromanager._util import NMM_METADATA_KEY
 from napari_micromanager.main_window import MainWindow
@@ -20,6 +22,13 @@ if TYPE_CHECKING:
 
 # Prevent ipykernel debug logs from causing formatting errors in pytest
 logging.getLogger("ipykernel.inprocess.ipkernel").setLevel(logging.ERROR)
+
+
+@pytest.fixture(autouse=True)
+def _smaller_default_buffer() -> Iterator[None]:
+    """Reduce UniMMCore's default 1GB sequence buffer to avoid OOM on Windows CI."""
+    with patch.object(_unicore, "_DEFAULT_BUFFER_SIZE_MB", 100):
+        yield
 
 _CORE_PARAMS = [
     pytest.param(CMMCorePlus, id="CMMCorePlus"),
@@ -32,11 +41,6 @@ _CORE_PARAMS = [
 def core(
     monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
 ) -> CMMCorePlus:
-    # Reduce UniMMCore's default 1GB sequence buffer to avoid OOM on Windows CI
-    monkeypatch.setattr(
-        "pymmcore_plus.experimental.unicore.core._unicore._DEFAULT_BUFFER_SIZE_MB",
-        100,
-    )
     new_core = request.param()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     new_core.loadSystemConfiguration(config_path)
