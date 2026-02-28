@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from napari_micromanager.main_window import MainWindow
 
 
-def test_main_window_mda(main_window: MainWindow) -> None:
+def test_main_window_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     assert not main_window.viewer.layers
 
     mda = MDASequence(
@@ -26,6 +26,9 @@ def test_main_window_mda(main_window: MainWindow) -> None:
     )
 
     main_window._mmc.mda.run(mda)
+    # wait for the async frame-processing worker to flush all chunks
+    handler = main_window._core_link._mda_handler
+    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
@@ -35,13 +38,15 @@ def test_main_window_mda(main_window: MainWindow) -> None:
     assert all(key in layer_meta for key in keys)
 
 
-def test_main_window_mda_rgb(main_window: MainWindow) -> None:
+def test_main_window_mda_rgb(main_window: MainWindow, qtbot: QtBot) -> None:
     main_window._mmc.setProperty("Camera", "PixelType", "32bitRGB")
     main_window._mmc.setProperty("Camera", "Mode", "Color Test Pattern")
     assert not main_window.viewer.layers
 
     mda = MDASequence(time_plan={"loops": 4, "interval": 0.01}, channels=["DAPI"])
     main_window._mmc.mda.run(mda)
+    handler = main_window._core_link._mda_handler
+    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
     assert main_window.viewer.layers[-1].data.shape == (4, 1, 512, 512, 3)
 
 
@@ -73,8 +78,11 @@ def test_saving_mda(
 
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
         mda_widget.run_mda()
+
+    handler = main_window._core_link._mda_handler
+    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
 
     expected_shape = [x for x in (*mda.shape, 500, 512) if x > 1]
     data_shape = [x for x in main_window.viewer.layers[-1].data.shape if x > 1]
@@ -99,8 +107,11 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
         stage_positions=[(222, 1, 1), (111, 0, 0)],
     )
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
         mmc.run_mda(sequence)
+
+    handler = main_window._core_link._mda_handler
+    qtbot.waitUntil(lambda: not handler._mda_running and not handler._deck, timeout=5000)
 
     layer_name = f"Exp_{sequence.uid}"
     viewer = main_window.viewer
