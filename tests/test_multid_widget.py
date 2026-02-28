@@ -82,7 +82,7 @@ def test_saving_mda(
 
     # make the images non-square
     mmc.setProperty("Camera", "OnCameraCCDYSize", 500)
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=8000):
         mda_widget.run_mda()
 
     handler = main_window._core_link._mda_handler
@@ -113,7 +113,7 @@ def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
         stage_positions=[(222, 1, 1), (111, 0, 0)],
     )
 
-    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=10000):
+    with qtbot.waitSignal(mmc.mda.events.sequenceFinished, timeout=5000):
         mmc.run_mda(sequence)
 
     handler = main_window._core_link._mda_handler
