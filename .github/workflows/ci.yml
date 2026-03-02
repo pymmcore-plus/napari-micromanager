@@ -27,8 +27,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install "mypy==1.18.2" useq-schema pymmcore_plus
-      # temporary: override pymmcore-plus with gc-fix until next release
-      - run: pip install --no-deps "pymmcore-plus @ git+https://github.com/tlambert03/pymmcore-plus.git@gc-fix"
+      # temporary: override pymmcore-plus with main until next release
+      - run: pip install --no-deps "pymmcore-plus @ git+https://github.com/pymmcore-plus/pymmcore-plus.git@main"
       - run: mypy src
 
   test:
@@ -68,9 +68,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[test,${{ matrix.backend }}]
 
-      # temporary: install pymmcore-plus with gc-fix until next release
-      - name: Override pymmcore-plus with gc-fix
-        run: python -m pip install --no-deps "pymmcore-plus @ git+https://github.com/tlambert03/pymmcore-plus.git@gc-fix"
+      # temporary: install pymmcore-plus with main until next release
+      - name: Override pymmcore-plus with main
+        run: python -m pip install "pymmcore-plus[io] @ git+https://github.com/pymmcore-plus/pymmcore-plus.git@main"
 
       - name: Set cache path
         shell: bash

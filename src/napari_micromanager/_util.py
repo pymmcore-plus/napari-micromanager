@@ -17,9 +17,13 @@ except ImportError:
     PYMMCW_METADATA_KEY = "pymmcore_widgets"
 
 try:
-    from pymmcore_plus.mda.handlers._util import (
-        get_full_sequence_axes as get_full_sequence_axes,
-    )
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        from pymmcore_plus.mda.handlers._util import (
+            get_full_sequence_axes as get_full_sequence_axes,
+        )
 except ImportError:
 
     def get_full_sequence_axes(sequence: useq.MDASequence) -> tuple[str, ...]:
