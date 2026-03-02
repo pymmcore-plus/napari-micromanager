@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import weakref
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -45,7 +46,9 @@ def core(
     new_core = request.param()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     new_core.loadSystemConfiguration(config_path)
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", new_core)
+    monkeypatch.setattr(
+        "pymmcore_plus.core._mmcore_plus._instance", weakref.ref(new_core)
+    )
     return new_core
 
 

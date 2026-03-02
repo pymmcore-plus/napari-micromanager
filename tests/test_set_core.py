@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -94,7 +95,7 @@ def test_set_core_snap_uses_new_core(
     """After set_core(), snap should come from the new core, not the old one."""
     old_core = old_cls()
     old_core.loadSystemConfiguration(CONFIG)
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", old_core)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(old_core))
 
     win = MainWindow(viewer=napari_viewer)
     qtbot.addWidget(win)
@@ -134,7 +135,7 @@ def test_set_core_during_live_mode(
     """Switching cores while live mode is running stops the old stream."""
     old_core = CMMCorePlus()
     old_core.loadSystemConfiguration(CONFIG)
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", old_core)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(old_core))
 
     win = MainWindow(viewer=napari_viewer)
     qtbot.addWidget(win)
@@ -234,7 +235,7 @@ def test_auto_detect_py_cfg_swaps_to_unicore(
 ) -> None:
     """CMMCorePlus + #py cfg → auto-swap to UniMMCore."""
     initial = CMMCorePlus()
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", initial)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(initial))
 
     viewer = MagicMock()
     win = MainWindow(viewer)
@@ -258,7 +259,7 @@ def test_auto_detect_standard_cfg_swaps_to_mmcore(
 ) -> None:
     """UniMMCore + standard cfg → auto-swap to CMMCorePlus."""
     initial = UniMMCore()
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", initial)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(initial))
 
     viewer = MagicMock()
     win = MainWindow(viewer)
@@ -276,7 +277,7 @@ def test_auto_detect_no_swap_when_correct(
 ) -> None:
     """UniMMCore + #py cfg → no swap, stays UniMMCore."""
     initial = UniMMCore()
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", initial)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(initial))
 
     viewer = MagicMock()
     win = MainWindow(viewer)
@@ -300,7 +301,7 @@ def test_auto_detect_file_not_found(
 ) -> None:
     """Nonexistent cfg → no swap, error from core's loadSystemConfiguration."""
     initial = CMMCorePlus()
-    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", initial)
+    monkeypatch.setattr("pymmcore_plus.core._mmcore_plus._instance", weakref.ref(initial))
 
     viewer = MagicMock()
     win = MainWindow(viewer)
