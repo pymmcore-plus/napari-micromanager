@@ -37,8 +37,8 @@ dynamic = ["version"]
 dependencies = [
     "fonticon-materialdesignicons6",
     "napari >=0.4.13",
-    "pymmcore-plus >=0.17.3",
-    "pymmcore-widgets >=0.11.0",
+    "pymmcore-plus >=0.18.0",
+    "pymmcore-widgets >=0.12.0",
     "superqt >=0.5.1",
     "tifffile",
     "useq-schema >=0.4.1",
