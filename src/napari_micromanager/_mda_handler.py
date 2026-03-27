@@ -96,7 +96,7 @@ class _NapariMDAHandler:
             return
 
         # pause acquisition until zarr layer(s) are added
-        self._mmc.mda.toggle_pause()  # TODO: can we remove this somewhow?
+        self._mmc.mda.set_paused(True)
 
         # determine the new layers that need to be created for this experiment
         # (based on the sequence mode, and whether we're splitting C/P, etc.)
@@ -142,7 +142,7 @@ class _NapariMDAHandler:
         self._reset_viewer_dims()
 
         # resume acquisition after zarr layer(s) is(are) added
-        self._mmc.mda.toggle_pause()
+        self._mmc.mda.set_paused(False)
 
     def _watch_mda(
         self,
