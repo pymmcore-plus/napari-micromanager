@@ -49,9 +49,7 @@ dependencies = [
 # https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 [project.optional-dependencies]
 test = ["pytest", "pytest-cov", "pytest-qt"]
-pyqt5 = ["PyQt5"]
 pyqt6 = ["PyQt6"]
-pyside2 = ["PySide2"]
 pyside6 = ["PySide6"]
 dev = ["mda-simulator", "mypy", "pre-commit", "ruff"]
 docs = ["mkdocs-material", "mkdocstrings-python"]
