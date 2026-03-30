@@ -3,7 +3,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import napari
@@ -15,6 +15,7 @@ from ._core_link import CoreViewerLink
 from ._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from pymmcore_plus.core.events._protocol import PSignalInstance
@@ -137,6 +138,8 @@ class MainWindow(MicroManagerToolbar):
 
     def _wrap_load_system_configuration(self, core: CMMCorePlus) -> None:
         """Monkey-patch loadSystemConfiguration to auto-detect #py cfg files."""
+        import weakref
+
         from pymmcore_plus.experimental.unicore import UniMMCore
 
         # Restore original if previously wrapped (prevents double-wrap stacking)
@@ -147,17 +150,24 @@ class MainWindow(MicroManagerToolbar):
         else:
             core.loadSystemConfiguration = original  # type: ignore[method-assign]
 
+        weak_self = weakref.ref(self)
+
         def _auto_detect_load(path: str | Path) -> None:
+            win = weak_self()
+            if win is None:
+                original(path)
+                return
+
             needs_unicore = _cfg_has_py_devices(path)
-            is_unicore = isinstance(self._mmc, UniMMCore)
+            is_unicore = isinstance(win._mmc, UniMMCore)
 
             if needs_unicore and not is_unicore:
-                self.set_core(UniMMCore())
-                self._mmc.loadSystemConfiguration(path)
+                win.set_core(UniMMCore())
+                win._mmc.loadSystemConfiguration(path)
                 return
             if not needs_unicore and is_unicore:
-                self.set_core(CMMCorePlus())
-                self._mmc.loadSystemConfiguration(path)
+                win.set_core(CMMCorePlus())
+                win._mmc.loadSystemConfiguration(path)
                 return
 
             original(path)
@@ -168,6 +178,7 @@ class MainWindow(MicroManagerToolbar):
         """Restore original loadSystemConfiguration if it was wrapped."""
         if original := getattr(core, self._ORIGINAL_LOAD_ATTR, None):
             core.loadSystemConfiguration = original  # type: ignore[method-assign]
+            delattr(core, self._ORIGINAL_LOAD_ATTR)
 
     def _cleanup(self) -> None:
         self._unwrap_load_system_configuration(self._mmc)
