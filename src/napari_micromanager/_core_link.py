@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import napari
 import napari.layers
@@ -11,6 +11,8 @@ from superqt.utils import ensure_main_thread
 from ._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import napari.viewer
     import numpy as np
     from pymmcore_plus import CMMCorePlus

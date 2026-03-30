@@ -1,5 +1,5 @@
 from contextlib import suppress
-from typing import Optional, cast
+from typing import cast
 
 from pymmcore_plus import CMMCorePlus, DeviceType
 from pymmcore_widgets import StageWidget
@@ -13,9 +13,7 @@ STAGE_DEVICES = {DeviceType.Stage, DeviceType.XYStage}
 class MMStagesWidget(QWidget):
     """UI elements for stage control widgets."""
 
-    def __init__(
-        self, *, parent: Optional[QWidget] = None, mmcore: CMMCorePlus
-    ) -> None:
+    def __init__(self, *, parent: QWidget | None = None, mmcore: CMMCorePlus) -> None:
         super().__init__(parent=parent)
 
         self.setAcceptDrops(True)

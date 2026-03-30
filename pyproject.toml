@@ -75,7 +75,7 @@ include = ["/src", "/tests"]
 # https://beta.ruff.rs/docs/rules/
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }
