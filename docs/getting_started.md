@@ -5,8 +5,8 @@
 ### Installing napari-micromanager
 
 ```sh
-pip install napari-micromanager PyQt5
-# you may also pick from PySide2, PyQt6, PySide6 for your Qt backend
+pip install napari-micromanager PyQt6
+# you may also pick PySide6 for your Qt backend
 ```
 
 You will then also need to grab the `Micro-Manager` device adapters
