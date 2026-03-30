@@ -33,6 +33,7 @@ class CoreViewerLink(QObject):
         self.viewer = viewer
         self._mda_handler = _NapariMDAHandler(self._mmc, viewer)
         self._live_timer_id: int | None = None
+        self._mda_poll_timer_id: int | None = None
 
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
@@ -43,6 +44,8 @@ class CoreViewerLink(QObject):
             (self._mmc.events.sequenceAcquisitionStopped, self._stop_live),
             (self._mmc.events.exposureChanged, self._restart_live),
             (self._mmc.events.configSet, self._restart_live),
+            (self._mmc.mda.events.sequenceStarted, self._start_mda_poll),
+            (self._mmc.mda.events.sequenceFinished, self._stop_mda_poll),
         ]
         for signal, slot in self._connections:
             signal.connect(slot)
@@ -50,6 +53,7 @@ class CoreViewerLink(QObject):
     def cleanup(self) -> None:
         # Stop live acquisition if running
         self._stop_live()
+        self._stop_mda_poll()
         with contextlib.suppress(Exception):
             if self._mmc.isSequenceRunning():
                 self._mmc.stopSequenceAcquisition()
@@ -61,7 +65,24 @@ class CoreViewerLink(QObject):
         self._mda_handler._cleanup()
 
     def timerEvent(self, a0: QTimerEvent | None) -> None:
-        self._update_viewer()
+        if a0 is not None and a0.timerId() == self._mda_poll_timer_id:
+            self._poll_mda_updates()
+        else:
+            self._update_viewer()
+
+    def _start_mda_poll(self, *_: object) -> None:
+        if self._mda_poll_timer_id is None:
+            self._mda_poll_timer_id = self.startTimer(50, Qt.TimerType.PreciseTimer)
+
+    def _stop_mda_poll(self, *_: object) -> None:
+        if self._mda_poll_timer_id is not None:
+            self.killTimer(self._mda_poll_timer_id)
+            self._mda_poll_timer_id = None
+
+    def _poll_mda_updates(self) -> None:
+        handler = self._mda_handler
+        while handler._viewer_updates:
+            handler._update_viewer_dims(handler._viewer_updates.popleft())
 
     def _image_snapped(self) -> None:
         # If we are in the middle of an MDA, don't update the preview viewer.

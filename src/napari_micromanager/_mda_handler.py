@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import contextlib
 import tempfile
+import threading
 import time
 from collections import deque
 from typing import TYPE_CHECKING, cast
 
 import napari
 import zarr
-from superqt.utils import create_worker, ensure_main_thread
+from superqt.utils import ensure_main_thread
 
 from ._util import NMM_METADATA_KEY, PYMMCW_METADATA_KEY, get_full_sequence_axes
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Generator
+    from collections.abc import Callable
     from uuid import UUID
 
     import napari.viewer
@@ -62,6 +63,8 @@ class _NapariMDAHandler:
         # mapping of id -> (zarr.Array, temporary directory) for each layer created
         self._tmp_arrays: dict[str, tuple[zarr.Array, tempfile.TemporaryDirectory]] = {}
         self._deck: deque[tuple[np.ndarray, MDAEvent]] = deque()
+        # processed frame results for the main-thread timer to pick up
+        self._viewer_updates: deque[tuple[str | None, tuple[int, ...] | None]] = deque()
 
         # Add all core connections to this list.  This makes it easy to disconnect
         # from core when this widget is closed.
@@ -74,6 +77,7 @@ class _NapariMDAHandler:
             signal.connect(slot)
 
     def _cleanup(self) -> None:
+        self._mda_running = False  # stops the worker thread loop
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)
@@ -82,6 +86,9 @@ class _NapariMDAHandler:
             z.store.close()
             with contextlib.suppress(NotADirectoryError):
                 v.cleanup()
+        self._tmp_arrays.clear()
+        self._deck.clear()
+        self._viewer_updates.clear()
 
     @ensure_main_thread  # type: ignore [misc]
     def _on_mda_started(self, sequence: MDASequence) -> None:
@@ -131,12 +138,9 @@ class _NapariMDAHandler:
         self._largest_idx: tuple[int, ...] = (-1,)
 
         self._deck = deque()
+        self._viewer_updates = deque()
         self._mda_running = True
-        self._io_t = create_worker(
-            self._watch_mda,
-            _start_thread=True,
-            _connect={"yielded": self._update_viewer_dims},
-        )
+        threading.Thread(target=self._frame_worker, daemon=True).start()
 
         # Set the viewer slider on the first layer frame
         self._reset_viewer_dims()
@@ -144,14 +148,12 @@ class _NapariMDAHandler:
         # resume acquisition after zarr layer(s) is(are) added
         self._mmc.mda.set_paused(False)
 
-    def _watch_mda(
-        self,
-    ) -> Generator[tuple[str | None, tuple[int, ...] | None], None, None]:
-        """Watch the MDA for new frames and process them as they come in."""
+    def _frame_worker(self) -> None:
+        """Background thread: process frames from _deck into zarr."""
         while self._mda_running:
             if self._deck:
-                layer_name, im_idx = self._process_frame(*self._deck.pop())
-                yield layer_name, im_idx
+                result = self._process_frame(*self._deck.pop())
+                self._viewer_updates.append(result)
             else:
                 time.sleep(0.1)
 
@@ -187,7 +189,6 @@ class _NapariMDAHandler:
 
         return layer_name, None
 
-    @ensure_main_thread  # type: ignore [misc]
     def _update_viewer_dims(
         self, args: tuple[str | None, tuple[int, ...] | None]
     ) -> None:
@@ -206,7 +207,6 @@ class _NapariMDAHandler:
             cs[a] = v
         self.viewer.dims.current_step = cs
 
-    @ensure_main_thread  # type: ignore [misc]
     def _reset_viewer_dims(self) -> None:
         """Reset the viewer dims to the first image."""
         self.viewer.dims.current_step = [0] * len(self.viewer.dims.current_step)
