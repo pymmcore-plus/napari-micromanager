@@ -10,7 +10,7 @@ source = "vcs"
 [project]
 name = "napari-micromanager"
 description = "Micro-Manager GUI interface in napari."
-keywords = ["microscope", "micro-manager", "remote", "multi-processing"]
+keywords = ["microscope", "micro-manager", "pymmcore-plus"]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD 3-Clause License" }

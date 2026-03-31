@@ -40,6 +40,14 @@ jobs:
           - os: windows-latest
             python-version: "3.12"
             backend: PyQt6
+          - os: windows-latest
+            python-version: "3.13"
+            backend: PySide6
+            resolution: highest
+          - os: ubuntu-latest
+            python-version: "3.13"
+            backend: PySide6
+            resolution: lowest-direct
 
     steps:
       - uses: actions/checkout@v6
