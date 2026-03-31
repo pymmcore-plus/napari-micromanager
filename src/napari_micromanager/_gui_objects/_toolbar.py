@@ -39,11 +39,11 @@ from qtpy.QtWidgets import (
 )
 from superqt.fonticon import icon
 
-from ._illumination_widget import IlluminationWidget
-from ._mda_widget import MultiDWidget
-from ._min_max_widget import MinMax
-from ._shutters_widget import MMShuttersWidget
-from ._stages_widget import MMStagesWidget
+from napari_micromanager._gui_objects._illumination_widget import IlluminationWidget
+from napari_micromanager._gui_objects._mda_widget import MultiDWidget
+from napari_micromanager._gui_objects._min_max_widget import MinMax
+from napari_micromanager._gui_objects._shutters_widget import MMShuttersWidget
+from napari_micromanager._gui_objects._stages_widget import MMStagesWidget
 
 if TYPE_CHECKING:
     import napari.viewer

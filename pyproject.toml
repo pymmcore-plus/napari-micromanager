@@ -3,11 +3,14 @@
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+source = "vcs"
+
 # https://peps.python.org/pep-0621/
 [project]
 name = "napari-micromanager"
 description = "Micro-Manager GUI interface in napari."
-keywords = ["microscope", "micro-manager", "remote", "multi-processing"]
+keywords = ["microscope", "micro-manager", "pymmcore-plus"]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "BSD 3-Clause License" }
@@ -29,6 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: System :: Hardware",
     "Topic :: System :: Hardware :: Hardware Drivers",
     "Topic :: Utilities",
@@ -36,24 +40,39 @@ classifiers = [
 
 dynamic = ["version"]
 dependencies = [
-    "fonticon-materialdesignicons6",
-    "napari >=0.4.13",
+    "fonticon-materialdesignicons6 >=6.1.45",
+    "napari >=0.5.0",
     "pymmcore-plus >=0.18.0",
     "pymmcore-widgets >=0.12.0",
     "superqt >=0.5.1",
-    "tifffile",
+    "tifffile >=2023.2.3",
     "useq-schema >=0.4.1",
-    "zarr",
+    "zarr >=2.18,<3",
 ]
 
-# extras
-# https://peps.python.org/pep-0621/#dependencies-optional-dependencies
 [project.optional-dependencies]
-test = ["pytest", "pytest-cov", "pytest-qt"]
-pyqt6 = ["PyQt6"]
-pyside6 = ["PySide6"]
-dev = ["mda-simulator", "mypy", "pre-commit", "ruff"]
-docs = ["mkdocs-material", "mkdocstrings-python"]
+PyQt6 = ["PyQt6 >=6.4.2"]
+PySide6 = ["PySide6 >=6.9.0"]
+
+[dependency-groups]
+test = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-qt>=4.5.0",
+    "numcodecs >0.14.0,<0.16; python_version >= '3.13'",
+    "numcodecs >0.12.0,<0.16",
+]
+dev = [
+    { include-group = "test" },
+    "ipython>=8.18.1",
+    "mypy>=1.15.0",
+    "pdbpp>=0.11.6; sys_platform != 'win32'",
+    "prek>=0.3.1",
+    "pyqt6>=6.9.0",
+    "rich>=14.0.0",
+    "ruff>=0.11.8",
+]
+docs = ["mkdocs-material>=9.6.12", "mkdocstrings-python>=1.16.10"]
 
 [project.urls]
 Source = "https://github.com/pymmcore-plus/napari-micromanager"
@@ -66,43 +85,44 @@ napari-micromanager = "napari_micromanager.__main__:main"
 [project.entry-points."napari.manifest"]
 "napari-micromanager" = "napari_micromanager:napari.yaml"
 
-# https://hatch.pypa.io/latest/config/metadata/
-[tool.hatch.version]
-source = "vcs"
+[tool.uv.sources]
+napari-micromanager = { workspace = true }
 
-[tool.hatch.build.targets.sdist]
-include = ["/src", "/tests"]
-
-# https://beta.ruff.rs/docs/rules/
+# https://docs.astral.sh/ruff/rules/
 [tool.ruff]
 line-length = 88
 target-version = "py310"
+src = ["src", "tests"]
+fix = true
+unsafe-fixes = true
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }
 select = [
     "E",    # style errors
-    "W",    # warnings
     "F",    # flakes
+    "W",    # warnings
     "D",    # pydocstyle
     "D417", # Missing argument descriptions in Docstrings
     "I",    # isort
     "UP",   # pyupgrade
-    "S",    # bandit
     "C4",   # flake8-comprehensions
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
-    "TCH",  # flake8-type-checking
     "TID",  # flake8-tidy-imports
+    "TC",   # flake8-type-checking
 ]
 ignore = [
     "D100", # Missing docstring in public module
-    "D401", # First line should end with a period
+    "D401", # First line should be in imperative mood
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*.py" = ["D", "S"]
+"tests/*.py" = ["D", "SLF"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 # https://docs.astral.sh/ruff/formatter/
 [tool.ruff.format]
@@ -124,6 +144,7 @@ filterwarnings = [
     "ignore:Pickle, copy, and deepcopy::copy",                                # via napari -> pydantic/v1
     "ignore:PixelSizeWidget is deprecated.*:DeprecationWarning",
     "ignore:`json_encoders` is deprecated.*:DeprecationWarning",
+    "ignore:Failed to disconnect:RuntimeWarning:",
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
@@ -155,6 +176,7 @@ ignore = [
     "codecov.yml",
     "mkdocs.yml",
     "docs/**",
+    "uv.lock",
 ]
 
 # https://coverage.readthedocs.io/en/6.4/config.html

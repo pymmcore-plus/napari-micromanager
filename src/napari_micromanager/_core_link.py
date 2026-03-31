@@ -8,7 +8,7 @@ import napari.layers
 from qtpy.QtCore import QObject, Qt, QTimerEvent
 from superqt.utils import ensure_main_thread
 
-from ._mda_handler import _NapariMDAHandler
+from napari_micromanager._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -103,7 +103,7 @@ class CoreViewerLink(QObject):
             self._mmc.stopSequenceAcquisition()
             self._mmc.startContinuousSequenceAcquisition()
 
-    @ensure_main_thread  # type: ignore [misc]
+    @ensure_main_thread  # type: ignore [untyped-decorator]
     def _update_viewer(self, data: np.ndarray | None = None) -> None:
         """Update viewer with the latest image from the circular buffer."""
         if data is None:

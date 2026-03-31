@@ -1,12 +1,11 @@
-name: Run Tests
+name: CI
 
 on:
   push:
     branches: [main]
-    tags: [v*]
-  pull_request:
-  schedule:
-    - cron: "0 16 * * 1" # monday at noon est
+    tags: ["v*"]
+  pull_request: {}
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,81 +13,80 @@ concurrency:
 
 jobs:
   check-manifest:
+    name: Check Manifest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: pipx run check-manifest
-
-  mypy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - run: pip install "mypy==1.18.2" useq-schema pymmcore_plus
-      - run: mypy src
+      - uses: astral-sh/setup-uv@v7
+      - run: uvx check-manifest
 
   test:
-    name: py${{ matrix.python-version }} ${{ matrix.backend }} ${{ matrix.platform }}
-    runs-on: ${{ matrix.platform }}
+    name: ${{ matrix.os }} py${{ matrix.python-version }} ${{ matrix.backend }} ${{ matrix.resolution }}
+    runs-on: ${{ matrix.os }}
+    env:
+      UV_NO_SYNC: "1"
+      UV_MANAGED_PYTHON: "1"
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, macos-15-intel]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-        backend: [pyqt6]
+        os: [macos-latest, windows-latest]
+        python-version: ["3.10", "3.13"]
+        backend: [PyQt6]
+        resolution: ["highest", "lowest-direct"]
+        exclude:
+          - os: macos-latest
+            resolution: lowest-direct
+        include:
+          - os: windows-latest
+            python-version: "3.12"
+            backend: PyQt6
+          - os: windows-latest
+            python-version: "3.13"
+            backend: PySide6
+            resolution: highest
+          - os: macos-latest
+            python-version: "3.13"
+            backend: PySide6
+            resolution: lowest-direct
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      - uses: pyvista/setup-headless-display-action@main
-        with:
-          qt: true
+      - uses: pyvista/setup-headless-display-action@v4
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .[test,${{ matrix.backend }}]
+        run: uv sync --no-dev --group test --extra ${{ matrix.backend }}
 
-      - name: Set cache path
-        shell: bash
-        run: |
-          echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
-          echo "CACHE_KEY=$(date +'%Y%m')-v2" >> $GITHUB_ENV  # invalidate cache each month (bump suffix to force rebuild)
-
-      - name: Cache Drivers
-        id: cache-mm-build
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ runner.os }}-mmbuild-${{ env.CACHE_KEY }}
-
-      - name: Build Micro-Manager (Linux)
-        if: runner.os == 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore build-dev
-
-      - name: Install Micro-Manager
-        if: runner.os != 'Linux' && steps.cache-mm-build.outputs.cache-hit != 'true'
-        run: mmcore install
+      - uses: pymmcore-plus/setup-mm-test-adapters@main
 
       - name: Test
-        run: python -m pytest -v --color=yes --cov=napari_micromanager --cov-report=xml
+        run: uv run coverage run -p -m pytest -v --color=yes
+        env:
+          PYTEST_ADDOPTS: ${{ matrix.resolution == 'lowest-direct' && '-W ignore' || '' }}
 
-      - name: Coverage
-        uses: codecov/codecov-action@v5
+      - name: Upload coverage
+        uses: actions/upload-artifact@v6
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: covreport-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.backend }}-${{ matrix.resolution }}
+          path: ./.coverage*
+          include-hidden-files: true
+
+  upload_coverage:
+    if: always()
+    needs: [test]
+    uses: pyapp-kit/workflows/.github/workflows/upload-coverage.yml@v2
+    secrets:
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}
 
   deploy:
     name: Deploy
     needs: test
-    if: "success() && startsWith(github.ref, 'refs/tags/')"
+    if: ${{ github.repository == 'pymmcore-plus/napari-micromanager' && contains(github.ref, 'tags') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -97,15 +95,14 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v6
+
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.x"
+          enable-cache: true
+
       - name: 👷 Build
-        run: |
-          python -m pip install build check-manifest
-          check-manifest
-          python -m build
+        run: uv build
+
       - name: 🚢 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 

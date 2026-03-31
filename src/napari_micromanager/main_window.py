@@ -11,8 +11,8 @@ import napari.layers
 import napari.viewer
 from pymmcore_plus import CMMCorePlus
 
-from ._core_link import CoreViewerLink
-from ._gui_objects._toolbar import MicroManagerToolbar
+from napari_micromanager._core_link import CoreViewerLink
+from napari_micromanager._gui_objects._toolbar import MicroManagerToolbar
 
 if TYPE_CHECKING:
     from collections.abc import Callable
