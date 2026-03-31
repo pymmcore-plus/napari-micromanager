@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+import useq
 from pymmcore_plus.mda import MDAEngine
 from useq import MDASequence
 
@@ -26,7 +28,6 @@ def test_main_window_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     )
 
     main_window._mmc.mda.run(mda)
-    # wait for the async frame-processing worker to flush all chunks
     handler = main_window._core_link._mda_handler
     qtbot.waitUntil(
         lambda: not handler._mda_running and not handler._deck, timeout=5000
@@ -34,7 +35,6 @@ def test_main_window_mda(main_window: MainWindow, qtbot: QtBot) -> None:
     assert main_window.viewer.layers[-1].data.shape == (4, 2, 4, 512, 512)
     assert main_window.viewer.layers[-1].data.nchunks_initialized == 32
 
-    # assert that the layer has the correct metadata
     layer_meta = main_window.viewer.layers[0].metadata.get(NMM_METADATA_KEY)
     keys = ["useq_sequence", "uid"]
     assert all(key in layer_meta for key in keys)
@@ -54,13 +54,79 @@ def test_main_window_mda_rgb(main_window: MainWindow, qtbot: QtBot) -> None:
     assert main_window.viewer.layers[-1].data.shape == (4, 1, 512, 512, 3)
 
 
+# Representative subset of MDA combos for save tests.
+# The meaningful axes: time (on/off), z (on/off), multi-channel + split.
+_SAVE_SEQUENCES = [
+    pytest.param(
+        useq.MDASequence(
+            channels=[useq.Channel(config="DAPI", exposure=5)],
+            metadata={NMM_METADATA_KEY: {"split_channels": False}},
+        ),
+        id="1ch",
+    ),
+    pytest.param(
+        useq.MDASequence(
+            time_plan=useq.TIntervalLoops(loops=3, interval=0),
+            z_plan=useq.ZRangeAround(range=3, step=0.5),
+            channels=[useq.Channel(config="DAPI", exposure=5)],
+            metadata={NMM_METADATA_KEY: {"split_channels": False}},
+        ),
+        id="1ch_tz",
+    ),
+    pytest.param(
+        useq.MDASequence(
+            channels=[
+                useq.Channel(config="DAPI", exposure=5),
+                useq.Channel(config="Cy5", exposure=5),
+            ],
+            metadata={NMM_METADATA_KEY: {"split_channels": False}},
+        ),
+        id="2ch_no_split",
+    ),
+    pytest.param(
+        useq.MDASequence(
+            channels=[
+                useq.Channel(config="DAPI", exposure=5),
+                useq.Channel(config="Cy5", exposure=5),
+            ],
+            metadata={NMM_METADATA_KEY: {"split_channels": True}},
+        ),
+        id="2ch_split",
+    ),
+    pytest.param(
+        useq.MDASequence(
+            time_plan=useq.TIntervalLoops(loops=3, interval=0),
+            z_plan=useq.ZRangeAround(range=3, step=0.5),
+            channels=[
+                useq.Channel(config="DAPI", exposure=5),
+                useq.Channel(config="Cy5", exposure=5),
+            ],
+            metadata={NMM_METADATA_KEY: {"split_channels": False}},
+        ),
+        id="2ch_tz_no_split",
+    ),
+    pytest.param(
+        useq.MDASequence(
+            time_plan=useq.TIntervalLoops(loops=3, interval=0),
+            z_plan=useq.ZRangeAround(range=3, step=0.5),
+            channels=[
+                useq.Channel(config="DAPI", exposure=5),
+                useq.Channel(config="Cy5", exposure=5),
+            ],
+            metadata={NMM_METADATA_KEY: {"split_channels": True}},
+        ),
+        id="2ch_tz_split",
+    ),
+]
+
+
+@pytest.mark.parametrize("mda", _SAVE_SEQUENCES)
 def test_saving_mda(
     qtbot: QtBot,
     main_window: MainWindow,
-    mda_sequence_splits: MDASequence,
+    mda: MDASequence,
     tmp_path: Path,
 ) -> None:
-    mda = mda_sequence_splits
     main_window._show_dock_widget("MDA")
     mda_widget = main_window._dock_widgets["MDA"].widget()
     assert isinstance(mda_widget, MultiDWidget)
@@ -103,7 +169,6 @@ def test_saving_mda(
 
 
 def test_script_initiated_mda(main_window: MainWindow, qtbot: QtBot) -> None:
-    # we should show the mda even if it came from outside
     mmc = main_window._mmc
     sequence = MDASequence(
         channels=[{"config": "Cy5", "exposure": 1}, {"config": "FITC", "exposure": 1}],
