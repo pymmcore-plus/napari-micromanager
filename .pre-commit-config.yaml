@@ -1,37 +1,32 @@
 ci:
   autoupdate_schedule: monthly
-  autofix_commit_msg: "style: [pre-commit.ci] auto fixes [...]"
-  autoupdate_commit_msg: "ci: [pre-commit.ci] autoupdate"
-  skip: [mypy]  # mypy env with pymmcore_plus exceeds 250MiB tier limit; runs in CI instead
+  autofix_commit_msg: "style(pre-commit.ci): auto fixes [...]"
+  autoupdate_commit_msg: "ci(pre-commit.ci): autoupdate"
+  skip: [mypy]
 
 repos:
   - repo: https://github.com/crate-ci/typos
-    rev: v1
+    rev: v1.44.0
     hooks:
       - id: typos
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.3
+    rev: v0.15.8
     hooks:
-      - id: ruff
-        args: [--fix]
+      - id: ruff-check
+        args: [--fix, --unsafe-fixes]
       - id: ruff-format
 
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
+    rev: v0.25
     hooks:
       - id: validate-pyproject
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v1.19.1
     hooks:
       - id: mypy
         files: "^src/"
         additional_dependencies:
           - useq-schema >=0.4.7
           - pymmcore_plus >=0.9.0
-          # # unfortunately... bringing these in brings in qtpy
-          # # which has too many attr-defined errors ...
-          # # and selectively ignoring them isn't working
-          # - superqt
-          # - pymmcore_widgets

@@ -11,7 +11,11 @@ import napari
 import zarr
 from superqt.utils import ensure_main_thread
 
-from ._util import NMM_METADATA_KEY, PYMMCW_METADATA_KEY, get_full_sequence_axes
+from napari_micromanager._util import (
+    NMM_METADATA_KEY,
+    PYMMCW_METADATA_KEY,
+    get_full_sequence_axes,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -90,7 +94,7 @@ class _NapariMDAHandler:
         self._deck.clear()
         self._viewer_updates.clear()
 
-    @ensure_main_thread  # type: ignore [misc]
+    @ensure_main_thread  # type: ignore [untyped-decorator]
     def _on_mda_started(self, sequence: MDASequence) -> None:
         """Create temp folder and block gui when mda starts."""
         from pymmcore_plus.mda._runner import GeneratorMDASequence
@@ -165,7 +169,7 @@ class _NapariMDAHandler:
             return
         self._deck.append((image, event))
 
-    @ensure_main_thread  # type: ignore [misc]
+    @ensure_main_thread  # type: ignore [untyped-decorator]
     def _update_preview(self, data: np.ndarray) -> None:
         """Show a single frame in the preview layer."""
         try:
