@@ -44,7 +44,7 @@ jobs:
             python-version: "3.13"
             backend: PySide6
             resolution: highest
-          - os: ubuntu-latest
+          - os: macos-latest
             python-version: "3.13"
             backend: PySide6
             resolution: lowest-direct
@@ -58,8 +58,6 @@ jobs:
           enable-cache: true
 
       - uses: pyvista/setup-headless-display-action@v4
-        with:
-          qt: true
 
       - name: Install dependencies
         run: uv sync --no-dev --group test --extra ${{ matrix.backend }}
