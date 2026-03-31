@@ -3,6 +3,9 @@
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+source = "vcs"
+
 # https://peps.python.org/pep-0621/
 [project]
 name = "napari-micromanager"
@@ -51,28 +54,6 @@ dependencies = [
 PyQt6 = ["PyQt6 >=6.4.2"]
 PySide6 = ["PySide6 >=6.9.0"]
 
-[project.urls]
-Source = "https://github.com/pymmcore-plus/napari-micromanager"
-Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
-# Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
-
-[project.scripts]
-napari-micromanager = "napari_micromanager.__main__:main"
-
-[project.entry-points."napari.manifest"]
-"napari-micromanager" = "napari_micromanager:napari.yaml"
-
-# https://hatch.pypa.io/latest/config/metadata/
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.targets.sdist]
-include = ["/src", "/tests"]
-
-[tool.hatch.build.targets.wheel]
-only-include = ["src"]
-sources = ["src"]
-
 [dependency-groups]
 test = [
     "pytest>=8.3.5",
@@ -91,10 +72,18 @@ dev = [
     "rich>=14.0.0",
     "ruff>=0.11.8",
 ]
-docs = [
-    "mkdocs-material>=9.6.12",
-    "mkdocstrings-python>=1.16.10",
-]
+docs = ["mkdocs-material>=9.6.12", "mkdocstrings-python>=1.16.10"]
+
+[project.urls]
+Source = "https://github.com/pymmcore-plus/napari-micromanager"
+Tracker = "https://github.com/pymmcore-plus/napari-micromanager/issues"
+# Documentation = "https://pymmcore-plus.github.io/napari-micromanager"
+
+[project.scripts]
+napari-micromanager = "napari_micromanager.__main__:main"
+
+[project.entry-points."napari.manifest"]
+"napari-micromanager" = "napari_micromanager:napari.yaml"
 
 [tool.uv.sources]
 napari-micromanager = { workspace = true }
