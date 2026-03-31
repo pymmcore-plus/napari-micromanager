@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           echo "CACHE_PATH=$(python -c 'from pymmcore_plus import install; print(install.USER_DATA_MM_PATH)')" >> $GITHUB_ENV
-          echo "CACHE_KEY=$(date +'%Y%m')" >> $GITHUB_ENV  # invalidate cache each month
+          echo "CACHE_KEY=$(date +'%Y%m')-v2" >> $GITHUB_ENV  # invalidate cache each month (bump suffix to force rebuild)
 
       - name: Cache Drivers
         id: cache-mm-build

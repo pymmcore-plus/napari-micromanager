@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import contextlib
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import napari
 import napari.layers
-from pymmcore_plus import CMMCorePlus
 from qtpy.QtCore import QObject, Qt, QTimerEvent
 from superqt.utils import ensure_main_thread
 
 from ._mda_handler import _NapariMDAHandler
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import napari.viewer
     import numpy as np
+    from pymmcore_plus import CMMCorePlus
     from pymmcore_plus.core.events._protocol import PSignalInstance
 
 
@@ -23,11 +25,11 @@ class CoreViewerLink(QObject):
     def __init__(
         self,
         viewer: napari.viewer.Viewer,
-        core: CMMCorePlus | None = None,
+        core: CMMCorePlus,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
-        self._mmc = core or CMMCorePlus.instance()
+        self._mmc = core
         self.viewer = viewer
         self._mda_handler = _NapariMDAHandler(self._mmc, viewer)
         self._live_timer_id: int | None = None
@@ -49,8 +51,13 @@ class CoreViewerLink(QObject):
             signal.connect(slot)
 
     def cleanup(self) -> None:
+        # Stop live acquisition if running
         self._stop_live()
         self._stop_mda_poll()
+        with contextlib.suppress(Exception):
+            if self._mmc.isSequenceRunning():
+                self._mmc.stopSequenceAcquisition()
+
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)

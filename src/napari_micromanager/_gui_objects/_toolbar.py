@@ -66,10 +66,12 @@ DOCK_WIDGETS: dict[str, tuple[type[QWidget], str | None]] = {
 class MicroManagerToolbar(QMainWindow):
     """Create a QToolBar for the Main Window."""
 
-    def __init__(self, viewer: napari.viewer.Viewer) -> None:
+    def __init__(
+        self, viewer: napari.viewer.Viewer, mmcore: CMMCorePlus | None = None
+    ) -> None:
         super().__init__()
 
-        self._mmc = CMMCorePlus.instance()
+        self._mmc = mmcore or CMMCorePlus.instance()
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
 
         # add variables to the napari console
@@ -102,15 +104,18 @@ class MicroManagerToolbar(QMainWindow):
 
         self._dock_widgets: dict[str, QDockWidget] = {}
         # add toolbar items
-        toolbar_items = [
-            ConfigToolBar(self),
-            ChannelsToolBar(self),
-            ObjectivesToolBar(self),
+        toolbar_items: list[MMToolBar | None] = [
+            ConfigToolBar(self, mmcore=self._mmc),
+            ChannelsToolBar(self, mmcore=self._mmc),
+            ObjectivesToolBar(self, mmcore=self._mmc),
             None,
-            ShuttersToolBar(self),
-            SnapLiveToolBar(self),
-            ExposureToolBar(self),
+            ShuttersToolBar(self, mmcore=self._mmc),
+            SnapLiveToolBar(self, mmcore=self._mmc),
+            ExposureToolBar(self, mmcore=self._mmc),
             ToolsToolBar(self),
+        ]
+        self._rebuildable_toolbars = [
+            t for t in toolbar_items if t is not None and hasattr(t, "rebuild")
         ]
         for item in toolbar_items:
             if item:
@@ -201,6 +206,19 @@ class MicroManagerToolbar(QMainWindow):
             dock_wdg = self._add_dock_widget(wdg, key, floating=floating, tabify=tabify)
             self._dock_widgets[key] = dock_wdg
 
+    def _rebuild_toolbars(self, mmcore: CMMCorePlus) -> None:
+        """Rebuild all toolbar sub-widgets with a new core instance."""
+        for toolbar in self._rebuildable_toolbars:
+            toolbar.rebuild(mmcore)
+
+    def _close_all_dock_widgets(self) -> None:
+        """Close and discard all cached dock widgets (they hold old core refs)."""
+        for dock_wdg in self._dock_widgets.values():
+            with contextlib.suppress(RuntimeError):
+                dock_wdg.close()
+                dock_wdg.deleteLater()
+        self._dock_widgets.clear()
+
     def _add_dock_widget(
         self, widget: QWidget, name: str, floating: bool = False, tabify: bool = False
     ) -> QDockWidget:
@@ -225,6 +243,15 @@ class MicroManagerToolbar(QMainWindow):
 # -------------- Toolbars --------------------
 
 
+def _clear_layout(layout: QHBoxLayout) -> None:
+    """Remove and delete all child widgets from a layout."""
+    while layout.count():
+        if item := layout.takeAt(0):
+            if wdg := item.widget():
+                wdg.setParent(None)
+                wdg.deleteLater()
+
+
 class MMToolBar(QToolBar):
     def __init__(self, title: str, parent: QWidget = None) -> None:
         super().__init__(title, parent)
@@ -242,50 +269,95 @@ class MMToolBar(QToolBar):
 
 
 class ConfigToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Configuration", parent)
-        self.addSubWidget(ConfigurationWidget())
+        self._mmc = mmcore
+        self._build()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+    def _build(self) -> None:
+        self.addSubWidget(ConfigurationWidget(mmcore=self._mmc))
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()
 
 
 class ObjectivesToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Objectives", parent=parent)
-        self._wdg = ObjectivesWidget()
+        self._mmc = mmcore
+        self._build()
+
+    def _build(self) -> None:
+        self._wdg = ObjectivesWidget(mmcore=self._mmc)
         self.addSubWidget(self._wdg)
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()
 
 
 class ChannelsToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Channels", parent)
+        self._mmc = mmcore
+        self._build()
+
+    def _build(self) -> None:
         self.addSubWidget(QLabel(text="Channel:"))
-        self.addSubWidget(ChannelGroupWidget())
-        self.addSubWidget(ChannelWidget())
+        self.addSubWidget(ChannelGroupWidget(mmcore=self._mmc))
+        self.addSubWidget(ChannelWidget(mmcore=self._mmc))
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()
 
 
 class ExposureToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Exposure", parent)
+        self._mmc = mmcore
+        self._build()
+
+    def _build(self) -> None:
         self.addSubWidget(QLabel(text="Exposure:"))
-        self.addSubWidget(DefaultCameraExposureWidget())
+        self.addSubWidget(DefaultCameraExposureWidget(mmcore=self._mmc))
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()
 
 
 class SnapLiveToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Snap Live", parent)
-        snap_btn = SnapButton()
+        self._mmc = mmcore
+        self._build()
+
+    def _build(self) -> None:
+        snap_btn = SnapButton(mmcore=self._mmc)
         snap_btn.setText("")
         snap_btn.setToolTip("Snap")
         snap_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.addSubWidget(snap_btn)
 
-        live_btn = LiveButton()
+        live_btn = LiveButton(mmcore=self._mmc)
         live_btn.setText("")
         live_btn.setToolTip("Live Mode")
         live_btn.button_text_off = ""
         live_btn.button_text_on = ""
         live_btn.setFixedSize(TOOL_SIZE, TOOL_SIZE)
         self.addSubWidget(live_btn)
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()
 
 
 class ToolsToolBar(MMToolBar):
@@ -328,6 +400,15 @@ class ToolsToolBar(MMToolBar):
 
 
 class ShuttersToolBar(MMToolBar):
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, *, mmcore: CMMCorePlus) -> None:
         super().__init__("Shutters", parent)
-        self.addSubWidget(MMShuttersWidget())
+        self._mmc = mmcore
+        self._build()
+
+    def _build(self) -> None:
+        self.addSubWidget(MMShuttersWidget(mmcore=self._mmc))
+
+    def rebuild(self, mmcore: CMMCorePlus) -> None:
+        self._mmc = mmcore
+        _clear_layout(cast("QHBoxLayout", self.frame.layout()))
+        self._build()

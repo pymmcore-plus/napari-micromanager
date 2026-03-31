@@ -14,6 +14,7 @@ license = { text = "BSD 3-Clause License" }
 authors = [
     { name = "Federico Gasparoli", email = "federico.gasparoli@gmail.com" },
     { name = "Talley Lambert", email = "talley.lambert@gmail.com" },
+    { name = "Lucien Hinderling", email = "lucien.hinderling@gmail.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -75,7 +76,7 @@ include = ["/src", "/tests"]
 # https://beta.ruff.rs/docs/rules/
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }

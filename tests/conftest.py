@@ -6,11 +6,14 @@ import weakref
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
 
 import napari
 import pytest
 import useq
 from pymmcore_plus import CMMCorePlus
+from pymmcore_plus.experimental.unicore import UniMMCore
+from pymmcore_plus.experimental.unicore.core import _unicore
 
 from napari_micromanager._util import NMM_METADATA_KEY
 from napari_micromanager.main_window import MainWindow
@@ -22,10 +25,25 @@ if TYPE_CHECKING:
 logging.getLogger("ipykernel.inprocess.ipkernel").setLevel(logging.ERROR)
 
 
-# to create a new CMMCorePlus() for every test
-@pytest.fixture
-def core(monkeypatch: pytest.MonkeyPatch) -> CMMCorePlus:
-    new_core = CMMCorePlus()
+@pytest.fixture(autouse=True)
+def _smaller_default_buffer() -> Iterator[None]:
+    """Reduce UniMMCore's default 1GB sequence buffer to avoid OOM on Windows CI."""
+    with patch.object(_unicore, "_DEFAULT_BUFFER_SIZE_MB", 100):
+        yield
+
+
+_CORE_PARAMS = [
+    pytest.param(CMMCorePlus, id="CMMCorePlus"),
+    pytest.param(UniMMCore, id="UniMMCore"),
+]
+
+
+# to create a new CMMCorePlus/UniMMCore for every test
+@pytest.fixture(params=_CORE_PARAMS)
+def core(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> CMMCorePlus:
+    new_core = request.param()
     config_path = str(Path(__file__).parent / "test_config.cfg")
     new_core.loadSystemConfiguration(config_path)
     monkeypatch.setattr(
@@ -45,11 +63,12 @@ def napari_viewer(qapp: Any) -> Iterator[napari.Viewer]:
 @pytest.fixture
 def main_window(core: CMMCorePlus, napari_viewer: napari.Viewer) -> MainWindow:
     win = MainWindow(viewer=napari_viewer)
+    napari_viewer.window.add_dock_widget(win, name="MainWindow")
     assert core == win._mmc
     return win
 
 
-TIME_PLANS = (None, useq.TIntervalLoops(loops=3, interval=0.250))
+TIME_PLANS = (None, useq.TIntervalLoops(loops=3, interval=0))
 Z_PLANS = (None, useq.ZRangeAround(range=3, step=0.5))
 CHANNEL_PLANS = (
     (useq.Channel(config="DAPI", exposure=5),),

@@ -5,7 +5,7 @@ import tempfile
 import threading
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, cast
 
 import napari
 import zarr
@@ -14,6 +14,7 @@ from superqt.utils import ensure_main_thread
 from ._util import NMM_METADATA_KEY, PYMMCW_METADATA_KEY, get_full_sequence_axes
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from uuid import UUID
 
     import napari.viewer

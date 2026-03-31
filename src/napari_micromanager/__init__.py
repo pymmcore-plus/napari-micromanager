@@ -12,6 +12,6 @@ except PackageNotFoundError:
 # https://github.com/micro-manager/pymmcore/issues/119
 import pymmcore  # noqa: F401
 
-from .main_window import MainWindow
+from .main_window import MainWindow, get_core, get_main_window
 
-__all__ = ["MainWindow", "__version__"]
+__all__ = ["MainWindow", "__version__", "get_core", "get_main_window"]
