@@ -144,6 +144,7 @@ filterwarnings = [
     "ignore:Pickle, copy, and deepcopy::copy",                                # via napari -> pydantic/v1
     "ignore:PixelSizeWidget is deprecated.*:DeprecationWarning",
     "ignore:`json_encoders` is deprecated.*:DeprecationWarning",
+    "ignore:Failed to disconnect:RuntimeWarning:",
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
