@@ -70,7 +70,7 @@ jobs:
           PYTEST_ADDOPTS: ${{ matrix.resolution == 'lowest-direct' && '-W ignore' || '' }}
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: covreport-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.backend }}-${{ matrix.resolution }}
           path: ./.coverage*
