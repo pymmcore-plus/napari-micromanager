@@ -48,9 +48,13 @@ from napari_micromanager._gui_objects._stages_widget import MMStagesWidget
 if TYPE_CHECKING:
     import napari.viewer
 
-# Opt out of napari-console's `_capture()` — without this, creating the console
-# below would push this module's frame (including `self`) into the IPython
-# user_ns, pinning MainWindow for the process lifetime.
+# Opt out of napari-console's `_capture()`. This is an un/mis-documented API
+# in `napari_console.qt_console`: the napari-console README says to set an
+# environment variable `NAPARI_EMBED=1`, but the actual check in
+# `QtConsole._capture` looks for `NAPARI_EMBED` in the calling frame's module
+# globals. Without this opt-out, creating the console below would push this
+# module's frame (including the `self` local of `MicroManagerToolbar.__init__`)
+# into the IPython user_ns, pinning MainWindow for the process lifetime.
 NAPARI_EMBED = True
 
 TOOL_SIZE = 35
