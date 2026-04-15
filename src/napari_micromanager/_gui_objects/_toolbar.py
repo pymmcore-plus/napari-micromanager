@@ -48,6 +48,11 @@ from napari_micromanager._gui_objects._stages_widget import MMStagesWidget
 if TYPE_CHECKING:
     import napari.viewer
 
+# Opt out of napari-console's `_capture()` — without this, creating the console
+# below would push this module's frame (including `self`) into the IPython
+# user_ns, pinning MainWindow for the process lifetime.
+NAPARI_EMBED = True
+
 TOOL_SIZE = 35
 
 

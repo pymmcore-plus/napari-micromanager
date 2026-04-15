@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 import logging
+import weakref
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
@@ -91,9 +92,32 @@ class MainWindow(MicroManagerToolbar):
         if "MinMax" not in getattr(self.viewer.window, "dock_widgets", []):
             self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
-        # queue cleanup
-        self.destroyed.connect(self._cleanup)
-        atexit.register(self._cleanup)
+        # Weakref indirection: a bound-method callback here would make the
+        # registration itself pin `self`, so `destroyed`/`atexit` never fire.
+        self_ref = weakref.ref(self)
+
+        def _weak_cleanup(*_: object) -> None:
+            inst = self_ref()
+            if inst is not None:
+                inst._cleanup()
+
+        self._weak_cleanup = _weak_cleanup
+
+        # Proactive: fires while the viewer is still alive, so signals can
+        # actually be disconnected. `self.destroyed` and `atexit` are fallbacks.
+        qt_window = getattr(self.viewer.window, "_qt_window", None)
+        if qt_window is None:
+            warn(
+                "napari viewer has no `_qt_window`; eager cleanup on window "
+                "close is disabled and device handles may leak until process "
+                "exit.",
+                stacklevel=2,
+            )
+        else:
+            qt_window.destroyed.connect(_weak_cleanup)
+
+        self.destroyed.connect(_weak_cleanup)
+        atexit.register(_weak_cleanup)
 
         if config is not None:
             try:
@@ -181,13 +205,18 @@ class MainWindow(MicroManagerToolbar):
             delattr(core, self._ORIGINAL_LOAD_ATTR)
 
     def _cleanup(self) -> None:
+        if getattr(self, "_cleaned_up", False):
+            return
+        self._cleaned_up = True
         self._unwrap_load_system_configuration(self._mmc)
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)
+        # Break the self._connections → tuple → bound method → self cycle.
+        self._connections.clear()
         # Clean up temporary files we opened.
         self._core_link.cleanup()
-        atexit.unregister(self._cleanup)  # doesn't raise if not connected
+        atexit.unregister(self._weak_cleanup)
 
     def _update_max_min(self, *_: Any) -> None:
         visible = (x for x in self.viewer.layers.selection if x.visible)
