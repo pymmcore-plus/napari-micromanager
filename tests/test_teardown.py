@@ -48,8 +48,7 @@ def test_main_window_released_after_viewer_close(
     if surviving is not None:
         # help diagnose: show what's holding it alive
         referrers = [
-            f"{type(r).__name__}: {repr(r)[:160]}"
-            for r in gc.get_referrers(surviving)
+            f"{type(r).__name__}: {repr(r)[:160]}" for r in gc.get_referrers(surviving)
         ]
         raise AssertionError(
             "MainWindow was not released after viewer.close(). Its child "
