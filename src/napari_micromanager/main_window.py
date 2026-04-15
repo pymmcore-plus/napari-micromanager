@@ -214,8 +214,12 @@ class MainWindow(MicroManagerToolbar):
                 signal.disconnect(slot)
         # Break the self._connections → tuple → bound method → self cycle.
         self._connections.clear()
-        # Clean up temporary files we opened.
-        self._core_link.cleanup()
+        # `_core_link.cleanup()` issues `stopSequenceAcquisition()` to the
+        # camera adapter. If the device is unresponsive this can raise (or
+        # block); don't let that abort the rest of teardown, including
+        # atexit-unregister.
+        with contextlib.suppress(Exception):
+            self._core_link.cleanup()
         atexit.unregister(self._weak_cleanup)
 
     def _update_max_min(self, *_: Any) -> None:
