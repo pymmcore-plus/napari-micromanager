@@ -103,8 +103,8 @@ class MainWindow(MicroManagerToolbar):
 
         self._weak_cleanup = _weak_cleanup
 
-        # Proactive: fires while the viewer is still alive, so signals can
-        # actually be disconnected. `self.destroyed` and `atexit` are fallbacks.
+        # Proactive trigger: fires when the user closes the napari window,
+        # while the viewer is still alive enough to disconnect signals.
         qt_window = getattr(self.viewer.window, "_qt_window", None)
         if qt_window is None:
             warn(
@@ -116,7 +116,8 @@ class MainWindow(MicroManagerToolbar):
         else:
             qt_window.destroyed.connect(_weak_cleanup)
 
-        self.destroyed.connect(_weak_cleanup)
+        # Fallback for process exit without a window close (e.g. script ends
+        # before the user closes the viewer).
         atexit.register(_weak_cleanup)
 
         if config is not None:
