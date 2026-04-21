@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 import logging
+import weakref
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
@@ -74,9 +75,10 @@ class MainWindow(MicroManagerToolbar):
         self,
         viewer: napari.viewer.Viewer,
         config: str | Path | None = None,
+        mmcore: CMMCorePlus | None = None,
     ) -> None:
-        super().__init__(viewer)
-        self.set_core(self._mmc)
+        super().__init__(viewer, mmcore=mmcore)
+        self.set_core(self._mmc, owns=self._owns_core)
 
         # some remaining connections related to widgets ... TODO: unify with superclass
         self._connections: list[tuple[PSignalInstance, Callable]] = [
@@ -91,9 +93,33 @@ class MainWindow(MicroManagerToolbar):
         if "MinMax" not in getattr(self.viewer.window, "dock_widgets", []):
             self.viewer.window.add_dock_widget(self.minmax, name="MinMax", area="left")
 
-        # queue cleanup
-        self.destroyed.connect(self._cleanup)
-        atexit.register(self._cleanup)
+        # Weakref indirection: a bound-method callback here would make the
+        # registration itself pin `self`, so `destroyed`/`atexit` never fire.
+        self_ref = weakref.ref(self)
+
+        def _weak_cleanup(*_: object) -> None:
+            inst = self_ref()
+            if inst is not None:
+                inst._cleanup()
+
+        self._weak_cleanup = _weak_cleanup
+
+        # Proactive trigger: fires when the user closes the napari window,
+        # while the viewer is still alive enough to disconnect signals.
+        qt_window = getattr(self.viewer.window, "_qt_window", None)
+        if qt_window is None:
+            warn(
+                "napari viewer has no `_qt_window`; eager cleanup on window "
+                "close is disabled and device handles may leak until process "
+                "exit.",
+                stacklevel=2,
+            )
+        else:
+            qt_window.destroyed.connect(_weak_cleanup)
+
+        # Fallback for process exit without a window close (e.g. script ends
+        # before the user closes the viewer).
+        atexit.register(_weak_cleanup)
 
         if config is not None:
             try:
@@ -107,9 +133,24 @@ class MainWindow(MicroManagerToolbar):
         """The CMMCorePlus instance currently used by this window."""
         return self._mmc
 
-    def set_core(self, core: CMMCorePlus) -> None:
-        """Install *core*, tearing down the previous one if present."""
+    def set_core(self, core: CMMCorePlus, owns: bool = False) -> None:
+        """Install *core*, tearing down the previous one if present.
+
+        Parameters
+        ----------
+        core : CMMCorePlus
+            The core to install.
+        owns : bool, default False
+            Whether the plugin takes ownership of *core*. When True, the
+            plugin is responsible for its lifecycle: on viewer close (and
+            on the next ``set_core`` swap) it will cancel any running MDA
+            and unload all devices. When False, the plugin will not cancel
+            MDAs or unload devices on *core* — use this when the caller
+            retains its own reference and manages the core's lifecycle
+            itself.
+        """
         old_link = getattr(self, "_core_link", None)
+        old_owns = getattr(self, "_owns_core", False)
 
         # Guard: refuse if MDA is running
         if old_link is not None and old_link._mda_handler._mda_running:
@@ -118,12 +159,13 @@ class MainWindow(MicroManagerToolbar):
         # Tear down old core (if any)
         if old_link is not None:
             self._unwrap_load_system_configuration(self._mmc)
-            old_link.cleanup()
+            old_link.cleanup(owns=old_owns)
             old_link.setParent(None)
             old_link.deleteLater()
 
         # Install new core
         self._mmc = core
+        self._owns_core = owns
         self._core_link = CoreViewerLink(self.viewer, self._mmc, self)
         self._wrap_load_system_configuration(self._mmc)
 
@@ -162,11 +204,11 @@ class MainWindow(MicroManagerToolbar):
             is_unicore = isinstance(win._mmc, UniMMCore)
 
             if needs_unicore and not is_unicore:
-                win.set_core(UniMMCore())
+                win.set_core(UniMMCore(), owns=True)
                 win._mmc.loadSystemConfiguration(path)
                 return
             if not needs_unicore and is_unicore:
-                win.set_core(CMMCorePlus())
+                win.set_core(CMMCorePlus(), owns=True)
                 win._mmc.loadSystemConfiguration(path)
                 return
 
@@ -181,13 +223,22 @@ class MainWindow(MicroManagerToolbar):
             delattr(core, self._ORIGINAL_LOAD_ATTR)
 
     def _cleanup(self) -> None:
+        if getattr(self, "_cleaned_up", False):
+            return
+        self._cleaned_up = True
         self._unwrap_load_system_configuration(self._mmc)
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)
-        # Clean up temporary files we opened.
-        self._core_link.cleanup()
-        atexit.unregister(self._cleanup)  # doesn't raise if not connected
+        # Break the self._connections → tuple → bound method → self cycle.
+        self._connections.clear()
+        # `_core_link.cleanup()` issues `stopSequenceAcquisition()` to the
+        # camera adapter. If the device is unresponsive this can raise (or
+        # block); don't let that abort the rest of teardown, including
+        # atexit-unregister.
+        with contextlib.suppress(Exception):
+            self._core_link.cleanup(owns=self._owns_core)
+        atexit.unregister(self._weak_cleanup)
 
     def _update_max_min(self, *_: Any) -> None:
         visible = (x for x in self.viewer.layers.selection if x.visible)

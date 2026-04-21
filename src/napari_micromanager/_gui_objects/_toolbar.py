@@ -48,6 +48,15 @@ from napari_micromanager._gui_objects._stages_widget import MMStagesWidget
 if TYPE_CHECKING:
     import napari.viewer
 
+# Opt out of napari-console's `_capture()`. This is an un/mis-documented API
+# in `napari_console.qt_console`: the napari-console README says to set an
+# environment variable `NAPARI_EMBED=1`, but the actual check in
+# `QtConsole._capture` looks for `NAPARI_EMBED` in the calling frame's module
+# globals. Without this opt-out, creating the console below would push this
+# module's frame (including the `self` local of `MicroManagerToolbar.__init__`)
+# into the IPython user_ns, pinning MainWindow for the process lifetime.
+NAPARI_EMBED = True
+
 TOOL_SIZE = 35
 
 
@@ -71,7 +80,19 @@ class MicroManagerToolbar(QMainWindow):
     ) -> None:
         super().__init__()
 
-        self._mmc = mmcore or CMMCorePlus.instance()
+        # If no core is passed in, the plugin creates its own fresh core and
+        # takes responsibility for its lifecycle (cancel MDAs, unload devices
+        # on close). Deliberately avoid `CMMCorePlus.instance()` — that would
+        # silently adopt a singleton the plugin didn't create, making
+        # ownership ambiguous. To have the plugin drive an existing core
+        # without taking ownership, pass it as `mmcore=`; the plugin will
+        # leave its lifecycle to the caller.
+        if mmcore is None:
+            self._mmc = CMMCorePlus()
+            self._owns_core = True
+        else:
+            self._mmc = mmcore
+            self._owns_core = False
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
 
         # add variables to the napari console

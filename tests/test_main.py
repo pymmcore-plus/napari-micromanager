@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from pymmcore_plus import CMMCorePlus
 
+from napari_micromanager import get_core
 from napari_micromanager.__main__ import main
 
 
@@ -31,7 +31,7 @@ def test_cli_main(argv: list) -> None:
     mock_show.assert_called_once()
 
     if argv and "test_config" in argv[-1]:
-        assert len(CMMCorePlus.instance().getLoadedDevices()) > 1
+        assert len(get_core().getLoadedDevices()) > 1
 
     # this is to prevent a leaked widget error in the NEXT test
     napari.current_viewer().close()

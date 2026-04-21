@@ -22,7 +22,7 @@ CONFIG = str(Path(__file__).parent / "test_config.cfg")
 @pytest.fixture
 def mock_main_window(qtbot: QtBot, core: CMMCorePlus) -> MainWindow:
     viewer = MagicMock()
-    win = MainWindow(viewer)
+    win = MainWindow(viewer, mmcore=core)
     qtbot.addWidget(win)
     return win
 
@@ -99,7 +99,7 @@ def test_set_core_snap_uses_new_core(
         "pymmcore_plus.core._mmcore_plus._instance", weakref.ref(old_core)
     )
 
-    win = MainWindow(viewer=napari_viewer)
+    win = MainWindow(viewer=napari_viewer, mmcore=old_core)
     qtbot.addWidget(win)
     assert win._mmc is old_core
 
@@ -141,7 +141,7 @@ def test_set_core_during_live_mode(
         "pymmcore_plus.core._mmcore_plus._instance", weakref.ref(old_core)
     )
 
-    win = MainWindow(viewer=napari_viewer)
+    win = MainWindow(viewer=napari_viewer, mmcore=old_core)
     qtbot.addWidget(win)
     old_link = win._core_link
 
@@ -244,7 +244,7 @@ def test_auto_detect_py_cfg_swaps_to_unicore(
     )
 
     viewer = MagicMock()
-    win = MainWindow(viewer)
+    win = MainWindow(viewer, mmcore=initial)
     qtbot.addWidget(win)
     assert isinstance(win._mmc, CMMCorePlus)
     assert not isinstance(win._mmc, UniMMCore)
@@ -270,7 +270,7 @@ def test_auto_detect_standard_cfg_swaps_to_mmcore(
     )
 
     viewer = MagicMock()
-    win = MainWindow(viewer)
+    win = MainWindow(viewer, mmcore=initial)
     qtbot.addWidget(win)
     assert isinstance(win._mmc, UniMMCore)
 
@@ -290,7 +290,7 @@ def test_auto_detect_no_swap_when_correct(
     )
 
     viewer = MagicMock()
-    win = MainWindow(viewer)
+    win = MainWindow(viewer, mmcore=initial)
     qtbot.addWidget(win)
     assert isinstance(win._mmc, UniMMCore)
 
@@ -316,7 +316,7 @@ def test_auto_detect_file_not_found(
     )
 
     viewer = MagicMock()
-    win = MainWindow(viewer)
+    win = MainWindow(viewer, mmcore=initial)
     qtbot.addWidget(win)
 
     with pytest.raises(FileNotFoundError):
