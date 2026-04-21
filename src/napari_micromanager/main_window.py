@@ -75,9 +75,10 @@ class MainWindow(MicroManagerToolbar):
         self,
         viewer: napari.viewer.Viewer,
         config: str | Path | None = None,
+        mmcore: CMMCorePlus | None = None,
     ) -> None:
-        super().__init__(viewer)
-        self.set_core(self._mmc)
+        super().__init__(viewer, mmcore=mmcore)
+        self.set_core(self._mmc, owns=self._owns_core)
 
         # some remaining connections related to widgets ... TODO: unify with superclass
         self._connections: list[tuple[PSignalInstance, Callable]] = [
@@ -132,9 +133,24 @@ class MainWindow(MicroManagerToolbar):
         """The CMMCorePlus instance currently used by this window."""
         return self._mmc
 
-    def set_core(self, core: CMMCorePlus) -> None:
-        """Install *core*, tearing down the previous one if present."""
+    def set_core(self, core: CMMCorePlus, owns: bool = False) -> None:
+        """Install *core*, tearing down the previous one if present.
+
+        Parameters
+        ----------
+        core : CMMCorePlus
+            The core to install.
+        owns : bool, default False
+            Whether the plugin takes ownership of *core*. When True, the
+            plugin is responsible for its lifecycle: on viewer close (and
+            on the next ``set_core`` swap) it will cancel any running MDA
+            and unload all devices. When False, the plugin will not cancel
+            MDAs or unload devices on *core* — use this when the caller
+            retains its own reference and manages the core's lifecycle
+            itself.
+        """
         old_link = getattr(self, "_core_link", None)
+        old_owns = getattr(self, "_owns_core", False)
 
         # Guard: refuse if MDA is running
         if old_link is not None and old_link._mda_handler._mda_running:
@@ -143,12 +159,13 @@ class MainWindow(MicroManagerToolbar):
         # Tear down old core (if any)
         if old_link is not None:
             self._unwrap_load_system_configuration(self._mmc)
-            old_link.cleanup()
+            old_link.cleanup(owns=old_owns)
             old_link.setParent(None)
             old_link.deleteLater()
 
         # Install new core
         self._mmc = core
+        self._owns_core = owns
         self._core_link = CoreViewerLink(self.viewer, self._mmc, self)
         self._wrap_load_system_configuration(self._mmc)
 
@@ -187,11 +204,11 @@ class MainWindow(MicroManagerToolbar):
             is_unicore = isinstance(win._mmc, UniMMCore)
 
             if needs_unicore and not is_unicore:
-                win.set_core(UniMMCore())
+                win.set_core(UniMMCore(), owns=True)
                 win._mmc.loadSystemConfiguration(path)
                 return
             if not needs_unicore and is_unicore:
-                win.set_core(CMMCorePlus())
+                win.set_core(CMMCorePlus(), owns=True)
                 win._mmc.loadSystemConfiguration(path)
                 return
 
@@ -220,7 +237,7 @@ class MainWindow(MicroManagerToolbar):
         # block); don't let that abort the rest of teardown, including
         # atexit-unregister.
         with contextlib.suppress(Exception):
-            self._core_link.cleanup()
+            self._core_link.cleanup(owns=self._owns_core)
         atexit.unregister(self._weak_cleanup)
 
     def _update_max_min(self, *_: Any) -> None:

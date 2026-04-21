@@ -50,13 +50,29 @@ class CoreViewerLink(QObject):
         for signal, slot in self._connections:
             signal.connect(slot)
 
-    def cleanup(self) -> None:
-        # Stop live acquisition if running
+    def cleanup(self, owns: bool = False) -> None:
+        """Stop viewer-side activity and, when owned, tear down the core.
+
+        Parameters
+        ----------
+        owns : bool, default False
+            Whether the plugin owns the core. When True, also cancel the
+            running MDA (if any) and unload all devices. When False, leave
+            the core's MDA and devices alone — the owner is still using it.
+        """
         self._stop_live()
         self._stop_mda_poll()
         with contextlib.suppress(Exception):
-            if self._mmc.isSequenceRunning():
-                self._mmc.stopSequenceAcquisition()
+            self._mmc.stopSequenceAcquisition()
+        # MDA cancel: the runner spawns a non-daemon thread that would
+        # otherwise block interpreter shutdown and keep exclusive device
+        # handles bound. unloadAllDevices: release devices immediately
+        # rather than waiting for a non-deterministic GC of the core.
+        if owns:
+            with contextlib.suppress(Exception):
+                self._mmc.mda.cancel()
+            with contextlib.suppress(Exception):
+                self._mmc.unloadAllDevices()
 
         for signal, slot in self._connections:
             with contextlib.suppress(TypeError, RuntimeError):

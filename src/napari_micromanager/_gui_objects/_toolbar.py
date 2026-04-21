@@ -80,7 +80,19 @@ class MicroManagerToolbar(QMainWindow):
     ) -> None:
         super().__init__()
 
-        self._mmc = mmcore or CMMCorePlus.instance()
+        # If no core is passed in, the plugin creates its own fresh core and
+        # takes responsibility for its lifecycle (cancel MDAs, unload devices
+        # on close). Deliberately avoid `CMMCorePlus.instance()` — that would
+        # silently adopt a singleton the plugin didn't create, making
+        # ownership ambiguous. To have the plugin drive an existing core
+        # without taking ownership, pass it as `mmcore=`; the plugin will
+        # leave its lifecycle to the caller.
+        if mmcore is None:
+            self._mmc = CMMCorePlus()
+            self._owns_core = True
+        else:
+            self._mmc = mmcore
+            self._owns_core = False
         self.viewer: napari.viewer.Viewer = getattr(viewer, "__wrapped__", viewer)
 
         # add variables to the napari console
