@@ -85,14 +85,18 @@ class CoreViewerLink(QObject):
             handler._update_viewer_dims(handler._viewer_updates.popleft())
 
     def _image_snapped(self) -> None:
-        # Query the runner directly: _mda_handler._mda_running is set on the
-        # main thread inside _on_mda_started, which on the very first MDA
-        # event can run *after* the worker thread has already called
-        # snapImage(). In that race window this handler would consume the
-        # snap buffer before the engine's getImage(), causing the engine to
-        # raise "Camera image buffer read failed". mmc.mda.is_running()
-        # reflects the runner state immediately, without a queued-signal lag.
-        if not self._mmc.mda.is_running():
+        # Two layers gate the preview update during MDA:
+        # - mmc.mda.is_running() is set synchronously by the runner and
+        #   covers the start race where _on_mda_started's queued main-thread
+        #   handler hasn't yet set _mda_running True.
+        # - _mda_handler._mda_running is the latched flag cleared on the
+        #   main thread by _on_mda_finished; it covers the symmetric end
+        #   race where the runner has already cleared _running and emitted
+        #   sequenceFinished but a trailing imageSnapped slot is still
+        #   pending.
+        if not (
+            self._mmc.mda.is_running() or self._mda_handler._mda_running
+        ):
             self._update_viewer(self._mmc.getImage())
 
     def _start_live(self) -> None:
