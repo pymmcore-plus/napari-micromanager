@@ -94,9 +94,7 @@ class CoreViewerLink(QObject):
         #   race where the runner has already cleared _running and emitted
         #   sequenceFinished but a trailing imageSnapped slot is still
         #   pending.
-        if not (
-            self._mmc.mda.is_running() or self._mda_handler._mda_running
-        ):
+        if not (self._mmc.mda.is_running() or self._mda_handler._mda_running):
             self._update_viewer(self._mmc.getImage())
 
     def _start_live(self) -> None:
