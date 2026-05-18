@@ -228,7 +228,7 @@ class MainWindow(MicroManagerToolbar):
         self._cleaned_up = True
         self._unwrap_load_system_configuration(self._mmc)
         for signal, slot in self._connections:
-            with contextlib.suppress(TypeError, RuntimeError):
+            with contextlib.suppress(Exception):
                 signal.disconnect(slot)
         # Break the self._connections → tuple → bound method → self cycle.
         self._connections.clear()

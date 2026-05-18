@@ -75,7 +75,7 @@ class CoreViewerLink(QObject):
                 self._mmc.unloadAllDevices()
 
         for signal, slot in self._connections:
-            with contextlib.suppress(TypeError, RuntimeError):
+            with contextlib.suppress(Exception):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         self._mda_handler._cleanup()
@@ -101,8 +101,16 @@ class CoreViewerLink(QObject):
             handler._update_viewer_dims(handler._viewer_updates.popleft())
 
     def _image_snapped(self) -> None:
-        # If we are in the middle of an MDA, don't update the preview viewer.
-        if not self._mda_handler._mda_running:
+        # Two layers gate the preview update during MDA:
+        # - mmc.mda.is_running() is set synchronously by the runner and
+        #   covers the start race where _on_mda_started's queued main-thread
+        #   handler hasn't yet set _mda_running True.
+        # - _mda_handler._mda_running is the latched flag cleared on the
+        #   main thread by _on_mda_finished; it covers the symmetric end
+        #   race where the runner has already cleared _running and emitted
+        #   sequenceFinished but a trailing imageSnapped slot is still
+        #   pending.
+        if not (self._mmc.mda.is_running() or self._mda_handler._mda_running):
             self._update_viewer(self._mmc.getImage())
 
     def _start_live(self) -> None:
