@@ -59,7 +59,7 @@ class CoreViewerLink(QObject):
                 self._mmc.stopSequenceAcquisition()
 
         for signal, slot in self._connections:
-            with contextlib.suppress(TypeError, RuntimeError):
+            with contextlib.suppress(TypeError, RuntimeError, SystemError):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         self._mda_handler._cleanup()

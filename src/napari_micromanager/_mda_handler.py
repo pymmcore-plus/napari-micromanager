@@ -83,7 +83,7 @@ class _NapariMDAHandler:
     def _cleanup(self) -> None:
         self._mda_running = False  # stops the worker thread loop
         for signal, slot in self._connections:
-            with contextlib.suppress(TypeError, RuntimeError):
+            with contextlib.suppress(TypeError, RuntimeError, SystemError):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         for z, v in self._tmp_arrays.values():
