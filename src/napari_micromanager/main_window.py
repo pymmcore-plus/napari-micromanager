@@ -183,7 +183,7 @@ class MainWindow(MicroManagerToolbar):
     def _cleanup(self) -> None:
         self._unwrap_load_system_configuration(self._mmc)
         for signal, slot in self._connections:
-            with contextlib.suppress(TypeError, RuntimeError, SystemError):
+            with contextlib.suppress(Exception):
                 signal.disconnect(slot)
         # Clean up temporary files we opened.
         self._core_link.cleanup()
