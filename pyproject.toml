@@ -47,7 +47,7 @@ dependencies = [
     "superqt >=0.5.1",
     "tifffile >=2023.2.3",
     "useq-schema >=0.4.1",
-    "zarr >=2.18,<3",
+    "zarr >=2.18",
 ]
 
 [project.optional-dependencies]
