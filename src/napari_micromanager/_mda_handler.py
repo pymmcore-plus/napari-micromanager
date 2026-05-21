@@ -157,7 +157,8 @@ class _NapariMDAHandler:
         while self._mda_running:
             if self._deck:
                 result = self._process_frame(*self._deck.pop())
-                self._viewer_updates.append(result)
+                if result != (None, None):
+                    self._viewer_updates.append(result)
             else:
                 time.sleep(0.1)
 
@@ -184,6 +185,8 @@ class _NapariMDAHandler:
         _id, im_idx, layer_name = _id_idx_layer(event)
 
         # update the zarr array backing the layer
+        if _id not in self._tmp_arrays:
+            return None, None  # GeneratorMDASequence: no zarr pre-allocated
         self._tmp_arrays[_id][0][im_idx] = image
 
         # move the viewer step to the most recently added image
@@ -198,6 +201,9 @@ class _NapariMDAHandler:
     ) -> None:
         """Update the viewer dims to match the current image."""
         layer_name, im_idx = args
+
+        if layer_name is None:
+            return
 
         layer: Image = self.viewer.layers[layer_name]
         if not layer.visible:
